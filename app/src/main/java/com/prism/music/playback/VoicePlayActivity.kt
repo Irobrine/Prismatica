@@ -21,7 +21,7 @@ import androidx.media3.session.SessionToken
 class VoicePlayActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val query = intent?.getStringExtra(SearchManager.QUERY)?.trim().orEmpty()
+        val query = intent?.getStringExtra(SearchManager.QUERY)?.trim()?.take(200).orEmpty()
         val extras = VoiceSearch.extrasOf(intent?.extras)
         val app = applicationContext
         val future = MediaController.Builder(app, SessionToken(app, ComponentName(app, PlaybackServices.target(app)))).buildAsync()

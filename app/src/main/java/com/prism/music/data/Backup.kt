@@ -14,7 +14,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
+import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -43,6 +47,29 @@ private data class BackupManifest(
     val parts: List<String>? = null,
     /** "Bring your Prism" (1.8.0): a phone's listening for a TV, merged in there, never restored as a backup. */
     val bring: Boolean = false,
+    /**
+     * 1 when [INTEGRITY] lists a SHA-256 for every entry (and the manifest). 0 in backups made before it, which
+     * restore without it. Only tells corruption and a cut-short file apart from a whole one: a backup is not signed,
+     * so it can't prove where it came from.
+     */
+    val integrity: Int = 0,
+)
+
+/** The trailing entry that says every other entry is whole: [entries] by name, and the manifest's own hash. */
+@Serializable
+private data class BackupIntegrity(
+    val version: Int = 1,
+    val entries: Map<String, String> = emptyMap(),
+    val manifest: String = "",
+)
+
+/** What an apply is moving, written before the first move so an interrupted one can be put back. */
+@Serializable
+private data class RestoreJournal(
+    /** Paths (under the app's data folder) the backup replaces, each kept in [RESTORE_OLD] until it's all in. */
+    val old: List<String> = emptyList(),
+    /** Paths the backup puts there; a failed apply takes these out again. */
+    val new: List<String> = emptyList(),
 )
 
 /**
@@ -62,8 +89,10 @@ class Backup(private val c: AppContainer) {
      */
     private fun fromPrism(m: BackupManifest) = m.app.isNotBlank()
 
-    /** Writes a backup of [parts] to [uri]. */
-    suspend fun export(uri: Uri, parts: Set<BackupPart>) = withContext(Dispatchers.IO) {
+    /** Writes a backup of [parts] to [uri]; [password] seals the whole file, names included. */
+    suspend fun export(uri: Uri, parts: Set<BackupPart>, password: CharArray? = null) = withContext(Dispatchers.IO) {
+        // A backup that carries the sign-in is never left in the clear, whatever the caller passed.
+        if (BackupPart.ACCOUNTS in parts && (password == null || password.isEmpty())) error(tr(R.string.backup_accounts_need_password))
         // Fold Room's write-ahead log into the main file so the copy is complete.
         runCatching { c.db.query(androidx.sqlite.db.SimpleSQLiteQuery("PRAGMA wal_checkpoint(FULL)")).close() }
         val withDownloads = BackupPart.DOWNLOADS in parts
@@ -72,31 +101,57 @@ class Backup(private val c: AppContainer) {
             createdAt = System.currentTimeMillis(), withDownloads = withDownloads,
             downloads = if (BackupPart.LIBRARY in parts || withDownloads) c.downloads.completedSongs() else emptyList(),
             parts = parts.map { it.name },
+            integrity = 1,
         )
         val settings = c.settings.forBackup(settings = BackupPart.SETTINGS in parts, accounts = BackupPart.ACCOUNTS in parts)
         val out = ctx.contentResolver.openOutputStream(uri, "wt") ?: error(tr(R.string.couldn_t_open_that_file))
-        ZipOutputStream(out.buffered()).use { zip ->
+        val manifestBytes = InnerTube.json.encodeToString(BackupManifest.serializer(), manifest).toByteArray()
+        // Every entry written after the manifest, so a restore can tell a whole file from a cut-short or altered one.
+        val sums = LinkedHashMap<String, String>()
+        val sink = if (password != null && password.isNotEmpty()) BackupCrypto.seal(out, password) else out.buffered()
+        // The key is made; the password itself isn't needed any more.
+        password?.fill('\u0000')
+        ZipOutputStream(sink).use { zip ->
             zip.putNextEntry(ZipEntry(MANIFEST))
-            zip.write(InnerTube.json.encodeToString(BackupManifest.serializer(), manifest).toByteArray())
+            zip.write(manifestBytes)
             zip.closeEntry()
             // Settings as values, not the store's own file: it also holds the sign-in, which only "Accounts" brings.
             if (settings.isNotEmpty()) {
-                zip.putNextEntry(ZipEntry(SETTINGS_ENTRY))
-                zip.write(InnerTube.json.encodeToString(SETTINGS_MAP, settings).toByteArray())
-                zip.closeEntry()
+                val bytes = InnerTube.json.encodeToString(SETTINGS_MAP, settings).toByteArray()
+                putEntry(zip, SETTINGS_ENTRY, bytes)
+                sums[SETTINGS_ENTRY] = sha256(bytes)
             }
             // Tags (1.8.3) live in the database (History) but belong to the library: they go as a file of their own.
             if (BackupPart.LIBRARY in parts) {
-                zip.putNextEntry(ZipEntry(TAGS_ENTRY))
-                zip.write(c.tags.exportJson(c.tags.export()).toByteArray())
-                zip.closeEntry()
+                val bytes = c.tags.exportJson(c.tags.export()).toByteArray()
+                putEntry(zip, TAGS_ENTRY, bytes)
+                sums[TAGS_ENTRY] = sha256(bytes)
             }
             filesToBackUp(parts).forEach { f ->
-                zip.putNextEntry(ZipEntry(f.relativeTo(data).invariantSeparatorsPath))
-                f.inputStream().use { it.copyTo(zip) }
+                val name = f.relativeTo(data).invariantSeparatorsPath
+                val digest = MessageDigest.getInstance("SHA-256")
+                zip.putNextEntry(ZipEntry(name))
+                f.inputStream().use { input ->
+                    val buf = ByteArray(64 * 1024)
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        digest.update(buf, 0, n)
+                        zip.write(buf, 0, n)
+                    }
+                }
                 zip.closeEntry()
+                sums[name] = hex(digest.digest())
             }
+            val integrity = BackupIntegrity(entries = sums, manifest = sha256(manifestBytes))
+            putEntry(zip, INTEGRITY, InnerTube.json.encodeToString(BackupIntegrity.serializer(), integrity).toByteArray())
         }
+    }
+
+    private fun putEntry(zip: ZipOutputStream, name: String, bytes: ByteArray) {
+        zip.putNextEntry(ZipEntry(name))
+        zip.write(bytes)
+        zip.closeEntry()
     }
 
     /** About how big a backup of [parts] would be, in bytes. */
@@ -107,7 +162,10 @@ class Backup(private val c: AppContainer) {
         File(data, "databases").listFiles()?.forEach { f ->
             if ((BackupPart.HISTORY in parts && f.name.startsWith(DB)) || (BackupPart.DOWNLOADS in parts && f.name.startsWith(EXO_DB))) keep += f
         }
-        File(data, "shared_prefs").listFiles()?.forEach { f -> if (prefsPart(f.name.removeSuffix(".xml")) in parts) keep += f }
+        File(data, "shared_prefs").listFiles()?.forEach { f ->
+            if (!f.name.endsWith(".xml")) return@forEach
+            if (prefsPart(f.name.removeSuffix(".xml")) in parts) keep += f
+        }
         ctx.filesDir.walkTopDown()
             .onEnter { dir -> dir == ctx.filesDir || filePart(dir.relativeTo(ctx.filesDir).invariantSeparatorsPath.substringBefore('/')) in parts }
             .filter { it.isFile && (it.parentFile != ctx.filesDir || filePart(it.name) in parts) }
@@ -118,13 +176,21 @@ class Backup(private val c: AppContainer) {
     }
 
     /** The parts the backup at [uri] holds (every one for a backup made before 1.7.8), or null when it isn't one. */
-    suspend fun partsOf(uri: Uri): Set<BackupPart>? = withContext(Dispatchers.IO) {
+    suspend fun partsOf(uri: Uri, password: CharArray? = null): Set<BackupPart>? = withContext(Dispatchers.IO) {
         runCatching {
-            ZipInputStream((ctx.contentResolver.openInputStream(uri) ?: return@runCatching null).buffered()).use { zip ->
+            val raw = ctx.contentResolver.openInputStream(uri) ?: return@runCatching null
+            val opened = BackupCrypto.open(raw, password)
+            ZipInputStream(opened.stream).use { zip ->
+                var seen = 0
                 while (true) {
                     val e = zip.nextEntry ?: break
-                    if (e.name != MANIFEST) continue
-                    val m = InnerTube.json.decodeFromString(BackupManifest.serializer(), zip.readBytes().decodeToString())
+                    // Prism writes the manifest first: a file with it deep inside isn't one worth unpacking to find.
+                    if (++seen > MAX_ENTRIES_BEFORE_MANIFEST) return@runCatching null
+                    if (e.name != MANIFEST || e.isDirectory) continue
+                    if (e.size > MAX_MANIFEST) return@runCatching null
+                    // A manifest larger than this isn't one: never read an unbounded entry into memory.
+                    val bytes = zip.readLimited(MAX_MANIFEST) ?: return@runCatching null
+                    val m = InnerTube.json.decodeFromString(BackupManifest.serializer(), bytes.decodeToString())
                     if (!fromPrism(m)) return@runCatching null
                     return@runCatching m.partSet()
                 }
@@ -133,40 +199,144 @@ class Backup(private val c: AppContainer) {
         }.getOrNull()
     }
 
+    /** Whether the file at [uri] is one of Prism's password-protected backups (its first bytes say so). */
+    suspend fun isEncrypted(uri: Uri): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val input = ctx.contentResolver.openInputStream(uri) ?: return@runCatching false
+            input.use {
+                val head = ByteArray(BackupCrypto.MAGIC.length)
+                var got = 0
+                while (got < head.size) {
+                    val n = it.read(head, got, head.size - got)
+                    if (n < 0) break
+                    got += n
+                }
+                BackupCrypto.isEncrypted(head.copyOf(got))
+            }
+        }.getOrDefault(false)
+    }
+
     /**
      * Checks the backup at [uri] and unpacks it to be put in place at the next launch, then
-     * restarts Prism. Throws with a readable message if it isn't a Prism backup.
+     * restarts Prism. Throws with a readable message if it isn't a Prism backup, is cut short, or an entry doesn't
+     * match the hash the backup recorded for it. Nothing outside this app's own folders is ever unpacked, and only
+     * the parts the manifest names (never a sign-in's or a pairing's own files).
      */
-    suspend fun restore(uri: Uri) = withContext(Dispatchers.IO) {
+    suspend fun restore(uri: Uri, password: CharArray? = null) = withContext(Dispatchers.IO) {
         val staging = File(ctx.filesDir, STAGING)
         staging.deleteRecursively()
         staging.mkdirs()
+        // Nothing left by an earlier restore is applied to this one's result.
+        File(ctx.filesDir, RESTORED_SETTINGS).delete()
+        File(ctx.filesDir, REDOWNLOAD).delete()
         var manifest: BackupManifest? = null
+        var manifestHash = ""
+        var integrity: BackupIntegrity? = null
+        var opened: BackupCrypto.Opened? = null
+        val hashes = LinkedHashMap<String, String>()
+        val seen = HashSet<String>()
+        // How much a file may unpack to: never more than the space there is, and a hard ceiling for a zip bomb.
+        val room = runCatching { data.usableSpace }.getOrDefault(0L)
+        val cap = if (room > RESERVE) minOf(MAX_TOTAL, room - RESERVE) else MAX_TOTAL
+        var total = 0L
         try {
             val input = ctx.contentResolver.openInputStream(uri) ?: error(tr(R.string.couldn_t_open_that_file))
-            ZipInputStream(input.buffered()).use { zip ->
-                while (true) {
-                    val e = zip.nextEntry ?: break
-                    if (e.isDirectory) continue
-                    val name = e.name
-                    if (name == MANIFEST) {
-                        manifest = runCatching { InnerTube.json.decodeFromString(BackupManifest.serializer(), zip.readBytes().decodeToString()) }.getOrNull()
-                        continue
+            opened = try {
+                BackupCrypto.open(input, password)
+            } catch (e: BackupCrypto.NeedsPassword) {
+                error(tr(R.string.backup_password_wrong))
+            }
+            password?.fill('\u0000')
+            val zip = ZipInputStream(opened.stream)
+            var entries = 0
+            var beforeManifest = 0
+            while (true) {
+                val e = zip.nextEntry ?: break
+                if (e.isDirectory) continue
+                if (manifest == null && ++beforeManifest > MAX_ENTRIES_BEFORE_MANIFEST) error(tr(R.string.that_file_isn_t_a_prism_2))
+                if (++entries > MAX_ENTRIES) error(tr(R.string.that_file_isn_t_a_prism_2))
+                val name = e.name
+                if (!safeEntryName(name) || !seen.add(name)) error(tr(R.string.that_file_isn_t_a_prism_2))
+                when (name) {
+                    MANIFEST, INTEGRITY -> {
+                        val bytes = zip.readLimited(MAX_MANIFEST) ?: error(tr(R.string.that_file_isn_t_a_prism_2))
+                        if (name == MANIFEST) {
+                            manifestHash = hex(MessageDigest.getInstance("SHA-256").digest(bytes))
+                            manifest = runCatching { InnerTube.json.decodeFromString(BackupManifest.serializer(), bytes.decodeToString()) }.getOrNull()
+                        } else {
+                            integrity = runCatching { InnerTube.json.decodeFromString(BackupIntegrity.serializer(), bytes.decodeToString()) }.getOrNull()
+                        }
                     }
-                    // Only Prism's own folders, and nothing that climbs out of them.
-                    if (name.contains("..") || name.startsWith("/") || (name != SETTINGS_ENTRY && ALLOWED.none { name.startsWith(it) })) continue
-                    val target = File(staging, name)
-                    target.parentFile?.mkdirs()
-                    target.outputStream().use { zip.copyTo(it) }
+                    else -> {
+                        // Only Prism's own folders, settings and tags; anything else is never read.
+                        if (!entryCouldBeRestored(name)) continue
+                        val target = File(staging, name)
+                        if (!inside(staging, target)) continue
+                        val limit = entryLimit(name)
+                        if (e.size > limit) error(tr(R.string.that_file_isn_t_a_prism_2))
+                        target.parentFile?.mkdirs()
+                        val digest = MessageDigest.getInstance("SHA-256")
+                        var entry = 0L
+                        target.outputStream().use { out ->
+                            val buf = ByteArray(64 * 1024)
+                            while (true) {
+                                val n = zip.read(buf)
+                                if (n < 0) break
+                                entry += n
+                                total += n
+                                if (entry > limit || total > cap) error(tr(R.string.that_file_isn_t_a_prism_2))
+                                digest.update(buf, 0, n)
+                                out.write(buf, 0, n)
+                            }
+                        }
+                        hashes[name] = hex(digest.digest())
+                    }
                 }
             }
+            // A protected file's tag is at its end: reading on is what tells a right password from a changed file.
+            opened.drain()
             val m = manifest ?: error(tr(R.string.that_file_isn_t_a_prism_2))
             if (!fromPrism(m) || m.bring) error(tr(R.string.that_file_isn_t_a_prism_2))
             if (m.format > FORMAT) error(tr(R.string.that_backup_is_from_a_newer))
+            // Only what this backup says it holds: a file of another part (or one that never travels) isn't taken.
+            val whole = m.parts == null
+            val parts = m.partSet()
+            hashes.keys.toList().forEach { name ->
+                val part = entryPart(name)
+                val keep = when {
+                    name == SETTINGS_ENTRY -> whole || BackupPart.SETTINGS in parts || BackupPart.ACCOUNTS in parts
+                    name == TAGS_ENTRY -> whole || BackupPart.LIBRARY in parts
+                    // The store's own file also holds the sign-in: only a whole backup from before 1.7.8 brings it.
+                    name.startsWith("datastore/") -> whole
+                    else -> part != null && part in parts
+                }
+                if (!keep) {
+                    File(staging, name).delete()
+                    hashes.remove(name)
+                }
+            }
+            if (m.integrity > 1) error(tr(R.string.that_file_isn_t_a_prism_2))
+            if (m.integrity == 1) {
+                // The whole list, and every hash, has to match: a cut-short or altered backup is refused here.
+                val i = integrity ?: error(tr(R.string.that_file_isn_t_a_prism_2))
+                if (i.version > 1 || !i.manifest.equals(manifestHash, true) || i.entries.keys != hashes.keys) {
+                    error(tr(R.string.that_file_isn_t_a_prism_2))
+                }
+                for ((name, hash) in i.entries) if (!hash.equals(hashes[name], true)) error(tr(R.string.that_file_isn_t_a_prism_2))
+                File(staging, INTEGRITY).writeText(InnerTube.json.encodeToString(BackupIntegrity.serializer(), i))
+            }
             File(staging, MANIFEST).writeText(InnerTube.json.encodeToString(BackupManifest.serializer(), m))
+            // Only a restore unpacked and checked all the way through is applied at the next start.
+            File(staging, COMPLETE).writeText(m.integrity.toString())
         } catch (e: Throwable) {
             staging.deleteRecursively()
+            // A protected file that won't open is either the wrong password or one that was changed/cut short.
+            if (opened?.encrypted == true && (e is BackupCrypto.NeedsPassword || e is java.io.IOException)) {
+                error(tr(R.string.backup_password_wrong))
+            }
             throw e
+        } finally {
+            runCatching { opened?.stream?.close() }
         }
         restart()
     }
@@ -192,7 +362,8 @@ class Backup(private val c: AppContainer) {
     fun resumeDownloads() {
         val f = File(ctx.filesDir, REDOWNLOAD)
         if (!f.exists()) return
-        val songs = runCatching { InnerTube.json.decodeFromString(BackupManifest.serializer(), f.readText()).downloads }.getOrDefault(emptyList())
+        val songs = runCatching { InnerTube.json.decodeFromString(BackupManifest.serializer(), f.readText()).downloads }
+            .getOrDefault(emptyList()).take(MAX_REDOWNLOAD)
         f.delete()
         c.downloads.downloadAll(songs)
     }
@@ -244,6 +415,32 @@ class Backup(private val c: AppContainer) {
         private const val EXO_DB = "exoplayer_internal.db"
         private val ALLOWED = listOf("databases/", "shared_prefs/", "datastore/", "files/")
         private val SETTINGS_MAP = MapSerializer(String.serializer(), String.serializer())
+
+        /** The trailing list of hashes that tells a whole backup from a cut-short or altered one ([BackupManifest.integrity]). */
+        private const val INTEGRITY = "prism-integrity.json"
+        /** Written only once every entry of a restore has been unpacked and checked: an unfinished one is never applied. */
+        private const val COMPLETE = ".complete"
+        /** What an apply moves, and where the replaced files wait until it's through (both under the app's data folder). */
+        private const val JOURNAL = "restore_journal.json"
+        private const val OLD = "restore_old"
+        private const val APPLIED = "restore_applied"
+        /** Never more than this from one backup, whatever it says: a zip that unpacks to more isn't one. */
+        private const val MAX_MANIFEST = 32L * 1024 * 1024
+        private const val MAX_ENTRIES = 100_000
+        /** A manifest after this many other entries isn't one Prism wrote; don't unpack the rest looking for it. */
+        private const val MAX_ENTRIES_BEFORE_MANIFEST = 64
+        private const val MAX_ENTRY = 4L * 1024 * 1024 * 1024
+        private const val MAX_TOTAL = 128L * 1024 * 1024 * 1024
+        /** Settings are values (a small JSON): never read a whole gigabyte of them, or tags, into memory. */
+        private const val MAX_SETTINGS = 16L * 1024 * 1024
+        private const val MAX_TAGS = 64L * 1024 * 1024
+        /** Small files are checked again at start-up (settings, tags); audio-sized ones were checked when unpacked. */
+        private const val VERIFY_AT_START = 16L * 1024 * 1024
+        /** A restored phone re-fetches at most this many downloads at once (a backup can't ask for endless ones). */
+        private const val MAX_REDOWNLOAD = 20_000
+        /** Kept free while a restore unpacks beside the files it will replace. */
+        private const val RESERVE = 512L * 1024 * 1024
+        private const val MAX_NAME = 1024
 
         private const val BRING_HISTORY = "bring/history.json"
         private const val BRING_PREFS = "bring/prefs.json"
@@ -332,8 +529,8 @@ class Backup(private val c: AppContainer) {
                 // 1.8.2: songs skipped in lists' downloads (#221), when kept playlists were last read (#298).
                 "download_skips", "kept_playlists",
             ).forEach { put(it, BackupPart.DOWNLOADS) }
-            // The Last.fm connection (and its waiting scrobbles) is the listener's account.
-            put("lastfm", BackupPart.ACCOUNTS)
+            // The Last.fm session key is sealed to this phone (a key only it has): a restored phone reconnects instead.
+            put("lastfm", null)
             // 1.8.1: the Spotify connection's Client ID and switches go with the accounts (a Client ID is public in
             // PKCE); its tokens never travel, as Discord's sign-in doesn't (sealed by a key only this phone has anyway).
             put(com.prism.music.data.spotify.SpotifyStore.PREFS, BackupPart.ACCOUNTS)
@@ -359,6 +556,12 @@ class Backup(private val c: AppContainer) {
             listOf("downloads", "canvas_saved").forEach { put(it, BackupPart.DOWNLOADS) }
             // Downloaded data files (models/) can always be downloaded again; stems are made again; staging is a restore's.
             listOf(STAGING, "models", "stems", REDOWNLOAD, RESTORED_SETTINGS).forEach { put(it, null) }
+            // The settings store's own file holds the sign-in too: settings travel as values (settings.json), never as
+            // this file, or a "Looks only" backup would carry the YouTube session. Android's backup may bring it, and
+            // RestoredInstall signs a restored copy out.
+            put("datastore", null)
+            // Diagnostics and crash logs are this phone's, and have no place in a file shared with anyone.
+            listOf("crashes", "diagnostics", "lyrics-tags").forEach { put(it, null) }
             // Lyric translations (1.7.8) are a cache of Google's answers, asked for again when missing.
             put("translations", null)
             // Songs' "From" whole playlists (1.8.4, #473): read again from YouTube when missing, nothing to carry over.
@@ -368,6 +571,91 @@ class Backup(private val c: AppContainer) {
         internal fun prefsPart(name: String): BackupPart? = if (name in PREFS_PARTS) PREFS_PARTS[name] else BackupPart.SETTINGS
         internal fun filePart(top: String): BackupPart? = if (top in FILE_PARTS) FILE_PARTS[top] else BackupPart.SETTINGS
 
+        /** How large a particular entry may be: settings and tags are read whole, so they have a tighter cap. */
+        private fun entryLimit(name: String): Long = when (name) {
+            SETTINGS_ENTRY -> MAX_SETTINGS
+            TAGS_ENTRY -> MAX_TAGS
+            else -> MAX_ENTRY
+        }
+
+        /** The part an entry belongs to, or null for one that never travels or isn't Prism's at all. */
+        private fun entryPart(name: String): BackupPart? = when {
+            name == SETTINGS_ENTRY -> BackupPart.SETTINGS
+            name == TAGS_ENTRY -> BackupPart.LIBRARY
+            name.startsWith("databases/") -> {
+                val f = name.removePrefix("databases/")
+                when {
+                    f.contains('/') -> null
+                    f.startsWith(DB) -> BackupPart.HISTORY
+                    f.startsWith(EXO_DB) -> BackupPart.DOWNLOADS
+                    else -> null
+                }
+            }
+            name.startsWith("shared_prefs/") -> {
+                val f = name.removePrefix("shared_prefs/")
+                if (f.contains('/') || !f.endsWith(".xml")) null else prefsPart(f.removeSuffix(".xml"))
+            }
+            name.startsWith("datastore/") -> BackupPart.SETTINGS
+            name.startsWith("files/") -> {
+                val top = name.removePrefix("files/").substringBefore('/')
+                if (top.isBlank()) null else filePart(top)
+            }
+            else -> null
+        }
+
+        /** Whether [name] is a file this backup's [parts] may bring (and not one that never travels). */
+        private fun entryAllowed(name: String, whole: Boolean, parts: Set<BackupPart>): Boolean {
+            if (name == SETTINGS_ENTRY) return whole || BackupPart.SETTINGS in parts || BackupPart.ACCOUNTS in parts
+            if (name == TAGS_ENTRY) return whole || BackupPart.LIBRARY in parts
+            // A store's own file (an old backup) also holds the sign-in: only a whole old backup may bring it.
+            if (name.startsWith("datastore/")) return whole
+            val part = entryPart(name) ?: return false
+            return part in parts
+        }
+
+        /** An entry whose name is one a restore might take (its part is checked once the manifest is read). */
+        private fun entryCouldBeRestored(name: String): Boolean =
+            name == SETTINGS_ENTRY || name == TAGS_ENTRY || ALLOWED.any { name.startsWith(it) }
+
+        /** No climbing out, no absolute paths, no odd separators or control characters, and no ".." anywhere. */
+        private fun safeEntryName(name: String): Boolean =
+            name.isNotEmpty() && name.length <= MAX_NAME &&
+                !name.startsWith("/") && !name.startsWith("\\") && !name.contains('\\') && !name.contains("..") &&
+                name.none { it.code < 0x20 } &&
+                name.split('/').all { it.isNotEmpty() && it != "." }
+
+        private fun inside(root: File, target: File): Boolean =
+            runCatching { target.canonicalPath.startsWith(root.canonicalPath + File.separator) }.getOrDefault(false)
+
+        private fun sha256(bytes: ByteArray): String = hex(MessageDigest.getInstance("SHA-256").digest(bytes))
+
+        private fun sha256(file: File): String = file.inputStream().use { input ->
+            val digest = MessageDigest.getInstance("SHA-256")
+            val buf = ByteArray(64 * 1024)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                digest.update(buf, 0, n)
+            }
+            hex(digest.digest())
+        }
+
+        private fun hex(bytes: ByteArray) = bytes.joinToString("") { "%02x".format(it) }
+
+        /** The entry's bytes, or null when it's longer than [max]: never read an unbounded entry into memory. */
+        private fun InputStream.readLimited(max: Long): ByteArray? {
+            val out = ByteArrayOutputStream()
+            val buf = ByteArray(8 * 1024)
+            var total = 0L
+            while (true) {
+                val n = read(buf)
+                if (n < 0) return out.toByteArray()
+                total += n
+                if (total > max) return null
+                out.write(buf, 0, n)
+            }
+        }
+
         private fun BackupManifest.partSet(): Set<BackupPart> =
             parts?.mapNotNull { n -> BackupPart.entries.firstOrNull { it.name == n } }?.toSet()
                 ?: (BackupPart.entries.toSet() - if (withDownloads) emptySet() else setOf(BackupPart.DOWNLOADS))
@@ -375,50 +663,200 @@ class Backup(private val c: AppContainer) {
         /**
          * Puts a staged restore in place. Runs first thing at launch, before Room, DataStore or any
          * preferences are opened, so nothing holds the old files. Only the parts the backup holds are replaced.
+         *
+         * The files it replaces are moved aside first and a journal is written before the first move: an apply cut
+         * short (or one whose files don't check out) puts this phone's own data back instead of leaving half of each.
          */
         fun applyPending(context: Context) {
             val files = context.filesDir
+            val data = files.parentFile!!
             val staging = File(files, STAGING)
+            // An apply that stopped partway (or one Android killed) is settled before anything else is read.
+            settleInterrupted(data, files)
             val manifestFile = File(staging, MANIFEST)
             if (!manifestFile.exists()) { staging.deleteRecursively(); return }
             runCatching {
                 val m = InnerTube.json.decodeFromString(BackupManifest.serializer(), manifestFile.readText())
-                val data = files.parentFile!!
+                if (m.app.isBlank() || m.bring || m.format > FORMAT) error(tr(R.string.that_file_isn_t_a_prism_2))
+                if (m.integrity == 1 && !File(staging, COMPLETE).exists()) error(tr(R.string.that_file_isn_t_a_prism_2))
                 val whole = m.parts == null
                 val parts = m.partSet()
+                // Every staged file is checked again against the backup's hashes before a single thing is replaced.
+                val staged = stagedFiles(staging, m, whole, parts) ?: error(tr(R.string.that_file_isn_t_a_prism_2))
                 // Tags are the library's, kept in the database: a restore of the history alone keeps this phone's.
                 if (BackupPart.HISTORY in parts && BackupPart.LIBRARY !in parts) TagStore.readFrom(File(data, "databases/$DB"))?.let { mine ->
                     File(files, "library").mkdirs()
                     File(files, "library/" + TagStore.PENDING).writeText(InnerTube.json.encodeToString(TagsFile.serializer(), mine))
                 }
-                // Out with what the backup replaces.
-                File(data, "databases").listFiles()?.forEach {
-                    if ((BackupPart.HISTORY in parts && it.name.startsWith(DB)) || (BackupPart.DOWNLOADS in parts && it.name.startsWith(EXO_DB))) it.delete()
-                }
-                File(data, "shared_prefs").listFiles()?.forEach { if (whole || prefsPart(it.name.removeSuffix(".xml")) in parts) it.delete() }
-                // A backup from before 1.7.8 brings the settings store's own file; a newer one, its values (below).
-                if (whole) File(data, "datastore").deleteRecursively()
-                files.listFiles()?.forEach { f ->
-                    if (f.name == STAGING) return@forEach
-                    if (whole) { if (m.withDownloads || filePart(f.name) != BackupPart.DOWNLOADS) f.deleteRecursively() }
-                    else if (filePart(f.name) in parts) f.deleteRecursively()
-                }
-                // In with the backup.
+                // The settings wait for the store to open ([applyRestoredSettings]); "Settings" or "Accounts" without
+                // any values still clears what they replace.
                 val settingsFile = File(staging, SETTINGS_ENTRY)
-                staging.walkTopDown().filter { it.isFile && it != manifestFile && it != settingsFile }.forEach { f ->
-                    val target = File(data, f.relativeTo(staging).path)
-                    target.parentFile?.mkdirs()
-                    if (!f.renameTo(target)) { f.copyTo(target, overwrite = true); f.delete() }
-                }
-                // The settings wait for the store to open ([afterRestore]); "Settings" or "Accounts" without any values
-                // still clears what they replace.
-                if (!whole && (BackupPart.SETTINGS in parts || BackupPart.ACCOUNTS in parts)) {
+                val settingsText = if (!whole && (BackupPart.SETTINGS in parts || BackupPart.ACCOUNTS in parts)) {
+                    if (settingsFile.length() > MAX_SETTINGS) error(tr(R.string.that_file_isn_t_a_prism_2))
                     val values = if (settingsFile.exists()) InnerTube.json.decodeFromString(SETTINGS_MAP, settingsFile.readText()) else emptyMap()
-                    File(files, RESTORED_SETTINGS).writeText(InnerTube.json.encodeToString(RestoredSettings.serializer(), RestoredSettings(m.parts.orEmpty(), values)))
+                    InnerTube.json.encodeToString(RestoredSettings.serializer(), RestoredSettings(m.parts.orEmpty(), values))
+                } else null
+                val redownload = !m.withDownloads && m.downloads.isNotEmpty()
+
+                val old = oldPaths(data, files, m, whole, parts)
+                val new = staged.toMutableList().apply {
+                    if (settingsText != null) add(RESTORED_SETTINGS)
+                    if (redownload) add(REDOWNLOAD)
                 }
-                if (!m.withDownloads && m.downloads.isNotEmpty()) manifestFile.copyTo(File(files, REDOWNLOAD), overwrite = true)
+                val journal = File(data, JOURNAL)
+                writeAtomically(journal, InnerTube.json.encodeToString(RestoreJournal.serializer(), RestoreJournal(old, new)))
+                try {
+                    moveOldAside(data, old)
+                    moveIn(data, staging, staged)
+                    settingsText?.let { File(files, RESTORED_SETTINGS).writeText(it) }
+                    if (redownload) manifestFile.copyTo(File(files, REDOWNLOAD), overwrite = true)
+                    // Everything is in place: from here a restart keeps it rather than rolling it back.
+                    File(data, APPLIED).createNewFile()
+                } catch (e: Throwable) {
+                    rollBack(data)
+                    throw e
+                }
+                journal.delete()
+                File(data, OLD).deleteRecursively()
+                File(data, APPLIED).delete()
+                staging.deleteRecursively()
+            }.onFailure {
+                // Nothing is half-applied: whatever was, is put back; the staged restore is dropped.
+                runCatching { if (File(data, JOURNAL).exists()) rollBack(data) }
+                staging.deleteRecursively()
             }
-            staging.deleteRecursively()
+        }
+
+        /** Every whole file in [staging], as paths under the app's data folder; null if one isn't the backup's own, or a small one's hash doesn't match. */
+        private fun stagedFiles(staging: File, m: BackupManifest, whole: Boolean, parts: Set<BackupPart>): List<String>? {
+            val integrity = if (m.integrity == 1) {
+                runCatching { InnerTube.json.decodeFromString(BackupIntegrity.serializer(), File(staging, INTEGRITY).readText()) }.getOrNull()
+                    ?: return null
+            } else null
+            val names = LinkedHashSet<String>()
+            val rels = mutableListOf<String>()
+            staging.walkTopDown().filter { it.isFile }.forEach { f ->
+                val rel = f.relativeTo(staging).invariantSeparatorsPath
+                if (rel == MANIFEST || rel == INTEGRITY || rel == COMPLETE) return@forEach
+                if (!entryAllowed(rel, whole, parts)) return null
+                if (f.length() > entryLimit(rel)) return null
+                names += rel
+                // Settings are values read above, not a file put among this phone's own (it's a transfer file).
+                if (rel != SETTINGS_ENTRY) rels += rel
+            }
+            if (integrity != null) {
+                if (integrity.version > 1 || integrity.entries.keys != names) return null
+                // The whole list is checked here; a file's own bytes were hashed when the backup was unpacked. Hashing
+                // gigabytes again at start-up would hold the phone's launch up for nothing (it is the app's own folder).
+                for ((name, hash) in integrity.entries) {
+                    val file = File(staging, name)
+                    if (file.length() <= VERIFY_AT_START) {
+                        if (!hash.equals(sha256(file), true)) return null
+                    }
+                }
+            }
+            return rels
+        }
+
+        /** What the backup replaces: this phone's own copies, kept in [OLD] until everything is in. */
+        private fun oldPaths(data: File, files: File, m: BackupManifest, whole: Boolean, parts: Set<BackupPart>): List<String> {
+            val old = mutableListOf<String>()
+            File(data, "databases").listFiles()?.forEach {
+                if ((BackupPart.HISTORY in parts && it.name.startsWith(DB)) || (BackupPart.DOWNLOADS in parts && it.name.startsWith(EXO_DB))) old += "databases/${it.name}"
+            }
+            File(data, "shared_prefs").listFiles()?.forEach { if (whole || prefsPart(it.name.removeSuffix(".xml")) in parts) old += "shared_prefs/${it.name}" }
+            // A backup from before 1.7.8 brings the settings store's own file; a newer one, its values.
+            if (whole && File(data, "datastore").exists()) old += "datastore"
+            files.listFiles()?.forEach { f ->
+                if (f.name == STAGING) return@forEach
+                if (whole) { if (m.withDownloads || filePart(f.name) != BackupPart.DOWNLOADS) old += "files/${f.name}" }
+                else if (filePart(f.name) in parts) old += "files/${f.name}"
+            }
+            return old
+        }
+
+        private fun moveOldAside(data: File, old: List<String>) {
+            for (rel in old) {
+                val src = File(data, rel)
+                if (!src.exists()) continue
+                val dst = File(data, "$OLD/$rel")
+                dst.parentFile?.mkdirs()
+                dst.deleteRecursively()
+                // Same filesystem, so this is a rename; a copy would leave half a file if it were cut short, and the
+                // rollback would then put that half in place of the whole.
+                if (!src.renameTo(dst)) error(tr(R.string.that_file_isn_t_a_prism_2))
+            }
+        }
+
+        private fun moveIn(data: File, staging: File, staged: List<String>) {
+            for (rel in staged) {
+                val src = File(staging, rel)
+                if (!src.isFile) continue
+                val dst = File(data, rel)
+                dst.parentFile?.mkdirs()
+                if (dst.exists()) dst.deleteRecursively()
+                if (!src.renameTo(dst)) { src.copyTo(dst, overwrite = true); src.delete() }
+            }
+        }
+
+        /** Puts back what [JOURNAL] says was moved, then forgets it. Safe to run again after being cut short itself. */
+        private fun rollBack(data: File) {
+            val journal = runCatching { InnerTube.json.decodeFromString(RestoreJournal.serializer(), File(data, JOURNAL).readText()) }.getOrNull()
+            if (journal != null) {
+                // Out with anything the backup put in, then this phone's own back. A file that was never moved aside
+                // (the rename failed) is still this phone's, so it isn't taken away.
+                for (rel in journal.new.asReversed()) {
+                    if (rel in journal.old && !File(data, "$OLD/$rel").exists()) continue
+                    File(data, rel).deleteRecursively()
+                }
+                for (rel in journal.old.asReversed()) restoreSaved(data, rel)
+            } else {
+                // The journal itself is unreadable: put every saved file back, without taking anything away.
+                File(data, OLD).walkTopDown().filter { it.isFile }.forEach { f ->
+                    restoreSaved(data, f.relativeTo(File(data, OLD)).invariantSeparatorsPath)
+                }
+            }
+            File(data, OLD).deleteRecursively()
+            File(data, JOURNAL).delete()
+            File(data, APPLIED).delete()
+        }
+
+        private fun restoreSaved(data: File, rel: String) {
+            val saved = File(data, "$OLD/$rel")
+            if (!saved.exists()) return
+            val target = File(data, rel)
+            if (saved.renameTo(target)) return
+            // A copy is made beside the target first: the old file is only taken away once the whole copy is there.
+            val temp = File(target.parentFile, ".${target.name}.restoring")
+            temp.deleteRecursively()
+            saved.copyRecursively(temp, overwrite = true)
+            target.deleteRecursively()
+            if (!temp.renameTo(target)) { temp.copyTo(target, overwrite = true); temp.deleteRecursively() }
+            saved.deleteRecursively()
+        }
+
+        /** After a restart: finishes an apply that committed but was cut short, or puts back one that wasn't. */
+        private fun settleInterrupted(data: File, files: File) {
+            val journal = File(data, JOURNAL)
+            if (!journal.exists()) {
+                File(data, OLD).deleteRecursively()
+                File(data, APPLIED).delete()
+                return
+            }
+            if (!File(data, APPLIED).exists()) rollBack(data) else {
+                File(data, OLD).deleteRecursively()
+                journal.delete()
+                File(data, APPLIED).delete()
+            }
+            File(files, STAGING).deleteRecursively()
+        }
+
+        private fun writeAtomically(target: File, text: String) {
+            val temp = File(target.parentFile, "${target.name}.tmp")
+            temp.writeText(text)
+            // A journal that made it to disk before the first move is what makes the moves safe.
+            runCatching { java.io.FileOutputStream(temp, true).use { it.fd.sync() } }
+            if (!temp.renameTo(target)) { temp.copyTo(target, overwrite = true); temp.delete() }
         }
     }
 }

@@ -11,6 +11,25 @@
         <exclude domain="sharedpref" path="spotify_auth.xml" />
         <!-- The sign-in page's cookie jar (Google's session): restored, Sign in would let the old session straight back in. -->
         <exclude domain="root" path="app_webview/" />
+        <!-- Audio, separated vocals, downloaded models and caches: too large for Auto Backup's quota (which would then
+             drop the settings and history too), and not this phone's private data to upload. -->
+        <exclude domain="file" path="downloads/" />
+        <exclude domain="file" path="stems/" />
+        <exclude domain="file" path="models/" />
+        <exclude domain="file" path="translations/" />
+        <exclude domain="file" path="lyrics-tags/" />
+        <exclude domain="file" path="songs_from/" />
+        <exclude domain="file" path="diagnostics/" />
+        <exclude domain="file" path="crashes/" />
+        <exclude domain="file" path="artwork/" />
+        <exclude domain="file" path="canvas_saved/" />
+        <!-- A restore's staging and journals: never restored onto another install (and applied there by mistake). -->
+        <exclude domain="file" path="restore_pending/" />
+        <exclude domain="file" path="restore_settings.json" />
+        <exclude domain="file" path="restore_downloads.json" />
+        <exclude domain="root" path="restore_old/" />
+        <exclude domain="root" path="restore_journal.json" />
+        <exclude domain="root" path="restore_applied" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="discord.xml" />
@@ -20,5 +39,24 @@
         <exclude domain="sharedpref" path="spotify_auth.xml" />
         <!-- The sign-in page's cookie jar (Google's session): restored, Sign in would let the old session straight back in. -->
         <exclude domain="root" path="app_webview/" />
+        <!-- Audio, separated vocals, downloaded models and caches: too large for Auto Backup's quota (which would then
+             drop the settings and history too), and not this phone's private data to upload. -->
+        <exclude domain="file" path="downloads/" />
+        <exclude domain="file" path="stems/" />
+        <exclude domain="file" path="models/" />
+        <exclude domain="file" path="translations/" />
+        <exclude domain="file" path="lyrics-tags/" />
+        <exclude domain="file" path="songs_from/" />
+        <exclude domain="file" path="diagnostics/" />
+        <exclude domain="file" path="crashes/" />
+        <exclude domain="file" path="artwork/" />
+        <exclude domain="file" path="canvas_saved/" />
+        <!-- A restore's staging and journals: never restored onto another install (and applied there by mistake). -->
+        <exclude domain="file" path="restore_pending/" />
+        <exclude domain="file" path="restore_settings.json" />
+        <exclude domain="file" path="restore_downloads.json" />
+        <exclude domain="root" path="restore_old/" />
+        <exclude domain="root" path="restore_journal.json" />
+        <exclude domain="root" path="restore_applied" />
     </device-transfer>
 </data-extraction-rules>

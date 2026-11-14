@@ -212,7 +212,9 @@ class HttpServer(
     }
 
     private fun read(input: InputStream, remote: InetAddress): HttpRequest? {
-        val head = readHead(input) ?: return null
+        // A whole request (head and body) has this long: a client can't keep a worker with a byte every few seconds.
+        val until = System.currentTimeMillis() + REQUEST_MS
+        val head = readHead(input, until) ?: return null
         val lines = head.split("\r\n")
         val parts = lines.first().split(' ')
         if (parts.size < 3 || !parts[2].startsWith("HTTP/1.")) return null
@@ -225,10 +227,12 @@ class HttpServer(
         }
         val length = headers["content-length"]?.toLongOrNull() ?: 0
         if (headers["transfer-encoding"] != null) return null
+        if (length < 0) return null
         if (length > maxBody) return TOO_BIG
         val body = ByteArray(length.toInt())
         var got = 0
         while (got < body.size) {
+            if (System.currentTimeMillis() > until) return null
             val n = input.read(body, got, body.size - got)
             if (n < 0) return null
             got += n
@@ -238,11 +242,12 @@ class HttpServer(
         return HttpRequest(method, path, parseQuery(target.substringAfter('?', "")), headers, body, remote)
     }
 
-    /** Up to the blank line; null if it's longer than 16 KB or the connection ends first. */
-    private fun readHead(input: InputStream): String? {
+    /** Up to the blank line; null if it's longer than 16 KB, past [until], or the connection ends first. */
+    private fun readHead(input: InputStream, until: Long): String? {
         val buf = java.io.ByteArrayOutputStream(512)
         var last4 = 0
         while (true) {
+            if (System.currentTimeMillis() > until) return null
             val b = input.read()
             if (b < 0) return null
             buf.write(b)
@@ -254,6 +259,7 @@ class HttpServer(
 
     companion object {
         const val MAX_CONNECTIONS = 24
+        private const val REQUEST_MS = 10_000L
         private val TOO_BIG = HttpRequest("", "", emptyMap(), emptyMap(), ByteArray(0), InetAddress.getLoopbackAddress())
 
         fun parseQuery(q: String): Map<String, String> = q.split('&').filter { it.isNotEmpty() }.associate { kv ->

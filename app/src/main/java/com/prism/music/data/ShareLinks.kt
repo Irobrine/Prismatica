@@ -50,15 +50,18 @@ object ShareLinks {
      * music.youtube.com address Prism opens. youtu.be and youtube.com watch links count too.
      */
     fun findIn(text: String?): String? {
-        val raw = Regex("https?://\\S+").findAll(text ?: return null).map { it.value.trimEnd('.', ',', ')', '"', '\'') }
+        val raw = Regex("https?://\\S+").findAll((text ?: return null).take(8_192))
+            .map { it.value.trimEnd('.', ',', ')', '"', '\'') }
             .firstOrNull { u -> listOf("youtube.com", "youtu.be").any { u.contains(it, ignoreCase = true) } } ?: return null
         val uri = runCatching { java.net.URI(raw) }.getOrNull() ?: return null
         val host = uri.host?.lowercase() ?: return null
         val path = uri.path.orEmpty().split('/').filter { it.isNotBlank() }
-        val query = uri.rawQuery.orEmpty().split('&').mapNotNull { p ->
-            val k = p.substringBefore('=', "")
-            if (k.isBlank()) null else k to java.net.URLDecoder.decode(p.substringAfter('='), "UTF-8")
-        }.toMap()
+        val query = runCatching {
+            uri.rawQuery.orEmpty().split('&').mapNotNull { p ->
+                val k = p.substringBefore('=', "")
+                if (k.isBlank()) null else k to java.net.URLDecoder.decode(p.substringAfter('='), "UTF-8")
+            }.toMap()
+        }.getOrDefault(emptyMap())
         val v = query["v"]?.takeIf { it.isNotBlank() }
         val list = query["list"]?.takeIf { it.isNotBlank() }
         return when {

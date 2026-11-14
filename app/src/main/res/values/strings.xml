@@ -4598,6 +4598,16 @@
     <string name="tv_sing_too_slow">Quick way: this TV is too slow for the full separation, so Sing takes out what\'s in the middle of the mix (less clean). Sing is in the player\'s ⋯</string>
     <string name="tv_sing_no_cpu">Quick way: the full separation doesn\'t run on this TV\'s processor, so Sing takes out what\'s in the middle of the mix (less clean). Sing is in the player\'s ⋯</string>
     <string name="tv_link_pair_note">The code you scanned is for %1$s at %2$s on your network. Pair only if it\'s the TV in front of you.</string>
+    <string name="tv_link_pair_code">The TV in front of you should show this code: %1$s</string>
+    <string name="backup_password_wrong">That password doesn\'t open this backup (or the file is damaged).</string>
+    <string name="backup_password">Password (optional)</string>
+    <string name="backup_password_set">A password is set: the backup is sealed.</string>
+    <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
+    <string name="backup_password_note">With a password, the whole file is sealed: no one can read your listening, playlists or sign-in without it. Keep it safe; it can\'t be recovered.</string>
+    <string name="backup_password_again">Password again</string>
+    <string name="backup_password_mismatch">The two passwords don\'t match.</string>
+    <string name="backup_password_open">This backup is protected. Enter its password.</string>
     <string name="tv_sign_in_pair_first">Pair with %1$s first, then sign it in</string>
     <string name="tv_library_signed_out">Sign in to see your playlists, albums, artists and liked songs from YouTube Music here.</string>
     <string name="tv_search_how">Press OK on the search line to type with your remote.</string>

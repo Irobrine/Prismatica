@@ -62,7 +62,10 @@ object Describe {
      */
     fun fetch(http: OkHttpClient, location: String, problem: (String) -> Unit = {}): Renderer? {
         if (!isLocalLink(location)) { problem("not on the local network: $location"); return null }
-        val client = with(LanHttp) { http.newBuilder().lanFirst() }.connectTimeout(3, TimeUnit.SECONDS).readTimeout(4, TimeUnit.SECONDS).callTimeout(6, TimeUnit.SECONDS).build()
+        val client = with(LanHttp) { http.newBuilder().lanFirst() }.connectTimeout(3, TimeUnit.SECONDS).readTimeout(4, TimeUnit.SECONDS).callTimeout(6, TimeUnit.SECONDS)
+            // A description's redirect could point anywhere (a router's page); only the address that answered is read.
+            .followRedirects(false).followSslRedirects(false)
+            .build()
         val text = runCatching {
             client.newCall(Request.Builder().url(location).header("User-Agent", "Android UPnP/1.1 Prism/1.7").build()).execute().use { r ->
                 if (!r.isSuccessful) { problem("HTTP ${r.code} from $location"); null } else r.body?.byteStream()?.use { s -> s.readNBytesCompat(512 * 1024) }?.toString(Charsets.UTF_8)

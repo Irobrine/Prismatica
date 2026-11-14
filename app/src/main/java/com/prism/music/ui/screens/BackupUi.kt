@@ -6,6 +6,7 @@ import com.prism.music.ui.components.PrismButton
 import com.prism.music.ui.components.PrismOutlinedButton
 import com.prism.music.ui.components.PrismSwitch
 import com.prism.music.ui.components.PrismTextButton
+import com.prism.music.ui.components.PrismTextField
 import com.prism.music.ui.theme.PrismIcons
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -63,15 +64,29 @@ fun rememberBackupFlow(onDone: (Boolean) -> Unit = {}): () -> Unit {
     val scope = rememberCoroutineScope()
     var asking by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    // What goes in (#149): everything but the downloaded audio, as before; any part can stay out (to share your settings
-    // without your listening or your sign-in).
-    var parts by remember { mutableStateOf(com.prism.music.data.BackupPart.entries.toSet() - com.prism.music.data.BackupPart.DOWNLOADS) }
+    // What goes in (#149): looks, library and history by default; the downloaded audio and the sign-in are opt-in (the
+    // sign-in because it's a key to the account, not just to Prism).
+    var parts by remember {
+        mutableStateOf(com.prism.music.data.BackupPart.entries.toSet() - setOf(com.prism.music.data.BackupPart.DOWNLOADS, com.prism.music.data.BackupPart.ACCOUNTS))
+    }
+    var password by remember { mutableStateOf("") }
+    var passwordAgain by remember { mutableStateOf("") }
+    var askingPassword by remember { mutableStateOf(false) }
+    // Closing without backing up goes back to the safe default (no sign-in, no downloads).
+    fun resetChoices() {
+        parts = com.prism.music.data.BackupPart.entries.toSet() - setOf(com.prism.music.data.BackupPart.DOWNLOADS, com.prism.music.data.BackupPart.ACCOUNTS)
+        password = ""
+        passwordAgain = ""
+        askingPassword = false
+    }
     val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri == null) { onDone(false); return@rememberLauncherForActivityResult }
         busy = true
         scope.launch {
-            val r = runCatching { c.backup.export(uri, parts) }
+            val r = runCatching { c.backup.export(uri, parts, password.toCharArray().takeIf { password.isNotEmpty() }) }
             busy = false
+            password = ""
+            passwordAgain = ""
             Toast.makeText(context, r.exceptionOrNull()?.let { tr(R.string.backup_failed, it.message) } ?: tr(R.string.backed_up), Toast.LENGTH_SHORT).show()
             onDone(r.isSuccess)
         }
@@ -80,31 +95,101 @@ fun rememberBackupFlow(onDone: (Boolean) -> Unit = {}): () -> Unit {
         var size by remember { mutableLongStateOf(0L) }
         LaunchedEffect(parts) { size = c.backup.estimate(parts) }
         AlertDialog(
-            onDismissRequest = { asking = false },
+            onDismissRequest = { asking = false; resetChoices() },
             title = { Text(tr(R.string.back_up_prism)) },
             text = {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    Text(tr(R.string.pick_what_goes_into_the_file), style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(6.dp))
-                    com.prism.music.data.BackupPart.entries.forEach { part ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            PrismCheck(part in parts, label = part.label) { on -> parts = if (on) parts + part else parts - part }
-                            Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
-                                Text(part.label, style = MaterialTheme.typography.bodyLarge)
-                                Text(part.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column {
+                    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                        Text(tr(R.string.pick_what_goes_into_the_file), style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(6.dp))
+                        com.prism.music.data.BackupPart.entries.forEach { part ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                PrismCheck(part in parts, label = part.label) { on -> parts = if (on) parts + part else parts - part }
+                                Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+                                    Text(part.label, style = MaterialTheme.typography.bodyLarge)
+                                    Text(part.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            tr(R.string.about_2, sizeText(size)) + if (com.prism.music.data.BackupPart.ACCOUNTS in parts) tr(R.string.keep_it_private_it_can_sign) else "",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        tr(R.string.about_2, sizeText(size)) + if (com.prism.music.data.BackupPart.ACCOUNTS in parts) tr(R.string.keep_it_private_it_can_sign) else "",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (password.isEmpty()) {
+                        PrismTextButton(onClick = { askingPassword = true }, Modifier.padding(top = 4.dp)) { Text(tr(R.string.backup_password)) }
+                        if (com.prism.music.data.BackupPart.ACCOUNTS in parts) {
+                            Text(
+                                tr(R.string.backup_accounts_need_password),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                            Column(Modifier.weight(1f)) {
+                                Text(tr(R.string.backup_password_set), style = MaterialTheme.typography.bodyMedium)
+                                Text(tr(R.string.backup_password_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            PrismTextButton(onClick = { password = ""; passwordAgain = "" }) { Text(tr(R.string.remove)) }
+                        }
+                    }
                 }
             },
-            confirmButton = { PrismTextButton(onClick = { asking = false; save.launch(backupName()) }, enabled = parts.isNotEmpty()) { Text(tr(R.string.choose_where)) } },
-            dismissButton = { PrismTextButton(onClick = { asking = false }) { Text(tr(R.string.cancel)) } },
+            confirmButton = { PrismTextButton(onClick = { asking = false; save.launch(backupName()) }, enabled = parts.isNotEmpty() && (password.isEmpty() || password == passwordAgain) && (com.prism.music.data.BackupPart.ACCOUNTS !in parts || password.isNotEmpty())) { Text(tr(R.string.choose_where)) } },
+            dismissButton = { PrismTextButton(onClick = { asking = false; resetChoices() }) { Text(tr(R.string.cancel)) } },
         )
+        if (askingPassword) {
+            AlertDialog(
+                onDismissRequest = { askingPassword = false },
+                title = { Text(tr(R.string.backup_password)) },
+                text = {
+                    Column {
+                        PrismTextField(
+                            value = password,
+                            onValueChange = { password = it.take(128) },
+                            placeholder = { Text(tr(R.string.backup_password)) },
+                            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        PrismTextField(
+                            value = passwordAgain,
+                            onValueChange = { passwordAgain = it.take(128) },
+                            placeholder = { Text(tr(R.string.backup_password_again)) },
+                            isError = passwordAgain.isNotEmpty() && passwordAgain != password,
+                            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        if (passwordAgain.isNotEmpty() && passwordAgain != password) {
+                            Text(
+                                tr(R.string.backup_password_mismatch),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                        }
+                        Text(
+                            tr(R.string.backup_password_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 10.dp),
+                        )
+                    }
+                },
+                confirmButton = {
+                    PrismTextButton(
+                        enabled = password.isNotEmpty() && password == passwordAgain,
+                        onClick = { askingPassword = false },
+                    ) { Text(tr(R.string.done)) }
+                },
+                dismissButton = { PrismTextButton(onClick = { password = ""; passwordAgain = ""; askingPassword = false }) { Text(tr(R.string.cancel)) } },
+            )
+        }
     }
     if (busy) WorkingDialog(tr(R.string.backing_up))
     return { asking = true }
@@ -118,36 +203,82 @@ fun rememberRestoreFlow(): () -> Unit {
     val scope = rememberCoroutineScope()
     var picked by remember { mutableStateOf<android.net.Uri?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var password by remember { mutableStateOf("") }
+    var askingPassword by remember { mutableStateOf(false) }
     val open = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { picked = it }
     picked?.let { uri ->
         // What the file holds: only those parts are replaced (#149); the rest stays as it is here.
         val parts by androidx.compose.runtime.produceState<Set<com.prism.music.data.BackupPart>?>(null, uri) { value = c.backup.partsOf(uri) }
+        val encrypted by androidx.compose.runtime.produceState<Boolean?>(null, uri) { value = c.backup.isEncrypted(uri) }
         AlertDialog(
-            onDismissRequest = { picked = null },
+            onDismissRequest = { picked = null; password = ""; askingPassword = false },
             title = { Text(tr(R.string.restore_this_backup)) },
             text = {
-                Text(
-                    parts?.let { p ->
-                        tr(R.string.it_holds_parts, com.prism.music.data.looks.LookLabels.listed(com.prism.music.data.BackupPart.entries.filter { it in p }.map { it.label }))
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Text(
+                        parts?.let { p ->
+                            tr(R.string.it_holds_parts, com.prism.music.data.looks.LookLabels.listed(com.prism.music.data.BackupPart.entries.filter { it in p }.map { it.label }))
 
-                    } ?: tr(R.string.prism_s_library_history_and_settings),
-                )
-            },
-            confirmButton = {
-                PrismTextButton(onClick = {
-                    picked = null
-                    busy = true
-                    scope.launch {
-                        // Only comes back if it failed; on success Prism restarts.
-                        runCatching { c.backup.restore(uri) }.onFailure {
-                            busy = false
-                            Toast.makeText(context, tr(R.string.couldn_t_restore, it.message), Toast.LENGTH_LONG).show()
+                        } ?: tr(R.string.prism_s_library_history_and_settings),
+                    )
+                    // A protected backup can't show what it holds without its password.
+                    if (encrypted == true) {
+                        Text(
+                            tr(R.string.backup_password_open),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                        if (password.isEmpty()) {
+                            PrismTextButton(onClick = { askingPassword = true }, Modifier.padding(top = 4.dp)) { Text(tr(R.string.backup_password)) }
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                                Text(tr(R.string.backup_password_set), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                PrismTextButton(onClick = { password = "" }) { Text(tr(R.string.remove)) }
+                            }
                         }
                     }
-                }) { Text(tr(R.string.restore)) }
+                }
             },
-            dismissButton = { PrismTextButton(onClick = { picked = null }) { Text(tr(R.string.cancel)) } },
+            confirmButton = {
+                PrismTextButton(
+                    enabled = encrypted == false || (encrypted == true && password.isNotEmpty()),
+                    onClick = {
+                        picked = null
+                        busy = true
+                        scope.launch {
+                            // Only comes back if it failed; on success Prism restarts.
+                            runCatching { c.backup.restore(uri, password.toCharArray().takeIf { password.isNotEmpty() }) }.onFailure {
+                                busy = false
+                                password = ""
+                                Toast.makeText(context, tr(R.string.couldn_t_restore, it.message), Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    },
+                ) { Text(tr(R.string.restore)) }
+            },
+            dismissButton = { PrismTextButton(onClick = { picked = null; password = ""; askingPassword = false }) { Text(tr(R.string.cancel)) } },
         )
+        if (askingPassword) {
+            AlertDialog(
+                onDismissRequest = { askingPassword = false },
+                title = { Text(tr(R.string.backup_password)) },
+                text = {
+                    PrismTextField(
+                        value = password,
+                        onValueChange = { password = it.take(128) },
+                        placeholder = { Text(tr(R.string.backup_password)) },
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                },
+                confirmButton = {
+                    PrismTextButton(enabled = password.isNotEmpty(), onClick = { askingPassword = false }) { Text(tr(R.string.done)) }
+                },
+                dismissButton = { PrismTextButton(onClick = { password = ""; askingPassword = false }) { Text(tr(R.string.cancel)) } },
+            )
+        }
     }
     if (busy) WorkingDialog(tr(R.string.restoring))
     return { open.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }

@@ -599,13 +599,28 @@ object WordFormat {
 
     /** KuGou's KRC files: "krc1", then XOR with a fixed key, then zlib. */
     fun decodeKrc(base64: String): String? = runCatching {
+        // A provider's answer is text, not a file to expand without end.
+        if (base64.length > MAX_KRC_B64) return@runCatching null
         val bytes = java.util.Base64.getMimeDecoder().decode(base64)
-        if (bytes.size < 5 || String(bytes, 0, 4, Charsets.US_ASCII) != "krc1") return null
+        if (bytes.size < 5 || String(bytes, 0, 4, Charsets.US_ASCII) != "krc1") return@runCatching null
         val key = intArrayOf(64, 71, 97, 119, 94, 50, 116, 71, 81, 54, 49, 45, 206, 210, 110, 105)
         val data = ByteArray(bytes.size - 4) { i -> (bytes[i + 4].toInt() xor key[i % 16]).toByte() }
         // KuGou's files can start with a byte-order mark, which then stuck to the first line's first word (#403's KAIRO).
-        java.util.zip.InflaterInputStream(data.inputStream()).bufferedReader(Charsets.UTF_8).readText().replace("﻿", "")
+        java.util.zip.InflaterInputStream(data.inputStream()).bufferedReader(Charsets.UTF_8).use { reader ->
+            val out = StringBuilder()
+            val buf = CharArray(8 * 1024)
+            while (true) {
+                val n = reader.read(buf)
+                if (n < 0) break
+                out.append(buf, 0, n)
+                if (out.length > MAX_LYRICS_CHARS) return@runCatching null
+            }
+            out.toString().replace("﻿", "")
+        }
     }.getOrNull()
+
+    private const val MAX_KRC_B64 = 8 * 1024 * 1024
+    private const val MAX_LYRICS_CHARS = 4 * 1024 * 1024
 }
 
 /** Fetches lyrics from several providers, with per-source caching. */
@@ -628,7 +643,25 @@ class LyricsRepository(
     private fun getText(url: okhttp3.HttpUrl, headers: Map<String, String> = emptyMap()): String? {
         val b = Request.Builder().url(url).header("User-Agent", browserUa)
         headers.forEach { (k, v) -> b.header(k, v) }
-        return http.newCall(b.build()).execute().use { r -> if (!r.isSuccessful) null else r.body.string() }
+        return http.newCall(b.build()).execute().use { r ->
+            if (!r.isSuccessful) return@use null
+            if (r.body.contentLength() > MAX_PROVIDER_BYTES) return@use null
+            val bytes = r.body.byteStream().use { readAtMost(it, MAX_PROVIDER_BYTES) } ?: return@use null
+            String(bytes, Charsets.UTF_8)
+        }
+    }
+
+    private fun readAtMost(input: java.io.InputStream, max: Int): ByteArray? {
+        val out = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(16 * 1024)
+        var total = 0
+        while (true) {
+            val n = input.read(buf)
+            if (n < 0) return out.toByteArray()
+            total += n
+            if (total > max) return null
+            out.write(buf, 0, n)
+        }
     }
 
     private fun getJson(url: okhttp3.HttpUrl, headers: Map<String, String> = emptyMap()): JsonElement? =
@@ -1062,6 +1095,8 @@ class LyricsRepository(
     }
 
     private companion object {
+        /** The most one provider's answer may be: lyrics are text, and a whole song's is far smaller. */
+        const val MAX_PROVIDER_BYTES = 4 * 1024 * 1024
         /** When NetEase and KuGou started returning word-by-word lyrics (Oct 2026). */
         const val WORDS_SINCE = 1_791_080_000_000L
         /** How far (s) a source's edition may differ in length from the song playing. */

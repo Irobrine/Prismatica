@@ -192,7 +192,10 @@ class Cast(private val app: Application, private val c: AppContainer) : Player.L
                 } ?: return@withLock
                 @Suppress("DEPRECATION")
                 val all = if (android.os.Build.VERSION.SDK_INT >= 34) r.hostAddresses else listOfNotNull(r.host)
-                val host = (all.firstOrNull { it is java.net.Inet4Address } ?: all.firstOrNull())?.hostAddress ?: return@withLock
+                val address = all.firstOrNull { it is java.net.Inet4Address } ?: all.firstOrNull() ?: return@withLock
+                // Only a device on this phone's own network: a spoofed mDNS answer can't point the media link elsewhere.
+                if (!Lan.isLocal(address) || !Lan.sameNetwork(address, Lan.ownNetworks())) return@withLock
+                val host = address.hostAddress ?: return@withLock
                 val txt = r.attributes.mapValues { (_, v) -> v?.toString(Charsets.UTF_8).orEmpty() }
                 val device = GoogleCastDevices.renderer(r.serviceName, host, r.port, txt) ?: return@withLock
                 castListed[r.serviceName] = device.id

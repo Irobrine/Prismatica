@@ -3099,6 +3099,10 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     // ------------------------------------------------------------ Session
 
     private inner class LibraryCallback : MediaLibrarySession.Callback {
+        /** Only Prism and the system (Android Auto, Assistant, a watch the system relays) see the library; others only control. */
+        private fun mayBrowse(session: MediaSession, controller: MediaSession.ControllerInfo): Boolean =
+            controller.packageName == packageName || controller.isTrusted || isCar(session, controller)
+
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
             if (isCar(session, controller)) {
                 carControllers += controller
@@ -3107,9 +3111,11 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             if (controller.packageName != packageName) {
                 AudioDiagnostics.log("control", "connected: ${controller.packageName} (${if (controller.isTrusted) "trusted" else "not trusted"})")
             }
+            val browse = mayBrowse(session, controller)
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
                 .setAvailableSessionCommands(
-                    MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon().apply { customCommands.forEach { add(it) } }.build()
+                    (if (browse) MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS else MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS)
+                        .buildUpon().apply { if (browse) customCommands.forEach { add(it) } }.build(),
                 )
                 // Every app may play, pause and skip (#178, #187). Media3 1.11 gives apps it doesn't count as trusted only
                 // the read-only player commands, so KDE Connect, "dynamic island" apps and launcher widgets showed the song
@@ -3172,6 +3178,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             customCommand: SessionCommand,
             args: Bundle,
         ): ListenableFuture<SessionResult> {
+            // A custom command is Prism's library (like, radio, lyrics), not transport: only for a controller that may browse.
+            if (!mayBrowse(session, controller)) return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
             persistentCommands.entries.firstOrNull { it.value.customAction == customCommand.customAction }?.let { (action, _) ->
                 scope.launch { runPersistentAction(action) }
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
@@ -3209,6 +3217,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             browser: MediaSession.ControllerInfo,
             params: LibraryParams?,
         ): ListenableFuture<LibraryResult<MediaItem>> =
+            if (!mayBrowse(session, browser)) Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
+            else
             // Android Auto / the system ask for a "recent" root to offer a resume card. The root's hints say how the car shows
             // folders (cover tiles with the grid on) unless a folder says otherwise.
             Futures.immediateFuture(LibraryResult.ofItem(
@@ -3227,6 +3237,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             pageSize: Int,
             params: LibraryParams?,
         ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = scope.future {
+            if (!mayBrowse(session, browser)) return@future LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED)
             val all = tree.children(parentId)
             val from = (page * pageSize).coerceAtMost(all.size)
             LibraryResult.ofItemList(all.subList(from, (from + pageSize).coerceAtMost(all.size)), params)
@@ -3237,6 +3248,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             browser: MediaSession.ControllerInfo,
             mediaId: String,
         ): ListenableFuture<LibraryResult<MediaItem>> = scope.future {
+            if (!mayBrowse(session, browser)) return@future LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED)
             tree.item(mediaId)?.let { LibraryResult.ofItem(it, null) } ?: LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         }
 
@@ -3246,6 +3258,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             query: String,
             params: LibraryParams?,
         ): ListenableFuture<LibraryResult<Void>> = scope.future {
+            if (!mayBrowse(session, browser)) return@future LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED)
             val count = tree.search(query)
             session.notifySearchResultChanged(browser, query, count, params)
             LibraryResult.ofVoid()
@@ -3259,6 +3272,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             pageSize: Int,
             params: LibraryParams?,
         ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = scope.future {
+            if (!mayBrowse(session, browser)) return@future LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED)
             // This query's results (searched now if the car asks for them without a search first), not the last search's.
             val all = tree.searchItems(query)
             // A car that asks for no pages gets page 0 of Int.MAX_VALUE: worked out in Long, so it can't overflow.

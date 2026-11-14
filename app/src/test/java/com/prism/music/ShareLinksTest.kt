@@ -32,5 +32,8 @@ class ShareLinksTest {
         assertNull(ShareLinks.findIn("https://example.com/watch?v=abc"))
         assertNull(ShareLinks.findIn("no links here"))
         assertNull(ShareLinks.findIn(null))
+        // A share from anywhere can be malformed: it isn't a crash, just nothing to open.
+        assertNull(ShareLinks.findIn("https://youtube.com/watch?v=%E0%A4%A"))
+        assertNull(ShareLinks.findIn("https://youtube.com/" + "a".repeat(20_000)))
     }
 }

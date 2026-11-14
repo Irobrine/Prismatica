@@ -111,6 +111,7 @@ class PhoneLinkPairTest {
         // so there's no sign-in to give (the link's s=1 notwithstanding): bringing the listener's Prism there instead.
         handoff.pairFromLink(link(own, port, code))
         compose.waitUntil(10_000) { compose.onAllNodes(hasTestTag("linkPair/yes")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasTestTag("linkPair/confirm")).performClick()
         compose.onNode(hasTestTag("linkPair/yes")).performClick()
         compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("tvBring/yes")).fetchSemanticsNodes().isNotEmpty() }
         assertTrue("no sign-in offered without one", compose.onAllNodes(hasTestTag("tvSignIn/yes")).fetchSemanticsNodes().isEmpty())

@@ -51,7 +51,17 @@ class LastFm(private val context: Context, private val http: OkHttpClient, priva
     val available: Boolean get() = KEY.isNotBlank() && SECRET.isNotBlank()
 
     private val prefs = context.getSharedPreferences("lastfm", Context.MODE_PRIVATE)
+    /** Last.fm's session key is the account's: sealed under a key only this phone has (never in the clear). */
+    private val box = com.prism.music.data.spotify.KeystoreBox(LASTFM_KEY)
     private val json = Json { ignoreUnknownKeys = true }
+
+    /** The session key as sign-in saved it, unsealed; one from before it was sealed is sealed now. */
+    private fun sessionKey(): String? {
+        val stored = prefs.getString("session", null)?.takeIf { it.isNotBlank() } ?: return null
+        if (stored.startsWith(com.prism.music.data.spotify.KeystoreBox.SEALED)) return box.open(stored)
+        runCatching { prefs.edit().putString("session", box.seal(stored)).apply() }
+        return stored
+    }
 
     private val _user = MutableStateFlow(prefs.getString("user", null)?.takeIf { prefs.getString("session", null) != null })
     /** The connected Last.fm account's name, or null. */
@@ -76,15 +86,24 @@ class LastFm(private val context: Context, private val http: OkHttpClient, priva
     // ---- Signing in
 
     /** Last.fm's page that asks the listener to let Prism scrobble; it comes back to prism://lastfm?token=… */
-    fun authUrl(): String = "https://www.last.fm/api/auth/?api_key=$KEY&cb=" + java.net.URLEncoder.encode("prism://lastfm", "UTF-8")
+    fun authUrl(): String {
+        // Only a callback from a sign-in the listener just started here is taken (a link from elsewhere isn't).
+        prefs.edit().putLong(PENDING_AT, System.currentTimeMillis()).apply()
+        return "https://www.last.fm/api/auth/?api_key=$KEY&cb=" + java.net.URLEncoder.encode("prism://lastfm", "UTF-8")
+    }
 
-    /** Swaps the token Last.fm sent back for a session. False when Last.fm refused it. */
+    /** Swaps the token Last.fm sent back for a session. False when Last.fm refused it, or no sign-in was started here. */
     suspend fun finishSignIn(token: String): Boolean = runCatching {
+        val started = prefs.getLong(PENDING_AT, 0L)
+        if (started <= 0 || System.currentTimeMillis() - started !in 0..PENDING_MS) return false
+        if (token.length !in 8..64 || !token.all { it.isLetterOrDigit() }) return false
+        // One callback per sign-in: a second link can't replace the account behind the listener's back.
+        prefs.edit().remove(PENDING_AT).apply()
         val res = call(mapOf("method" to "auth.getSession", "token" to token))
         val session = res["session"]?.jsonObject ?: return false
         val key = session["key"]?.jsonPrimitive?.contentOrNull ?: return false
         val name = session["name"]?.jsonPrimitive?.contentOrNull.orEmpty()
-        prefs.edit().putString("session", key).putString("user", name).apply()
+        prefs.edit().putString("session", runCatching { box.seal(key) }.getOrDefault(key)).putString("user", name).apply()
         _user.value = name
         scope.launch { flush() }
         true
@@ -92,6 +111,7 @@ class LastFm(private val context: Context, private val http: OkHttpClient, priva
 
     fun signOut() {
         prefs.edit().remove("session").remove("user").remove("queue").apply()
+        box.forget()
         _user.value = null
         _waiting.value = 0
     }
@@ -212,7 +232,7 @@ class LastFm(private val context: Context, private val http: OkHttpClient, priva
     private suspend fun call(params: Map<String, String>, signed: Boolean = true): JsonObject = withContext(Dispatchers.IO) {
         val all = HashMap(params).apply {
             put("api_key", KEY)
-            if (signed && params["method"] != "auth.getSession") prefs.getString("session", null)?.let { put("sk", it) }
+            if (signed && params["method"] != "auth.getSession") sessionKey()?.let { put("sk", it) }
         }
         val form = FormBody.Builder().apply {
             all.forEach { (k, v) -> add(k, v) }
@@ -240,6 +260,11 @@ class LastFm(private val context: Context, private val http: OkHttpClient, priva
         private const val MIN_SONG_SEC = 30
         private const val MAX_NEEDED_MS = 4 * 60_000L
         private const val ERROR_INVALID_SESSION = 9
+        private const val PENDING_AT = "pending_at"
+        /** How long the browser's sign-in page may take before its callback isn't taken. */
+        private const val PENDING_MS = 15 * 60_000L
+        /** The Keystore key that seals the Last.fm session (this account's alone). */
+        private const val LASTFM_KEY = "prism_lastfm_session"
 
         /** `user.getRecentTracks` for [user]: one page, and with [from] (seconds) only the scrobbles since then. */
         fun recentTracksUrl(user: String, page: Int, perPage: Int, from: Long?, key: String): okhttp3.HttpUrl =

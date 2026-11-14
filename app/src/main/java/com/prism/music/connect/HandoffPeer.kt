@@ -161,10 +161,10 @@ class HandoffPeer(
         link.timeout(8_000)
         val hello = link.read() as? HMsg.Hello ?: return
         val theirKey = LinkKeys.unhex(hello.key)
-        if (hello.version != Handoff.VERSION || theirKey?.size != 32 || hello.nonce.length != 32) {
+        if (hello.version != Handoff.VERSION || theirKey?.size != 32 || hello.nonce.length != 32 || !safeDeviceId(hello.device)) {
             link.send(HMsg.Denied(tr(R.string.both_devices_need_the_latest_prism))); return
         }
-        val them = hello.name.trim().take(60).ifBlank { tr(R.string.another_device) }
+        val them = hello.name.filter { !it.isISOControl() }.trim().take(60).ifBlank { tr(R.string.another_device) }
         val mine = X25519.newPrivateKey()
         val myKey = LinkKeys.hex(X25519.publicKey(mine))
         val nonce = LinkKeys.hex(LinkKeys.nonce())
@@ -433,6 +433,10 @@ class HandoffPeer(
         const val PAIR_ASKS_PER_MINUTE_ALL = 20
         /** A Look's code is a few kilobytes; anything far longer isn't one. */
         private const val MAX_LOOK_CODE = 64_000
+
+        /** A device id is the UUID Prism made (or a test's own): never a path, control characters or an endless key. */
+        internal fun safeDeviceId(id: String): Boolean =
+            id.length in 1..64 && id.all { it.isLetterOrDigit() || it == '-' || it == '_' || it == '.' || it == ':' }
     }
 }
 

@@ -333,6 +333,21 @@ class AppContainer(val app: Application) {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .apply { TestHooks.network?.let(::addInterceptor) }
+        // A redirect to another host is answered without the first host's credentials: OkHttp drops Authorization itself,
+        // but not a Cookie header set by hand (InnerTube's sign-in).
+        .addNetworkInterceptor { chain ->
+            val first = chain.call().request()
+            val request = chain.request()
+            if (request.url.host == first.url.host && request.url.port == first.url.port && request.url.scheme == first.url.scheme) {
+                chain.proceed(request)
+            } else {
+                chain.proceed(
+                    request.newBuilder()
+                        .removeHeader("Cookie").removeHeader("Authorization").removeHeader("X-Goog-AuthUser")
+                        .build(),
+                )
+            }
+        }
         .build()
     private val streamHttp: OkHttpClient = http.newBuilder()
         .addInterceptor(YouTubeStreamInterceptor(http))

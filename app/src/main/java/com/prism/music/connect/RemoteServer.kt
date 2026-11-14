@@ -52,6 +52,8 @@ class RemoteAuth(private val store: Store, private val clock: () -> Long = Syste
     fun pair(entered: String, name: String, from: String): PairResult {
         val now = clock()
         if (now < lockedUntil) return PairResult.Locked((lockedUntil - now + 999) / 1000)
+        // A lock that ran out long ago starts the count again: a listener's own typo months later isn't locked out forever.
+        failures[from]?.let { (_, until) -> if (until > 0 && now > until + FORGET_MS) failures.remove(from) }
         failures[from]?.let { (n, until) -> if (n >= PER_ADDRESS && now < until) return PairResult.Locked((until - now + 999) / 1000) }
         val digits = entered.filter { it.isDigit() }
         if (!MessageDigest.isEqual(digits.toByteArray(), code.toByteArray())) {
@@ -60,6 +62,10 @@ class RemoteAuth(private val store: Store, private val clock: () -> Long = Syste
             // Locked a minute after five misses, then twice as long each time.
             val lock = if (count >= PER_ADDRESS) now + LOCK_MS * (1L shl (count - PER_ADDRESS).coerceAtMost(6)) else 0L
             failures[from] = count to lock
+            if (failures.size > MAX_FAILURES) {
+                failures.entries.removeIf { now >= it.value.second }
+                if (failures.size > MAX_FAILURES) failures.clear()
+            }
             recent.addLast(now)
             while (recent.isNotEmpty() && recent.first < now - WINDOW_MS) recent.removeFirst()
             if (recent.size >= IN_ALL) {
@@ -70,6 +76,10 @@ class RemoteAuth(private val store: Store, private val clock: () -> Long = Syste
             return PairResult.Wrong
         }
         failures.remove(from)
+        if (failures.size > MAX_FAILURES) {
+            failures.entries.removeIf { now >= it.value.second }
+            if (failures.size > MAX_FAILURES) failures.clear()
+        }
         val token = ByteArray(32).also { random.nextBytes(it) }.hex()
         store.put(KEY + hash(token), listOf(name.trim().take(60).ifBlank { "A browser" }, now, now).joinToString(SEP))
         // A code is good for one browser.
@@ -119,6 +129,10 @@ class RemoteAuth(private val store: Store, private val clock: () -> Long = Syste
         const val IN_ALL = 20
         const val LOCK_MS = 60_000L
         const val WINDOW_MS = 10 * 60_000L
+        /** Quiet for this long after a lock: the address's count starts again. */
+        private const val FORGET_MS = 6 * 60 * 60_000L
+        /** A wrong code from each of ever so many addresses can't grow the phone's memory without end. */
+        private const val MAX_FAILURES = 2_048
 
         fun hash(token: String): String = MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).hex()
         private fun ByteArray.hex() = joinToString("") { "%02x".format(it) }
@@ -159,6 +173,9 @@ class RemoteServer(
 ) {
     private val http = HttpServer("prism-remote", port, maxBody = 16 * 1024, handler = ::handle)
     private val streams = AtomicInteger()
+    /** YouTube searches and lyric fetches use the listener's account and network: only a couple at a time. */
+    private val searches = java.util.concurrent.Semaphore(2)
+    private val lyricFetches = java.util.concurrent.Semaphore(1)
     private val json = Json { ignoreUnknownKeys = true }
 
     val port: Int get() = http.port
@@ -196,8 +213,14 @@ class RemoteServer(
         when {
             path == "/api/state" && !change -> res.json(200, api.state(), security)
             path == "/api/events" && !change -> events(res)
-            path == "/api/lyrics" && !change -> res.json(200, api.lyrics(), security)
-            path == "/api/search" && !change -> res.json(200, api.search(req.query["q"].orEmpty().take(200)), security)
+            path == "/api/lyrics" && !change -> {
+                if (!lyricFetches.tryAcquire()) { res.json(429, """{"error":"busy"}""", security); return }
+                try { res.json(200, api.lyrics(), security) } finally { lyricFetches.release() }
+            }
+            path == "/api/search" && !change -> {
+                if (!searches.tryAcquire()) { res.json(429, """{"error":"busy"}""", security); return }
+                try { res.json(200, api.search(req.query["q"].orEmpty().take(200)), security) } finally { searches.release() }
+            }
             path == "/api/art" && !change -> {
                 val a = api.art(req.query["id"].orEmpty())
                 if (a == null) res.text(404, "", security) else res.send(200, a.first, a.second, security - "Cache-Control" + ("Cache-Control" to "max-age=3600"))

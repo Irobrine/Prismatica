@@ -423,6 +423,9 @@ class ArtworkProvider : ContentProvider() {
     private fun youTubeImage(host: String, path: String?) =
         (host == "music.youtube.com" || host == "www.youtube.com") && path?.startsWith("/image/") == true
 
+    /** [host] is [domain] itself or one of its subdomains: "evilgoogleusercontent.com" isn't. */
+    private fun under(host: String, domain: String) = host == domain || host.endsWith(".$domain")
+
     override fun onCreate(): Boolean {
         // The old cache kept YouTube's PNGs under a JPEG name and type; this one only holds JPEGs.
         context?.let { ctx -> Thread { File(ctx.cacheDir, "auto_art").deleteRecursively() }.start() }
@@ -450,7 +453,7 @@ class ArtworkProvider : ContentProvider() {
             // ...or the cover inside a file on the phone (#350), which the scan kept as it found it: a PNG goes out as a JPEG too.
             if (path.startsWith(File(ctx.filesDir, "artwork/local").canonicalPath + File.separator)) {
                 if (!file.exists()) return null
-                return cached(ctx, "local:$path:${file.lastModified()}:${file.length()}") { file.readBytes() }
+                return cached(ctx, "local:$path:${file.lastModified()}:${file.length()}") { readAtMost(file.inputStream(), MAX_IMAGE_BYTES) }
             }
             if (!(path.startsWith(covers + File.separator) || path.startsWith(holiday + File.separator)) || !file.exists()) return null
             return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
@@ -461,16 +464,38 @@ class ArtworkProvider : ContentProvider() {
             return runCatching { ctx.contentResolver.openFileDescriptor(Uri.parse(LOCAL_ALBUM_ART + id), "r") }.getOrNull()
         }
         val parsed = Uri.parse(url)
-        val host = parsed.host ?: return null
-        if (!url.startsWith("https://") || (allowedHosts.none { host.endsWith(it) } && !youTubeImage(host, parsed.path))) return null
+        val host = parsed.host?.lowercase() ?: return null
+        if (!url.startsWith("https://") || (allowedHosts.none { under(host, it) } && !youTubeImage(host, parsed.path))) return null
         val container = runCatching { (ctx.applicationContext as? com.prism.music.PrismApp)?.container }.getOrNull()
         return cached(ctx, url) {
             // A cover already kept on the phone (what the app itself shows, offline too), else from the network.
-            container?.artwork?.fileFor(url)?.takeIf { it.exists() }?.readBytes()
-                ?: (container?.http ?: okhttp3.OkHttpClient()).newCall(Request.Builder().url(url).build()).execute().use { r ->
-                    if (r.isSuccessful) r.body.bytes() else null
+            container?.artwork?.fileFor(url)?.takeIf { it.exists() }?.let { readAtMost(it.inputStream(), MAX_IMAGE_BYTES) }
+                ?: run {
+                    // This provider is open to other apps: every hop and every byte is checked, not just the first address.
+                    val client = (container?.http ?: okhttp3.OkHttpClient()).newBuilder()
+                        .followRedirects(false).followSslRedirects(false).build()
+                    client.newCall(Request.Builder().url(url).build()).execute().use { r ->
+                        if (!r.isSuccessful) return@use null
+                        if (r.body.contentLength() > MAX_IMAGE_BYTES) return@use null
+                        readAtMost(r.body.byteStream(), MAX_IMAGE_BYTES)
+                    }
                 }
         }
+    }
+
+    /** The whole stream, or null when it's longer than [max] (never an unbounded read from someone else's address). */
+    private fun readAtMost(input: java.io.InputStream, max: Long): ByteArray? = input.use {
+        val out = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(16 * 1024)
+        var total = 0L
+        while (true) {
+            val n = it.read(buf)
+            if (n < 0) return@use out.toByteArray()
+            total += n
+            if (total > max) return@use null
+            out.write(buf, 0, n)
+        }
+        @Suppress("UNREACHABLE_CODE") null
     }
 
     /** One of Prism's own `ic_auto_` tiles, drawn once per version of the app. */
@@ -494,6 +519,7 @@ class ArtworkProvider : ContentProvider() {
     private fun cached(ctx: android.content.Context, key: String, make: () -> ByteArray?): ParcelFileDescriptor? {
         val name = MessageDigest.getInstance("SHA-1").digest(key.toByteArray()).joinToString("") { "%02x".format(it) }
         val dir = File(ctx.cacheDir, "auto_art2").apply { mkdirs() }
+        prune(dir)
         val file = File(dir, "$name.jpg")
         if (!file.exists()) {
             val jpeg = make()?.let(::asJpeg) ?: return null
@@ -504,6 +530,17 @@ class ArtworkProvider : ContentProvider() {
         return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
     }
 
+    /** Keeps the car's cover cache from growing without end while other apps ask this provider for pictures. */
+    private fun prune(dir: File) {
+        val files = dir.listFiles()?.filter { it.isFile }?.sortedBy { it.lastModified() } ?: return
+        var total = files.sumOf { it.length() }
+        for (f in files) {
+            if (total <= MAX_CACHE) break
+            total -= f.length()
+            f.delete()
+        }
+    }
+
     companion object {
         /** In place of an address: one of Prism's own `ic_auto_` tiles ([MediaTree]'s Downloads, Shuffle play…). */
         const val RES = "res:"
@@ -511,6 +548,10 @@ class ArtworkProvider : ContentProvider() {
         const val OR = "or"
         const val LOCAL_ALBUM_ART = "content://media/external/audio/albumart/"
         private const val TILE_PX = 288
+        /** The most a cover may be: enough for a 4K album cover, not enough to fill memory from an address. */
+        private const val MAX_IMAGE_BYTES = 8L * 1024 * 1024
+        /** The car's cover cache stays under this: other apps can ask this provider for pictures too. */
+        private const val MAX_CACHE = 128L * 1024 * 1024
 
         /** [url] served through this provider (a car can't open the app's own files, nor every web address). */
         fun contentUri(url: String): Uri {
@@ -532,13 +573,24 @@ class ArtworkProvider : ContentProvider() {
  */
 internal fun asJpeg(bytes: ByteArray): ByteArray? {
     if (bytes.size > 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte()) return bytes
-    val src = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+    // What a picture claims it is before decoding it: a tiny file can say 60 000 × 60 000, which would be gigabytes.
+    val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    var sample = 1
+    while (bounds.outWidth / sample > MAX_SIDE || bounds.outHeight / sample > MAX_SIDE) sample *= 2
+    val src = android.graphics.BitmapFactory.decodeByteArray(
+        bytes, 0, bytes.size, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample },
+    ) ?: return null
     val edge = src.getPixel(src.width / 2, minOf(1, src.height - 1))
     val ground = if (android.graphics.Color.alpha(edge) == 255) edge else 0xFF121212.toInt()
     val out = android.graphics.Bitmap.createBitmap(src.width, src.height, android.graphics.Bitmap.Config.ARGB_8888)
     android.graphics.Canvas(out).apply { drawColor(ground); drawBitmap(src, 0f, 0f, null) }
     return java.io.ByteArrayOutputStream().also { out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, it) }.toByteArray()
 }
+
+/** The most a decoded cover may be on either side (a car tile is far smaller); bigger pictures are sampled down. */
+private const val MAX_SIDE = 2048
 
 /** A playlist's browse folder id; mixes and stations keep their seed song and params for [MediaTree]'s "mix:" folders. */
 private fun mixOrPlaylistId(item: PlaylistItem): String =

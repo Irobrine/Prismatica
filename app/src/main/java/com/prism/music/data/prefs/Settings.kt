@@ -7,11 +7,13 @@ import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +26,11 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-private val Context.dataStore by preferencesDataStore("prism_settings")
+// A settings file Android or a restore left half-written starts Prism with its defaults rather than crashing at launch.
+private val Context.dataStore by preferencesDataStore(
+    "prism_settings",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+)
 
 enum class ThemeMode(val label: String) { SYSTEM(tr(R.string.system)), LIGHT(tr(R.string.light)), DARK(tr(R.string.dark)) }
 enum class ColorSource(val label: String) { ARTWORK(tr(R.string.widget_now_playing)), DYNAMIC(tr(R.string.wallpaper)), CUSTOM(tr(R.string.custom)) }

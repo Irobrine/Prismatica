@@ -46,7 +46,9 @@ class MediaServer(preferredPort: Int = PORT) {
     private fun handle(req: HttpRequest, res: HttpResponse) {
         if (req.method != "GET" && req.method != "HEAD") { res.text(405, "GET only", mapOf("Allow" to "GET, HEAD")); return }
         val parts = req.path.removePrefix("/").split('/')
-        if (parts.size != 3 || parts[0] != "cast" || parts[1] != token) { res.text(404, "Not found"); return }
+        if (parts.size != 3 || parts[0] != "cast" || !java.security.MessageDigest.isEqual(parts[1].toByteArray(), token.toByteArray())) {
+            res.text(404, "Not found"); return
+        }
         val key = parts[2]
         val body = synchronized(bodies) { bodies[key] } ?: run { res.text(404, "Not found"); return }
         val total = body.length
@@ -60,6 +62,7 @@ class MediaServer(preferredPort: Int = PORT) {
         )
         val range = ByteRange.parse(req.header("range"), total)
         log += "${req.method} $key ${req.header("range") ?: "whole"}"
+        while (log.size > LOG_MAX) log.poll()
         when (range) {
             ByteRange.Unsatisfiable -> res.send(416, null, ByteArray(0), headers + ("Content-Range" to "bytes */$total"))
             ByteRange.Whole -> {
@@ -78,6 +81,8 @@ class MediaServer(preferredPort: Int = PORT) {
     companion object {
         const val PORT = 47322
         private const val KEEP = 8
+        /** The last requests kept for tests and diagnostics; a renderer can't grow this for the life of the process. */
+        private const val LOG_MAX = 200
         private val random = SecureRandom()
 
         fun newToken(): String = ByteArray(16).also { random.nextBytes(it) }.joinToString("") { "%02x".format(it) }

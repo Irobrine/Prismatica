@@ -22,11 +22,11 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.prismatica.music"
+        applicationId = "com.prismatica.refracted"
         minSdk = 26
         targetSdk = 36
-        versionCode = 63
-        versionName = "1.8.5"
+        versionCode = 1001
+        versionName = "1.0"
         vectorDrawables { useSupportLibrary = true }
         // The name under the launcher icon; a side-by-side build (below) is called "Prism Dev" so it can't be mistaken for Prism.
         manifestPlaceholders["appLabel"] = "@string/app_name"

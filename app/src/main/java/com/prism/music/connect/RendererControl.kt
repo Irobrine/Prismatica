@@ -36,6 +36,9 @@ class RendererControl(http: OkHttpClient, val renderer: Renderer) : RendererLink
         .readTimeout(8, TimeUnit.SECONDS)
         .callTimeout(10, TimeUnit.SECONDS)
         .retryOnConnectionFailure(false)
+        // A SOAP call stays at the address its description named: a redirect can't reach another service.
+        .followRedirects(false)
+        .followSslRedirects(false)
         .build()
 
     private val av = renderer.avTransport ?: throw IllegalArgumentException(tr(R.string.isn_t_a_upnp_renderer, renderer.name))

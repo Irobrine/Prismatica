@@ -3,10 +3,14 @@ package com.prism.music.ui.components
 import com.prism.music.R
 import com.prism.music.tr
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -16,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
@@ -47,11 +52,29 @@ fun HandoffDialogs() {
     // A pairing link (a TV's QR code, or any page or app that opens one): nothing happens until the listener says yes.
     val linkPair by handoff.linkPair.collectAsState()
     linkPair?.let { ask ->
+        var confirmed by remember(ask) { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { handoff.answerLinkPair(false) },
             title = { Text(tr(R.string.pair_with_2, ask.name)) },
-            text = { Text(tr(R.string.tv_link_pair_note, ask.name, ask.shownAddress)) },
-            confirmButton = { PrismTextButton(onClick = { handoff.answerLinkPair(true) }, Modifier.testTag("linkPair/yes")) { Text(tr(R.string.pair)) } },
+            text = {
+                Column {
+                    Text(tr(R.string.tv_link_pair_note, ask.name, ask.shownAddress))
+                    Text(
+                        tr(R.string.tv_link_pair_code, "${ask.code.take(3)} ${ask.code.drop(3)}"),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                        Checkbox(
+                            checked = confirmed,
+                            onCheckedChange = { confirmed = it },
+                            modifier = Modifier.testTag("linkPair/confirm"),
+                        )
+                        Text(tr(R.string.tv_link_pair_confirm), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = { PrismTextButton(onClick = { handoff.answerLinkPair(true) }, Modifier.testTag("linkPair/yes"), enabled = confirmed) { Text(tr(R.string.pair)) } },
             dismissButton = { PrismTextButton(onClick = { handoff.answerLinkPair(false) }) { Text(tr(R.string.cancel)) } },
         )
     }

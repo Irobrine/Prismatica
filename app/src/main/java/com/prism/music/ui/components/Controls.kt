@@ -173,6 +173,7 @@ fun PrismTextField(
     isError: Boolean = false,
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
     keyboardActions: androidx.compose.foundation.text.KeyboardActions = androidx.compose.foundation.text.KeyboardActions.Default,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
     singleLine: Boolean = false,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
@@ -190,6 +191,7 @@ fun PrismTextField(
             focusedLabelColor = ink, cursorColor = ink,
             selectionColors = androidx.compose.foundation.text.selection.TextSelectionColors(ink, ink.copy(alpha = 0.25f)),
         ),
+        visualTransformation = visualTransformation,
     )
 }
 

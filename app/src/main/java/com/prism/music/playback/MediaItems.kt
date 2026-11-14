@@ -54,7 +54,23 @@ fun Song.toMediaItem(videoId: String? = null): MediaItem {
 }
 
 fun MediaItem.toSong(): Song? = mediaMetadata.extras?.getString(EXTRA_SONG)?.let {
-    runCatching { InnerTube.json.decodeFromString(Song.serializer(), it) }.getOrNull()
+    runCatching { InnerTube.json.decodeFromString(Song.serializer(), it) }.getOrNull()?.trusted()
+}
+
+private val SONG_IMAGE_HOSTS = listOf("ytimg.com", "ggpht.com", "googleusercontent.com", "gstatic.com")
+
+/**
+ * A song a controller sent, with anything that could reach somewhere else taken out. An app that isn't Prism can set a
+ * media item: a made-up id or a cover address of its own would otherwise be fetched or played as if it were the library's.
+ */
+internal fun Song.trusted(): Song? {
+    if (id.isEmpty() || id.length > 200 || id.contains('/') || id.contains('\\') || id.any { it.code < 0x20 }) return null
+    val safeThumb = thumbnail?.takeIf { url ->
+        url.startsWith("https://") && runCatching { Uri.parse(url).host?.lowercase() }.getOrNull()?.let { h ->
+            SONG_IMAGE_HOSTS.any { d -> h == d || h.endsWith(".$d") }
+        } == true
+    }
+    return if (safeThumb == thumbnail) this else copy(thumbnail = safeThumb)
 }
 
 val MediaItem.videoModeId: String? get() = mediaMetadata.extras?.getString(EXTRA_VIDEO)

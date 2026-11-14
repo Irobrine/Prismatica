@@ -206,6 +206,7 @@ class UpdateChecker(private val context: Context, private val http: OkHttpClient
             if (!r.isSuccessful) error(tr(R.string.github_answered, r.code))
             val body = r.body
             val total = body.contentLength().takeIf { it > 0 }
+            if (total != null && total > MAX_APK) error(tr(R.string.the_download_was_cut_short))
             var done = 0L
             var shown = -1
             body.byteStream().use { input ->
@@ -214,8 +215,9 @@ class UpdateChecker(private val context: Context, private val http: OkHttpClient
                     while (true) {
                         val n = input.read(buf)
                         if (n < 0) break
-                        out.write(buf, 0, n)
                         done += n
+                        if (done > MAX_APK) error(tr(R.string.the_download_was_cut_short))
+                        out.write(buf, 0, n)
                         val pct = total?.let { (done * 100 / it).toInt() } ?: -1
                         if (pct != shown) { shown = pct; _progress.value = UpdateProgress.Downloading(total?.let { done.toFloat() / it }) }
                     }
@@ -392,13 +394,15 @@ class UpdateChecker(private val context: Context, private val http: OkHttpClient
 
         /** How long between background checks (#278: was six hours). */
         const val CHECK_EVERY_MS = 3_600_000L
+        /** The most an update may be (Prism is ~40 MB): a wrong or malicious address can't fill the phone. */
+        private const val MAX_APK = 300L * 1024 * 1024
 
         fun dueToCheck(now: Long, checkedAt: Long): Boolean = now - checkedAt !in 0 until CHECK_EVERY_MS
 
         /** "1.8.1" from a redirect to ".../releases/tag/v1.8.1"; null for anywhere else (no release yet, a sign-in page). */
         fun versionFromLatestRedirect(location: String?): String? =
             location?.substringAfter("/releases/tag/", "")?.substringBefore('?')?.removePrefix("v")?.trim()
-                ?.takeIf { it.isNotEmpty() && it.first().isDigit() }
+                ?.takeIf { it.isNotEmpty() && it.first().isDigit() && it.all { c -> c.isLetterOrDigit() || c == '.' || c == '-' || c == '_' } }
 
         /**
          * A tap on the update while one is under way (#278): downloading, nothing new starts; handed to Android's

@@ -40,6 +40,8 @@ import okhttp3.WebSocketListener
  */
 class DiscordPresence(context: Context, http: OkHttpClient, private val scope: CoroutineScope) {
     private val prefs = context.getSharedPreferences("discord", Context.MODE_PRIVATE)
+    /** The token is a key to the whole account: sealed under a key only this phone has, never written in the clear. */
+    private val box = com.prism.music.data.spotify.KeystoreBox(DISCORD_KEY)
     private val http = http.newBuilder().pingInterval(java.time.Duration.ZERO).build()
 
     enum class State { OFF, CONNECTING, CONNECTED, SIGNED_OUT }
@@ -52,13 +54,22 @@ class DiscordPresence(context: Context, http: OkHttpClient, private val scope: C
 
     val signedIn: Boolean get() = !prefs.getString("token", null).isNullOrBlank()
 
+    /** The token as sign-in saved it, unsealed; a token from before it was sealed is sealed now. */
+    private fun storedToken(): String? {
+        val stored = prefs.getString("token", null)?.takeIf { it.isNotBlank() } ?: return null
+        if (stored.startsWith(com.prism.music.data.spotify.KeystoreBox.SEALED)) return box.open(stored)
+        runCatching { prefs.edit().putString("token", box.seal(stored)).apply() }
+        return stored
+    }
+
     fun signIn(token: String) {
-        prefs.edit().putString("token", token).apply()
+        prefs.edit().putString("token", runCatching { box.seal(token) }.getOrDefault(token)).apply()
         reconnect()
     }
 
     fun signOut() {
         prefs.edit().clear().apply()
+        box.forget()
         userName.value = null
         stop()
         _state.value = State.SIGNED_OUT
@@ -136,7 +147,7 @@ class DiscordPresence(context: Context, http: OkHttpClient, private val scope: C
 
     /** Asks Discord to take in [cover] for Prism's application, then sends the presence again with it (same song). */
     private fun fetchArt(songId: String, cover: String) {
-        val token = prefs.getString("token", null) ?: return
+        val token = storedToken() ?: return
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val path = runCatching {
                 val body = buildJsonObject { put("urls", buildJsonArray { add(kotlinx.serialization.json.JsonPrimitive(cover)) }) }.toString()
@@ -189,7 +200,7 @@ class DiscordPresence(context: Context, http: OkHttpClient, private val scope: C
 
     private fun reconnect() {
         stop()
-        val token = prefs.getString("token", null)
+        val token = storedToken()
         if (!enabled || token.isNullOrBlank()) return
         _state.value = State.CONNECTING
         val req = Request.Builder().url("wss://gateway.discord.gg/?v=10&encoding=json").build()
@@ -262,6 +273,8 @@ class DiscordPresence(context: Context, http: OkHttpClient, private val scope: C
          * the activity and lets Discord show song covers; blank sends the status without a picture.
          */
         const val APP_ID = "1562457091980132382"
+        /** The Keystore key that seals the Discord token (this account's alone). */
+        private const val DISCORD_KEY = "prism_discord_token"
     }
 
     /** Back off (5 s, 10 s … up to 5 min) and connect again, while presence is on. */

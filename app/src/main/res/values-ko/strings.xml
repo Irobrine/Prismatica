@@ -5388,4 +5388,21 @@
     <string name="gb_lyrics_cover_plays">작은 커버를 탭해 재생 또는 일시중지</string>
     <string name="gb_lyrics_cover_plays_info">가사가 열려 있을 때 작은 커버를 탭하면 재생하거나 일시중지하고, 길게 누르면 가사가 닫힙니다. 꺼짐: 탭하면 가사가 닫힙니다.</string>
     <string name="gb_lyrics_cover_plays_keywords">가사 작은 커버 썸네일 아트워크 탭 재생 일시중지 길게 누르기 닫기 lyrics cover</string>
+
+<string name="tv_link_pair_code">The TV in front of you should show this code: %1$s</string>
+<string name="backup_password_wrong">That password doesn\'t open this backup (or the file is damaged).</string>
+<string name="backup_password">Password (optional)</string>
+<string name="backup_password_note">With a password, the whole file is sealed: no one can read your listening, playlists or sign-in without it. Keep it safe; it can\'t be recovered.</string>
+<string name="backup_password_open">This backup is protected. Enter its password.</string>
+
+<string name="search_songs_hint">Search songs</string>
+
+<string name="backup_password_again">Password again</string>
+<string name="backup_password_mismatch">The two passwords don\'t match.</string>
+
+<string name="backup_password_set">A password is set: the backup is sealed.</string>
+
+<string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
+
+<string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
 </resources>

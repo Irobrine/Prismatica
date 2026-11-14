@@ -5613,4 +5613,21 @@
     <string name="gb_lyrics_cover_plays">Дотик до маленької обкладинки: відтворення або пауза</string>
     <string name="gb_lyrics_cover_plays_info">Коли текст відкрито, дотик до маленької обкладинки вмикає відтворення або паузу, а довге натискання закриває текст. Вимкнено: дотик закриває текст.</string>
     <string name="gb_lyrics_cover_plays_keywords">текст пісні маленька обкладинка мініатюра дотик відтворити пауза довге натискання закрити lyrics cover</string>
+
+<string name="tv_link_pair_code">The TV in front of you should show this code: %1$s</string>
+<string name="backup_password_wrong">That password doesn\'t open this backup (or the file is damaged).</string>
+<string name="backup_password">Password (optional)</string>
+<string name="backup_password_note">With a password, the whole file is sealed: no one can read your listening, playlists or sign-in without it. Keep it safe; it can\'t be recovered.</string>
+<string name="backup_password_open">This backup is protected. Enter its password.</string>
+
+<string name="search_songs_hint">Search songs</string>
+
+<string name="backup_password_again">Password again</string>
+<string name="backup_password_mismatch">The two passwords don\'t match.</string>
+
+<string name="backup_password_set">A password is set: the backup is sealed.</string>
+
+<string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
+
+<string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
 </resources>

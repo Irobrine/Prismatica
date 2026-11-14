@@ -103,10 +103,18 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
         id to (prefs.getString("n:$id", null) ?: tr(R.string.a_prism_device))
     }.sortedBy { it.second.lowercase() }
 
-    override fun secretFor(device: String): String? = prefs.getString("k:$device", null)
+    /** A paired device's key is a key to remote control and sign-in: sealed under this phone's Keystore key. */
+    private val linkBox = com.prism.music.data.spotify.KeystoreBox(LINK_KEY)
+
+    override fun secretFor(device: String): String? {
+        val stored = prefs.getString("k:$device", null)?.takeIf { it.isNotBlank() } ?: return null
+        if (!stored.startsWith(com.prism.music.data.spotify.KeystoreBox.SEALED)) return stored // paired before it was sealed
+        return linkBox.open(stored)
+    }
 
     override fun savePairing(device: String, name: String, secret: String) {
-        prefs.edit().putString("k:$device", secret).putString("n:$device", name).apply()
+        val sealed = runCatching { linkBox.seal(secret) }.getOrDefault(secret)
+        prefs.edit().putString("k:$device", sealed).putString("n:$device", name).apply()
         _pairings.value = pairings()
         refreshPaired()
         _pairedWith.tryEmit(name)
@@ -211,6 +219,8 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
     override val isTv: Boolean by lazy { com.prism.music.ui.tv.TvDevice.isTv(app) }
 
     private val tvPairing = PairingCode()
+    /** A phone's code while one is being shown: reused for a second device asking at the same time, not churned. */
+    private val phonePairing = PairingCode()
     /** The code the TV's pairing screen shows, while it's open; a TV takes pairings only then. */
     val tvCode: StateFlow<String?> = tvPairing.value
     private val _pairedWith = MutableSharedFlow<String>(extraBufferCapacity = 4)
@@ -227,7 +237,8 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
     override fun takesPairing(): Boolean = !isTv || tvPairing.value.value != null
 
     /** A TV: a new code after every try (shown on its screen and in the QR code), none once a phone has paired. */
-    override fun pairingEnded(code: String, matched: Boolean): Boolean = if (isTv) tvPairing.ended(code, matched) else matched
+    override fun pairingEnded(code: String, matched: Boolean): Boolean =
+        if (isTv) tvPairing.ended(code, matched) else phonePairing.ended(code, matched).also { if (it) phonePairing.close() }
 
     /**
      * The link a TV's pairing screen puts in its QR code: this TV's address and port, its name and the code shown, and
@@ -260,13 +271,16 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
      * A TV's QR code, scanned on this phone: once the listener says yes to the TV's name and address ([answerLinkPair]),
      * pairs with it (the code comes with the link), then offers the sign-in if it's a TV. Any page or app can open such
      * a link, so nothing happens without that yes, and only to an address on this network (not this phone itself).
+     * The dialog shows the code the TV must be showing too: a link sent from elsewhere can't be confirmed by looking.
      */
     fun pairFromLink(link: android.net.Uri) {
         val host = link.getQueryParameter("h") ?: return
         val port = link.getQueryParameter("p")?.toIntOrNull()?.takeIf { it in 1..65_535 } ?: return
         val code = link.getQueryParameter("c")?.filter { it.isDigit() }?.takeIf { it.length == 6 } ?: return
-        val name = link.getQueryParameter("n")?.trim()?.take(60)?.ifBlank { null }
+        val name = link.getQueryParameter("n")?.filter { !it.isISOControl() }?.trim()?.take(60)?.ifBlank { null }
         val signIn = link.getQueryParameter("s") == "1"
+        // One prompt at a time: another link can't replace the one the listener is looking at.
+        if (_linkPair.value != null) return
         scope.launch {
             // Looked up once, here, and connected to as found (a name can't point elsewhere in between).
             val address = runCatching { java.net.InetAddress.getByName(host) }.getOrNull() ?: return@launch
@@ -315,6 +329,7 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
                 tr(R.string.tv_signed_in_on, d.name)
             }
             is HandoffResult.Failed -> r.reason
+            HandoffResult.Unpaired -> tr(R.string.didn_t_accept_the_pairing_try, d.name)
             else -> tr(R.string.couldn_t_reach_is_prism_open, d.name)
         }
     }
@@ -367,6 +382,7 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
             _bringing.value = when (result) {
                 is HandoffResult.Done -> Bringing(d, size, size, done = true)
                 is HandoffResult.Failed -> Bringing(d, failed = result.reason)
+                HandoffResult.Unpaired -> Bringing(d, failed = tr(R.string.didn_t_accept_the_pairing_try, d.name))
                 else -> Bringing(d, failed = tr(R.string.bring_failed))
             }
         }
@@ -420,11 +436,14 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
         return when (val r = ask(d, HandoffRequest.Look(lookCode()))) {
             is HandoffResult.Done -> tr(R.string.tv_look_sent, d.name)
             is HandoffResult.Failed -> r.reason
+            HandoffResult.Unpaired -> tr(R.string.didn_t_accept_the_pairing_try, d.name)
             else -> tr(R.string.couldn_t_reach_is_prism_open, d.name)
         }
     }
 
-    override fun pairingCode(from: String): String? = if (isTv) tvPairing.value.value else HandoffKeys.newCode().also { showCode(it, from) }
+    override fun pairingCode(from: String): String? =
+        if (isTv) tvPairing.value.value
+        else (phonePairing.value.value ?: phonePairing.open()).also { showCode(it, from) }
 
     override fun remote(key: RemoteKey, value: Long): String? {
         runBlocking(Dispatchers.Main) {
@@ -675,9 +694,9 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
         scope.launch {
             try {
                 val request = if (command == HandoffCommand.MOVE) HandoffRequest.Move else HandoffRequest.Pull
-                var result = attempt(d, request)
-                // Its key was refused (forgotten over there): pair again, once.
-                if (result == HandoffResult.Unpaired) result = attempt(d, request, repair = true)
+                val result = attempt(d, request)
+                // Its key was refused (forgotten over there): say so. Pairing again is the listener's choice, not automatic:
+                // a device that only claims to be the one they know doesn't get a fresh pairing from a failed move.
                 when (result) {
                     is HandoffResult.Done -> _events.tryEmit(
                         (if (command == HandoffCommand.MOVE) tr(R.string.playing_on, d.name) else tr(R.string.playing_here)) + (result.note?.let { " · $it" } ?: "")
@@ -698,8 +717,7 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
      * (the code is asked for as for a move); its answer. Off the main thread.
      */
     suspend fun ask(d: PrismDevice, request: HandoffRequest): HandoffResult = withContext(Dispatchers.IO) {
-        val r = attempt(d, request)
-        if (r == HandoffResult.Unpaired) attempt(d, request, repair = true) else r
+        attempt(d, request)
     }
 
     /** [repair]: pair again though a key is kept (it was refused); the kept key is replaced only once that works. */
@@ -760,18 +778,15 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
      * thread.
      */
     fun openFollow(d: PrismDevice, first: FollowState): Pair<HLink?, String?> {
-        for (repair in listOf(false, true)) {
-            val (link, why) = connect(d)
-            if (link == null) return null to (why ?: tr(R.string.couldn_t_reach_is_prism_open, d.name))
-            when (val r = attempt(d, link, HandoffRequest.Follow(first), repair)) {
-                is HandoffResult.Done -> return link to null
-                // Its key was refused (forgotten over there): pair again, once.
-                HandoffResult.Unpaired -> link.close()
-                is HandoffResult.Failed -> { link.close(); return null to r.reason }
-                else -> { link.close(); return null to null }
-            }
+        val (link, why) = connect(d)
+        if (link == null) return null to (why ?: tr(R.string.couldn_t_reach_is_prism_open, d.name))
+        return when (val r = attempt(d, link, HandoffRequest.Follow(first), repair = false)) {
+            is HandoffResult.Done -> link to null
+            // Its key was refused (forgotten over there): the listener can pair again from the device's own screen.
+            HandoffResult.Unpaired -> { link.close(); null to tr(R.string.didn_t_accept_the_pairing_try, d.name) }
+            is HandoffResult.Failed -> { link.close(); null to r.reason }
+            else -> { link.close(); null to null }
         }
-        return null to tr(R.string.didn_t_accept_the_pairing_try, d.name)
     }
 
     // ------------------------------------------------------------ A TV playing along with a phone (1.8.0)
@@ -789,6 +804,8 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
         private const val SERVICE = "$SERVICE_LABEL._tcp"
         private const val NAME_PREFIX = "Prism · "
         private const val NOTIFY_ID = 4701
+        /** The Keystore key that seals paired devices' keys (this phone's alone; never in a backup). */
+        private const val LINK_KEY = "prism_handoff_keys"
         /** The sign-in's own settings (as the backup's "Accounts" part): all a phone sends a TV. */
         val SIGN_IN_KEYS = setOf("cookie", "visitor_data", "data_sync_id", "auth_user", "account_name", "account_email", "account_avatar")
         /** How long a song gets to start here (it may still be loading) before the move counts as failed. */

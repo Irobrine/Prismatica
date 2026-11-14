@@ -153,9 +153,82 @@ class BackupPartsTest {
         assertEquals(BackupPart.LIBRARY, Backup.prefsPart("artist_prefs"))
         assertEquals(BackupPart.SETTINGS, Backup.prefsPart("icon_style"))
         assertEquals(null, Backup.prefsPart("discord"))
+        assertEquals(null, Backup.prefsPart("lastfm"))
         // Last session's songs, by id and name: not a setting, and over in six hours anyway.
         assertEquals(null, Backup.prefsPart("session_heard"))
         assertEquals(BackupPart.ACCOUNTS, Backup.filePart("account"))
         assertEquals(null, Backup.filePart("models"))
     }
+
+    /**
+     * The settings store's own file also holds the YouTube sign-in. Settings travel as values (settings.json), so a
+     * "Looks only" backup must not carry the store itself; nor do logs or a restore's scratch files.
+     */
+    @Test fun theSettingsStoreAndLogsNeverTravel() {
+        assertEquals(null, Backup.filePart("datastore"))
+        assertEquals(null, Backup.filePart("crashes"))
+        assertEquals(null, Backup.filePart("diagnostics"))
+        assertEquals(null, Backup.filePart("lyrics-tags"))
+        // A backup that names Settings but carries the store's file anyway is refused whole: nothing is replaced.
+        phone()
+        write("files/datastore/prism_settings.preferences_pb", "my sign-in")
+        stage(
+            """{"format":2,"app":"${app.packageName}","parts":["SETTINGS"]}""",
+            "files/datastore/prism_settings.preferences_pb" to "someone else's sign-in",
+        )
+        Backup.applyPending(app)
+        assertEquals("my sign-in", read("files/datastore/prism_settings.preferences_pb"))
+        assertFalse(File(files, "restore_pending").exists())
+    }
+
+    /** A backup that doesn't check out (an entry altered, or a restore cut short) is never put in place. */
+    @Test fun anAlteredOrUnfinishedRestoreIsntPutInPlace() {
+        fun stageChecked(expected: String, actual: String, withComplete: Boolean) {
+            phone()
+            val manifest = """{"format":2,"app":"${app.packageName}","parts":["LIBRARY"],"integrity":1}"""
+            write("files/restore_pending/prism-backup.json", manifest)
+            write(
+                "files/restore_pending/prism-integrity.json",
+                """{"version":1,"entries":{"files/library/prism.json":"${sha(expected)}"},"manifest":"${sha(manifest)}"}""",
+            )
+            if (withComplete) write("files/restore_pending/.complete", "1")
+            write("files/restore_pending/files/library/prism.json", actual)
+        }
+        // The file doesn't match its recorded hash.
+        stageChecked("new library", "tampered", withComplete = true)
+        Backup.applyPending(app)
+        assertEquals("old library", read("files/library/prism.json"))
+
+        // The restore never finished: nothing of it is applied.
+        stageChecked("new library", "new library", withComplete = false)
+        Backup.applyPending(app)
+        assertEquals("old library", read("files/library/prism.json"))
+
+        // Whole and matching: it is.
+        stageChecked("new library", "new library", withComplete = true)
+        Backup.applyPending(app)
+        assertEquals("new library", read("files/library/prism.json"))
+    }
+
+    /** An apply that stopped partway puts this phone's own files back, without needing the staging any more. */
+    @Test fun anInterruptedApplyIsRolledBack() {
+        phone()
+        write("shared_prefs/icon_style.xml", "half new settings")
+        write("files/library/prism.json", "half new library")
+        // What the interrupted apply had already moved aside.
+        write("restore_old/shared_prefs/icon_style.xml", "old settings")
+        write("restore_old/files/library/prism.json", "old library")
+        write(
+            "restore_journal.json",
+            """{"old":["shared_prefs/icon_style.xml","files/library"],"new":["shared_prefs/icon_style.xml","files/library/prism.json"]}""",
+        )
+        Backup.applyPending(app)
+        assertEquals("old settings", read("shared_prefs/icon_style.xml"))
+        assertEquals("old library", read("files/library/prism.json"))
+        assertFalse(File(data, "restore_journal.json").exists())
+        assertFalse(File(data, "restore_old").exists())
+    }
+
+    private fun sha(text: String) =
+        java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
 }

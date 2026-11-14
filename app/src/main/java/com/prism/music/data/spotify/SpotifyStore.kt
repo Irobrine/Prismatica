@@ -15,17 +15,19 @@ interface TokenBox {
 }
 
 /**
- * AES-GCM under a key that lives in the Android Keystore ([ALIAS]): the key never leaves the phone's secure hardware (or
+ * AES-GCM under a key that lives in the Android Keystore ([alias]): the key never leaves the phone's secure hardware (or
  * its keystore daemon), so the sealed tokens in shared_prefs are useless anywhere else, a copied file included.
+ *
+ * Each kind of secret gets its own key, so signing out of one doesn't lose another.
  */
-class KeystoreBox : TokenBox {
+class KeystoreBox(private val alias: String = ALIAS) : TokenBox {
     private fun key(): SecretKey {
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        (ks.getKey(ALIAS, null) as? SecretKey)?.let { return it }
+        (ks.getKey(alias, null) as? SecretKey)?.let { return it }
         val gen = KeyGenerator.getInstance(android.security.keystore.KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
         gen.init(
             android.security.keystore.KeyGenParameterSpec.Builder(
-                ALIAS, android.security.keystore.KeyProperties.PURPOSE_ENCRYPT or android.security.keystore.KeyProperties.PURPOSE_DECRYPT,
+                alias, android.security.keystore.KeyProperties.PURPOSE_ENCRYPT or android.security.keystore.KeyProperties.PURPOSE_DECRYPT,
             ).setBlockModes(android.security.keystore.KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(android.security.keystore.KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setKeySize(256).build(),
@@ -36,20 +38,23 @@ class KeystoreBox : TokenBox {
     override fun seal(plain: String): String {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
         val out = cipher.iv + cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
-        return java.util.Base64.getEncoder().encodeToString(out)
+        return SEALED + java.util.Base64.getEncoder().encodeToString(out)
     }
 
     override fun open(sealed: String): String? = runCatching {
-        val all = java.util.Base64.getDecoder().decode(sealed)
+        // Values sealed before the marker existed (Spotify) are plain base64: still read.
+        val all = java.util.Base64.getDecoder().decode(sealed.removePrefix(SEALED))
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, all, 0, IV)) }
         String(cipher.doFinal(all, IV, all.size - IV), Charsets.UTF_8)
     }.getOrNull()
 
     /** The key goes with the tokens (Disconnect). */
-    fun forget() = runCatching { KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(ALIAS) }
+    fun forget() = runCatching { KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias) }
 
     companion object {
         const val ALIAS = "prism_spotify_tokens"
+        /** What a sealed value starts with: a value without it is one from before it was sealed. */
+        const val SEALED = "k1:"
         private const val IV = 12
     }
 }
