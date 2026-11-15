@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.prism.music.R
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.BleedFit
+import com.prism.music.data.prefs.CanvasKinds
 import com.prism.music.data.prefs.CoverShape
 import com.prism.music.data.prefs.CoverSize
 import com.prism.music.data.prefs.DeckPart
@@ -140,29 +141,19 @@ enum class EdgeToEdge(val cover: Boolean, val video: Boolean) {
     }
 }
 
-/** Animated covers + Fill the player. Stored: (enabled, fills). "Fills" without "enabled" does nothing: Off, kept. */
-enum class AnimatedCovers {
-    OFF, ON_THE_COVER, FILL_THE_PLAYER;
+/**
+ * "Where it shows" (1.8.6), for Canvas's loops (an animated cover always plays in the cover): On the cover / Full screen. Stored:
+ * `canvasFillsBackground`, as before ("Fill the player" is Full screen). Whether anything shows at all is the two
+ * switches' ([com.prism.music.data.prefs.CanvasKinds]).
+ */
+internal fun canvasPlaceWords(fills: Boolean): String = if (fills) tr(R.string.full_screen) else tr(R.string.settings_player_on_the_cover)
 
-    val label: String
-        get() = when (this) {
-            OFF -> tr(R.string.off)
-            ON_THE_COVER -> tr(R.string.settings_player_on_the_cover)
-            FILL_THE_PLAYER -> tr(R.string.fill_the_player)
-        }
+/** "When a song has both": the animated cover first (as before), or the music video's loop. */
+internal fun canvasBothWords(videoFirst: Boolean): String = if (videoFirst) tr(R.string.music_video_3) else tr(R.string.animated_cover)
 
-    fun toStored(was: Pair<Boolean, Boolean>): Pair<Boolean, Boolean> = keep(this, was, ::toMerged) {
-        when (it) { OFF -> false to false; ON_THE_COVER -> true to false; FILL_THE_PLAYER -> true to true }
-    }
-
-    companion object {
-        fun toMerged(stored: Pair<Boolean, Boolean>): AnimatedCovers = when {
-            !stored.first -> OFF
-            stored.second -> FILL_THE_PLAYER
-            else -> ON_THE_COVER
-        }
-    }
-}
+/** The Canvas row's line: Off while its switch is off, else where it shows. */
+internal fun canvasWords(s: AppSettings): String =
+    if (CanvasKinds.shown(s).videos) canvasPlaceWords(s.behavior.canvas.fillsBackground) else tr(R.string.off)
 
 /**
  * Hide controls over videos + Video buttons wait for a tap. Stored: (controlsHide, buttonsHide). The plan names three
@@ -279,7 +270,7 @@ internal fun percent(v: Float) = "${(v * 100).roundToInt()}%"
 
 /** The parts of the player hidden now, as the row says them ("Hidden: Volume"). */
 internal fun hiddenPartsWords(s: AppSettings): String {
-    val hidden = PlayerPart.entries.filter { !s.shows(it) && it != PlayerPart.NAV_BAND && (s.mix || it !in PlayerPart.CROSSFADE) }
+    val hidden = PlayerPart.entries.filter { !s.shows(it) && it != PlayerPart.NAV_BAND && (s.mix.on || it !in PlayerPart.CROSSFADE) }
     return if (hidden.isEmpty()) tr(R.string.settings_player_all_shown) else tr(R.string.hidden_s, hidden.joinToString(", ") { it.label })
 }
 
@@ -299,19 +290,20 @@ internal val playerSettings: List<PlayerSetting<*>> by lazy {
     val g = PlayerGroups
     val immersive = tr(R.string.settings_player_immersive_options)
     val lock = tr(R.string.settings_player_lock_options)
+    val canvasSheet = tr(R.string.canvas)
     fun <T> ps(keys: List<String>, group: String, row: Int, get: (AppSettings) -> T, words: (T) -> String, sheet: String? = null, set: (SettingsRepository, T) -> Unit) =
         PlayerSetting(keys, group, tr(row), sheet, get, words, set)
     fun flag(keys: List<String>, group: String, row: Int, get: (AppSettings) -> Boolean, sheet: String? = null, set: (SettingsRepository, Boolean) -> Unit) =
         ps(keys, group, row, get, ::onOff, sheet, set)
     listOf(
         // Layout
-        ps(listOf("player_layout"), g.layout, R.string.layout, { it.playerLayout }, { it.label }) { p, v -> p.setPlayerLayout(v) },
+        ps(listOf("player_layout"), g.layout, R.string.layout, { it.player.layout }, { it.label }) { p, v -> p.setPlayerLayout(v) },
         flag(listOf("vinyl_tonearm"), g.layout, R.string.tonearm, { it.vinylTonearm }) { p, v -> p.setVinylTonearm(v) },
-        ps(listOf("player_background"), g.layout, R.string.background, { it.playerBackground }, { it.label }) { p, v -> p.setPlayerBackground(v) },
-        ps(listOf("player_backdrop_show"), g.layout, R.string.show_background, { it.playerBackdropShow }, { backdropShowWords(com.prism.music.ui.player.backdropShowOnSlider(it)) }) { p, v -> p.setPlayerBackdropShow(v) },
+        ps(listOf("player_background"), g.layout, R.string.background, { it.player.background }, { it.label }) { p, v -> p.setPlayerBackground(v) },
+        ps(listOf("player_backdrop_show"), g.layout, R.string.show_background, { it.player.backdropShow }, { backdropShowWords(com.prism.music.ui.player.backdropShowOnSlider(it)) }) { p, v -> p.setPlayerBackdropShow(v) },
         ps(listOf("player_gradient_depth"), g.layout, R.string.gradient_depth, { it.view.gradientDepth }, ::percent) { p, v -> p.setGradientDepth(v) },
         ps(listOf("mesh_speed", "mesh_intensity"), g.layout, R.string.background_movement, { it.meshSpeed to it.meshIntensity }, { movementWords(it.first) }) { p, v -> p.setMeshSpeed(v.first); p.setMeshIntensity(v.second) },
-        ps(listOf("player_blur"), g.layout, R.string.softness, { it.playerBlur }, ::percent) { p, v -> p.setPlayerBlur(v) },
+        ps(listOf("player_blur"), g.layout, R.string.softness, { it.player.blur }, ::percent) { p, v -> p.setPlayerBlur(v) },
         ps(listOf("transport_style"), g.layout, R.string.controls, { it.transportStyle }, { it.label }) { p, v -> p.setTransportStyle(v) },
         flag(listOf("play_ring"), g.layout, R.string.ring_on_the_play_button, { it.view.playRing }) { p, v -> p.setPlayRing(v) },
         ps(listOf("player_buttons_pill"), g.layout, R.string.buttons, { it.view.buttonsPill }, { if (it) tr(R.string.in_a_capsule) else tr(R.string.apart) }) { p, v -> p.setButtonsPill(v) },
@@ -325,18 +317,18 @@ internal val playerSettings: List<PlayerSetting<*>> by lazy {
         ps(listOf("scrubber_thickness"), g.progress, R.string.progress_bar_thickness, { it.scrubberThickness }, ::thicknessWords) { p, v -> p.setScrubberThickness(v) },
         ps(listOf("scrubber_thumb"), g.progress, R.string.knob_at_the_playhead, { it.scrubberThumb }, { it.label }) { p, v -> p.setScrubberThumb(v) },
         flag(listOf("volume_matches_progress"), g.progress, R.string.volume_bar_like_the_progress_bar, { it.volumeMatchesProgress }) { p, v -> p.setVolumeMatchesProgress(v) },
-        ps(listOf("player_times"), g.progress, R.string.times, { it.playerTimes }, { it.label }) { p, v -> p.setPlayerTimes(v) },
+        ps(listOf("player_times"), g.progress, R.string.times, { it.player.times }, { it.label }) { p, v -> p.setPlayerTimes(v) },
         ps(listOf("show_track_length"), g.progress, R.string.settings_player_right_hand_time, { it.showTrackLength }, { if (it) tr(R.string.song_length) else tr(R.string.time_left) }) { p, v -> p.setShowTrackLength(v) },
         flag(listOf("crossfade_shape"), g.progress, R.string.crossfade_on_the_progress_bar, { it.view.crossfadeShape }) { p, v -> p.setCrossfadeShape(v) },
         // Title
-        ps(listOf("player_title_align"), g.title, R.string.alignment, { it.playerTitleAlign }, { it.label }) { p, v -> p.setPlayerTitleAlign(v) },
-        ps(listOf("player_title_size"), g.title, R.string.size, { it.playerTitleSize }, { it.label }) { p, v -> p.setPlayerTitleSize(v) },
+        ps(listOf("player_title_align"), g.title, R.string.alignment, { it.player.titleAlign }, { it.label }) { p, v -> p.setPlayerTitleAlign(v) },
+        ps(listOf("player_title_size"), g.title, R.string.size, { it.player.titleSize }, { it.label }) { p, v -> p.setPlayerTitleSize(v) },
         ps(listOf("player_title_weight"), g.title, R.string.weight, { it.type.playerTitleWeight }, { it.label }) { p, v -> p.setPlayerTitleWeight(v) },
-        flag(listOf("player_title_scroll"), g.title, R.string.scrolling_titles, { it.playerTitleScroll }) { p, v -> p.setPlayerTitleScroll(v) },
+        flag(listOf("player_title_scroll"), g.title, R.string.scrolling_titles, { it.player.titleScroll }) { p, v -> p.setPlayerTitleScroll(v) },
         ps(listOf("player_artist_links"), g.title, R.string.each_artist_its_own_link, { it.view.artistLinks }, ::artistLinksWords) { p, v -> p.setArtistLinks(v) },
         // Cover
         ps(listOf("cover_size"), g.cover, R.string.cover_size, { it.coverSize }, { it.label }) { p, v -> p.setCoverSize(v) },
-        ps(listOf("player_art_corners"), g.cover, R.string.cover_corners, { it.playerArtCorners }, { tr(R.string.dp, it) }) { p, v -> p.setPlayerArtCorners(v) },
+        ps(listOf("player_art_corners"), g.cover, R.string.cover_corners, { it.player.artCorners }, { tr(R.string.dp, it) }) { p, v -> p.setPlayerArtCorners(v) },
         ps(listOf("cover_shape_player"), g.cover, R.string.settings_player_cover_shape, { it.shapes.player }, { it.label }) { p, v -> p.setCoverShape("player", v) },
         ps(
             listOf("full_bleed_artwork", "video_full_bleed"), g.cover, R.string.settings_player_edge_to_edge,
@@ -345,24 +337,26 @@ internal val playerSettings: List<PlayerSetting<*>> by lazy {
         ps(listOf("bleed_fit"), g.cover, R.string.how_the_cover_fits, { it.view.bleedFit }, { it.label }) { p, v -> p.setBleedFit(v) },
         flag(listOf("bleed_roomy"), g.cover, R.string.more_room_for_the_picture, { it.view.bleedRoomy }) { p, v -> p.setBleedRoomy(v) },
         flag(listOf("art_shrink_on_pause"), g.cover, R.string.shrink_when_paused, { it.artShrinkOnPause }) { p, v -> p.setArtShrinkOnPause(v) },
-        ps(
-            listOf("cover_flight", "cover_flight_back"), g.cover, R.string.settings_player_cover_animation,
-            { it.view.coverFlight to it.view.coverFlightBack }, { CoverAnimation.toMerged(it).label },
-        ) { p, v -> p.setCoverFlight(v.first); p.setCoverFlightBack(v.second) },
-        ps(
-            listOf("canvas_enabled", "canvas_fills_background"), g.cover, R.string.animated_covers,
-            { it.canvasEnabled to it.canvasFillsBackground }, { AnimatedCovers.toMerged(it).label },
-        ) { p, v -> p.setCanvasEnabled(v.first); p.setCanvasFillsBackground(v.second) },
+        // Owner, 2026-11-13 ("keep these options separate"): Animated covers on the page, Canvas (the loops from music
+        // videos) a switch in its own row's sheet; "Canvas on" (canvas_enabled) is stored as either of them on.
+        flag(listOf("canvas_enabled", "canvas_covers"), g.cover, R.string.animated_covers, { CanvasKinds.shown(it).covers }) { p, v -> p.setCanvasKinds(covers = v) },
+        flag(listOf("canvas_use_videos"), g.cover, R.string.canvas, { CanvasKinds.shown(it).videos }, canvasSheet) { p, v -> p.setCanvasKinds(videos = v) },
+        flag(listOf("canvas_videos_cellular"), g.cover, R.string.use_mobile_data, { it.behavior.canvas.videosOnCellular }, canvasSheet) { p, v -> p.setCanvasVideosOnCellular(v) },
+        ps(listOf("canvas_video_first"), g.cover, R.string.canvas_both, { it.behavior.canvas.videoFirst }, ::canvasBothWords, canvasSheet) { p, v -> p.setCanvasVideoFirst(v) },
+        flag(listOf("canvas_lighter"), g.cover, R.string.canvas_lighter, { it.behavior.canvas.lighter }, canvasSheet) { p, v -> p.setCanvasLighter(v) },
+        ps(listOf("canvas_fills_background"), g.cover, R.string.canvas_where, { it.behavior.canvas.fillsBackground }, ::canvasPlaceWords, canvasSheet) { p, v -> p.setCanvasFillsBackground(v) },
+        flag(listOf("canvas_keep_controls"), g.cover, R.string.canvas_keep_controls, { it.behavior.canvas.keepControls }, canvasSheet) { p, v -> p.setCanvasKeepControls(v) },
+        flag(listOf("canvas_lyrics"), g.cover, R.string.canvas_lyrics, { it.behavior.canvas.lyrics }, canvasSheet) { p, v -> p.setCanvasLyrics(v) },
         // On it
         ps(
             listOf("player_hidden_parts", "player_handle", "show_playing_from", "lyrics_on_player", "show_quality", "best_part_button", "player_shuffle_repeat", "hide_volume_bar", "show_output_device", "player_nav_band", "crossfade_mark", "blend_covers"),
             g.onIt, R.string.what_s_on_the_player,
             { s -> PlayerPart.entries.filter { !s.shows(it) }.toSet() }, { h -> if (h.isEmpty()) tr(R.string.settings_player_all_shown) else tr(R.string.hidden_s, h.joinToString(", ") { it.label }) },
         ) { p, v -> PlayerPart.entries.forEach { part -> p.setPartShown(part, part !in v) } },
-        ps(listOf("player_deck"), g.onIt, R.string.under_the_title, { it.playerDeck }, { d -> d.joinToString(" · ") { it.label } }) { p, v -> p.setPlayerDeck(v) },
+        ps(listOf("player_deck"), g.onIt, R.string.under_the_title, { it.player.deck }, { d -> d.joinToString(" · ") { it.label } }) { p, v -> p.setPlayerDeck(v) },
         ps(
             listOf("player_buttons", "show_video_switch"), g.onIt, R.string.buttons_in_the_row,
-            { it.playerButtons to it.showVideoSwitch }, ::rowButtonsWords,
+            { it.player.buttons to it.showVideoSwitch }, ::rowButtonsWords,
         ) { p, v -> p.setPlayerButtons(v.first); p.setShowVideoSwitch(v.second) },
         ps(listOf("volume_control"), g.onIt, R.string.the_volume_slider_changes, { it.volumeControl }, { it.label }) { p, v -> p.setVolumeControl(v) },
         ps(
@@ -387,6 +381,11 @@ internal val playerSettings: List<PlayerSetting<*>> by lazy {
         // Modes
         ps(listOf("visualizer"), g.modes, R.string.visualizer, { it.visualizer }, { it.label }) { p, v -> p.setVisualizer(v) },
         ps(listOf("visualizer_color"), g.modes, R.string.visualizer_color, { it.visualizerColor }, { it.label }) { p, v -> p.setVisualizerColor(v) },
+        // 1.8.6: from Cover, which keeps to seven rows with Animated covers and Canvas apart.
+        ps(
+            listOf("cover_flight", "cover_flight_back"), g.modes, R.string.settings_player_cover_animation,
+            { it.view.coverFlight to it.view.coverFlightBack }, { CoverAnimation.toMerged(it).label },
+        ) { p, v -> p.setCoverFlight(v.first); p.setCoverFlightBack(v.second) },
         flag(listOf("immersive_player"), g.modes, R.string.immersive_mode, { it.immersivePlayer }) { p, v -> p.setImmersivePlayer(v) },
         ps(listOf("immersive_art"), g.modes, R.string.artwork, { it.immersiveArt }, { it.label }, immersive) { p, v -> p.setImmersiveArt(v) },
         ps(listOf("immersive_lyrics"), g.modes, R.string.lyrics, { it.immersiveLyrics }, { it.label }, immersive) { p, v -> p.setImmersiveLyrics(v) },

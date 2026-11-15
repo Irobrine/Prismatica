@@ -2,6 +2,79 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.8.7
+
+### It just plays
+
+- **A song no longer skips because the network hiccuped.** A timeout in the middle of a song is tried again from the same place, a few times with short waits, and Prism waits for the network when the phone is offline. Only after that does it move on, and it says why.
+- **"This song can't be played" on one Wi-Fi network but not on mobile data** (#408): Prism now also tries asking and streaming over IPv4 only, remembers for each network which way worked last and tries it first, and drops a refused link everywhere it was kept. A download that is refused every way comes down from the song's video instead, as playback already did.
+- **A song that stopped seconds in** could be two different files of the same kind stitched together in the cache. They are told apart now.
+- **Premium quality means the best format on Wi-Fi.** Where your mobile-data quality holds it back, Stats for nerds and the setting say so, and Stats for nerds shows when a saved copy is playing and what it is.
+- **Prism killed in the background** picks up where it was when you press Play on a headset or on the phone's own media card.
+- **More music videos play as their song** with "Songs, not videos: Everywhere": a video is also matched by the film or album named in its title, and by its place on the album. What Prism learns about a video is kept on the phone, so it plays as its song at once the next time, offline too. A playlist row whose song you already downloaded shows as downloaded (#315). The version you picked for a song always wins.
+- **Is playback working?** (Settings → Backup & about → Diagnostics): a check you can run that says, in plain words, what works and what doesn't on your phone and network. The result stays on the phone unless you tap Share.
+
+### Crossfade and the DJ
+
+- **Why it didn't blend:** when the DJ or crossfade leaves a plain change between two songs, the reason is behind the ⓘ on the DJ chip and on the Crossfade setting.
+- During a blend the ending song plays on the output you picked in Prism, as the rest of the music does.
+- Fixed: Repeat one switched on after a blend was planned still moved on; a pause while the two songs were being lined up; seeking back in the incoming song during a blend; a skip during a blend was a hard cut (it fades now).
+
+### Albums without a gap
+
+- **Songs that run into each other play as one.** Measured for the first time: with a tone cut across two files, nothing is added, dropped or restarted at the change. Spatial audio, the headphone correction and the volume leveller's limiter each made a small click at every change of song; they carry on across it now.
+
+### Lyrics
+
+- **The wrong song's lyrics** are refused: every source's answer is checked against the song's title, artist and length, and word-by-word lyrics that don't match the song's own lines are dropped. Thanks to NeeL21YT for the LRCLIB check (#494).
+- **Missing lyrics come back sooner.** Network trouble is no longer remembered as "no lyrics" for a day, one slow source no longer holds up the rest, and the empty state has a "Try again".
+- Japanese songs written only in kanji are read as Japanese when the artist or album shows it.
+- **Keep lyrics showing** (Settings → Player → Canvas): with a full-screen Canvas, the line being sung stays over the picture while the controls are away. On for new installs.
+
+### Lighter
+
+- **The open player does less work.** The lyric line over the progress bar is drawn about 30 times a second, and only when it moved. On a Galaxy A16 with the player open, Prism's processor use went from about 95% of one core to about 68%, and from about 98% to about 76% with a Canvas loop (same phone, same song, both orders).
+- A long queue no longer stalls the screen when it is saved.
+- A song's Canvas loop comes sooner the first time it is played: with the video first it no longer waits for the animated-cover lookup, and the steps that find the video run side by side.
+- **Smoother scrolling** (Settings, under Performance mode; shown on phones that let an app choose a faster screen speed): asks the screen for its fastest refresh rate while Prism is open. Off by default; it uses more battery.
+- The download is a little smaller: the app no longer carries code for emulator chips.
+
+### Fixed
+
+- Lists that could crash on a repeated row (podcasts, library search, For you, Uploads, the versions sheet, Blend).
+- With Pure black, or Frosted pages off, the list's text read straight through the mini player and the tab bar. The bars are solid enough to read again (the Minimal Look had it too).
+- Quick picks on Home are recognised in every language, not only English.
+- The Moods page was read from storage again on every visit.
+- Backups no longer carry this phone's raw settings file, diagnostics, crash logs or Canvas clips, and restoring a backup made by 1.7.8 to 1.8.6 leaves them out (#498).
+
+## 1.8.6
+
+### Prism Canvas
+
+Prism's own, designed and built from scratch for Prism: the phone finds the video, picks the part and cuts the loop itself.
+
+- **Prism Canvas** (Settings → Player → Canvas): a song with a music video shows a few seconds of it, silent and cut to loop, full screen behind the player or on the cover. Prism finds the song's video, picks the part from its preview pictures and its most replayed moment, fetches those seconds once on Wi-Fi (about 5 MB a song in Full screen, about 2 MB on the cover) and plays them from the phone after that. Still pictures, videos that can't be played and loops that flash are left out.
+- **A new install comes with Prism Canvas on, full screen.** If you are updating, nothing changes until the player asks you once whether to use music videos.
+- **Animated covers** have their own switch above Canvas. They play in the cover as before and never fill the player; each of the two can be on without the other.
+- **Full screen**: the loop fills the player, and after a few seconds the controls fade away, leaving the title, the artist and a thin progress line. A tap brings them back. "Keep controls showing" turns the fading off.
+- **Your say, per song**, in the player's ⋯ menu: Animated cover and Canvas on or off, Pick another part, Pick another video, Use (animated cover or music video, when a song has both) and Not this video.
+- **When a song has both**, the animated cover plays first unless you put the music video first.
+- **Looked at before it shows.** Each loop is checked on its real frames, on the phone: it ends on one of the video's own cuts, and a loop that flashes is never shown.
+- **Ready in time.** On Wi-Fi the next two songs' loops are fetched ahead, and a downloaded song keeps its loop for offline.
+- **Easy on the phone.** Prism Canvas holds still with Reduce motion (animated covers now do too), in battery saver, when the phone runs hot, and after a song has been paused for half a minute. Performance mode switches it off. On mobile data, loops are only fetched if you allow it in Canvas's settings; Data saver never fetches them. "Lighter loops" keeps them smaller.
+- Share diagnostics says what Prism Canvas showed for the song playing, and why not when it showed nothing.
+
+### New
+
+- **Minimal**, a new Look: black and white, a plain player, no colour but the music's.
+- **Hours on the Replay chart.** "Hours by month" shows each month's hours on its bar.
+- A new install comes with a few more things on: fade on pause and play, "You and this artist", Replay's "Finish the lyric", the album pages' full-width picture, and the cover's glide between the mini player and the player. Nothing changes for an existing install.
+
+### Fixed
+
+- A song whose cover failed to load kept the last song's picture and colours for the whole song.
+- After a skip, a loop could restart on a frame of the last song's loop.
+
 ## 1.8.5
 
 ### Replay & Rewind 2026

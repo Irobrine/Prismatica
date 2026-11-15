@@ -151,7 +151,7 @@ import com.prism.music.ui.theme.ink3
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.semantics.selected
-import dev.chrisbanes.haze.hazeSource
+import com.prism.music.ui.theme.glassSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -512,6 +512,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                 if (settings.behavior.lockPortrait && !tablet) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                 else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
+        // Settings → Performance → "Smoother scrolling" (#336): the screen's fastest mode while Prism is open. `settings` is
+        // the effective one, so Performance mode reads it as off; battery saver does too.
+        com.prism.music.ui.SmoothScrollingEffect(settings.behavior.smoothScrolling)
         val navController = rememberNavController()
         var playerOpen by rememberSaveable { mutableStateOf(false) }
         val motionScope = rememberCoroutineScope()
@@ -720,8 +723,8 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 Box(
                     Modifier.fillMaxSize().then(underPlayer).nestedScroll(barScroll)
-                        // The page is copied only when glass will sample it (#343).
-                        .then(if (com.prism.music.ui.theme.glassSamplesThePage(Build.VERSION.SDK_INT, settings.liquidGlass, settings.frostedGlass)) Modifier.hazeSource(haze) else Modifier)
+                        // The page is copied only when glass will sample it (#343), on the background behind it (1.8.7).
+                        .glassSource(haze, com.prism.music.ui.theme.glassSamplesThePage(Build.VERSION.SDK_INT, settings.liquidGlass, settings.frostedGlass), MaterialTheme.colorScheme.background)
                         .then(if (settings.swipeTabs && !useRail) swipeBetweenTabs(tabs, route, selectTab) else Modifier),
                 ) {
                   CompositionLocalProvider(com.prism.music.ui.components.LocalHiddenByPlayer provides hiddenByPlayer) {
@@ -1012,14 +1015,14 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                 val artAhead = song?.takeIf { !playerOpen }?.let { c.covers.art(it) }
                 if (artAhead != null) {
                     val warmContext = androidx.compose.ui.platform.LocalContext.current
-                    LaunchedEffect(artAhead, settings.fullBleedArtwork, settings.playerBackground, settings.playerBlur) {
+                    LaunchedEffect(artAhead, settings.fullBleedArtwork, settings.player.background, settings.player.blur) {
                         // Not as the song starts, whose own start comes first, nor for a song skipped straight past.
                         kotlinx.coroutines.delay(1_500)
                         runCatching {
                             com.prism.music.ui.player.warmPlayerArt(
                                 warmContext, artAhead, settings.fullBleedArtwork,
-                                meshToo = settings.playerBackground != com.prism.music.data.prefs.PlayerBackground.GRADIENT,
-                                blurStrength = settings.playerBlur,
+                                meshToo = settings.player.background != com.prism.music.data.prefs.PlayerBackground.GRADIENT,
+                                blurStrength = settings.player.blur,
                             )
                         }
                     }

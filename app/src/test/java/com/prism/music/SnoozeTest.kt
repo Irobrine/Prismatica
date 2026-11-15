@@ -181,8 +181,8 @@ class SnoozeTest {
         assertTrue(PlayerButton.SNOOZE in PlayerButton.entries)
         assertFalse("the row starts as 1.7 had it", PlayerButton.SNOOZE in PlayerButton.DEFAULT)
         r.setPlayerButtons(listOf(PlayerButton.LYRICS, PlayerButton.SNOOZE, PlayerButton.QUEUE))
-        val s = withTimeout(5_000) { r.stored.first { it.playerButtons.getOrNull(1) == PlayerButton.SNOOZE } }
-        assertEquals(listOf(PlayerButton.LYRICS, PlayerButton.SNOOZE, PlayerButton.QUEUE), s.playerButtons)
+        val s = withTimeout(5_000) { r.stored.first { it.player.buttons.getOrNull(1) == PlayerButton.SNOOZE } }
+        assertEquals(listOf(PlayerButton.LYRICS, PlayerButton.SNOOZE, PlayerButton.QUEUE), s.player.buttons)
         assertEquals("its label is the button's name", tr(R.string.snooze), PlayerButton.SNOOZE.label)
     }
 

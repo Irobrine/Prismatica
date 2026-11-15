@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 12,
-    "identityHash": "75f7a22c20e0a761ea9b0eaff277c878",
+    "identityHash": "d91523ac4ba184c0b3480ab561ac3507",
     "entities": [
       {
         "tableName": "songs",
@@ -995,6 +995,135 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_song_tags_songId` ON `${TABLE_NAME}` (`songId`)"
           }
         ]
+      },
+      {
+        "tableName": "canvas_clips",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`songId` TEXT NOT NULL, `videoId` TEXT, `why` TEXT NOT NULL, `videoType` TEXT, `height` INTEGER NOT NULL, `itag` INTEGER NOT NULL, `startMs` INTEGER NOT NULL, `endMs` INTEGER NOT NULL, `cropX` REAL NOT NULL, `barLeft` REAL NOT NULL, `barTop` REAL NOT NULL, `barRight` REAL NOT NULL, `barBottom` REAL NOT NULL, `windows` TEXT NOT NULL, `refined` INTEGER NOT NULL, `picked` INTEGER NOT NULL, `rejectedVideos` TEXT NOT NULL, `prefer` TEXT, `checkedAt` INTEGER NOT NULL, `crops` TEXT NOT NULL, PRIMARY KEY(`songId`))",
+        "fields": [
+          {
+            "fieldPath": "songId",
+            "columnName": "songId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "videoId",
+            "columnName": "videoId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "why",
+            "columnName": "why",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "videoType",
+            "columnName": "videoType",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "height",
+            "columnName": "height",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itag",
+            "columnName": "itag",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startMs",
+            "columnName": "startMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endMs",
+            "columnName": "endMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cropX",
+            "columnName": "cropX",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "barLeft",
+            "columnName": "barLeft",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "barTop",
+            "columnName": "barTop",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "barRight",
+            "columnName": "barRight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "barBottom",
+            "columnName": "barBottom",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windows",
+            "columnName": "windows",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "refined",
+            "columnName": "refined",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "picked",
+            "columnName": "picked",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rejectedVideos",
+            "columnName": "rejectedVideos",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prefer",
+            "columnName": "prefer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "checkedAt",
+            "columnName": "checkedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "crops",
+            "columnName": "crops",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "songId"
+          ]
+        }
       }
     ],
     "views": [
@@ -1005,7 +1134,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '75f7a22c20e0a761ea9b0eaff277c878')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd91523ac4ba184c0b3480ab561ac3507')"
     ]
   }
 }
