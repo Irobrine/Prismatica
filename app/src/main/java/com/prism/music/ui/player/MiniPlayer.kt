@@ -157,7 +157,7 @@ fun MiniPlayer(
                 val stopAt = height.toPx() * 0.9f
                 val goneAt = height.toPx() * 1.6f
                 // Up (#149, 1.7.7): opening the player (or a page of it) is the morph, following the finger over the
-                // window's height (PlayerMorph), and finished past the same 25% every other way into the player uses.
+                // window's height (PlayerMorph), and finished past the same 10% every other way into the player uses.
                 // A swipe set to an action that doesn't need the full player still lifts a third of the drag, at most a
                 // third of the card, as before (#222: one set to Nothing doesn't move it at all).
                 val upAt = -height.toPx() * 0.22f

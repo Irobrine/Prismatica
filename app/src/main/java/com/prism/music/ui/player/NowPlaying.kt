@@ -451,7 +451,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         fullscreenVideo = false
         if (landscape) sidewaysInPlayer = true
     }
-    // How far a swipe can pull the player down, as a share of the window, before it's closing for good: the same 25%
+    // How far a swipe can pull the player down, as a share of the window, before it's closing for good: the same 10%
     // (and the same number, PlayerMorph) the mini player's swipe up uses, so both ends of the change feel alike.
     val screenPx = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
     val morphSpan = screenPx * PlayerMorph.TRAVEL
@@ -854,7 +854,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         // Status-bar scrim (none on the White background, whose status bar has dark icons)
         if (!inkLight) Box(Modifier.fillMaxWidth().height(statusTop + DISMISS_STRIP).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.32f), Color.Transparent))))
 
-        // A panel opened or closed by a gesture, with the morph following the hand. The same 25%-of-the-window rule
+        // A panel opened or closed by a gesture, with the morph following the hand. The same 10%-of-the-window rule
         // decides whether it stays open (or closed) when the finger lifts, so a pull that turns back unwinds itself.
         fun openPanelByGesture(page: PlayerPage) {
             when (page) {
@@ -868,7 +868,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             statsOpen = false
             closeLyrics()
         }
-        // The progress at which a closing panel has gone far enough is PlayerMorph's own (a quarter of the window).
+        // The progress at which a closing panel has gone far enough is PlayerMorph's own (a tenth of the window).
         fun settlePanel(startedOpen: Boolean) {
             panelShift.end()
             haptics.gestureEnd()

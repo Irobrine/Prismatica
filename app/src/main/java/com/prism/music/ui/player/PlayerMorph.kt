@@ -53,7 +53,7 @@ object PlayerMorph {
     /** How far the finger travels, as a share of the window's height, for a full morph. */
     const val TRAVEL = 0.40f
     /** Past this share of the window's height a swipe finishes the transition instead of falling back. */
-    const val THRESHOLD = 0.25f
+    const val THRESHOLD = 0.10f
 
     /** The point in [progress] the [THRESHOLD] corresponds to, opening. */
     const val COMPLETE_AT = THRESHOLD / TRAVEL
@@ -136,7 +136,7 @@ object PlayerMorph {
         return if (towardPlayer) f else 1f - f
     }
 
-    /** Whether letting go at [progress] finishes the way it was going: a quarter of the window's travel. */
+    /** Whether letting go at [progress] finishes the way it was going: a tenth of the window's travel. */
     fun completes(progress: Float, towardPlayer: Boolean): Boolean =
         if (towardPlayer) progress >= COMPLETE_AT else progress <= 1f - COMPLETE_AT
 

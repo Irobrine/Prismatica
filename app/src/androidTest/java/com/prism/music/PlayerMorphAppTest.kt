@@ -27,7 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The morph, by hand on a phone: the mini player follows a swipe up (and only finishes past a quarter of the window),
+ * The morph, by hand on a phone: the mini player follows a swipe up (and only finishes past a tenth of the window),
  * a tap takes the same way, the player comes back down with the finger, and the queue comes and goes on the controls'
  * and the cover's swipes.
  */
@@ -77,7 +77,7 @@ class PlayerMorphAppTest {
         compose.waitForIdle()
     }
 
-    /** The mini player's own swipe: a quarter of the window finishes it, and it follows the finger before that. */
+    /** The mini player's own swipe: a tenth of the window finishes it, and it follows the finger before that. */
     @Test fun aSwipeUpOnTheMiniPlayerMorphsAndFinishes() {
         songs("Prism morph swipe")
         compose.waitUntil(15_000) { shown("miniPlayer") }
@@ -96,12 +96,12 @@ class PlayerMorphAppTest {
         compose.waitUntil(15_000) { shown("playerDeck") && PlayerMorph.progress > 0.999f }
     }
 
-    /** Short of the quarter, it comes back to the mini player. */
+    /** Short of the tenth, it comes back to the mini player. */
     @Test fun aShortSwipeUpFallsBack() {
         songs("Prism morph short")
         compose.waitUntil(15_000) { shown("miniPlayer") }
         val h = rootHeight()
-        mini().performTouchInput { swipeUpBy(h * 0.10f) }
+        mini().performTouchInput { swipeUpBy(h * 0.04f) }
         compose.waitUntil(5_000) { PlayerMorph.progress <= 0.001f }
         assertFalse(shown("playerDeck"))
         assertTrue("the mini player's still there", shown("miniPlayer"))

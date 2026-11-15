@@ -13,7 +13,7 @@ import org.junit.Test
 
 /**
  * The numbers the player's morph is built on: one number from the mini player (0) to the full player (1), written by a
- * finger, finished at a quarter of the window, and the pages a gesture may name on the way in.
+ * finger, finished at a tenth of the window, and the pages a gesture may name on the way in.
  */
 class PlayerMorphTest {
     @After fun putItBack() {
@@ -44,12 +44,12 @@ class PlayerMorphTest {
         assertEquals(0f, PlayerMorph.progress, 0.0001f)
     }
 
-    /** A quarter of the window is where a swipe finishes: the same distance in, and the same distance out. */
-    @Test fun aQuarterOfTheWindowFinishesItBothWays() {
-        assertEquals(0.25f, PlayerMorph.THRESHOLD, 0.0001f)
+    /** A tenth of the window is where a swipe finishes: the same distance in, and the same distance out. */
+    @Test fun aTenthOfTheWindowFinishesItBothWays() {
+        assertEquals(0.10f, PlayerMorph.THRESHOLD, 0.0001f)
         assertEquals(0.40f, PlayerMorph.TRAVEL, 0.0001f)
-        assertEquals(0.625f, PlayerMorph.COMPLETE_AT, 0.0001f)
-        // Closing runs the same number backwards: a quarter of the window down is the same share in from the top.
+        assertEquals(0.25f, PlayerMorph.COMPLETE_AT, 0.0001f)
+        // Closing runs the same number backwards: a tenth of the window down is the same share in from the top.
         assertEquals(1f - PlayerMorph.COMPLETE_AT, 1f - PlayerMorph.THRESHOLD / PlayerMorph.TRAVEL, 0.0001f)
         val span = 1000f
         assertEquals(0f, PlayerMorph.progressForTravel(0f, span, towardPlayer = true), 0.0001f)
@@ -59,12 +59,12 @@ class PlayerMorphTest {
         assertEquals(1f, PlayerMorph.progressForTravel(2000f, span, towardPlayer = true), 0.0001f)
     }
 
-    /** Letting go past the quarter finishes each way; short of it falls back to where it came from. */
-    @Test fun lettingGoPastsTheQuarterFinishes() {
-        assertFalse(PlayerMorph.completes(0.62f, towardPlayer = true))
-        assertTrue(PlayerMorph.completes(0.63f, towardPlayer = true))
-        assertFalse(PlayerMorph.completes(0.38f, towardPlayer = false))
-        assertTrue(PlayerMorph.completes(0.37f, towardPlayer = false))
+    /** Letting go past the tenth finishes each way; short of it falls back to where it came from. */
+    @Test fun lettingGoPastsTheTenthFinishes() {
+        assertFalse(PlayerMorph.completes(0.24f, towardPlayer = true))
+        assertTrue(PlayerMorph.completes(0.25f, towardPlayer = true))
+        assertFalse(PlayerMorph.completes(0.76f, towardPlayer = false))
+        assertTrue(PlayerMorph.completes(0.75f, towardPlayer = false))
         // Turning back before letting go leaves it where it started.
         assertFalse("a pull that came back", PlayerMorph.completes(0.9f, towardPlayer = false))
         assertFalse("an open that came back", PlayerMorph.completes(0.2f, towardPlayer = true))
