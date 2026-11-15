@@ -287,9 +287,10 @@ data class Tempo(
 
 /**
  * Scans songs, once each: their tempo and edges for Mix ([Tempo]) and their loudness for normalization
- * ([integratedLoudness]). The song's audio is read from the phone when it's there ([local]: a download, the song
+ * ([LoudnessMeter]). The song's audio is read from the phone when it's there ([local]: a download, the song
  * cache, a local file), else its smallest stream is fetched whole (1–4 MB, on Wi-Fi unless mobile data is allowed);
- * it's decoded to mono ~11 kHz and measured. Results are kept per song (`mix_tempo` and `song_loudness` prefs).
+ * it's decoded to mono ~11 kHz for the tempo and key, and every channel is measured for its loudness. Results are
+ * kept per song (`mix_tempo` and `song_loudness` prefs).
  */
 class MixTempo(
     private val context: Context,
@@ -309,6 +310,8 @@ class MixTempo(
     private val prefs = context.getSharedPreferences("mix_tempo", Context.MODE_PRIVATE)
     /** Song id -> integrated loudness (LUFS; NaN when it couldn't be measured). Also marks a song as scanned. */
     private val loudPrefs = context.getSharedPreferences("song_loudness", Context.MODE_PRIVATE)
+    /** Song id -> the [LUFS_VERSION] its loudness was measured with: one measured by the mono fold-down is measured again. */
+    private val loudVersion = context.getSharedPreferences("song_loudness_version", Context.MODE_PRIVATE)
     /** Song id -> its loudest sample (dBFS), measured with its loudness since 1.8.0: how far Normalize may lift it. */
     private val peakPrefs = context.getSharedPreferences("song_peak", Context.MODE_PRIVATE)
     /** Song id -> its key ([MusicKey.encode], or "none" when it has no clear one); DJ mode's harmonic ordering. */
@@ -319,7 +322,7 @@ class MixTempo(
 
     /** Forgets what was measured of [id] (another version of it plays now), so it's measured again. */
     fun forget(id: String) {
-        for (p in listOf(prefs, loudPrefs, peakPrefs, keyPrefs, quickPrefs)) p.edit().remove(id).apply()
+        for (p in listOf(prefs, loudPrefs, loudVersion, peakPrefs, keyPrefs, quickPrefs)) p.edit().remove(id).apply()
         traits?.forget(id)
     }
 
@@ -348,6 +351,12 @@ class MixTempo(
 
     /** The song's measured loudness (integrated LUFS), once it's been scanned. */
     fun loudness(id: String): Float? = loudPrefs.getFloat(id, Float.NaN).takeIf { !it.isNaN() }
+
+    /** Whether the song's stored loudness is from the current measurement (1.8.5: every channel, not a mono fold-down). */
+    fun loudnessCurrent(id: String): Boolean = loudVersion.getInt(id, 0) >= LUFS_VERSION
+
+    /** Measured before the loudness heard every channel: it's measured again when Normalize wants it. */
+    private fun loudnessOld(id: String) = loudPrefs.contains(id) && !loudnessCurrent(id)
 
     /** The song's loudest sample (dBFS), once it's been scanned (by 1.8.0 or later). */
     fun peak(id: String): Float? = peakPrefs.getFloat(id, Float.NaN).takeIf { !it.isNaN() }
@@ -481,13 +490,13 @@ class MixTempo(
      * and returns its tempo; null when it has none that's clear, or it can't be scanned yet. [edges]: a song scanned
      * before its fade-out and intro were measured is scanned again (only Crossfade's automatic length needs them), and
      * with [key], one scanned before its key was (DJ mode), with [wave], one with no outline for the waveform bar, and
-     * with [peak], one scanned before its peak was (Normalize).
+     * with [peak], one scanned before its peak was, or before its loudness heard every channel (Normalize).
      */
     suspend fun measure(
         id: String, network: Boolean = true, edges: Boolean = true, key: Boolean = false, wave: Boolean = false, peak: Boolean = false,
     ): Tempo? {
         fun done() = scanned(id) && !(edges && old(id)) && !(key && !keyed(id)) && !(wave && waves?.has(id) == false) &&
-            !(peak && noPeak(id))
+            !(peak && (noPeak(id) || loudnessOld(id)))
         if (done() || id in failed) return cached(id)
         return lock.withLock {
             if (done()) return@withLock cached(id)
@@ -511,6 +520,7 @@ class MixTempo(
                     else -> {
                         prefs.edit().putString(id, s.tempo?.encode() ?: "none").apply()
                         loudPrefs.edit().putFloat(id, s.lufs ?: Float.NaN).apply()
+                        loudVersion.edit().putInt(id, LUFS_VERSION).apply()
                         peakPrefs.edit().putFloat(id, s.peakDb ?: Float.NaN).apply()
                         keyPrefs.edit().putString(id, s.key?.encode() ?: "none:${MusicKey.VERSION}").apply()
                         traits?.record(com.prism.music.data.SongTraits(id, s.tempo, s.key, s.lufs, Energy.of(s.lufs, s.tempo?.confidence, s.brightness), whole = true))
@@ -545,7 +555,7 @@ class MixTempo(
             }
             val decoded = decodeAll(uri) ?: throw java.io.IOException("couldn't decode its audio")
             val pcm = decoded.pcm; val rate = decoded.rate; val count = decoded.count
-            val lufs = integratedLoudness(pcm, rate, count)?.let { it + MONO_TO_STEREO_DB }
+            val lufs = decoded.lufs
             // The waveform progress bar's outline, from the same audio (1.7.4).
             waves?.let { w -> runCatching { w.put(id, com.prism.music.data.SongWaves.outline(pcm, count)) } }
             // Debug builds keep the decoded audio when asked (adb shell touch …/files/mix_dump), for tuning [Tempo.analyze].
@@ -572,12 +582,13 @@ class MixTempo(
         }
     }
 
-    /** A song as mono PCM: the first [count] samples of [pcm], at [rate], and its loudest sample before (0 … 1). */
-    private class Decoded(val pcm: FloatArray, val count: Int, val rate: Int, val peak: Float)
+    /** A song as mono PCM: the first [count] samples of [pcm], at [rate], its loudest sample before (0 … 1), and its measured loudness (LUFS). */
+    private class Decoded(val pcm: FloatArray, val count: Int, val rate: Int, val peak: Float, val lufs: Float?)
 
     /**
-     * The whole file as mono PCM, decimated to roughly 11 kHz. One array, sized from the song's length (it used to grow
-     * by doubling, 4 + 8 + 16 MB for a song of 12, and be copied once more at the end).
+     * The whole file as mono PCM, decimated to roughly 11 kHz, and its loudness over every channel as it decodes
+     * ([LoudnessMeter]). One array for the mono, sized from the song's length (it used to grow by doubling, 4 + 8 +
+     * 16 MB for a song of 12, and be copied once more at the end); the loudness needs no copy of its own.
      */
     private fun decodeAll(uri: android.net.Uri): Decoded? {
         val ex = MediaExtractor()
@@ -598,6 +609,9 @@ class MixTempo(
             var out = FloatArray(decodedSize(if (fmt.containsKey(MediaFormat.KEY_DURATION)) fmt.getLong(MediaFormat.KEY_DURATION) / 1000 else 0, rate / factor))
             var count = 0
             val mono = Downmix()
+            var meter: LoudnessMeter? = null
+            var meterRate = 0
+            var meterChannels = 0
             val info = MediaCodec.BufferInfo()
             var inputDone = false
             while (true) {
@@ -627,6 +641,15 @@ class MixTempo(
                     buf.position(info.offset)
                     buf.limit(info.offset + info.size)
                     val frames = info.size / (channels * (if (isFloat) 4 else 2))
+                    // The loudness hears every channel at the decimated rate, from the same frames the mono comes from.
+                    val sr = rate / factor
+                    val loudChannels = channels.coerceAtMost(MAX_LOUDNESS_CHANNELS)
+                    if (meter == null || meterRate != sr || meterChannels != loudChannels) {
+                        if (count > 0 && meter != null) Log.w(TAG, "the decoder's format changed mid-scan: its loudness is measured from here")
+                        meter = LoudnessMeter(sr, loudChannels).also { mono.meter = it }
+                        meterRate = sr
+                        meterChannels = loudChannels
+                    }
                     mono.add(buf, frames, channels, isFloat, factor) { v ->
                         if (count == out.size) out = out.copyOf(out.size + out.size / 2)
                         out[count++] = v
@@ -640,7 +663,9 @@ class MixTempo(
             }
             val sr = rate / factor
             if (count < sr * 20) return null
-            return Decoded(out, count, sr, mono.peak)
+            // A mono file is heard on both speakers: one channel's power is 3 dB short of what plays.
+            val lufs = meter?.loudness()?.let { if (channels == 1) it + 3f else it }
+            return Decoded(out, count, sr, mono.peak, lufs)
         } finally {
             runCatching { codec?.stop() }
             runCatching { codec?.release() }
@@ -652,6 +677,12 @@ class MixTempo(
         private const val TAG = "PrismMix"
         /** DJ mode's quick scans running at once. */
         private const val QUICK_AT_ONCE = 3
+
+        /**
+         * How [LoudnessMeter] measures a song's loudness; entries measured by an older way are measured again. 1.8.5: every
+         * channel (a mono fold-down with a flat +3 dB read a wide mix up to 3 dB quieter than it plays).
+         */
+        internal const val LUFS_VERSION = 1
 
         /** Room for a song of [lengthMs] at [rate], with a little over; a song whose length isn't known starts at 3 minutes. */
         internal fun decodedSize(lengthMs: Long, rate: Int): Int {
@@ -688,11 +719,15 @@ class MixTempo(
          * of sight, only the very next song, whose volume is what's about to be heard (the rest wait until it's their
          * turn, and may never come: A16, 1.8.2: four songs scanned at once took a core and a half for a minute). The
          * playing song itself is only worth scanning out of sight for what reads it as it plays ([readsPlaying]: Crossfade
-         * its ending, the waveform bar its outline).
+         * its ending, the waveform bar its outline), or for Normalize when it hasn't been measured yet
+         * ([playingUnmeasured]): a first play's figure usually lands too late to use, but its next play then has it.
          */
-        internal fun worthScanning(comingUp: List<String>, playing: String?, onScreen: Boolean, readsPlaying: Boolean, ahead: Int): List<String> {
+        internal fun worthScanning(
+            comingUp: List<String>, playing: String?, onScreen: Boolean, readsPlaying: Boolean, ahead: Int,
+            playingUnmeasured: Boolean = false,
+        ): List<String> {
             val coming = comingUp.filter { it != playing }.take(if (onScreen) ahead else 1)
-            return if (playing != null && (onScreen || readsPlaying)) listOf(playing) + coming else coming
+            return if (playing != null && (onScreen || readsPlaying || playingUnmeasured)) listOf(playing) + coming else coming
         }
 
         /** Whether this phone's scans make way for the listener's touches: few cores, little memory or Performance mode. */
@@ -736,82 +771,150 @@ class MixTempo(
         private const val MAX_EASE_MS = 4_000
         /** Longer than this (a DJ set, an hour-long mix) isn't measured past this point. */
         private const val MAX_SECONDS = 15 * 60
-        /**
-         * The scan hears the song in mono (left and right averaged), which reads about 3 dB quieter than both channels
-         * counted apart, as LUFS does (exactly 3 dB for a centred sound, more for a wide one).
-         */
-        private const val MONO_TO_STEREO_DB = 3.0f
 
         /**
-         * Integrated loudness after ITU-R BS.1770 / EBU R128 (what Spotify and YouTube normalize by): the signal
-         * K-weighted (a high shelf ~+4 dB above 1.7 kHz, a high-pass at 38 Hz), its power taken over 400 ms blocks every
-         * 100 ms, and averaged over the blocks above -70 LUFS and no more than 10 LU below their mean (so silence and
-         * quiet passages don't drag it down). For one channel; null for silence or under half a second.
+         * Integrated loudness after ITU-R BS.1770 / EBU R128 (what Spotify and YouTube normalize by), for one channel:
+         * the signal K-weighted (a high shelf ~+4 dB above 1.7 kHz, a high-pass at 38 Hz), its power taken over 400 ms
+         * blocks every 100 ms, and averaged over the blocks above -70 LUFS and no more than 10 LU below their mean (so
+         * silence and quiet passages don't drag it down). Null for silence or under half a second. A whole song's
+         * loudness is measured over all its channels by [LoudnessMeter] as it decodes.
          */
         fun integratedLoudness(pcm: FloatArray, rate: Int, count: Int = pcm.size): Float? {
-            val block = (0.4 * rate).toInt()
-            val hop = (0.1 * rate).toInt().coerceAtLeast(1)
-            if (rate <= 0 || count < block + hop) return null
-            // K-weighting: two biquads, worked out for this sample rate.
-            val shelf = biquadHighShelf(rate, 1681.974450955533, 3.999843853973347, 0.7071752369554196)
-            val pass = biquadHighPass(rate, 38.13547087602444, 0.5003270373238773)
-            // The running sum over the last block only (a whole song's of it was 21 MB, once per scan; #373's log).
-            val sums = DoubleArray(block + 1)
-            val powers = DoubleArray((count - block) / hop + 1)
-            var blocks = 0
-            var nextEnd = block
-            var sum = 0.0
-            var s1 = 0.0; var s2 = 0.0; var p1 = 0.0; var p2 = 0.0
-            for (i in 0 until count) {
-                // Direct form II transposed, one stage into the next.
-                val x = pcm[i].toDouble()
-                val y1 = shelf[0] * x + s1
-                s1 = shelf[1] * x - shelf[3] * y1 + s2
-                s2 = shelf[2] * x - shelf[4] * y1
-                val y2 = pass[0] * y1 + p1
-                p1 = pass[1] * y1 - pass[3] * y2 + p2
-                p2 = pass[2] * y1 - pass[4] * y2
-                sum += y2 * y2
-                val done = i + 1
-                sums[done % (block + 1)] = sum
-                if (done == nextEnd) {
-                    powers[blocks++] = (sum - sums[(done - block) % (block + 1)]) / block
-                    nextEnd += hop
-                }
-            }
-            fun lufs(power: Double) = -0.691 + 10 * kotlin.math.log10(power)
-            var loudSum = 0.0; var loudCount = 0
-            for (b in 0 until blocks) if (powers[b] > 0 && lufs(powers[b]) > -70) { loudSum += powers[b]; loudCount++ }
-            if (loudCount == 0) return null
-            val relative = lufs(loudSum / loudCount) - 10
-            var gatedSum = 0.0; var gatedCount = 0
-            for (b in 0 until blocks) if (powers[b] > 0 && lufs(powers[b]) > -70 && lufs(powers[b]) > relative) { gatedSum += powers[b]; gatedCount++ }
-            return lufs(if (gatedCount > 0) gatedSum / gatedCount else loudSum / loudCount).toFloat()
-        }
-
-        /** [b0, b1, b2, a1, a2] (a0 = 1) for a high shelf (RBJ's cookbook, as BS.1770's stage 1 at any sample rate). */
-        private fun biquadHighShelf(rate: Int, fc: Double, gainDb: Double, q: Double): DoubleArray {
-            val a = Math.pow(10.0, gainDb / 40)
-            val w = 2 * Math.PI * fc / rate
-            val cw = kotlin.math.cos(w)
-            val alpha = kotlin.math.sin(w) / (2 * q)
-            val sa = 2 * kotlin.math.sqrt(a) * alpha
-            val b0 = a * ((a + 1) + (a - 1) * cw + sa)
-            val b1 = -2 * a * ((a - 1) + (a + 1) * cw)
-            val b2 = a * ((a + 1) + (a - 1) * cw - sa)
-            val a0 = (a + 1) - (a - 1) * cw + sa
-            val a1 = 2 * ((a - 1) - (a + 1) * cw)
-            val a2 = (a + 1) - (a - 1) * cw - sa
-            return doubleArrayOf(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0)
-        }
-
-        /** [b0, b1, b2, a1, a2] (a0 = 1) for a high-pass (BS.1770's stage 2, the "RLB" curve). */
-        private fun biquadHighPass(rate: Int, fc: Double, q: Double): DoubleArray {
-            val w = 2 * Math.PI * fc / rate
-            val cw = kotlin.math.cos(w)
-            val alpha = kotlin.math.sin(w) / (2 * q)
-            val a0 = 1 + alpha
-            return doubleArrayOf((1 + cw) / 2 / a0, -(1 + cw) / a0, (1 + cw) / 2 / a0, -2 * cw / a0, (1 - alpha) / a0)
+            if (rate <= 0 || count < (0.5 * rate).toInt()) return null
+            val meter = LoudnessMeter(rate, 1)
+            for (i in 0 until count) meter.sample(pcm[i])
+            return meter.loudness()
         }
     }
 }
+
+/** The most channels the loudness meter reads (7.1); a file with more is measured on its first eight. */
+internal const val MAX_LOUDNESS_CHANNELS = 8
+
+/**
+ * ITU-R BS.1770 / EBU R128 integrated loudness, measured as a song decodes, over every channel: each channel is
+ * K-weighted (a high shelf ~+4 dB above 1.7 kHz, a high-pass at 38 Hz) and its power summed, so a wide or hard-panned
+ * mix reads as loud as it plays (folding it to mono first read it up to 3 dB quieter), in 400 ms blocks every 100 ms,
+ * and averaged over the blocks above -70 LUFS and no more than 10 LU below their mean (so silence and quiet passages
+ * don't drag it down).
+ */
+internal class LoudnessMeter(private val rate: Int, channels: Int) {
+    val channels = channels.coerceAtLeast(1)
+
+    /** BS.1770's weights: 1 for left, right and centre, 0 for LFE, +1.5 dB for the surrounds. */
+    private val weights = DoubleArray(this.channels) { c ->
+        when {
+            c == 3 && this.channels >= 6 -> 0.0
+            c >= 4 && this.channels >= 6 -> 1.41
+            else -> 1.0
+        }
+    }
+    private val shelf = biquadHighShelf(rate, 1681.974450955533, 3.999843853973347, 0.7071752369554196)
+    private val pass = biquadHighPass(rate, 38.13547087602444, 0.5003270373238773)
+    private val s1 = DoubleArray(this.channels)
+    private val s2 = DoubleArray(this.channels)
+    private val p1 = DoubleArray(this.channels)
+    private val p2 = DoubleArray(this.channels)
+
+    /** 100 ms hops; a block is four of them (400 ms), as BS.1770 measures. */
+    private val hopFrames = (0.1 * rate).toInt().coerceAtLeast(1)
+    private var hopDone = 0
+    private var hopSum = 0.0
+    private val hops = DoubleArray(HOPS)
+    private var hopIndex = 0
+    private var hopsFilled = 0
+
+    private var powers = DoubleArray(INITIAL)
+    private var blocks = 0
+
+    /** One frame, a value per channel; each is a sum of [factor] samples when the sound was decimated. */
+    fun frame(values: FloatArray, factor: Int = 1) {
+        var power = 0.0
+        for (c in 0 until channels) power += weights[c] * kWeighted(c, values[c] / factor)
+        addPower(power)
+    }
+
+    /** One mono sample, for [MixTempo.integratedLoudness]. */
+    fun sample(x: Float) {
+        addPower(kWeighted(0, x))
+    }
+
+    /** The squared, K-weighted sample for channel [c] (direct form II transposed, one stage into the next). */
+    private fun kWeighted(c: Int, x: Float): Double {
+        val v = x.toDouble()
+        val y1 = shelf[0] * v + s1[c]
+        s1[c] = shelf[1] * v - shelf[3] * y1 + s2[c]
+        s2[c] = shelf[2] * v - shelf[4] * y1
+        val y2 = pass[0] * y1 + p1[c]
+        p1[c] = pass[1] * y1 - pass[3] * y2 + p2[c]
+        p2[c] = pass[2] * y1 - pass[4] * y2
+        return y2 * y2
+    }
+
+    private fun addPower(power: Double) {
+        hopSum += power
+        if (++hopDone < hopFrames) return
+        hops[hopIndex] = hopSum
+        hopIndex = (hopIndex + 1) % HOPS
+        hopsFilled = minOf(HOPS, hopsFilled + 1)
+        hopSum = 0.0
+        hopDone = 0
+        if (hopsFilled < HOPS) return
+        var sum = 0.0
+        for (h in 0 until HOPS) sum += hops[h]
+        if (blocks == powers.size) powers = powers.copyOf(powers.size * 2)
+        // The four hops' energy over the four hops' samples: the block's mean square.
+        powers[blocks++] = sum / (HOPS * hopFrames)
+    }
+
+    /** The integrated loudness (LUFS), or null for a song with nothing above the gate. */
+    fun loudness(): Float? {
+        if (blocks == 0) return null
+        fun lufs(power: Double) = -0.691 + 10 * kotlin.math.log10(power)
+        var loudSum = 0.0
+        var loudCount = 0
+        for (b in 0 until blocks) if (powers[b] > 0 && lufs(powers[b]) > -70) { loudSum += powers[b]; loudCount++ }
+        if (loudCount == 0) return null
+        val relative = lufs(loudSum / loudCount) - 10
+        var gatedSum = 0.0
+        var gatedCount = 0
+        for (b in 0 until blocks) {
+            val p = powers[b]
+            if (p > 0 && lufs(p) > -70 && lufs(p) > relative) { gatedSum += p; gatedCount++ }
+        }
+        return lufs(if (gatedCount > 0) gatedSum / gatedCount else loudSum / loudCount).toFloat()
+    }
+
+    private companion object {
+        /** 100 ms hops in a 400 ms block. */
+        const val HOPS = 4
+        /** Room for ten minutes of blocks (a scan reads fifteen at most). */
+        const val INITIAL = 8192
+    }
+}
+
+/** [b0, b1, b2, a1, a2] (a0 = 1) for a high shelf (RBJ's cookbook, as BS.1770's stage 1 at any sample rate). */
+private fun biquadHighShelf(rate: Int, fc: Double, gainDb: Double, q: Double): DoubleArray {
+    val a = Math.pow(10.0, gainDb / 40)
+    val w = 2 * Math.PI * fc / rate
+    val cw = kotlin.math.cos(w)
+    val alpha = kotlin.math.sin(w) / (2 * q)
+    val sa = 2 * kotlin.math.sqrt(a) * alpha
+    val b0 = a * ((a + 1) + (a - 1) * cw + sa)
+    val b1 = -2 * a * ((a - 1) + (a + 1) * cw)
+    val b2 = a * ((a + 1) + (a - 1) * cw - sa)
+    val a0 = (a + 1) - (a - 1) * cw + sa
+    val a1 = 2 * ((a - 1) - (a + 1) * cw)
+    val a2 = (a + 1) - (a - 1) * cw - sa
+    return doubleArrayOf(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0)
+}
+
+/** [b0, b1, b2, a1, a2] (a0 = 1) for a high-pass (BS.1770's stage 2, the "RLB" curve). */
+private fun biquadHighPass(rate: Int, fc: Double, q: Double): DoubleArray {
+    val w = 2 * Math.PI * fc / rate
+    val cw = kotlin.math.cos(w)
+    val alpha = kotlin.math.sin(w) / (2 * q)
+    val a0 = 1 + alpha
+    return doubleArrayOf((1 + cw) / 2 / a0, -(1 + cw) / a0, (1 + cw) / 2 / a0, -2 * cw / a0, (1 - alpha) / a0)
+}
+

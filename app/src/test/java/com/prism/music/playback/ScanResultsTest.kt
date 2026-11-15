@@ -40,6 +40,8 @@ class ScanResultsTest {
         // Crossfade reads the ending of what's playing, wherever the listener is.
         assertEquals(listOf("now", "a"), MixTempo.worthScanning(up, "now", onScreen = false, readsPlaying = true, ahead = 3))
         assertEquals(listOf("a"), MixTempo.worthScanning(listOf("a", "b"), null, onScreen = false, readsPlaying = true, ahead = 3))
+        // Normalize also scans an unmeasured playing song, so its next play starts at its own level.
+        assertEquals(listOf("now", "a"), MixTempo.worthScanning(up, "now", onScreen = false, readsPlaying = false, playingUnmeasured = true, ahead = 3))
     }
 
     @Test fun videosAreMeasuredAheadOnlyForThoseWhoWatchThem() {

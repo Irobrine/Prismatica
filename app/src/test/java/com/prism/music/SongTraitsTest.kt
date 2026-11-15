@@ -113,6 +113,9 @@ class SongTraitsTest {
         val mix = MixTempo(context, http, StreamResolver(context, http, settings, InnerTube(http, { settings.current })), traits = TraitsSink { recorded += it })
 
         assertEquals(setOf("w", "q", "q0"), mix.measuredIds())
+        assertFalse("measured before every channel was heard", mix.loudnessCurrent("w"))
+        prefs("song_loudness_version").putInt("w", MixTempo.LUFS_VERSION).commit()
+        assertTrue("measured the current way", mix.loudnessCurrent("w"))
         val w = mix.traitsFromPrefs("w")!!
         assertTrue(w.whole)
         assertEquals(124.0, w.tempo!!.bpm, 1e-9)

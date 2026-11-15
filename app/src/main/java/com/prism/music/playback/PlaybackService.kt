@@ -1536,7 +1536,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     /**
      * Scans the playing and next songs ([MixTempo]): how their music starts and ends and their beat, for Crossfade, and
      * their loudness, for normalization. From the phone when the song's there (downloaded, cached, a local file),
-     * else a small download, on Wi-Fi unless mobile data is allowed. Each song is scanned once.
+     * else a small download, on Wi-Fi unless mobile data is allowed. Each song is scanned once. A playing song with no
+     * figure yet is scanned too, even out of sight, so its next play starts at its own level.
      *
      * Not until the playing song is under way: a scan fetches a whole song (and asks YouTube for its streams) and
      * decodes it, and run as a song changed it held up that song's own start, which buffered for longer.
@@ -1550,7 +1551,15 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val network = s.mixTempoOnCellular || getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
         val playing = player.currentMediaItem?.mediaId
         val all = items.mapNotNull { it?.toSong() }.filter { !it.isLive && !it.isEpisode }.distinctBy { it.id }
-        val worth = MixTempo.worthScanning(all.map { it.id }, playing, c.visible.value, s.mix || wave, QUEUE_AHEAD)
+        // A playing song with no figure yet (or one measured the old, mono way) is scanned too (Normalize): a first
+        // play's figure usually lands too late to use, but its next play then starts at its own level instead of
+        // YouTube's near-flat one.
+        fun worth() = MixTempo.worthScanning(
+            all.map { it.id }, playing, c.visible.value, s.mix || wave, QUEUE_AHEAD,
+            playingUnmeasured = playing != null && s.normalize &&
+                (c.mixTempo.loudness(playing) == null || !c.mixTempo.loudnessCurrent(playing)),
+        )
+        val worth = worth()
         val songs = all.filter { it.id in worth }
         if (songs.isEmpty()) return
         // Songs scanned before fade-outs and intros were measured are scanned again only for Crossfade's automatic length.
@@ -1565,12 +1574,12 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 withContext(Dispatchers.IO) { runCatching { c.ytm.playerExtras(song.id, c.streams.signatureTimestamp()).loudnessDb } }
                     .getOrNull()?.let { c.loudness.edit().putFloat(song.id, it.toFloat()).apply() }
             }
-            // Then measured, the queued songs first (their volume is set as they start); the playing one last (only
-            // Crossfade needs it, near its end).
+            // Then measured, the queued songs first (their volume is set as they start); the playing one last
+            // (Crossfade reads its ending near the end, and Normalize wants its figure for the next play).
             // With the waveform bar, the playing song goes first: its bar is waiting for it.
             for (song in songs.sortedBy { if (wave) it.id != playing else it.id == playing }) {
                 // Asked again for each: the listener may have left since these were lined up.
-                if (song.id !in MixTempo.worthScanning(all.map { it.id }, playing, c.visible.value, s.mix || wave, QUEUE_AHEAD)) continue
+                if (song.id !in worth()) continue
                 c.mixTempo.measure(song.id, network, edges, wave = wave, peak = s.normalize)
                 // Measured while it's just begun: its own figure takes over (later in the song, a jump would be heard).
                 if (trackedSong?.id == song.id && settling()) applyNormalization()
