@@ -429,14 +429,24 @@ fun LinkRow(
     enabled: Boolean = true,
     external: Boolean = false,
     action: Boolean = false,
+    /** A control beside the row's own mark (the gear that opens the snoozed tracks): it keeps the row's tap. */
+    trailing: (@Composable RowScope.() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val mark: (@Composable RowScope.() -> Unit)? = if (action) null else ({
         Icon(if (external) PrismIcons.OpenInNew else PrismIcons.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
     })
+    val after: (@Composable RowScope.() -> Unit)? = when {
+        mark == null -> trailing
+        trailing == null -> mark
+        else -> ({
+            mark.invoke(this)
+            trailing.invoke(this)
+        })
+    }
     RowFrame(
         SettingsTags.ROW_LINK, title, value, value.orEmpty(), info, changed, enabled, modifier,
         interaction = Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick), icon = icon,
-        trailing = mark,
+        trailing = after,
     )
 }

@@ -2,6 +2,10 @@ package com.prism.music.ui.screens.settings
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,6 +47,7 @@ import com.prism.music.data.prefs.shows
 import com.prism.music.tr
 import com.prism.music.ui.LocalNavigator
 import com.prism.music.ui.Routes
+import com.prism.music.ui.player.SnoozeSheet
 import com.prism.music.ui.screens.ArtistLinksSample
 import com.prism.music.ui.screens.KnobSample
 import com.prism.music.ui.screens.LayoutSample
@@ -300,6 +305,8 @@ internal fun PlayerOnItRows() {
     val c = LocalContainer.current
     val prefs = c.settings
     var editMenu by remember { mutableStateOf(false) }
+    // 1.8.5: the gear beside "Buttons in the row" opens the snoozed tracks (the same list the player's button holds).
+    var showSnoozes by remember { mutableStateOf(false) }
     // The player drawn as it is: every part a tap to hide or show it.
     SheetRow(
         tr(R.string.what_s_on_the_player), hiddenPartsWords(s), info = tr(R.string.tap_a_part_of_the_player_to_hide_or_show_it),
@@ -313,7 +320,13 @@ internal fun PlayerOnItRows() {
     ) { DeckOrder() }
     if (s.shows(PlayerPart.BUTTONS)) SheetRow(
         tr(R.string.buttons_in_the_row), rowButtonsWords(s.playerButtons to s.showVideoSwitch), changed = ch("player_buttons"), sheetTitle = null,
+        trailing = {
+            IconButton(onClick = { showSnoozes = true }) {
+                Icon(PrismIcons.Settings, tr(R.string.snoozed_tracks), Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
     ) { RowButtons() }
+    if (showSnoozes) SnoozeSheet { showSnoozes = false }
     // The ⋯ menu's tiles and actions: its one row in Settings (the menu itself has the same editor).
     LinkRow(
         tr(R.string.edit_this_menu), value = tr(R.string.the_player_s_menu_its_tiles_and_actions), icon = PrismIcons.More, changed = ch("player_menu_hidden"),

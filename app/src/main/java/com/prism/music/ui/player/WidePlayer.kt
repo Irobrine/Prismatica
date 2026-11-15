@@ -113,6 +113,8 @@ internal fun WidePlayerContent(
     onSingNeedsDownload: () -> Unit = onSing,
     /** The bottom row's buttons that open something over the player. */
     onButton: (com.prism.music.data.prefs.PlayerButton) -> Unit = {},
+    /** 1.8.5: holding the Snooze button opens the snoozed tracks' list at that song. */
+    onSnoozeMenu: (String) -> Unit = {},
 ) {
     val c = LocalContainer.current
     val pc = c.player
@@ -148,6 +150,7 @@ internal fun WidePlayerContent(
                 onVideoMode = { pc.setVideoMode(it) },
                 episode = song.isEpisode,
                 onButton = onButton,
+                onSnoozeMenu = onSnoozeMenu,
             )
             if (!short && settings.showOutputDevice) {
                 Spacer(Modifier.height(10.dp))

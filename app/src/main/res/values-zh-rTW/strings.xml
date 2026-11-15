@@ -5405,4 +5405,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">稍後播放</string>
+    <string name="unsnooze">取消稍後播放</string>
+    <string name="snoozed_tracks">稍後播放的曲目</string>
+    <string name="snooze_for">稍後播放時長</string>
+    <string name="snooze_for_info">被稍後播放的曲目在自動佇列外保留的天數。你仍可自行播放、加入佇列或設為下一首。</string>
+    <string name="nothing_snoozed">沒有稍後播放的曲目</string>
+    <string name="nothing_snoozed_body">將曲目設為稍後播放，可在一段時間內不讓它進入 Prism 自動建立的佇列。你仍可自行播放、加入佇列或設為下一首。</string>
+    <string name="snoozed_n_tracks">已將 %1$d 首曲目設為稍後播放</string>
+    <string name="invalid_number">無效數字</string>
 </resources>

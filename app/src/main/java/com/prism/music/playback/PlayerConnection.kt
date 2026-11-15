@@ -495,7 +495,9 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                         null
                     } ?: break
                     if (!wanted()) return@launch
-                    page.filterTo(waiting) { com.prism.music.data.ExplicitFilter.plays(mode, it) && seen.add(it.id) }
+                    page.filterTo(waiting) {
+                        com.prism.music.data.ExplicitFilter.plays(mode, it) && !c.snoozes.isSnoozed(it) && seen.add(it.id)
+                    }
                     if (waiting.size >= FILL_BATCH) { addFilled(waiting); waiting.clear() }
                 }
                 if (wanted() && waiting.isNotEmpty()) addFilled(waiting)
@@ -587,9 +589,16 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 was, prefs.keepShuffle, startKind(source, songs, start, asVideo = startVideo != null, dj = dj), asked = shuffle,
                 prefs.shuffleButton, c.queue.smartAllowed(),
             )
+            // 1.8.5: what Prism picks by itself leaves snoozed tracks out. The song a queue starts on is the listener's
+            // (a tap, a song just played), so it stays even when snoozed; a shuffle's start wasn't picked, so it gives
+            // way too. A list with nothing left plays as it is rather than not at all.
+            val starting = songs[start]
+            val kept = c.snoozes.allowed(songs, keep = starting.takeUnless { shuffle })
+            val queue = kept.ifEmpty { songs }
+            val first = queue.indexOfFirst { it.id == starting.id }.coerceAtLeast(0)
             val shuffled = mode != ShuffleMode.OFF
             p.shuffleModeEnabled = shuffled
-            p.setMediaItems(songs.mapIndexed { i, s -> s.toMediaItem(if (i == start) startVideo else null) }, start, startMs.coerceAtLeast(0))
+            p.setMediaItems(queue.mapIndexed { i, s -> s.toMediaItem(if (i == first) startVideo else null) }, first, startMs.coerceAtLeast(0))
             // The song it starts on first, the rest in a new order.
             if (shuffled) reshuffle(p)
             p.prepare()
@@ -601,7 +610,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             }
             service?.maybeAutoplay()
             if (dj) c.dj.setOn(true)
-            if (rest != null && token == playToken) fillQueue(rest, source, songs)
+            if (rest != null && token == playToken) fillQueue(rest, source, queue)
         }
     }
 

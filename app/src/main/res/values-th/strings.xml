@@ -5405,4 +5405,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">พักไว้</string>
+    <string name="unsnooze">เลิกพัก</string>
+    <string name="snoozed_tracks">แทร็กที่พักไว้</string>
+    <string name="snooze_for">พักไว้เป็นเวลา</string>
+    <string name="snooze_for_info">จำนวนวันที่แทร็กที่พักไว้จะอยู่นอกคิวอัตโนมัติ คุณยังเล่นเอง เพิ่มเข้าคิว หรือเล่นเป็นเพลงถัดไปได้</string>
+    <string name="nothing_snoozed">ยังไม่มีแทร็กที่พักไว้</string>
+    <string name="nothing_snoozed_body">พักแทร็กไว้เพื่อกันไม่ให้อยู่ในคิวที่ Prism สร้างเองชั่วคราว คุณยังเล่นเอง เพิ่มเข้าคิว และเล่นเป็นเพลงถัดไปได้</string>
+    <string name="snoozed_n_tracks">พักไว้ %1$d แทร็ก</string>
+    <string name="invalid_number">ตัวเลขไม่ถูกต้อง</string>
 </resources>

@@ -5405,4 +5405,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Tạm ẩn</string>
+    <string name="unsnooze">Bỏ tạm ẩn</string>
+    <string name="snoozed_tracks">Bản nhạc tạm ẩn</string>
+    <string name="snooze_for">Tạm ẩn trong</string>
+    <string name="snooze_for_info">Bao nhiêu ngày một bản nhạc tạm ẩn vẫn nằm ngoài hàng đợi tự động. Bạn vẫn có thể tự phát, thêm vào hàng đợi hoặc phát tiếp theo.</string>
+    <string name="nothing_snoozed">Chưa có bản nhạc tạm ẩn</string>
+    <string name="nothing_snoozed_body">Tạm ẩn một bản nhạc để giữ nó một thời gian ngoài hàng đợi do Prism tự tạo. Bạn vẫn có thể tự phát, thêm vào hàng đợi và phát tiếp theo.</string>
+    <string name="snoozed_n_tracks">Đã tạm ẩn %1$d bản nhạc</string>
+    <string name="invalid_number">Số không hợp lệ</string>
 </resources>

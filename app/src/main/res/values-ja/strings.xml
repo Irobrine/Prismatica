@@ -5405,4 +5405,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">スヌーズ</string>
+    <string name="unsnooze">スヌーズ解除</string>
+    <string name="snoozed_tracks">スヌーズ中の曲</string>
+    <string name="snooze_for">スヌーズ期間</string>
+    <string name="snooze_for_info">スヌーズした曲を自動キューから外しておく日数です。自分で再生したり、キューに追加したり、次に再生したりできます。</string>
+    <string name="nothing_snoozed">スヌーズ中の曲はありません</string>
+    <string name="nothing_snoozed_body">曲をスヌーズすると、しばらく Prism が自動で作るキューに入りません。自分で再生したり、キューに追加したり、次に再生したりすることはできます。</string>
+    <string name="snoozed_n_tracks">%1$d 曲をスヌーズしました</string>
+    <string name="invalid_number">無効な数値</string>
 </resources>

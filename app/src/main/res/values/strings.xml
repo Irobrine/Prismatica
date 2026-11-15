@@ -1708,7 +1708,7 @@
     <string name="mesh_background_drift_animate_move_still">mesh background drift animate move still</string>
     <string name="mesh_background_saturation_vivid_soft_rich">mesh background saturation vivid soft rich intensity</string>
     <string name="blur_background_strength_soft_clear">blur background strength soft clear</string>
-    <string name="player_bottom_row_buttons_lyrics_video">player bottom row buttons lyrics video queue sleep like share sing dj equalizer download radio add to playlist customize</string>
+    <string name="player_bottom_row_buttons_lyrics_video">player bottom row buttons lyrics video queue sleep like share sing dj equalizer download radio add to playlist snooze customize</string>
     <string name="notification_lock_screen_android_auto_car">notification lock screen android auto car buttons like shuffle repeat radio skip back ahead 10 30 seconds media controls</string>
     <string name="order_arrange_rearrange_move_current_lyric">order arrange rearrange move current lyric progress bar controls volume buttons</string>
     <string name="current_lyric">Current lyric</string>
@@ -4354,6 +4354,15 @@
     <string name="hidden_s">Hidden: %1$s</string>
     <string name="buttons_in_the_row">Buttons in the row</string>
     <string name="add_a_button">Add a button</string>
+    <string name="snooze">Snooze</string>
+    <string name="unsnooze">Unsnooze</string>
+    <string name="snoozed_tracks">Snoozed tracks</string>
+    <string name="snooze_for">Snooze for</string>
+    <string name="snooze_for_info">How many days a snoozed track stays out of automatic queues. You can still play it yourself, add it to the queue, or play it next.</string>
+    <string name="nothing_snoozed">Nothing snoozed</string>
+    <string name="nothing_snoozed_body">Snooze a track to keep it out of the queue Prism builds by itself, for a while. Playing it yourself still works, as does Add to the queue and Play next.</string>
+    <string name="snoozed_n_tracks">Snoozed %1$d tracks</string>
+    <string name="invalid_number">Invalid number</string>
     <string name="the_player_s_menu_its_tiles_and_actions">The player\'s ⋯ menu: its tiles and what it shows</string>
     <string name="and_the_sky_lit_up">And the sky lit up</string>
     <string name="play_pause_always_stays">Play and pause always stay</string>

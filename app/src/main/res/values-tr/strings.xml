@@ -5480,4 +5480,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Ertele</string>
+    <string name="unsnooze">Geri al</string>
+    <string name="snoozed_tracks">Ertelenen parçalar</string>
+    <string name="snooze_for">Ertele</string>
+    <string name="snooze_for_info">Ertelenen bir parçanın otomatik sıraların dışında kaç gün kalacağı. Yine de kendiniz çalabilir, sıraya ekleyebilir veya sıradaki olarak çalabilirsiniz.</string>
+    <string name="nothing_snoozed">Ertelenen parça yok</string>
+    <string name="nothing_snoozed_body">Prism kendi oluşturduğu sıraya bir süre girmesin diye bir parçayı ertele. Kendin çalmaya, sıraya eklemeye ve sıradaki olarak çalmaya devam edebilirsin.</string>
+    <string name="snoozed_n_tracks">%1$d parça ertelendi</string>
+    <string name="invalid_number">Geçersiz sayı</string>
 </resources>

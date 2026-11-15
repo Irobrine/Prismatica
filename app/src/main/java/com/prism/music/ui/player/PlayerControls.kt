@@ -955,6 +955,8 @@ fun PlayerActionRow(
     onVideoMode: (Boolean) -> Unit,
     episode: Boolean = false,
     onButton: (PlayerButton) -> Unit = {},
+    /** 1.8.5: long-pressing the Snooze button opens the snoozed tracks' list, at this song. */
+    onSnoozeMenu: (String) -> Unit = {},
 ) {
     val c = LocalContainer.current
     val pc = c.player
@@ -1005,7 +1007,7 @@ fun PlayerActionRow(
                     if (pill) Modifier else Modifier.fillMaxWidth(),
                     horizontalArrangement = if (pill) Arrangement.spacedBy(4.dp) else Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    for (b in chosen) PlayerButtonGlyph(b, glyph, lyricsOpen, videoMode, videoAvailable, videoLoading, onToggleLyrics, onToggleQueue, onVideoMode, onButton)
+                    for (b in chosen) PlayerButtonGlyph(b, glyph, lyricsOpen, videoMode, videoAvailable, videoLoading, onToggleLyrics, onToggleQueue, onVideoMode, onButton, onSnoozeMenu)
                 }
             }
         }
@@ -1025,6 +1027,7 @@ private fun PlayerButtonGlyph(
     onToggleQueue: () -> Unit,
     onVideoMode: (Boolean) -> Unit,
     onButton: (PlayerButton) -> Unit,
+    onSnoozeMenu: (String) -> Unit,
 ) {
     val c = LocalContainer.current
     val pc = c.player
@@ -1091,6 +1094,16 @@ private fun PlayerButtonGlyph(
             val at by pc.sleepAt.collectAsState()
             val end by pc.sleepEndOfSong.collectAsState()
             BottomGlyph(PrismIcons.Moon, tr(R.string.sleep_timer), at > 0 || end, { onButton(b) }, width)
+        }
+        // 1.8.5: Snooze: a tap keeps the song out of automatic queues (or lets it back in); holding it opens the list.
+        PlayerButton.SNOOZE -> {
+            val snoozed by c.snoozes.tracks.collectAsState()
+            val on = (snoozed[s.id]?.until ?: 0L) > System.currentTimeMillis()
+            BottomGlyph(
+                PrismIcons.Timer, if (on) tr(R.string.unsnooze) else tr(R.string.snooze), on,
+                { if (on) c.snoozes.unsnooze(s.id) else c.snoozes.snooze(listOf(s)) },
+                width, onLongClick = { onSnoozeMenu(s.id) }, longPressLabel = tr(R.string.snoozed_tracks),
+            )
         }
         PlayerButton.SING -> {
             val on by c.sing.on.collectAsState()
@@ -1214,7 +1227,17 @@ private fun PillSegment(
 }
 
 @Composable
-private fun BottomGlyph(icon: ImageVector, description: String, highlighted: Boolean, onClick: () -> Unit, width: Dp = 56.dp, enabled: Boolean = true) {
+internal fun BottomGlyph(
+    icon: ImageVector,
+    description: String,
+    highlighted: Boolean,
+    onClick: () -> Unit,
+    width: Dp = 56.dp,
+    enabled: Boolean = true,
+    /** A hold's own action (the Snooze button's list); null: a tap only. */
+    onLongClick: (() -> Unit)? = null,
+    longPressLabel: String? = null,
+) {
     val haptics = rememberHaptics()
     // Its capsule, ink and glyph (a heart filling in, a download done) ease together instead of switching at once.
     val ease = com.prism.music.ui.theme.PrismTokens.Motion.Ease
@@ -1227,11 +1250,19 @@ private fun BottomGlyph(icon: ImageVector, description: String, highlighted: Boo
         Color.White.copy(alpha = when { !enabled -> 0.25f; highlighted -> 1f; else -> 0.7f }),
         tween(ms, easing = ease), label = "bottomTint",
     )
+    val interaction = remember { MutableInteractionSource() }
+    val hold = onLongClick
     Box(
         Modifier.size(width = width, height = BOTTOM_ACTION_SIZE).clip(CircleShape)
             .background(bg)
             .semantics { selected = highlighted }
-            .clickable(remember { MutableInteractionSource() }, indication = null, enabled = enabled) { haptics.tick(); onClick() },
+            .then(
+                if (hold != null) Modifier.combinedClickable(
+                    interaction, indication = null, enabled = enabled, onLongClickLabel = longPressLabel,
+                    onLongClick = { haptics.tick(); hold() },
+                ) { haptics.tick(); onClick() }
+                else Modifier.clickable(interaction, indication = null, enabled = enabled) { haptics.tick(); onClick() },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Crossfade(icon, animationSpec = tween(180, easing = ease), label = "bottomGlyph") { ic ->

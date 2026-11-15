@@ -5480,4 +5480,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Zurückstellen</string>
+    <string name="unsnooze">Wieder zulassen</string>
+    <string name="snoozed_tracks">Zurückgestellte Titel</string>
+    <string name="snooze_for">Zurückstellen für</string>
+    <string name="snooze_for_info">Wie viele Tage ein zurückgestellter Titel aus automatischen Warteschlangen bleibt. Du kannst ihn weiterhin selbst abspielen, zur Warteschlange hinzufügen oder als Nächstes spielen.</string>
+    <string name="nothing_snoozed">Nichts zurückgestellt</string>
+    <string name="nothing_snoozed_body">Stelle einen Titel zurück, damit er eine Zeit lang nicht in der von Prism selbst gebauten Warteschlange landet. Selbst abspielen, Zur Warteschlange hinzufügen und Als Nächstes spielen gehen weiterhin.</string>
+    <string name="snoozed_n_tracks">%1$d Titel zurückgestellt</string>
+    <string name="invalid_number">Ungültige Zahl</string>
 </resources>

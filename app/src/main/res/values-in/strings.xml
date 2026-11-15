@@ -5405,4 +5405,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Tunda</string>
+    <string name="unsnooze">Batalkan tunda</string>
+    <string name="snoozed_tracks">Trek yang ditunda</string>
+    <string name="snooze_for">Tunda selama</string>
+    <string name="snooze_for_info">Berapa hari trek yang ditunda tetap di luar antrean otomatis. Kamu tetap bisa memutarnya sendiri, menambahkannya ke antrean, atau memutarnya berikutnya.</string>
+    <string name="nothing_snoozed">Belum ada yang ditunda</string>
+    <string name="nothing_snoozed_body">Tunda sebuah trek untuk menjaganya sementara di luar antrean yang dibuat Prism sendiri. Memutarnya sendiri, menambahkannya ke antrean, dan memutarnya berikutnya tetap berfungsi.</string>
+    <string name="snoozed_n_tracks">%1$d trek ditunda</string>
+    <string name="invalid_number">Angka tidak valid</string>
 </resources>

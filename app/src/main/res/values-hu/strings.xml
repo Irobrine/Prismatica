@@ -5480,4 +5480,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Elhalasztás</string>
+    <string name="unsnooze">Engedélyezés</string>
+    <string name="snoozed_tracks">Elhalasztott számok</string>
+    <string name="snooze_for">Elhalasztás ennyi napra</string>
+    <string name="snooze_for_info">Hány napig marad egy elhalasztott szám az automatikus sorokon kívül. Továbbra is lejátszhatod, a sorba teheted, vagy következőként indíthatod.</string>
+    <string name="nothing_snoozed">Nincs elhalasztva</string>
+    <string name="nothing_snoozed_body">Halassz el egy számot, hogy egy ideig ne kerüljön a Prism által magától épített sorba. A saját lejátszás, a Sorba helyezés és a Következőként indítás továbbra is működik.</string>
+    <string name="snoozed_n_tracks">%1$d szám elhalasztva</string>
+    <string name="invalid_number">Érvénytelen szám</string>
 </resources>

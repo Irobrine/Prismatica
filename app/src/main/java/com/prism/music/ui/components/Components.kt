@@ -718,6 +718,9 @@ fun SongActionsSheet(song: Song, extra: List<SheetItem> = emptyList(), onDismiss
     val dl = downloads.forRow(song.id, standIns)
     val downloaded = dl?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
     val together by c.together.state.collectAsState()
+    // 1.8.5: the snooze state of this song, for the menu's row.
+    val snoozed by c.snoozes.tracks.collectAsState()
+    val isSnoozed = (snoozed[song.id]?.until ?: 0L) > System.currentTimeMillis()
     // A file on the phone isn't on YouTube: no radio, download, sharing, YouTube playlists, or sending it to a session.
     val local = song.isLocal
     // An episode from a feed isn't on YouTube either: no download, sharing, likes or playlists for it.
@@ -790,6 +793,10 @@ fun SongActionsSheet(song: Song, extra: List<SheetItem> = emptyList(), onDismiss
         if (song.isEpisode || local) null else videoDownloadAction(song, videos[song.id]),
         if (song.isEpisode) null else if (song.id in disliked) ActionItem(PrismIcons.ThumbDownFilled, tr(R.string.not_for_me), active = true, keepOpen = true) { c.library.setDisliked(song, false) }
         else ActionItem(PrismIcons.ThumbDown, tr(R.string.not_for_me)) { c.library.setDisliked(song, true); toast(tr(R.string.got_it_prism_will_steer_clear)) },
+        // 1.8.5: out of the queue Prism builds by itself for a while; tapped again, back in.
+        if (song.isEpisode) null else ActionItem(
+            PrismIcons.Timer, if (isSnoozed) tr(R.string.unsnooze) else tr(R.string.snooze), active = isSnoozed, keepOpen = true,
+        ) { c.snoozes.toggle(song) },
         // Plays as usual, but its plays don't shape recommendations (a song played for someone else).
         if (song.isEpisode || local) null else {
             val out = c.exclusions.isSongExcluded(song.id)
