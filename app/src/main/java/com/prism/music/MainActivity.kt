@@ -1057,9 +1057,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                                 scaleY = s
                                 clip = t < 0.999f
                                 shape = RoundedCornerShape(((1f - t) * 28f).dp)
-                                // The player is all but opaque by the time the hand is half-way: the page behind (and the
-                                // tab bar under the mini player) shows for the first moments only, never as a ghost over it.
-                                alpha = (t * 2.6f).coerceIn(0f, 1f)
+                                // The page behind (and the tab bar under the mini player) gives way to the player's own
+                                // background all the way through, evenly: strictly linear, with no ramp or snap.
+                                alpha = t
                             } else {
                                 alpha = t
                             }

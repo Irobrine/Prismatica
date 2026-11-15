@@ -81,9 +81,10 @@ class PlayerMorphTest {
         assertTrue(PlayerMorph.hidesPlay)
         assertEquals(0f, PlayerMorph.elementReveal, 0.0001f)
         PlayerMorph.snap(0.93f)
-        assertTrue("on its way back", PlayerMorph.elementReveal > 0f && PlayerMorph.elementReveal < 1f)
+        assertEquals("still the moving copy, on its way up", 0f, PlayerMorph.elementReveal, 0.0001f)
         PlayerMorph.snap(1f)
         assertEquals(1f, PlayerMorph.elementReveal, 0.0001f)
+        assertEquals(1f, PlayerMorph.playReveal, 0.0001f)
         PlayerMorph.snap(0f)
         assertFalse(PlayerMorph.hidesTitle)
     }
@@ -110,6 +111,20 @@ class PlayerMorphTest {
         for (g in listOf(PlayerGesture.NEXT, PlayerGesture.PREVIOUS, PlayerGesture.PLAY_PAUSE, PlayerGesture.LIKE, PlayerGesture.MENU, PlayerGesture.STOP, PlayerGesture.SLEEP, PlayerGesture.NONE)) {
             assertFalse("$g doesn't open the player", PlayerMorph.opensPlayer(g))
         }
+    }
+
+    /** The moving copies are the only ones until the very end; at rest the player's own take over, with no overlap. */
+    @Test fun theHandOverHappensInOneStep() {
+        PlayerMorph.miniTitle = androidx.compose.ui.geometry.Rect(0f, 0f, 120f, 20f)
+        PlayerMorph.playerTitle = androidx.compose.ui.geometry.Rect(0f, 100f, 320f, 60f)
+        PlayerMorph.snap(0.9999f)
+        assertTrue("still the moving copy", PlayerMorph.drawsOverlay())
+        assertEquals("the player's own is still away", 0f, PlayerMorph.elementReveal, 0.0001f)
+        assertTrue(PlayerMorph.hidesTitle)
+        PlayerMorph.snap(1f)
+        assertFalse("the copy is gone", PlayerMorph.drawsOverlay())
+        assertEquals("the player's own is there", 1f, PlayerMorph.elementReveal, 0.0001f)
+        assertFalse(PlayerMorph.hidesTitle)
     }
 
     /** With Reduce motion there is no element morph: the player cross-fades and its own title and play button stay. */
@@ -153,5 +168,13 @@ class PlayerMorphTest {
         assertEquals(120f, middle.top, 0.0001f)
         assertEquals(368f, middle.right, 0.0001f)
         assertEquals(454f, middle.bottom, 0.0001f)
+    }
+
+    /** The moving line gets the wider row's room throughout: its ending isn't lost to a width between the two. */
+    @Test fun theMovingLineKeepsThePlayersRoom() {
+        val mini = androidx.compose.ui.geometry.Rect(0f, 0f, 300f, 40f)
+        val player = androidx.compose.ui.geometry.Rect(0f, 0f, 640f, 60f)
+        assertEquals(640, com.prism.music.ui.player.morphRoom(mini, player))
+        assertEquals(640, com.prism.music.ui.player.morphRoom(player, mini))
     }
 }

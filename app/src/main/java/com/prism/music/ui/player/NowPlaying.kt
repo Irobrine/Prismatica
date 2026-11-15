@@ -320,6 +320,8 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     var showProviders by remember { mutableStateOf(false) }
     var statsOpen by rememberSaveable { mutableStateOf(false) }
     var showActions by remember { mutableStateOf(false) }
+    /** The song menu was opened by a swipe up on the cover: the player stays collapsed behind it, as for a panel. */
+    var menuBySwipe by remember { mutableStateOf(false) }
     var showSleep by remember { mutableStateOf(false) }
     var showTiming by remember { mutableStateOf(false) }
     var showSing by remember { mutableStateOf(false) }
@@ -508,9 +510,12 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     // The panels' morph (cover into the header, the deck down) follows the finger on a swipe (PanelShift), and eases to
     // match the flags when a button, Back or an action opened them. It is one number, as the player's own morph is.
     val panelShift = remember { PanelShift(if (opensOn != PlayerPage.COVER && askedOnOpen == null) 1f else 0f) }
-    LaunchedEffect(lyricsOpen, queueOpen, statsOpen) {
+    LaunchedEffect(lyricsOpen, queueOpen, statsOpen, menuBySwipe, showActions) {
         if (panelShift.dragging) return@LaunchedEffect
-        panelShift.animateTo(scope, if (lyricsOpen || queueOpen || statsOpen) 1f else 0f, settings.reduceMotion)
+        val open = lyricsOpen || queueOpen || statsOpen || (menuBySwipe && showActions)
+        panelShift.animateTo(scope, if (open) 1f else 0f, settings.reduceMotion)
+        // The menu has gone: the player opens back up, and the swipe isn't holding it collapsed any more.
+        if (menuBySwipe && !showActions) menuBySwipe = false
     }
     val p: () -> Float = { panelShift.value }
     val collapsePastHalf = panelShift.value >= 0.5f
@@ -877,6 +882,18 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                 panelShift.animateTo(scope, 0f, reduce) { closePanelsNow() }
             } else panelShift.animateTo(scope, 1f, reduce)
         }
+        fun settleMenuSwipe() {
+            panelShift.end()
+            haptics.gestureEnd()
+            val reduce = c.settings.current.reduceMotion
+            if (PlayerMorph.completes(panelShift.value, towardPlayer = true)) {
+                panelShift.animateTo(scope, 1f, reduce)
+                menuBySwipe = true
+                showActions = true
+            } else {
+                panelShift.animateTo(scope, 0f, reduce)
+            }
+        }
         val dismissGesture = Modifier.pointerInput(morphSpan) {
             // The finger writes the morph's number as it moves; it eases back (or finishes) when the finger lifts.
             detectVerticalDragGestures(
@@ -922,19 +939,26 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             }
         }
         // Drag on the sleeve: down closes the player (or a panel, with the same morph), up opens what's set (the queue
-        // comes in, by default) or does its action. One drag chooses its way from the first movement.
-        fun sleeveDrag(lyrics: Boolean, queue: Boolean, stats: Boolean) = Modifier.pointerInput(lyrics, queue, stats, morphSpan) {
+        // comes in, by default) or does its action. One drag chooses its way from the first movement. The keys here
+        // mustn't include the panel flags: opening one during the drag would restart the handler and cut the finger off.
+        fun sleeveDrag(trackPanels: Boolean = true) = Modifier.pointerInput(trackPanels, morphSpan) {
             var total = 0f
             var mode = 0 // 0 undecided, 1 a panel, 2 the player, 3 an action at the end
             var startedOpen = false
+            var menuTarget = false
             var base = 0f
             var startProgress = 1f
             val slop = 6.dp.toPx()
             detectVerticalDragGestures(
-                onDragStart = { total = 0f; mode = 0; startedOpen = queue || lyrics || stats; base = panelShift.value; startProgress = PlayerMorph.progress },
+                onDragStart = {
+                    total = 0f; mode = 0; menuTarget = false
+                    startedOpen = trackPanels && (lyricsOpen || queueOpen || statsOpen)
+                    base = panelShift.value
+                    startProgress = PlayerMorph.progress
+                },
                 onDragEnd = {
                     when (mode) {
-                        1 -> settlePanel(startedOpen)
+                        1 -> if (menuTarget) settleMenuSwipe() else settlePanel(startedOpen)
                         2 -> {
                             if (closing) return@detectVerticalDragGestures
                             if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) slideClosed()
@@ -964,14 +988,18 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                 if (mode == 0 && kotlin.math.abs(total) > slop) {
                     if (total > 0f) {
                         // Pulled down: a panel open goes back the way it came; otherwise the player itself.
-                        if (queue || lyrics || stats) { panelShift.begin(); mode = 1; startedOpen = true }
+                        if (startedOpen) { panelShift.begin(); mode = 1 }
                         else if (!closing) { PlayerMorph.beginDrag(towardPlayer = false); mode = 2 }
                     } else {
                         val up = c.settings.current.coverSwipeUp
-                        if (queue || lyrics || stats) { panelShift.begin(); mode = 1; startedOpen = true }
+                        if (startedOpen) { panelShift.begin(); mode = 1 }
                         else if (up == com.prism.music.data.prefs.PlayerGesture.QUEUE || up == com.prism.music.data.prefs.PlayerGesture.LYRICS) {
-                            panelShift.begin(); mode = 1; startedOpen = false
+                            panelShift.begin(); mode = 1
                             openPanelByGesture(PlayerMorph.pageOf(up)!!)
+                        } else if (up == com.prism.music.data.prefs.PlayerGesture.MENU) {
+                            // The song menu is a sheet, not a panel, but the player under it makes the same move the
+                            // queue and the lyrics do: the cover into the header, the controls away, out of its way.
+                            panelShift.begin(); mode = 1; menuTarget = true
                         } else mode = 3
                     }
                 }
@@ -986,7 +1014,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                 }
             }
         }
-        val sleeveGesture = sleeveDrag(lyricsOpen, queueOpen, statsOpen)
+        val sleeveGesture = sleeveDrag()
         // Double-tap the cover: by default its left or right half seeks back or ahead (#79, as on YouTube Music); long
         // press: nothing unless one's set. A double tap set to nothing leaves single taps instant.
         val seekStep = settings.doubleTapSeekSeconds
@@ -1456,7 +1484,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         // #282: below the lyrics, the deck takes the cover's gestures. The lyrics are their own list above it,
                         // so scrolling them never reaches this.
                         lyricsOpen && !queueOpen && !statsOpen && settings.behavior.gesturesUnderLyrics ->
-                            sleeveDrag(lyrics = false, queue = false, stats = false)
+                            sleeveDrag(trackPanels = false)
                                 .then(tapsAndHolds(panelOpen = false, tapShowsDeck = false))
                                 .then(sideSwipe(panelOpen = false))
                         !settings.behavior.gesturesEverywhere || lyricsOpen || queueOpen || statsOpen -> Modifier

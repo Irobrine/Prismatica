@@ -79,19 +79,34 @@ object PlayerMorph {
 
     private var settleJob: Job? = null
 
-    val isMorphing: Boolean get() = progress > 0.001f && progress < 0.999f
+    val isMorphing: Boolean get() = progress > 0.001f && progress < 1f
 
     /** Whether the mini player's own cover, title, artist and play button stand down for the moving copies. */
-    val hidesTitle: Boolean get() = !animationsOff && progress > 0.045f && progress < 0.94f && miniTitle != null && playerTitle != null
-    val hidesArtist: Boolean get() = !animationsOff && progress > 0.045f && progress < 0.94f && miniArtist != null && playerArtist != null
-    val hidesPlay: Boolean get() = !animationsOff && progress > 0.045f && progress < 0.94f && miniPlay != null && playerPlay != null
+    val hidesTitle: Boolean get() = !animationsOff && progress > 0.001f && progress < 1f && miniTitle != null && playerTitle != null
+    val hidesArtist: Boolean get() = !animationsOff && progress > 0.001f && progress < 1f && miniArtist != null && playerArtist != null
+    val hidesPlay: Boolean get() = !animationsOff && progress > 0.001f && progress < 1f && miniPlay != null && playerPlay != null
 
-    /** How much of the real player's title, artist and play button to show (they take over at the very end). */
-    val elementReveal: Float get() =
-        if (animationsOff || playerTitle == null) 1f else ((progress - 0.86f) / 0.14f).coerceIn(0f, 1f)
+    /**
+     * How much of the real player's title, artist and play button to show. The moving copies carry them for the whole
+     * transition and hand over in one step at the very end, where the two are exactly in the same place: a cross-fade
+     * here would show both at once for a moment.
+     */
+    val elementReveal: Float get() = when {
+        animationsOff -> 1f
+        !hasRowMorph() || !atRestAtPlayer() -> 0f
+        else -> 1f
+    }
 
-    val playReveal: Float get() =
-        if (animationsOff || playerPlay == null || miniPlay == null) 1f else ((progress - 0.86f) / 0.14f).coerceIn(0f, 1f)
+    val playReveal: Float get() = when {
+        animationsOff -> 1f
+        playerPlay == null || miniPlay == null || !atRestAtPlayer() -> 0f
+        else -> 1f
+    }
+
+    /** The title or the artist are moving, so the player's own row must stand down until they land. */
+    private fun hasRowMorph(): Boolean = playerTitle != null || playerArtist != null
+
+    private fun atRestAtPlayer(): Boolean = progress >= 1f
 
     /**
      * How much of the player's controls to show while it opens: the moving title crosses the place they sit, so they
@@ -287,8 +302,6 @@ fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
     val toArtist = PlayerMorph.playerArtist
     val fromPlay = PlayerMorph.miniPlay
     val toPlay = PlayerMorph.playerPlay
-    val fade = ((t - 0.02f) / 0.055f).coerceIn(0f, 1f) * (1f - ((t - 0.945f) / 0.055f).coerceIn(0f, 1f))
-    if (fade <= 0.001f) return
     val titleStyle = lerpStyle(typography.titleSmall, playerTitleStyle(typography, settings), t)
     val artistStyle = lerpStyle(typography.bodySmall, playerArtistStyle(typography, settings), t)
     // The words turn white sooner than they grow: over the player's dark picture they must stay readable all the way.
@@ -296,10 +309,10 @@ fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
     val titleColor = lerp(scheme.onSurface, Color.White, ink)
     val artistColor = lerp(scheme.onSurfaceVariant, Color.White.copy(alpha = 0.6f), ink)
     if (fromTitle != null && toTitle != null) {
-        MorphLine(title, fromTitle, toTitle, t, titleStyle, titleColor, fade, "playerMorphTitle")
+        MorphLine(title, fromTitle, toTitle, t, titleStyle, titleColor, "playerMorphTitle")
     }
     if (fromArtist != null && toArtist != null && artist.isNotBlank()) {
-        MorphLine(artist, fromArtist, toArtist, t, artistStyle, artistColor, fade, "playerMorphArtist")
+        MorphLine(artist, fromArtist, toArtist, t, artistStyle, artistColor, "playerMorphArtist")
     }
     if (fromPlay != null && toPlay != null) {
         val r = lerpRect(fromPlay, toPlay, t)
@@ -311,13 +324,12 @@ fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
                     val h = r.height.roundToInt().coerceAtLeast(1)
                     val p = m.measure(Constraints.fixed(w, h))
                     layout(c.maxWidth, c.maxHeight) { p.place(r.left.roundToInt(), r.top.roundToInt()) }
-                }
-                .graphicsLayer { alpha = fade },
+                },
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 if (isPlaying) PrismIcons.Pause else PrismIcons.Play, null,
-                Modifier.size(lerpDp(24.dp, 66.dp, t)),
+                Modifier.size(lerpDp(28.dp, 74.dp, t)),
                 tint = Color.White,
             )
         }
@@ -326,24 +338,26 @@ fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
 
 /** One line of the hand-over: the words, at the size and place between [from] and [to] the finger has reached. */
 @Composable
-private fun MorphLine(text: String, from: Rect, to: Rect, t: Float, style: TextStyle, color: Color, alpha: Float, tag: String) {
+private fun MorphLine(text: String, from: Rect, to: Rect, t: Float, style: TextStyle, color: Color, tag: String) {
     val r = lerpRect(from, to, t)
+    // The room the line has is the wider of its two homes, not a width of its own that changes every frame: it never
+    // truncates for room the player's row has, and the ellipsis doesn't come and go as the copy moves.
+    val room = morphRoom(from, to)
     Text(
         text,
         style = style,
         color = color,
         maxLines = 1,
+        softWrap = false,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
             .clearAndSetSemantics { testTag = tag }
             .layout { m, c ->
-                val w = r.width.roundToInt().coerceAtLeast(1)
-                val p = m.measure(Constraints(maxWidth = w))
+                val p = m.measure(Constraints(maxWidth = room))
                 layout(c.maxWidth, c.maxHeight) {
                     p.place(r.left.roundToInt(), (r.top + (r.height - p.height) / 2f).roundToInt())
                 }
-            }
-            .graphicsLayer { this.alpha = alpha },
+            },
     )
 }
 
@@ -354,3 +368,10 @@ internal fun lerpRect(a: Rect, b: Rect, t: Float): Rect = Rect(
     a.right + (b.right - a.right) * t,
     a.bottom + (b.bottom - a.bottom) * t,
 )
+
+/**
+ * The room a moving line of words is given: the wider of the two rows it belongs to. It is the same at every point of
+ * the transition, so the line doesn't lose its ending to a width that is only on its way from one row to the other,
+ * and can use all of the room the player's row has from the start.
+ */
+internal fun morphRoom(from: Rect, to: Rect): Int = maxOf(from.width, to.width).roundToInt().coerceAtLeast(1)

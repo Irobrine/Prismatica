@@ -2,6 +2,7 @@ package com.prism.music
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.swipe
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.prism.music.data.model.Song
+import com.prism.music.data.prefs.PlayerGesture
 import com.prism.music.playback.QueueKind
 import com.prism.music.playback.QueueSource
 import com.prism.music.ui.player.PlayerMorph
@@ -60,6 +62,7 @@ class PlayerMorphAppTest {
     }
 
     private fun shown(tag: String) = compose.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+    private fun leftOf(tag: String) = compose.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().first().boundsInRoot.left
     private fun mini(): SemanticsNodeInteraction = compose.onAllNodes(hasTestTag("miniPlayer"), useUnmergedTree = true).onFirst()
     private fun rootHeight() = compose.onRoot().fetchSemanticsNode().boundsInRoot.height
 
@@ -168,6 +171,49 @@ class PlayerMorphAppTest {
             swipe(Offset(centerX, height * 0.7f), Offset(centerX, height * 0.7f - h * 0.30f), 300)
         }
         compose.waitUntil(10_000) { compose.onAllNodes(hasText(tr(R.string.queue)), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    /** The cover's swipe up set to the lyrics opens them the same way the controls' swipe does. */
+    @Test fun theCoverSwipeCanOpenTheLyrics() {
+        runBlocking { settings.setGesture("cover_swipe_up", PlayerGesture.LYRICS) }
+        compose.waitUntil(5_000) { settings.current.coverSwipeUp == PlayerGesture.LYRICS }
+        songs("Prism morph cover lyrics")
+        compose.waitUntil(15_000) { shown("miniPlayer") }
+        openPlayer()
+        val h = rootHeight()
+        val before = leftOf("playerTitle")
+        compose.onAllNodes(hasTestTag("playerArtBox"), useUnmergedTree = true).onFirst().performTouchInput {
+            down(center)
+            moveBy(Offset(0f, -h * 0.15f))
+        }
+        compose.waitForIdle()
+        val middle = leftOf("playerTitle")
+        assertTrue("the sleeve follows the finger: before $before, at $middle", middle > before + 10f)
+        compose.onAllNodes(hasTestTag("playerArtBox"), useUnmergedTree = true).onFirst().performTouchInput {
+            moveBy(Offset(0f, -h * 0.15f))
+            up()
+        }
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasContentDescription(tr(R.string.close_lyrics)), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        runBlocking { settings.setGesture("cover_swipe_up", PlayerGesture.QUEUE) }
+    }
+
+    /** Set to the song menu, it makes the same move under the sheet, which opens when the swipe has gone far enough. */
+    @Test fun theCoverSwipeCanOpenTheSongMenu() {
+        runBlocking { settings.setGesture("cover_swipe_up", PlayerGesture.MENU) }
+        compose.waitUntil(5_000) { settings.current.coverSwipeUp == PlayerGesture.MENU }
+        songs("Prism morph cover menu")
+        compose.waitUntil(15_000) { shown("miniPlayer") }
+        openPlayer()
+        val h = rootHeight()
+        compose.onAllNodes(hasTestTag("playerArtBox"), useUnmergedTree = true).onFirst().performTouchInput {
+            swipe(Offset(centerX, height * 0.7f), Offset(centerX, height * 0.7f - h * 0.30f), 300)
+        }
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasText(tr(R.string.player_settings)), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        runBlocking { settings.setGesture("cover_swipe_up", PlayerGesture.QUEUE) }
     }
 
     /** Playback itself is untouched by the morph: the same song plays on, before and after. */
