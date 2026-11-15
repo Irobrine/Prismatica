@@ -412,6 +412,7 @@ fun buttonIcon(b: PlayerButton): ImageVector = when (b) {
     PlayerButton.DOWNLOAD -> PrismIcons.Download
     PlayerButton.RADIO -> PrismIcons.Radio
     PlayerButton.SPEED -> PrismIcons.Speed
+    PlayerButton.SNOOZE -> PrismIcons.Timer
 }
 
 internal fun sessionIcon(b: SessionButton): ImageVector = when (b) {

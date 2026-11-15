@@ -5480,4 +5480,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">I-snooze</string>
+    <string name="unsnooze">Alisin ang snooze</string>
+    <string name="snoozed_tracks">Mga naka-snooze na track</string>
+    <string name="snooze_for">Tagal ng snooze</string>
+    <string name="snooze_for_info">Ilang araw na mananatili sa labas ng awtomatikong pila ang naka-snooze na track. Maaari mo pa rin itong i-play mismo, idagdag sa pila, o i-play sa susunod.</string>
+    <string name="nothing_snoozed">Walang naka-snooze</string>
+    <string name="nothing_snoozed_body">I-snooze ang isang track para hindi ito mapunta sa awtomatikong pila ng Prism nang ilang panahon. Gumagana pa rin ang pag-play mo mismo, pagdagdag sa pila, at pag-play sa susunod.</string>
+    <string name="snoozed_n_tracks">%1$d track ang naka-snooze</string>
+    <string name="invalid_number">Di-wastong numero</string>
 </resources>

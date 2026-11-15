@@ -5480,4 +5480,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">স্নুজ</string>
+    <string name="unsnooze">স্নুজ বাতিল</string>
+    <string name="snoozed_tracks">স্নুজ করা ট্র্যাক</string>
+    <string name="snooze_for">স্নুজের সময়কাল</string>
+    <string name="snooze_for_info">একটি স্নুজ করা ট্র্যাক কত দিন স্বয়ংক্রিয় কিউয়ের বাইরে থাকবে। আপনি নিজে এটি চালাতে, কিউতে যোগ করতে বা পরেরটি হিসেবে চালাতে পারবেন।</string>
+    <string name="nothing_snoozed">কিছু স্নুজ করা নেই</string>
+    <string name="nothing_snoozed_body">একটি ট্র্যাক স্নুজ করে কিছু সময়ের জন্য Prism-এর নিজে তৈরি কিউয়ের বাইরে রাখুন। নিজে চালানো, কিউতে যোগ করা এবং পরেরটি চালানো এখনও কাজ করে।</string>
+    <string name="snoozed_n_tracks">%1$d ট্র্যাক স্নুজ করা হয়েছে</string>
+    <string name="invalid_number">অবৈধ সংখ্যা</string>
 </resources>

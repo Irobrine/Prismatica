@@ -5480,4 +5480,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">اسنوز</string>
+    <string name="unsnooze">اسنوز ہٹائیں</string>
+    <string name="snoozed_tracks">اسنوز شدہ ٹریکس</string>
+    <string name="snooze_for">اسنوز کی مدت</string>
+    <string name="snooze_for_info">اسنوز شدہ ٹریک کتنے دن خودکار قطار سے باہر رہتا ہے۔ آپ اسے خود چلا سکتے ہیں، قطار میں شامل کر سکتے ہیں یا اگلا چلا سکتے ہیں۔</string>
+    <string name="nothing_snoozed">کچھ اسنوز نہیں</string>
+    <string name="nothing_snoozed_body">کسی ٹریک کو اسنوز کر کے کچھ دیر کے لیے Prism کی خود بنائی قطار سے باہر رکھیں۔ خود چلانا، قطار میں شامل کرنا اور اگلا چلانا اب بھی کام کرتا ہے۔</string>
+    <string name="snoozed_n_tracks">%1$d ٹریکس اسنوز کیے گئے</string>
+    <string name="invalid_number">غلط نمبر</string>
 </resources>

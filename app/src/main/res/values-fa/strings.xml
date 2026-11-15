@@ -5480,4 +5480,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">به تعویق انداختن</string>
+    <string name="unsnooze">لغو تعویق</string>
+    <string name="snoozed_tracks">آهنگ‌های به تعویق افتاده</string>
+    <string name="snooze_for">تعویق برای</string>
+    <string name="snooze_for_info">چند روز یک آهنگ به تعویق افتاده از صف‌های خودکار بیرون بماند. هنوز می‌توانید خودتان آن را پخش کنید، به صف بیفزایید یا بعدی کنید.</string>
+    <string name="nothing_snoozed">چیزی به تعویق نیفتاده</string>
+    <string name="nothing_snoozed_body">یک آهنگ را به تعویق بیندازید تا مدتی از صفی که Prism خودش می‌سازد بیرون بماند. پخش دستی، افزودن به صف و پخش بعدی همچنان کار می‌کند.</string>
+    <string name="snoozed_n_tracks">%1$d آهنگ به تعویق افتاد</string>
+    <string name="invalid_number">عدد نامعتبر</string>
 </resources>

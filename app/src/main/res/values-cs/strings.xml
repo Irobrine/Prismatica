@@ -5630,4 +5630,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Odložit</string>
+    <string name="unsnooze">Obnovit</string>
+    <string name="snoozed_tracks">Odložené skladby</string>
+    <string name="snooze_for">Odložit na</string>
+    <string name="snooze_for_info">Kolik dní zůstane odložená skladba mimo automatické fronty. Stále ji můžete přehrát, přidat do fronty nebo pustit jako další.</string>
+    <string name="nothing_snoozed">Nic není odloženo</string>
+    <string name="nothing_snoozed_body">Odložte skladbu, aby nějakou dobu zůstala mimo frontu, kterou Prism sestavuje sám. Ruční přehrání, Přidat do fronty i Přehrát jako další stále fungují.</string>
+    <string name="snoozed_n_tracks">Odloženo %1$d skladeb</string>
+    <string name="invalid_number">Neplatné číslo</string>
 </resources>

@@ -5630,4 +5630,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Odłóż</string>
+    <string name="unsnooze">Przywróć</string>
+    <string name="snoozed_tracks">Odłożone utwory</string>
+    <string name="snooze_for">Odłóż na</string>
+    <string name="snooze_for_info">Przez ile dni odłożony utwór pozostaje poza automatycznymi kolejkami. Nadal możesz go odtworzyć, dodać do kolejki lub puścić jako następny.</string>
+    <string name="nothing_snoozed">Nic nie odłożono</string>
+    <string name="nothing_snoozed_body">Odłóż utwór, aby przez jakiś czas nie trafiał do kolejki, którą Prism tworzy sam. Odtwarzanie go ręcznie nadal działa, podobnie jak Dodaj do kolejki i Odtwórz następny.</string>
+    <string name="snoozed_n_tracks">Odłożono %1$d utworów</string>
+    <string name="invalid_number">Nieprawidłowa liczba</string>
 </resources>

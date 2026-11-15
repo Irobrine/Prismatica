@@ -5405,4 +5405,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">스누즈</string>
+    <string name="unsnooze">스누즈 해제</string>
+    <string name="snoozed_tracks">스누즈된 트랙</string>
+    <string name="snooze_for">스누즈 기간</string>
+    <string name="snooze_for_info">스누즈한 트랙이 자동 대기열에서 빠져 있는 일수입니다. 직접 재생하거나 대기열에 추가하거나 다음으로 재생할 수 있습니다.</string>
+    <string name="nothing_snoozed">스누즈한 트랙이 없습니다</string>
+    <string name="nothing_snoozed_body">트랙을 스누즈하면 한동안 Prism이 자동으로 만드는 대기열에 들어가지 않습니다. 직접 재생하거나 대기열에 추가하거나 다음으로 재생할 수 있습니다.</string>
+    <string name="snoozed_n_tracks">%1$d개 트랙을 스누즈했습니다</string>
+    <string name="invalid_number">잘못된 숫자</string>
 </resources>

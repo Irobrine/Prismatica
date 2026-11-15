@@ -362,6 +362,8 @@ class AppContainer(val app: Application) {
     val db = PrismDatabase.build(app)
     /** Versions of songs the listener picked to hear instead (1.7.9, "Play a different version"). */
     val versions = com.prism.music.data.SongVersions(app.getSharedPreferences("song_versions", android.content.Context.MODE_PRIVATE))
+    /** 1.8.5: the tracks snoozed out of automatic queues, and until when. */
+    val snoozes by lazy { com.prism.music.data.SnoozeStore(app) }
     val streams by lazy { StreamResolver(app, http, settings, innerTube).apply { versionOf = versions::streamedOf } }
     val translator = com.prism.music.data.lyrics.LyricsTranslator(http, File(app.filesDir, "translations"))
     /** Artist pages' Wikipedia bios (1.8.2), kept with the artist pages. Asks nothing unless that switch is on. */

@@ -5780,4 +5780,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">تأجيل</string>
+    <string name="unsnooze">إلغاء التأجيل</string>
+    <string name="snoozed_tracks">المسارات المؤجلة</string>
+    <string name="snooze_for">تأجيل لمدة</string>
+    <string name="snooze_for_info">كم يومًا يبقى المسار المؤجل خارج قوائم التشغيل التلقائية. لا يزال بإمكانك تشغيله أو إضافته إلى القائمة أو تشغيله التالي.</string>
+    <string name="nothing_snoozed">لا شيء مؤجل</string>
+    <string name="nothing_snoozed_body">أجّل مسارًا لتبقيه لبعض الوقت خارج القائمة التي يبنيها Prism تلقائيًا. يظل تشغيله بنفسك وإضافته إلى القائمة وتشغيله التالي متاحًا.</string>
+    <string name="snoozed_n_tracks">تم تأجيل %1$d مسارات</string>
+    <string name="invalid_number">رقم غير صالح</string>
 </resources>

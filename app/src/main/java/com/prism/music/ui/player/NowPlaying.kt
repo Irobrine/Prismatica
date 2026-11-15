@@ -326,13 +326,17 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     var showPlaylists by remember { mutableStateOf(false) }
     var showShare by remember { mutableStateOf(false) }
     var showSpeed by remember { mutableStateOf(false) }
+    // 1.8.5: the snoozed tracks' list, opened by holding the Snooze button; [snoozeFocus] is that button's song (the
+    // list opens at it when it's snoozed), or null when opened from Settings.
+    var showSnoozes by remember { mutableStateOf(false) }
+    var snoozeFocus by remember { mutableStateOf<String?>(null) }
     var fullscreenVideo by rememberSaveable { mutableStateOf(false) }
     var videoFill by rememberSaveable { mutableStateOf(true) }
 
     // A sheet over the player (⋯, lyrics source, sleep timer): what moves underneath it every frame (the animated
     // cover, the word sweep, the title marquee) holds still, since both windows draw on the same thread and dragging
     // the sheet stuttered. The timing sheet isn't counted: the lyrics are what's being lined up there.
-    val covered = showActions || showProviders || showSleep || showSing || showOutputs || showPlaylists || showShare || showSpeed
+    val covered = showActions || showProviders || showSleep || showSing || showOutputs || showPlaylists || showShare || showSpeed || showSnoozes
     // Where the lyrics are on show (the lyrics view, immersive mode, the source sheet): with "Lyrics on mobile data"
     // off, that's when they're looked up on mobile data (#95).
     // Settings → Player → Layout (1.7.4); a wide player (tablet, landscape) keeps its own.
@@ -697,6 +701,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         if (showPlaylists) com.prism.music.ui.components.PlaylistPicker(song) { showPlaylists = false }
         if (showShare) com.prism.music.ui.components.ShareSheet(song.shareTarget()) { showShare = false }
         if (showSpeed) SpeedPitchSheet(song) { showSpeed = false }
+        if (showSnoozes) SnoozeSheet(snoozeFocus) { showSnoozes = false }
     }
 
     // ------------------------------------------------ Immersive mode (⋯ menu): the cover fills the screen, lyrics over it
@@ -1386,6 +1391,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                                         onVideoMode = { pc.setVideoMode(it) },
                                         episode = song.isEpisode,
                                         onButton = onButton,
+                                        onSnoozeMenu = { id -> snoozeFocus = id; showSnoozes = true },
                                     )
                                 }
                                 // The gaps the deck always had after each part (none after the last); Small keeps them tight.

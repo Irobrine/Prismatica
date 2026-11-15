@@ -5555,4 +5555,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Rimanda</string>
+    <string name="unsnooze">Riattiva</string>
+    <string name="snoozed_tracks">Brani rimandati</string>
+    <string name="snooze_for">Rimanda per</string>
+    <string name="snooze_for_info">Per quanti giorni un brano resta fuori dalle code automatiche. Puoi comunque riprodurlo, aggiungerlo alla coda o riprodurlo subito dopo.</string>
+    <string name="nothing_snoozed">Nessun brano rimandato</string>
+    <string name="nothing_snoozed_body">Rimanda un brano per tenerlo per un po fuori dalla coda creata da Prism. Riprodurlo da te funziona ancora, come Aggiungi alla coda e Riproduci dopo.</string>
+    <string name="snoozed_n_tracks">%1$d brani rimandati</string>
+    <string name="invalid_number">Numero non valido</string>
 </resources>

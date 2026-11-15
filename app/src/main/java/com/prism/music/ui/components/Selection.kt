@@ -191,6 +191,12 @@ object SelectionPlan {
 
     /** What may go into a playlist: not feed episodes (files on the phone only into Prism playlists, the picker's rule). */
     fun forPlaylist(songs: Collection<Song>): List<Song> = songs.filter { !it.isRss }
+
+    /**
+     * What a snooze applies to (1.8.5): songs, once each; not podcast episodes (a snooze is for a track, and a show is
+     * not one). Already-snoozed songs are kept: snoozing them again only moves their days, never a second record.
+     */
+    fun snooze(songs: Collection<Song>): List<Song> = songs.filter { !it.isEpisode }.distinctBy { it.id }
 }
 
 /** The bar while songs are picked: how many, All, ✕, and what to do with them. Takes the place of the mini player and tabs. */
@@ -281,6 +287,13 @@ fun SelectionBar(selection: SongSelection, modifier: Modifier = Modifier) {
                 val forTags = songs.filter(com.prism.music.data.TagStore::taggable)
                 BarButton(PrismIcons.Tag, tr(R.string.add_a_tag), ink, enabled = forTags.isNotEmpty()) { tagging = forTags }
                 BarButton(PrismIcons.Edit, tr(R.string.edit_metadata), ink, enabled = !none) { editingMetadata = songs }
+                // Snooze (1.8.5): keeps the picked songs out of automatic queues, for the days Settings has (Player →
+                // "Snooze for"). Songs already snoozed only have their days set again.
+                val snoozable = SelectionPlan.snooze(songs)
+                BarButton(PrismIcons.Timer, tr(R.string.snooze), ink, enabled = snoozable.isNotEmpty()) {
+                    c.snoozes.snooze(snoozable)
+                    toast(tr(R.string.snoozed_n_tracks, snoozable.size)); selection.clear()
+                }
                 // Change cover (1.8.3): one photo for every picked song that can have one (a live song's or an episode's
                 // own picture isn't its cover). Each song keeps its own, so an album's others aren't changed with it.
                 val forCover = songs.filter { !it.isEpisode && !it.isLive }

@@ -444,10 +444,12 @@ internal fun SheetRow(
     changed: Boolean = false,
     icon: ImageVector? = null,
     sheetTitle: String? = title,
+    /** A control beside the row's chevron (1.8.5: the gear that opens the snoozed tracks). */
+    trailing: (@Composable androidx.compose.foundation.layout.RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var open by rememberSaveable(title, "player-sheet") { mutableStateOf(false) }
-    LinkRow(title, value = value, icon = icon, info = info, changed = changed) { open = true }
+    LinkRow(title, value = value, icon = icon, info = info, changed = changed, trailing = trailing) { open = true }
     if (open) {
         if (sheetTitle != null) RowsSheet(sheetTitle, { open = false }, info, content)
         else UntitledSheet({ open = false }, content)

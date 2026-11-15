@@ -1680,7 +1680,10 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             val rules = com.prism.music.data.foryou.RadioTopUp.Rules(
                 existing, heardLately, turnedDown = { fb.turnedDown(it.id, known = false) },
                 allowed = {
-                    !c.library.isDisliked(it.id) && !c.exclusions.blocks(it) && com.prism.music.data.ExplicitFilter.plays(explicit, it) &&
+                    // 1.8.5: a snoozed track isn't added by itself (a radio the listener started follows the same rule;
+                    // the one playing stays, and Add to queue and Play next are the listener's own).
+                    !c.snoozes.isSnoozed(it) &&
+                        !c.library.isDisliked(it.id) && !c.exclusions.blocks(it) && com.prism.music.data.ExplicitFilter.plays(explicit, it) &&
                         // #299: Autoplay's own songs only: a radio the listener started is left as it is.
                         (radio || com.prism.music.data.AutoplayLength.fits(it, behavior.autoplayMaxMinutes))
                 },
@@ -2330,7 +2333,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             // Highest index first, so the other anchors' indices stay put.
             for (a in anchors.sortedDescending()) {
                 if (!c.queue.smartShuffle.value || c.queue.source.value !== src) return@launch
-                val song = smartPool.removeFirstOrNull() ?: break
+                val pickAt = smartPool.indexOfFirst { !c.snoozes.isSnoozed(it) }
+                if (pickAt < 0) break
+                val song = smartPool.removeAt(pickAt)
                 val at = a + 1
                 if (c.queue.autoplayStart.value >= at) c.queue.autoplayStart.value += 1
                 c.queue.smartPicks.value = c.queue.smartPicks.value + song.id
@@ -2349,7 +2354,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         for (seed in own.shuffled().take(2)) {
             val r = runCatching { withContext(Dispatchers.IO) { c.radio(seed.id, "RDAMVM${seed.id}") } }.getOrNull() ?: continue
             r.songs.filter { s ->
-                s.id !in inQueue && s.id !in recent && !s.isVideo && !s.isLive && !c.library.isDisliked(s.id) && !c.exclusions.blocks(s) &&
+                s.id !in inQueue && !c.snoozes.isSnoozed(s) && s.id !in recent && !s.isVideo && !s.isLive && !c.library.isDisliked(s.id) && !c.exclusions.blocks(s) &&
                     smartPool.none { it.id == s.id } && !c.recFeedback.turnedDown(s.id, known = false) &&
                     // One offered in the last day or two (and not taken up) waits its turn.
                     (c.recFeedback.servedDaysAgo(s.id) ?: 99) > 1
@@ -2922,7 +2927,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             val r = runCatching { withContext(Dispatchers.IO) { c.radio(song.id, "RDAMVM${song.id}") } }.getOrNull() ?: return@launch
             if (player.currentMediaItem?.mediaId != song.id) return@launch
             val explicit = c.settings.current.behavior.explicitContent
-            val all = r.songs.filter { it.id != song.id && !c.library.isDisliked(it.id) && !c.exclusions.blocks(it) && com.prism.music.data.ExplicitFilter.plays(explicit, it) }
+            val all = r.songs.filter { it.id != song.id && !c.snoozes.isSnoozed(it) && !c.library.isDisliked(it.id) && !c.exclusions.blocks(it) && com.prism.music.data.ExplicitFilter.plays(explicit, it) }
             // No repeats this session; with nothing else in this answer, the radio still starts.
             val add = if (c.settings.current.behavior.autoplayNoRepeats) all.filter { !c.sessionHeard.has(it) }.ifEmpty { all } else all
             if (add.isEmpty()) return@launch

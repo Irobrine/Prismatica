@@ -5480,4 +5480,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Skjut upp</string>
+    <string name="unsnooze">Tillåt igen</string>
+    <string name="snoozed_tracks">Uppskjutna låtar</string>
+    <string name="snooze_for">Skjut upp i</string>
+    <string name="snooze_for_info">Hur många dagar en uppskjuten låt hålls utanför automatiska köer. Du kan fortfarande spela den själv, lägga den i kön eller spela den nästa.</string>
+    <string name="nothing_snoozed">Inget uppskjutet</string>
+    <string name="nothing_snoozed_body">Skjut upp en låt för att hålla den ett tag utanför kön som Prism bygger själv. Att spela den själv fungerar fortfarande, liksom Lägg i kön och Spela nästa.</string>
+    <string name="snoozed_n_tracks">%1$d låtar uppskjutna</string>
+    <string name="invalid_number">Ogiltigt nummer</string>
 </resources>

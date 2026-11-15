@@ -5480,4 +5480,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Uitstellen</string>
+    <string name="unsnooze">Weer toestaan</string>
+    <string name="snoozed_tracks">Uitgestelde nummers</string>
+    <string name="snooze_for">Uitstellen voor</string>
+    <string name="snooze_for_info">Hoeveel dagen een uitgesteld nummer buiten automatische wachtrijen blijft. Je kunt het nog steeds zelf afspelen, aan de wachtrij toevoegen of hierna afspelen.</string>
+    <string name="nothing_snoozed">Niets uitgesteld</string>
+    <string name="nothing_snoozed_body">Stel een nummer uit om het een tijdje buiten de wachtrij te houden die Prism zelf samenstelt. Zelf afspelen blijft werken, net als Aan de wachtrij toevoegen en Hierna afspelen.</string>
+    <string name="snoozed_n_tracks">%1$d nummers uitgesteld</string>
+    <string name="invalid_number">Ongeldig getal</string>
 </resources>

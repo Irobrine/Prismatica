@@ -5555,4 +5555,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Reporter</string>
+    <string name="unsnooze">Réactiver</string>
+    <string name="snoozed_tracks">Titres reportés</string>
+    <string name="snooze_for">Reporter de</string>
+    <string name="snooze_for_info">Combien de jours un titre reste hors des files automatiques. Vous pouvez toujours le lire vous-même, l\'ajouter à la file ou le lire ensuite.</string>
+    <string name="nothing_snoozed">Aucun titre reporté</string>
+    <string name="nothing_snoozed_body">Reportez un titre pour le tenir un moment hors de la file que Prism crée seul. Le lire vous-même fonctionne toujours, comme Ajouter à la file et Lire ensuite.</string>
+    <string name="snoozed_n_tracks">%1$d titres reportés</string>
+    <string name="invalid_number">Nombre invalide</string>
 </resources>

@@ -5630,4 +5630,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Відкласти</string>
+    <string name="unsnooze">Повернути</string>
+    <string name="snoozed_tracks">Відкладені треки</string>
+    <string name="snooze_for">Відкласти на</string>
+    <string name="snooze_for_info">Скільки днів відкладений трек не потрапляє в автоматичні черги. Ви й далі можете відтворити його, додати в чергу або поставити наступним.</string>
+    <string name="nothing_snoozed">Нічого не відкладено</string>
+    <string name="nothing_snoozed_body">Відкладіть трек, щоб він якийсь час не потрапляв у чергу, яку Prism збирає сам. Відтворити його вручну, додати в чергу чи поставити наступним і далі можна.</string>
+    <string name="snoozed_n_tracks">Відкладено: %1$d</string>
+    <string name="invalid_number">Невірне число</string>
 </resources>

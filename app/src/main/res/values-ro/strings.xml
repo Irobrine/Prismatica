@@ -5555,4 +5555,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Amână</string>
+    <string name="unsnooze">Reactivează</string>
+    <string name="snoozed_tracks">Piese amânate</string>
+    <string name="snooze_for">Amână cu</string>
+    <string name="snooze_for_info">Câte zile rămâne o piesă amânată în afara cozilor automate. O poți reda în continuare, adăuga în coadă sau reda următoarea.</string>
+    <string name="nothing_snoozed">Nimic amânat</string>
+    <string name="nothing_snoozed_body">Amână o piesă ca să o ții o vreme în afara cozii pe care o construiește Prism singur. Redarea ei manuală merge în continuare, la fel Adaugă în coadă și Redă următoarea.</string>
+    <string name="snoozed_n_tracks">%1$d piese amânate</string>
+    <string name="invalid_number">Număr invalid</string>
 </resources>

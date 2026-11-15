@@ -5405,4 +5405,13 @@
 <string name="tv_link_pair_confirm">I can see this code on the TV in front of me.</string>
 
 <string name="backup_accounts_need_password">To include your sign-in, set a password first: a backup with Accounts is never left unsealed.</string>
+    <string name="snooze">Tunda</string>
+    <string name="unsnooze">Batal tunda</string>
+    <string name="snoozed_tracks">Lagu yang ditunda</string>
+    <string name="snooze_for">Tunda selama</string>
+    <string name="snooze_for_info">Berapa hari lagu yang ditunda kekal di luar baris gilir automatik. Anda masih boleh memainkannya sendiri, menambahkannya ke baris gilir atau memainkannya seterusnya.</string>
+    <string name="nothing_snoozed">Tiada yang ditunda</string>
+    <string name="nothing_snoozed_body">Tunda sesuatu lagu untuk menyimpannya seketika di luar baris gilir yang dibina Prism sendiri. Memainkannya sendiri, menambahkannya ke baris gilir dan memainkannya seterusnya masih berfungsi.</string>
+    <string name="snoozed_n_tracks">%1$d lagu ditunda</string>
+    <string name="invalid_number">Nombor tidak sah</string>
 </resources>

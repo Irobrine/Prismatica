@@ -1009,7 +1009,9 @@ enum class DeckPart(val label: String) { STRIP(tr(R.string.current_lyric)), SCRU
 enum class PlayerButton(val label: String) {
     LYRICS(tr(R.string.lyrics)), VIDEO(tr(R.string.video)), QUEUE(tr(R.string.up_next)), OUTPUT(tr(R.string.play_on)), SLEEP(tr(R.string.sleep_timer)), LIKE(tr(R.string.widget_like)),
     DISLIKE(tr(R.string.not_for_me)), ADD_TO_PLAYLIST(tr(R.string.add_to_playlist)), SHARE(tr(R.string.share)), SING(tr(R.string.sing)), DJ(tr(R.string.dj_mode)),
-    EQUALIZER(tr(R.string.equalizer)), DOWNLOAD(tr(R.string.download)), RADIO(tr(R.string.start_radio)), SPEED(tr(R.string.speed));
+    EQUALIZER(tr(R.string.equalizer)), DOWNLOAD(tr(R.string.download)), RADIO(tr(R.string.start_radio)), SPEED(tr(R.string.speed)),
+    /** 1.8.5: keeps the song playing out of automatic queues for a while; a tap snoozes it or lets it back in. */
+    SNOOZE(tr(R.string.snooze));
 
     companion object {
         /** As 1.7 had it: lyrics, the music video and the queue. */
