@@ -44,6 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -93,6 +95,9 @@ fun MiniPlayer(
     val scheme = MaterialTheme.colorScheme
     val haptics = com.prism.music.ui.theme.rememberHaptics()
     val style = settings.miniPlayerStyle
+    // A swipe up is a share of the window's height (PlayerMorph), not of the card's: the card is small, the player whole.
+    val screenPx = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    val morphSpan = screenPx * PlayerMorph.TRAVEL
     var menu by remember { mutableStateOf(false) }
     if (menu) com.prism.music.ui.components.SongActionsSheet(s) { menu = false }
     val container = LocalContainer.current
@@ -110,8 +115,11 @@ fun MiniPlayer(
             PlayerGesture.SLEEP -> sleep = true
             PlayerGesture.MENU -> menu = true
             PlayerGesture.STOP -> pc.stop()
-            // The ones about the full player open it.
-            PlayerGesture.OPEN, PlayerGesture.QUEUE, PlayerGesture.LYRICS, PlayerGesture.VIDEO, PlayerGesture.SING -> onOpen()
+            // The ones about the full player open it, on the page they name, through the same morph as a tap.
+            PlayerGesture.OPEN, PlayerGesture.QUEUE, PlayerGesture.LYRICS, PlayerGesture.VIDEO, PlayerGesture.SING -> {
+                PlayerMorph.request(PlayerMorph.pageOf(g))
+                onOpen()
+            }
             PlayerGesture.SEEK_SIDES, PlayerGesture.NONE -> {}
         }
     }
@@ -145,23 +153,40 @@ fun MiniPlayer(
             .testTag("miniPlayer")
             .offset { IntOffset(drag.value.roundToInt(), pull.value.roundToInt()) }
             .graphicsLayer { alpha = 1f - (pull.value / (height.toPx() * 1.6f)).coerceIn(0f, 0.85f) }
-            .pointerInput(Unit) {
+            .pointerInput(morphSpan) {
                 val stopAt = height.toPx() * 0.9f
                 val goneAt = height.toPx() * 1.6f
-                // Up (#149, 1.7.7): the card lifts a little against the finger (a third of the drag, at most a third of its
-                // height) and opens the player, or does what's set, once lifted past [upAt].
+                // Up (#149, 1.7.7): opening the player (or a page of it) is the morph, following the finger over the
+                // window's height (PlayerMorph), and finished past the same 25% every other way into the player uses.
+                // A swipe set to an action that doesn't need the full player still lifts a third of the drag, at most a
+                // third of the card, as before (#222: one set to Nothing doesn't move it at all).
                 val upAt = -height.toPx() * 0.22f
                 val upMost = -height.toPx() * 0.34f
                 var raw = 0f
+                var morphing = false
+                var base = 0f
                 detectVerticalDragGestures(
                     onDragStart = {
                         pull.cancel()
                         raw = pull.value
+                        morphing = false
                     },
                     onDragEnd = {
-                        val up = container.settings.current.miniSwipeUp
+                        val now = container.settings.current
+                        if (morphing) {
+                            haptics.gestureEnd()
+                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = true)) {
+                                onOpen()
+                            } else {
+                                PlayerMorph.request(null)
+                                PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = now.reduceMotion)
+                            }
+                            pull.settle(scope, 0f)
+                            return@detectVerticalDragGestures
+                        }
+                        val up = now.miniSwipeUp
                         // Pulled down: stop (#59) or whatever's set in Settings → Player → Gestures (1.7.4).
-                        val down = container.settings.current.miniSwipeDown
+                        val down = now.miniSwipeDown
                         when {
                             pull.value <= upAt && up != PlayerGesture.NONE -> {
                                 haptics.gestureEnd()
@@ -187,19 +212,44 @@ fun MiniPlayer(
                             else -> pull.settle(scope, 0f)
                         }
                     },
-                    onDragCancel = { pull.settle(scope, 0f) },
+                    onDragCancel = {
+                        if (morphing) {
+                            PlayerMorph.request(null)
+                            PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = container.settings.current.reduceMotion)
+                        }
+                        pull.settle(scope, 0f)
+                    },
                 ) { change, d ->
                     change.consume()
                     raw += d
-                    // #222: a way with no gesture set (Settings → Player → Gestures: Nothing) doesn't move the card at all.
                     val now = container.settings.current
-                    val after = when {
-                        raw >= 0f -> if (now.miniSwipeDown == PlayerGesture.NONE) 0f else raw
-                        now.miniSwipeUp == PlayerGesture.NONE -> 0f
-                        else -> (raw / 3f).coerceAtLeast(upMost)
+                    if (raw < 0f && PlayerMorph.opensPlayer(now.miniSwipeUp)) {
+                        if (!morphing) {
+                            morphing = true
+                            // The page the action names (the queue, the lyrics), or the cover.
+                            PlayerMorph.request(PlayerMorph.pageOf(now.miniSwipeUp))
+                            base = PlayerMorph.progress
+                            PlayerMorph.beginDrag(towardPlayer = true)
+                        }
+                        val p = base + PlayerMorph.progressForTravel(-raw, morphSpan, towardPlayer = true)
+                        if ((PlayerMorph.progress < PlayerMorph.COMPLETE_AT) != (p < PlayerMorph.COMPLETE_AT)) haptics.threshold()
+                        PlayerMorph.dragTo(p)
+                        pull.set(0f)
+                    } else {
+                        if (morphing) {
+                            morphing = false
+                            PlayerMorph.request(null)
+                            PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = now.reduceMotion)
+                        }
+                        // #222: a way with no gesture set (Settings → Player → Gestures: Nothing) doesn't move the card at all.
+                        val after = when {
+                            raw >= 0f -> if (now.miniSwipeDown == PlayerGesture.NONE) 0f else raw
+                            now.miniSwipeUp == PlayerGesture.NONE -> 0f
+                            else -> (raw / 3f).coerceAtLeast(upMost)
+                        }
+                        if ((pull.value < stopAt) != (after < stopAt) || (pull.value > upAt) != (after > upAt)) haptics.threshold()
+                        pull.set(after)
                     }
-                    if ((pull.value < stopAt) != (after < stopAt) || (pull.value > upAt) != (after > upAt)) haptics.threshold()
-                    pull.set(after)
                 }
             }
             .pointerInput(Unit) {
@@ -244,7 +294,7 @@ fun MiniPlayer(
         )
         Row(
             // Holding it brings up the song's actions (like, add to playlist, share…) without opening the player.
-            Modifier.fillMaxSize().combinedClickable(onClick = onOpen, onLongClick = { haptics.click(); menu = true })
+            Modifier.fillMaxSize().combinedClickable(onClick = { PlayerMorph.request(null); onOpen() }, onLongClick = { haptics.click(); menu = true })
                 .padding(start = if (style == MiniPlayerStyle.PILL) 6.dp else if (bar) 16.dp else 8.dp, end = if (style == MiniPlayerStyle.PILL) 8.dp else if (bar) 8.dp else 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -257,7 +307,10 @@ fun MiniPlayer(
                     fadeIn(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = ease)) togetherWith
                         fadeOut(tween(com.prism.music.ui.theme.PrismTokens.Motion.QUICK))
                 },
-                modifier = Modifier.size(artSize).graphicsLayer { alpha = if (CoverFlight.returning) 0f else 1f },
+                modifier = Modifier.size(artSize).graphicsLayer {
+                    // While the player is opening or closing, the moving cover draws this one's part.
+                    alpha = if (CoverFlight.flying) 0f else 1f
+                },
                 label = "miniArt",
             ) { art ->
                 Artwork(art, with(CoverFlight) { Modifier.fillMaxSize().miniCover() }, artShape, size = 226)
@@ -278,10 +331,14 @@ fun MiniPlayer(
                 // #328: as the version picked to play in its place, if any.
                 val song = com.prism.music.data.SongVersions.shownOf(playing)
                 Column {
-                    Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        song.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.miniTitleAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesTitle) 0f else 1f },
+                    )
                     if (style != MiniPlayerStyle.SLIM || song.artistText.isNotBlank()) Text(
                         song.artistText, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
+                        modifier = Modifier.miniArtistAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesArtist) 0f else 1f },
                     )
                 }
             }
@@ -293,11 +350,16 @@ fun MiniPlayer(
                 if (!settings.miniSkipButtons) Spacer(Modifier.width(8.dp))
             } else if (style == MiniPlayerStyle.PILL) {
                 Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(scheme.onSurface).clickable { haptics.click(); pc.togglePlay() },
+                    Modifier.size(40.dp).clip(CircleShape).background(scheme.onSurface)
+                        .miniPlayAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesPlay) 0f else 1f }
+                        .clickable { haptics.click(); pc.togglePlay() },
                     contentAlignment = Alignment.Center,
                 ) { MiniPlayPause(playing, 24.dp, tint = scheme.surface) }
             } else {
-                IconButton(onClick = { haptics.click(); pc.togglePlay() }, modifier = Modifier.size(44.dp)) {
+                IconButton(
+                    onClick = { haptics.click(); pc.togglePlay() },
+                    modifier = Modifier.size(44.dp).miniPlayAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesPlay) 0f else 1f },
+                ) {
                     MiniPlayPause(playing, if (style == MiniPlayerStyle.SLIM) 26.dp else 28.dp)
                 }
             }

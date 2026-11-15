@@ -596,6 +596,8 @@ fun TransportRow(
     isPlaying: Boolean, isLoading: Boolean, previousEnabled: Boolean, nextEnabled: Boolean, compact: Boolean = false, episode: Boolean = false,
     /** Previous and next on the player: What's on the player can hide them (1.8.0). An episode keeps its back / ahead skips. */
     skips: Boolean = true,
+    /** Where the play control is, for the player's morph (PlayerMorph); nothing on the wide player. */
+    playAnchor: Modifier = Modifier,
 ) {
     val pc = LocalContainer.current.player
     val style = LocalAppSettings.current.transportStyle
@@ -624,14 +626,16 @@ fun TransportRow(
         }
         if (style == TransportStyle.GLYPHS) {
             if (isLoading) {
-                Box(Modifier.size(playTouch), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(playTouch).then(playAnchor), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color.White, strokeWidth = 3.dp, modifier = Modifier.size(if (compact) 30.dp else 38.dp))
                 }
             } else {
-                TransportGlyph(if (isPlaying) PrismIcons.Pause else PrismIcons.Play, if (isPlaying) tr(R.string.widget_pause) else tr(R.string.widget_play), playSize, playTouch) { pc.togglePlay() }
+                TransportGlyph(if (isPlaying) PrismIcons.Pause else PrismIcons.Play, if (isPlaying) tr(R.string.widget_pause) else tr(R.string.widget_play), playSize, playTouch, modifier = playAnchor) { pc.togglePlay() }
             }
         } else {
-            PlayDisc(isPlaying, isLoading, filled = style == TransportStyle.BUTTON, size = if (compact) 64.dp else 78.dp) { pc.togglePlay() }
+            Box(playAnchor) {
+                PlayDisc(isPlaying, isLoading, filled = style == TransportStyle.BUTTON, size = if (compact) 64.dp else 78.dp) { pc.togglePlay() }
+            }
         }
         if (skips || episode) {
             if (episode) SkipGlyph(EPISODE_AHEAD_S, ahead = true, touch = 53.dp) { pc.seekBy(EPISODE_AHEAD_S * 1000L) }

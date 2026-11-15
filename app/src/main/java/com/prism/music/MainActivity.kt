@@ -68,10 +68,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -121,6 +124,8 @@ import com.prism.music.ui.Navigator
 import com.prism.music.ui.Routes
 import com.prism.music.ui.player.MiniPlayer
 import com.prism.music.ui.player.NowPlayingScreen
+import com.prism.music.ui.player.PlayerMorph
+import com.prism.music.ui.player.playerMorphMini
 import com.prism.music.ui.screens.ArtistScreen
 import com.prism.music.ui.screens.BrowseScreen
 import com.prism.music.ui.screens.CatalogueScreen
@@ -469,6 +474,10 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
     val c = LocalContainer.current
     val settings by c.settings.flow.collectAsState()
     val song by c.player.currentSong.collectAsState()
+    // Stopping clears the song at once, while the player is still on its way out: the moving copies keep the last one
+    // for that last moment, as the player's own screen does.
+    val lastChromeSong = remember { mutableStateOf<com.prism.music.data.model.Song?>(null) }
+    LaunchedEffect(song) { if (song != null) lastChromeSong.value = song }
     val artColor = rememberArtworkColor(song, settings)
     val context = LocalContext.current
 
@@ -505,8 +514,29 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
         }
         val navController = rememberNavController()
         var playerOpen by rememberSaveable { mutableStateOf(false) }
+        val motionScope = rememberCoroutineScope()
+        // One way in and one way out, for taps, buttons, links and actions alike: the same morph (PlayerMorph), and the
+        // page the action names (the queue, the lyrics) is what the player opens on.
+        fun openPlayer() {
+            playerOpen = true
+            PlayerMorph.open(motionScope, c.settings.current.reduceMotion)
+        }
+        fun closePlayer() {
+            if (!playerOpen && PlayerMorph.progress <= 0f) return
+            playerOpen = false
+            PlayerMorph.close(motionScope, c.settings.current.reduceMotion)
+        }
+        // Restored already open (a rotation, the task coming back): the player is there, not half-way in. Restored
+        // closed, no number is left over from a close cut short by the rotation.
+        LaunchedEffect(Unit) { PlayerMorph.snap(if (playerOpen) 1f else 0f) }
+        SideEffect {
+            PlayerMorph.animationsOff = settings.reduceMotion
+            // Only with both the flight and its return picked is a closing morph a return.
+            com.prism.music.ui.player.CoverFlight.backOn =
+                settings.view.coverFlight && settings.view.coverFlightBack && !settings.reduceMotion
+        }
         val navigator = remember(navController) {
-            Navigator(navController, openPlayer = { playerOpen = true }, playMix = { mix ->
+            Navigator(navController, openPlayer = { playerOpen = true; PlayerMorph.request(null); PlayerMorph.open(motionScope, c.settings.current.reduceMotion) }, playMix = { mix ->
                 c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
                     val r = runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { c.radio(mix.seedVideoId, mix.id, mix.params, keepFirst = true) } }.getOrNull()
                     if (r == null || r.songs.isEmpty()) {
@@ -525,7 +555,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
             })
         }
         // Playback that should be watched (a music video picked from a list) brings the player up.
-        LaunchedEffect(Unit) { c.player.showPlayer.collect { playerOpen = true } }
+        LaunchedEffect(Unit) { c.player.showPlayer.collect { PlayerMorph.request(null); openPlayer() } }
         com.prism.music.ui.components.LyricsToFilesHost()
         val haze = rememberHazeState()
         val backStack by navController.currentBackStackEntryAsState()
@@ -564,6 +594,11 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
         val bottomPadding = navInset +
             (if (useRail) 16.dp else navHeight(settings.navStyle, settings.navBarSize) + (if (settings.navStyle == NavBarStyle.DOCKED) 0.dp else 16.dp)) +
             miniSlot + sessionSlot
+        // The two ends of the morph, watched as booleans so the app isn't recomposed for every frame of it: the mini
+        // player stays with us until the player has wholly taken over, and the player is laid out from the first frame
+        // of the drag (its own picture follows the finger inside [NowPlayingScreen]).
+        val morphKeepsMini by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress < 0.999f } }
+        val morphKeepsPlayer by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress > 0.001f } }
 
         // Decided once: the tab Prism opens on is the root every other tab sits on, and the welcome
         // screen is a real destination, so signing in from it navigates inside a graph that already exists.
@@ -899,8 +934,14 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                         AnimatedVisibility(inSession && !playerOpen && route != Routes.TOGETHER, enter = chromeEnter, exit = chromeExit) {
                             TogetherPill(together, Modifier.padding(bottom = 8.dp)) { navigator.go(Routes.TOGETHER) }
                         }
-                        AnimatedVisibility(song != null && !playerOpen && !selection.selecting, enter = chromeEnter, exit = chromeExit) {
-                            MiniPlayer(Modifier.widthIn(max = 720.dp).customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER)) { playerOpen = true }
+                        AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini) && !selection.selecting, enter = chromeEnter, exit = chromeExit) {
+                            MiniPlayer(
+                                Modifier.widthIn(max = 720.dp).customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER)
+                                    .playerMorphMini(),
+                            ) {
+                                PlayerMorph.request(null)
+                                openPlayer()
+                            }
                         }
                     }
                 }
@@ -925,23 +966,30 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                         }
                         // "Joined to the tab bar" (1.7.6): one piece of glass, the mini player on top of the tabs.
                         val joined = settings.miniPlayerJoined && settings.navStyle == NavBarStyle.FLOATING
-                        if (!joined) AnimatedVisibility(song != null && !playerOpen, enter = chromeEnter, exit = chromeExit) {
+                        if (!joined) AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini), enter = chromeEnter, exit = chromeExit) {
                             // Spectrum's bar (the Card style over the docked tab bar) sits right on the tab bar, edge to edge.
                             val flush = docked && settings.miniPlayerStyle == MiniPlayerStyle.CARD && !(settings.liquidGlass || settings.frostedGlass)
                             MiniPlayer(
                                 (if (flush) Modifier else Modifier.padding(bottom = 8.dp).then(if (docked) Modifier.padding(horizontal = 10.dp) else Modifier))
-                                    .customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER),
-                            ) { playerOpen = true }
+                                    .customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER)
+                                    .playerMorphMini(),
+                            ) {
+                                PlayerMorph.request(null)
+                                openPlayer()
+                            }
                         }
                         val joinedMini: (@Composable () -> Unit)? = if (!joined) null else ({
                             AnimatedVisibility(
-                                song != null && !playerOpen,
+                                song != null && (!playerOpen || morphKeepsMini),
                                 enter = expandVertically(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = chromeEase), expandFrom = Alignment.Bottom) +
                                     fadeIn(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = chromeEase)),
                                 exit = shrinkVertically(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = chromeEase), shrinkTowards = Alignment.Bottom) +
                                     fadeOut(tween(com.prism.music.ui.theme.PrismTokens.Motion.QUICK)),
                             ) {
-                                MiniPlayer(Modifier.customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER), bare = true) { playerOpen = true }
+                                MiniPlayer(Modifier.customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER).playerMorphMini(), bare = true) {
+                                    PlayerMorph.request(null)
+                                    openPlayer()
+                                }
                             }
                         })
                         Box(Modifier.customizable(com.prism.music.ui.components.CustomizeTarget.TAB_BAR)) { TabBar(tabs, route, barT, settings, joinedMini, selectTab) }
@@ -960,20 +1008,6 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                 }
                 }
 
-                // "Cover flies into place" (#199): the player fades in while the mini player's cover flies to its spot.
-                val flight = settings.view.coverFlight && !settings.reduceMotion
-                // #223: and back the same way, when it's the player's cover that's showing. Watched through derivedStateOf as
-                // the cover's place changes with every frame of a drag, and this scope mustn't recompose for each one.
-                val coverKnown by remember { androidx.compose.runtime.derivedStateOf { com.prism.music.ui.player.CoverFlight.player != null } }
-                val flyBack = com.prism.music.ui.player.CoverFlight.returnsWith(settings.view.coverFlight, settings.view.coverFlightBack, settings.reduceMotion) && coverKnown
-                LaunchedEffect(playerOpen) {
-                    if (!playerOpen) {
-                        // A cover still flying out stops there: the player is gone, and only a flight back belongs now.
-                        com.prism.music.ui.player.CoverFlight.cancel()
-                        if (flyBack) com.prism.music.ui.player.CoverFlight.flyBack()
-                        com.prism.music.ui.player.CoverFlight.player = null
-                    } else if (flight) com.prism.music.ui.player.CoverFlight.fly()
-                }
                 // #354: what the player shows for this song, ready before it's opened.
                 val artAhead = song?.takeIf { !playerOpen }?.let { c.covers.art(it) }
                 if (artAhead != null) {
@@ -990,22 +1024,58 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                         }
                     }
                 }
-                AnimatedVisibility(
-                    playerOpen && song != null,
-                    enter = if (flight) fadeIn(tween(com.prism.music.ui.player.CoverFlight.FLIGHT_MS))
-                        else com.prism.music.ui.player.playerSlideIn(settings.reduceMotion),
-                    exit = if (flyBack) fadeOut(tween(com.prism.music.ui.player.CoverFlight.FLIGHT_MS))
-                        else com.prism.music.ui.player.playerSlideOut(settings.reduceMotion),
-                ) {
-                    // Settled once it's done sliding in; no longer the moment it starts to leave.
-                    val settled = transition.currentState == androidx.compose.animation.EnterExitState.Visible &&
-                        transition.targetState == androidx.compose.animation.EnterExitState.Visible
-                    val leaving = transition.targetState != androidx.compose.animation.EnterExitState.Visible
-                    androidx.compose.runtime.SideEffect { playerCover.settled = settled; playerCover.leaving = leaving }
-                    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { playerCover.settled = false; playerCover.leaving = false } }
-                    Box(Modifier.customizable(com.prism.music.ui.components.CustomizeTarget.PLAYER)) { NowPlayingScreen { playerOpen = false } }
+                // The full player, laid out from the first frame of a swipe (so the morph has somewhere to land) and kept
+                // until the last frame of its close: everything on it — the queue's place, the lyrics, its scroll — lives
+                // through the whole transition. Its own picture is the same number the mini player's is.
+                val playerSettled by remember { derivedStateOf { playerOpen && PlayerMorph.progress >= 0.999f } }
+                val playerLeaving by remember { derivedStateOf { !playerOpen && PlayerMorph.progress > 0.001f } }
+                if (playerOpen || morphKeepsPlayer) {
+                    androidx.compose.runtime.SideEffect {
+                        playerCover.settled = playerSettled
+                        playerCover.leaving = playerLeaving
+                    }
+                    androidx.compose.runtime.DisposableEffect(Unit) {
+                        onDispose {
+                            playerCover.settled = false
+                            playerCover.leaving = false
+                            // Its cover's place went with it; the next opening finds it again.
+                            com.prism.music.ui.player.CoverFlight.player = null
+                            com.prism.music.ui.player.PlayerMorph.playerTitle = null
+                            com.prism.music.ui.player.PlayerMorph.playerArtist = null
+                            com.prism.music.ui.player.PlayerMorph.playerPlay = null
+                        }
+                    }
+                    Box(
+                        Modifier.fillMaxSize().graphicsLayer {
+                            val t = PlayerMorph.progress
+                            if (!settings.reduceMotion) {
+                                // A card growing into the screen from where the mini player was, not a second screen
+                                // sliding over the first.
+                                translationY = (1f - t) * 56.dp.toPx()
+                                val s = 0.94f + 0.06f * t
+                                scaleX = s
+                                scaleY = s
+                                clip = t < 0.999f
+                                shape = RoundedCornerShape(((1f - t) * 28f).dp)
+                                // The player is all but opaque by the time the hand is half-way: the page behind (and the
+                                // tab bar under the mini player) shows for the first moments only, never as a ghost over it.
+                                alpha = (t * 2.6f).coerceIn(0f, 1f)
+                            } else {
+                                alpha = t
+                            }
+                        },
+                    ) {
+                        Box(Modifier.customizable(com.prism.music.ui.components.CustomizeTarget.PLAYER)) {
+                            NowPlayingScreen { closePlayer() }
+                        }
+                    }
                 }
-                com.prism.music.ui.player.CoverFlightLayer(song?.let { com.prism.music.data.PlaylistCovers.artOf(it) })
+                // The cover, title, artist and play control between the two players' places, on the same number.
+                val shownMorph = (song ?: lastChromeSong.value)?.let { com.prism.music.data.SongVersions.shownOf(it) }
+                com.prism.music.ui.player.CoverFlightLayer((song ?: lastChromeSong.value)?.let { com.prism.music.data.PlaylistCovers.artOf(it) })
+                if (shownMorph != null) com.prism.music.ui.player.PlayerMorphLayer(
+                    shownMorph.title, shownMorph.artistText, musicPlaying.value,
+                )
 
                 // Looks (1.7.3): "Undo" after each change to the look, and "Customize this" while it's on.
                 // Over the player it sits at the top, under "Customize this": lower down it covered the Play button.

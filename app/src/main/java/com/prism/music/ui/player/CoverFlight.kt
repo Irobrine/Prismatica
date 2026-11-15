@@ -1,8 +1,5 @@
 package com.prism.music.ui.player
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,101 +7,54 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.unit.Constraints
-import com.prism.music.data.model.hiRes
-import kotlin.math.roundToInt
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
+import com.prism.music.data.model.hiRes
+import kotlin.math.roundToInt
 
 /**
- * "Cover flies into place" (1.7.8, #199, an option in Player → Look): opening the player, the mini player's cover grows
- * and moves to where the player's cover sits, instead of the whole player sliding up. The two covers say where they
- * are ([mini], [player]); while it flies ([flying]) the player's own cover waits unseen, and a copy is drawn on top
- * ([CoverFlightLayer]).
+ * The cover's place in the two players, and whether it's between them. The flight is no longer a transition of its
+ * own: it is the artwork's share of [PlayerMorph], so the cover follows the same finger as everything else and stops
+ * being a second animation running beside the first. Instantiated before the morph system was general (1.7.8, #199),
+ * it keeps its name and the flags the tests and the player look at.
  */
 object CoverFlight {
-    /** The mini player's cover, in the window. */
+    /** The mini player's cover, in the window. Kept still while the morph is in flight. */
     var mini: Rect? = null
-    /** The player's cover, once it's laid out (null while the player is closed). */
-    var player by mutableStateOf<Rect?>(null)
-    var flying by mutableStateOf(false)
-        private set
-    val progress = Animatable(0f)
 
-    /** Where the mini player's cover is, kept as it moves. */
-    fun Modifier.miniCover(): Modifier = onGloballyPositioned { mini = it.boundsInRoot() }
+    /** The player's cover, once it's laid out (null while the player is closed). */
+    var player by androidx.compose.runtime.mutableStateOf<Rect?>(null)
+
+    /** "Cover flies back": set from Settings → Player → Look; only then does a closing morph read as a return. */
+    var backOn by androidx.compose.runtime.mutableStateOf(false)
+
+    /** The morph's own number, kept under the name the layer and the tests know. */
+    val progress: Float get() = PlayerMorph.progress
+
+    /** Between the two covers right now (Reduce motion has no flight at all, and a cover that can't fly keeps its own). */
+    val flying: Boolean get() = PlayerMorph.drawsOverlay() && mini != null && player != null
+
+    /** On its way back into the mini player. */
+    val returning: Boolean get() = flying && backOn && !PlayerMorph.opening
+
+    /** Where the mini player's cover is, kept while the mini player is at rest. */
+    fun Modifier.miniCover(): Modifier = onGloballyPositioned {
+        if (PlayerMorph.progress <= 0.001f) mini = it.boundsInRoot()
+    }
 
     /** Where the player's cover is, kept as it moves. */
     fun Modifier.playerCover(): Modifier = onGloballyPositioned { player = it.boundsInRoot() }
 
-    /**
-     * A flight that's been overtaken (the player closed before its cover landed, or opened again while one was flying
-     * back) mustn't clear the flags of the one now running: [run] tells the last one asked for from an older one.
-     */
-    private var run = 0
-
-    /** The player is opening: the cover flies, if both ends are known within a moment. */
-    suspend fun fly() {
-        val mine = ++run
-        // An opening takes over from a return at once: the mini's own cover has to be able to show while the player's
-        // place is being looked for, or it would stay hidden for up to the wait below.
-        returning = false
-        if (mini == null) return
-        val to = withTimeoutOrNull(300) { snapshotFlow { player }.filterNotNull().first() } ?: return
-        // Closed while the player's cover was being looked for: nothing to fly to.
-        if (to.width <= 0f || run != mine) return
-        progress.snapTo(0f)
-        flying = true
-        try {
-            progress.animateTo(1f, tween(FLIGHT_MS, easing = FastOutSlowInEasing))
-        } finally {
-            if (run == mine) flying = false
-        }
-    }
-
-    /** The player left mid-flight: the cover stops showing at once (the animation winds down unseen). */
-    fun cancel() {
-        run++
-        flying = false
-        returning = false
-    }
-
-    /** #223: flying back to the mini player, which keeps its own cover unseen until it lands. */
-    var returning by mutableStateOf(false)
-        private set
-
     /** #223: whether closing the player flies the cover back. As the way in, it's never with Reduce motion (or Performance mode). */
     fun returnsWith(flight: Boolean, back: Boolean, reduceMotion: Boolean): Boolean = flight && back && !reduceMotion
-
-    /** Both ends are known: the player's cover is the one showing (not a banner, a record or a video), and the mini player has been laid out. */
-    fun canReturn(): Boolean = player != null && mini != null
-
-    /** The player is closing: the cover goes back from wherever it is, and the player's own place stays known until then. */
-    suspend fun flyBack() {
-        if (!canReturn()) return
-        val mine = ++run
-        flying = true
-        returning = true
-        try {
-            progress.animateTo(0f, tween(FLIGHT_MS, easing = FastOutSlowInEasing))
-        } finally {
-            if (run == mine) {
-                flying = false
-                returning = false
-            }
-        }
-    }
 
     const val FLIGHT_MS = 420
 }
@@ -122,9 +72,8 @@ fun CoverFlightLayer(thumbnail: String?) {
         Modifier
             // Placed and sized every frame (a layout step only): the cover between the two places, square as it is.
             .layout { m, c ->
-                val f = CoverFlight.progress.value
-                // Going back, the mini player is on its way in as well: wherever it's got to.
-                @Suppress("NAME_SHADOWING") val from = if (CoverFlight.returning) CoverFlight.mini ?: from else from
+                val f = PlayerMorph.progress
+                val from = CoverFlight.mini ?: from
                 val w = (from.width + (to.width - from.width) * f).roundToInt().coerceAtLeast(1)
                 val h = (from.height + (to.height - from.height) * f).roundToInt().coerceAtLeast(1)
                 val p = m.measure(Constraints.fixed(w, h))
@@ -134,7 +83,7 @@ fun CoverFlightLayer(thumbnail: String?) {
             }
             .graphicsLayer {
                 clip = true
-                shape = RoundedCornerShape(small + (big - small) * CoverFlight.progress.value)
+                shape = RoundedCornerShape(small + (big - small) * PlayerMorph.progress)
             },
     ) {
         // The mini player's picture (already loaded) under the large one, which may still be on its way.

@@ -138,8 +138,6 @@ private val THUMB_SIZE = 54.dp
 private val HEADER_HEIGHT = 60.dp
 private val ART_TITLE_GAP = 20.dp
 private val DISMISS_STRIP = 32.dp
-/** How far a swipe on the controls goes before it opens or closes the queue or the lyrics (#200), in pixels. */
-private const val PANEL_SWIPE_PX = 90f
 private val ART_BOX_TOP_PAD = 8.dp
 /** How far the title may drop below the cover toward the scrubber, when the screen has room to spare. */
 private val TITLE_DROP_MAX = 24.dp
@@ -308,7 +306,11 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
 
     // #280: "Reopen on the last page". Nothing's read or written with it off.
     val pageMemory = remember(settings.behavior.playerRemembersPage) { if (settings.behavior.playerRemembersPage) PlayerPageMemory(view.context) else null }
-    val opensOn = remember { pageMemory?.opensOn(song.isEpisode) ?: PlayerPage.COVER }
+    // A page asked for as the player opens (a mini player or cover gesture naming the queue or the lyrics) wins over the
+    // remembered one for this open; then, as before, the page kept from last time. A page asked for by a gesture morphs
+    // in with the player (the panel starts at the cover's end); a remembered one is simply there, as before.
+    val askedOnOpen = remember { PlayerMorph.takeRequestedPage() }
+    val opensOn = remember { askedOnOpen ?: pageMemory?.opensOn(song.isEpisode) ?: PlayerPage.COVER }
     // Opened on a page, its controls start as opening that page would start them ("Full screen" hides them).
     val openPanelControls = opensOn == PlayerPage.COVER || settings.view.panelPlayer != com.prism.music.data.prefs.PanelPlayer.HIDDEN
     var lyricsOpen by rememberSaveable { mutableStateOf(opensOn == PlayerPage.LYRICS) }
@@ -353,8 +355,8 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     // A wide window (tablet, foldable, phone on its side) shows the cover and controls beside lyrics / the queue.
     val window = com.prism.music.ui.theme.LocalWindowLayout.current
     val wide = window.twoPanePlayer || window.shortLandscape || window.tabletop
-    // A wide player has its own panes, always showing one of them: only a phone's page is remembered.
-    LaunchedEffect(lyricsOpen, queueOpen, pageMemory, wide) { if (!wide) pageMemory?.keep(PlayerPage.of(lyricsOpen, queueOpen)) }
+    // A wide player has its own panes, always showing one of them: only a phone's page is remembered (below, once the
+    // panel's morph has settled: a pull that turned back is not a page the player was left on).
 
     // The player is always dark, so it owns light system-bar icons, and the navigation bar's scrim (three-button
     // navigation) is a dark one: in light mode a light grey strip sat under the player.
@@ -447,38 +449,30 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         fullscreenVideo = false
         if (landscape) sidewaysInPlayer = true
     }
-    // How far the player has been pulled down (px). Closing slides it the rest of the way, from wherever it is, the same
-    // way for Back and for a swipe (#26: a swipe used to hand over to a different exit animation part-way down).
-    val dismiss = remember { DragOffset() }
+    // How far a swipe can pull the player down, as a share of the window, before it's closing for good: the same 25%
+    // (and the same number, PlayerMorph) the mini player's swipe up uses, so both ends of the change feel alike.
     val screenPx = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    val morphSpan = screenPx * PlayerMorph.TRAVEL
     var closing by remember { mutableStateOf(false) }
     fun slideClosed() {
         if (closing) return
         closing = true
-        // #223: the cover flies back from where it is, and the player fades around it, instead of sliding away.
-        if (CoverFlight.returnsWith(settings.view.coverFlight, settings.view.coverFlightBack, settings.reduceMotion) && CoverFlight.canReturn()) {
-            onCollapse()
-            // Opened again while it fades, this is the same player still: it has to be able to close again.
-            scope.launch { delay(CoverFlight.FLIGHT_MS + 100L); closing = false }
-            return
-        }
-        dismiss.settle(
-            scope, screenPx,
-            tween(if (settings.reduceMotion) 240 else 340, easing = FastOutSlowInEasing),
-        ) { onCollapse() }
+        // Back, the menu, a stop, a swipe: the same morph back to the mini player, from wherever the finger left it.
+        onCollapse()
+        // Opened again while it leaves, this is the same player still: it has to be able to close again.
+        scope.launch { delay(if (settings.reduceMotion) 160 else 380); closing = false }
     }
     // Pulled down (or sliding closed), the page under the player shows again: its backgrounds move again.
     val cover = com.prism.music.ui.components.LocalPlayerCover.current
-    LaunchedEffect(cover) { snapshotFlow { dismiss.value > 0f || closing }.collect { cover.pulled = it } }
+    LaunchedEffect(cover) {
+        snapshotFlow { PlayerMorph.progress < 0.999f || closing }.collect { cover.pulled = it }
+    }
     DisposableEffect(cover) { onDispose { cover.pulled = false } }
-    // Opened again before it had gone, this is the same player still, pulled down or slid away: it comes back to its place,
-    // and can close again. (While it leaves it stays where it is: the cover flies back from there.)
+    // Opened again before it had gone, this is the same player still, part-way down or away: it comes back to its place,
+    // and can close again. (The morph itself is the one already running: it's turned around, not restarted.)
     LaunchedEffect(cover) {
         snapshotFlow { cover.leaving }.collect { leaving ->
-            if (!leaving && (closing || dismiss.value != 0f)) {
-                closing = false
-                dismiss.settle(scope, 0f, spring())
-            }
+            if (!leaving && closing) closing = false
         }
     }
     BackHandler {
@@ -511,14 +505,24 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     }
 
     // ---------------------------------------------------------------- Motion
-    val collapse = animateFloatAsState(if (lyricsOpen || queueOpen || statsOpen) 1f else 0f, tween(420, easing = FastOutSlowInEasing), label = "collapse")
-    val p: () -> Float = { collapse.value }
-    val collapsePastHalf = collapse.value >= 0.5f
+    // The panels' morph (cover into the header, the deck down) follows the finger on a swipe (PanelShift), and eases to
+    // match the flags when a button, Back or an action opened them. It is one number, as the player's own morph is.
+    val panelShift = remember { PanelShift(if (opensOn != PlayerPage.COVER && askedOnOpen == null) 1f else 0f) }
+    LaunchedEffect(lyricsOpen, queueOpen, statsOpen) {
+        if (panelShift.dragging) return@LaunchedEffect
+        panelShift.animateTo(scope, if (lyricsOpen || queueOpen || statsOpen) 1f else 0f, settings.reduceMotion)
+    }
+    val p: () -> Float = { panelShift.value }
+    val collapsePastHalf = panelShift.value >= 0.5f
+    // What the player was left showing is kept once the panel has settled (not from a pull that turned back).
+    LaunchedEffect(lyricsOpen, queueOpen, pageMemory, wide, panelShift.value >= 1f) {
+        if (!wide && panelShift.value >= 1f) pageMemory?.keep(PlayerPage.of(lyricsOpen, queueOpen))
+    }
     // Settings → Player → What's on the player (1.8.0): a hidden part leaves the player; the cover, title and buttons come
     // back in the header over the lyrics and the queue, where they say which song it is.
     val inHeader = { part: PlayerPart -> settings.shows(part) || collapsePastHalf }
-    val panelsSettled = collapse.value >= 1f
-    val panelFade by animateFloatAsState(if (panelsSettled) 1f else 0f, tween(200, easing = FastOutSlowInEasing), label = "panelFade")
+    // The panel itself comes in with the morph's last part, and follows a finger pulling it away.
+    val panelFade = ((panelShift.value - 0.55f) / 0.45f).coerceIn(0f, 1f)
     // The listener's own Reduce motion, not Performance mode's (Reddit, 1.7.9.3: Performance mode turns Reduce motion on,
     // which took the shrink away too; it's one scale of one layer, nothing to save).
     val ownReduceMotion = c.settings.stored.collectAsState().value.reduceMotion
@@ -623,7 +627,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         vinyl -> CircleShape
         settings.shapes.player != com.prism.music.data.prefs.CoverShape.ROUNDED && !cassette ->
             com.prism.music.ui.theme.CoverShapes.of(settings.shapes.player, artCorners)
-        else -> RoundedCornerShape(lerp(artCorners, 8.dp, collapse.value))
+        else -> RoundedCornerShape(lerp(artCorners, 8.dp, panelShift.value))
     }
     val roomyCover = settings.coverSize != com.prism.music.data.prefs.CoverSize.STANDARD
 
@@ -725,12 +729,6 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
-            .offset { IntOffset(0, dismiss.value.roundToInt()) }
-            .graphicsLayer {
-                val f = (dismiss.value / 1800f).coerceIn(0f, 1f)
-                scaleX = 1f - f * 0.06f; scaleY = 1f - f * 0.06f
-                shape = RoundedCornerShape((f * 140).dp); clip = f > 0f
-            }
             .background(PlayerFallbackBackdrop),
     ) {
         // ------------------------------------------------ Backdrop
@@ -851,15 +849,49 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         // Status-bar scrim (none on the White background, whose status bar has dark icons)
         if (!inkLight) Box(Modifier.fillMaxWidth().height(statusTop + DISMISS_STRIP).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.32f), Color.Transparent))))
 
-        val dismissGesture = Modifier.pointerInput(Unit) {
-            // The finger writes the offset as it moves (not one coroutine per delta, which could land out of order);
-            // it eases back when the finger lifts.
+        // A panel opened or closed by a gesture, with the morph following the hand. The same 25%-of-the-window rule
+        // decides whether it stays open (or closed) when the finger lifts, so a pull that turns back unwinds itself.
+        fun openPanelByGesture(page: PlayerPage) {
+            when (page) {
+                PlayerPage.QUEUE -> if (!queueOpen) toggleQueue()
+                PlayerPage.LYRICS -> if (!lyricsOpen) openLyrics()
+                else -> {}
+            }
+        }
+        fun closePanelsNow() {
+            queueOpen = false
+            statsOpen = false
+            closeLyrics()
+        }
+        // The progress at which a closing panel has gone far enough is PlayerMorph's own (a quarter of the window).
+        fun settlePanel(startedOpen: Boolean) {
+            panelShift.end()
+            haptics.gestureEnd()
+            val reduce = c.settings.current.reduceMotion
+            val towardPlayer = !startedOpen
+            if (PlayerMorph.completes(panelShift.value, towardPlayer)) {
+                if (towardPlayer) panelShift.animateTo(scope, 1f, reduce)
+                else panelShift.animateTo(scope, 0f, reduce) { closePanelsNow() }
+            } else if (towardPlayer) {
+                // It fades with the morph and only then leaves the player, so the list isn't cut away mid-pull.
+                panelShift.animateTo(scope, 0f, reduce) { closePanelsNow() }
+            } else panelShift.animateTo(scope, 1f, reduce)
+        }
+        val dismissGesture = Modifier.pointerInput(morphSpan) {
+            // The finger writes the morph's number as it moves; it eases back (or finishes) when the finger lifts.
             detectVerticalDragGestures(
-                onDragEnd = { if (dismiss.value > 220f) slideClosed() else dismiss.settle(scope, 0f, spring()) },
-                onDragCancel = { if (!closing) dismiss.settle(scope, 0f, spring()) },
+                onDragStart = { if (!closing) PlayerMorph.beginDrag(towardPlayer = false) },
+                onDragEnd = {
+                    if (closing) return@detectVerticalDragGestures
+                    if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) slideClosed()
+                    else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
+                },
+                onDragCancel = {
+                    if (!closing) PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
+                },
             ) { change, amount ->
                 change.consume()
-                if (!closing) dismiss.set((dismiss.value + amount).coerceAtLeast(0f))
+                if (!closing) PlayerMorph.dragTo(PlayerMorph.progress - amount / morphSpan)
             }
         }
         // Settings → Player → Gestures (1.7.4): what a swipe, double tap or long press on the cover does. Read from the
@@ -889,35 +921,69 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                 com.prism.music.data.prefs.PlayerGesture.NONE -> {}
             }
         }
-        // Drag on the sleeve: down closes the player, up does what's set (the queue comes in, by default).
-        fun sleeveDrag(lyrics: Boolean, queue: Boolean, stats: Boolean) = Modifier.pointerInput(lyrics, queue, stats) {
-            if (lyrics || stats) return@pointerInput
+        // Drag on the sleeve: down closes the player (or a panel, with the same morph), up opens what's set (the queue
+        // comes in, by default) or does its action. One drag chooses its way from the first movement.
+        fun sleeveDrag(lyrics: Boolean, queue: Boolean, stats: Boolean) = Modifier.pointerInput(lyrics, queue, stats, morphSpan) {
             var total = 0f
-            // With the queue open, pulling the header down closes the queue (#149), as swiping up brought it.
-            if (queue) {
-                detectVerticalDragGestures(
-                    onDragStart = { total = 0f },
-                    onDragEnd = { if (total > 90f) { haptics.gestureEnd(); toggleQueue() } },
-                ) { change, amount -> change.consume(); total += amount }
-                return@pointerInput
-            }
+            var mode = 0 // 0 undecided, 1 a panel, 2 the player, 3 an action at the end
+            var startedOpen = false
+            var base = 0f
+            var startProgress = 1f
+            val slop = 6.dp.toPx()
             detectVerticalDragGestures(
-                onDragStart = { total = 0f },
+                onDragStart = { total = 0f; mode = 0; startedOpen = queue || lyrics || stats; base = panelShift.value; startProgress = PlayerMorph.progress },
                 onDragEnd = {
-                    if (dismiss.value > 220f) slideClosed()
-                    else {
-                        val up = c.settings.current.coverSwipeUp
-                        if (total < -90f && up != com.prism.music.data.prefs.PlayerGesture.NONE) { dismiss.reset(0f); haptics.gestureEnd(); runGesture(up) }
-                        else dismiss.settle(scope, 0f, spring())
+                    when (mode) {
+                        1 -> settlePanel(startedOpen)
+                        2 -> {
+                            if (closing) return@detectVerticalDragGestures
+                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) slideClosed()
+                            else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
+                        }
+                        3 -> if (total < -90f) {
+                            val up = c.settings.current.coverSwipeUp
+                            if (up != com.prism.music.data.prefs.PlayerGesture.NONE) { haptics.gestureEnd(); runGesture(up) }
+                        }
                     }
                 },
                 // An interrupted drag (a system gesture, a sheet opening) used to leave the player part-way down.
-                onDragCancel = { if (!closing) dismiss.settle(scope, 0f, spring()) },
+                onDragCancel = {
+                    when (mode) {
+                        1 -> {
+                            panelShift.end()
+                            if (startedOpen) panelShift.animateTo(scope, 1f, c.settings.current.reduceMotion)
+                            else panelShift.animateTo(scope, 0f, c.settings.current.reduceMotion) { closePanelsNow() }
+                        }
+                        2 -> if (!closing) PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
+                        else -> {}
+                    }
+                },
             ) { change, amount ->
                 change.consume()
                 total += amount
-                // Back above where it started: follow the finger back to the top rather than stopping short of it.
-                if (!closing) dismiss.set(total.coerceAtLeast(0f))
+                if (mode == 0 && kotlin.math.abs(total) > slop) {
+                    if (total > 0f) {
+                        // Pulled down: a panel open goes back the way it came; otherwise the player itself.
+                        if (queue || lyrics || stats) { panelShift.begin(); mode = 1; startedOpen = true }
+                        else if (!closing) { PlayerMorph.beginDrag(towardPlayer = false); mode = 2 }
+                    } else {
+                        val up = c.settings.current.coverSwipeUp
+                        if (queue || lyrics || stats) { panelShift.begin(); mode = 1; startedOpen = true }
+                        else if (up == com.prism.music.data.prefs.PlayerGesture.QUEUE || up == com.prism.music.data.prefs.PlayerGesture.LYRICS) {
+                            panelShift.begin(); mode = 1; startedOpen = false
+                            openPanelByGesture(PlayerMorph.pageOf(up)!!)
+                        } else mode = 3
+                    }
+                }
+                when (mode) {
+                    1 -> {
+                        val v = base - total / morphSpan
+                        if (PlayerMorph.completes(panelShift.value, !startedOpen) != PlayerMorph.completes(v, !startedOpen)) haptics.threshold()
+                        panelShift.follow(v)
+                    }
+                    2 -> PlayerMorph.dragTo(startProgress - total / morphSpan)
+                    else -> {}
+                }
             }
         }
         val sleeveGesture = sleeveDrag(lyricsOpen, queueOpen, statsOpen)
@@ -1004,7 +1070,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         .clip(RoundedCornerShape(2.dp))
                         .background(Color.White.copy(alpha = 0.6f)),
                 )
-                if (collapse.value < 0.999f && settings.showPlayingFrom && originAlbum != null) PlaybackOriginCaption(
+                if (panelShift.value < 0.999f && settings.showPlayingFrom && originAlbum != null) PlaybackOriginCaption(
                     // The song's own album, which needn't be what's playing (a playlist, a radio): not "Playing from".
                     tr(R.string.from_the_album_2, originAlbum.title),
                     Modifier.align(Alignment.BottomCenter).graphicsLayer { alpha = 1f - p() },
@@ -1198,6 +1264,9 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                                 }
                             }
                             .height(headerHeight)
+                            // The like and ⋯ beside the title come in with it, at the end of the morph (the moving title
+                            // is still on its way up before then).
+                            .graphicsLayer { alpha = PlayerMorph.elementReveal }
                             .then(sleeveGesture)
                             // #320: dark over the White background.
                             .inked(),
@@ -1221,7 +1290,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             },
                             horizontalAlignment = if (centred) Alignment.CenterHorizontally else Alignment.Start,
                         ) {
-                            val scrolls = collapse.value < 0.01f && !covered && settings.playerTitleScroll
+                            val scrolls = panelShift.value < 0.01f && !covered && settings.playerTitleScroll
                             // With the ⋯ button hidden (1.8.0), a long press on the title or the artist opens the menu.
                             val menuHeld: (() -> Unit)? = if (settings.shows(PlayerPart.MENU)) null else ({ showActions = true })
                             // #328: the title, artists and album of the version picked to play in its place, if any.
@@ -1229,7 +1298,8 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             if (inHeader(PlayerPart.TITLE)) PlayerMarquee(
                                 // The title leads, the artist under it a size smaller (#41). Spectrum: large and light.
                                 song.title, titleStyle, Color.White, scrolls,
-                                Modifier.testTag("playerTitle").combinedClickable(enabled = song.album?.id != null || menuHeld != null, onLongClick = menuHeld) {
+                                Modifier.testTag("playerTitle").playerTitleAnchor()
+                                    .combinedClickable(enabled = song.album?.id != null || menuHeld != null, onLongClick = menuHeld) {
                                     song.album?.id?.let { onCollapse(); nav.go(Routes.album(it)) }
                                 },
                             )
@@ -1242,7 +1312,8 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                                 val artistLine = artistLinkText(song.artistText, linked, settings.view.artistLinks) { a -> onCollapse(); nav.go(Routes.artist(a)) }
                                 PlayerMarquee(
                                     artistLine, artistStyle, Color.White.copy(alpha = 0.6f), scrolls,
-                                    Modifier.testTag("playerArtist").combinedClickable(enabled = linked.isNotEmpty() || menuHeld != null, onLongClick = menuHeld) {
+                                    Modifier.testTag("playerArtist").playerArtistAnchor()
+                                        .combinedClickable(enabled = linked.isNotEmpty() || menuHeld != null, onLongClick = menuHeld) {
                                         if (linked.size > 1) pickArtist = true else linked.firstOrNull()?.let { onCollapse(); nav.go(Routes.artist(it)) }
                                     },
                                     delayMs = 5500,
@@ -1275,7 +1346,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                     }
 
                     // ---- Lyrics and queue panels, under the collapsed header
-                    if (lyricsOpen && panelsSettled) {
+                    if (lyricsOpen) {
                         LyricsPanel(
                             lyricsState, isPlaying && !covered, lyricsControlsOpen,
                             onRevealControls = { lyricsControlsOpen = true },
@@ -1284,7 +1355,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             onChangeSource = { showProviders = true },
                         )
                     }
-                    if (statsOpen && panelsSettled) {
+                    if (statsOpen) {
                         NerdStatsPanel(
                             Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
                                 alpha = panelFade
@@ -1292,7 +1363,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             },
                         )
                     }
-                    if (queueOpen && panelsSettled) {
+                    if (queueOpen) {
                         InlineQueue(
                             onRevealPlayer = { queueControlsOpen = true },
                             onHidePlayer = { if (!controlsStay) queueControlsOpen = false },
@@ -1317,21 +1388,66 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                     exit = shrinkVertically(tween(260, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Top) + fadeOut(tween(200)),
                 ) {
                     // Settings → Controls & gestures → "Swipe up for the queue" (#200, #197): up on the controls opens the
-                    // queue (from their right half) or the lyrics (left half); down closes whichever is open. One-handed,
-                    // instead of reaching for the buttons or the top of the screen.
-                    val swipes = if (!settings.behavior.panelSwipes) Modifier else Modifier.pointerInput(panelPlayer) {
+                    // queue (from their right half) or the lyrics (left half); down closes whichever is open, and with
+                    // neither open it pulls the player itself down. It follows the finger (panelShift / PlayerMorph), so a
+                    // pull that turns back unwinds, and it's one-handed instead of reaching for the buttons.
+                    val swipes = if (!settings.behavior.panelSwipes) Modifier else Modifier.pointerInput(panelPlayer, morphSpan) {
                         var total = 0f
                         var fromRight = true
+                        var mode = 0
+                        var startedOpen = false
+                        var base = 0f
+                        var startProgress = 1f
+                        val slop = 6.dp.toPx()
                         detectVerticalDragGestures(
-                            onDragStart = { at -> total = 0f; fromRight = at.x > size.width / 2 },
+                            onDragStart = { at ->
+                                total = 0f; mode = 0; fromRight = at.x > size.width / 2
+                                startedOpen = lyricsOpen || queueOpen || statsOpen
+                                base = panelShift.value
+                                startProgress = PlayerMorph.progress
+                            },
                             onDragEnd = {
-                                when {
-                                    total < -PANEL_SWIPE_PX && !lyricsOpen && !queueOpen -> { haptics.gestureEnd(); if (fromRight) toggleQueue() else openLyrics() }
-                                    total > PANEL_SWIPE_PX && queueOpen -> { haptics.gestureEnd(); toggleQueue() }
-                                    total > PANEL_SWIPE_PX && lyricsOpen -> { haptics.gestureEnd(); closeLyrics() }
+                                when (mode) {
+                                    1 -> settlePanel(startedOpen)
+                                    2 -> if (!closing) {
+                                        if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) slideClosed()
+                                        else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
+                                    }
+                                    else -> {}
                                 }
                             },
-                        ) { change, amount -> change.consume(); total += amount }
+                            onDragCancel = {
+                                when (mode) {
+                                    1 -> {
+                                        panelShift.end()
+                                        if (startedOpen) panelShift.animateTo(scope, 1f, c.settings.current.reduceMotion)
+                                        else panelShift.animateTo(scope, 0f, c.settings.current.reduceMotion) { closePanelsNow() }
+                                    }
+                                    2 -> if (!closing) PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
+                                    else -> {}
+                                }
+                            },
+                        ) { change, amount ->
+                            change.consume()
+                            total += amount
+                            if (mode == 0 && kotlin.math.abs(total) > slop) {
+                                if (total < 0f) {
+                                    if (lyricsOpen || queueOpen || statsOpen) { panelShift.begin(); mode = 1; startedOpen = true }
+                                    else {
+                                        panelShift.begin(); mode = 1; startedOpen = false
+                                        openPanelByGesture(if (fromRight) PlayerPage.QUEUE else PlayerPage.LYRICS)
+                                    }
+                                } else {
+                                    if (lyricsOpen || queueOpen || statsOpen) { panelShift.begin(); mode = 1; startedOpen = true }
+                                    else if (!closing) { PlayerMorph.beginDrag(towardPlayer = false); mode = 2 }
+                                }
+                            }
+                            when (mode) {
+                                1 -> panelShift.follow(base - total / morphSpan)
+                                2 -> PlayerMorph.dragTo(startProgress - total / morphSpan)
+                                else -> {}
+                            }
+                        }
                     }
                     // #259 (1.7.9.2): "Gestures anywhere on the player": the cover's swipes, double tap and long press work
                     // around the controls too (the buttons and bars keep their own taps and drags).
@@ -1346,7 +1462,10 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         !settings.behavior.gesturesEverywhere || lyricsOpen || queueOpen || statsOpen -> Modifier
                         else -> sleeveGesture.then(doubleTapSeek)
                     }
-                    Column(swipes.then(coverGestures).testTag("playerDeck").inked(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        swipes.then(coverGestures).testTag("playerDeck").graphicsLayer { alpha = PlayerMorph.deckReveal }.inked(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         // #293: closer together over a full-bleed picture ("More room for the picture").
                         val tightDeck = bleedRoomy && !lyricsOpen && !queueOpen && !statsOpen
                         val deckGap = if (tightDeck) 8.dp else if (roomyCover) 12.dp else 18.dp
@@ -1382,6 +1501,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                                         TransportRow(
                                             isPlaying, buffering, previousEnabled = hasPrevious || pastStart, nextEnabled = hasNext, compact = small || tightDeck, episode = song.isEpisode,
                                             skips = settings.shows(PlayerPart.PREV_NEXT),
+                                            playAnchor = Modifier.playerPlayAnchor().graphicsLayer { alpha = PlayerMorph.playReveal },
                                         )
                                     com.prism.music.data.prefs.DeckPart.VOLUME -> VolumeRow(volume)
                                     com.prism.music.data.prefs.DeckPart.BUTTONS -> PlayerActionRow(
