@@ -747,13 +747,30 @@ data class VideoSongEntity(
     val checkedAt: Long,
 )
 
+/** A row's ids alone, without its song's text: a start reads these for the whole table (a library's worth of songs is
+ *  tens of MB, and decoding them all at every start was memory the phone didn't have beside the player). */
+data class VideoSongIds(val videoId: String, val songId: String?)
+
 @Dao
 interface VideoSongDao {
-    @Query("SELECT * FROM video_songs")
-    suspend fun all(): List<VideoSongEntity>
+    /** Every video the table answers for, ids only (see [VideoSongIds]). */
+    @Query("SELECT videoId, songId FROM video_songs")
+    suspend fun ids(): List<VideoSongIds>
+
+    /** One video's match, song text and all: read when that video is played. */
+    @Query("SELECT * FROM video_songs WHERE videoId = :videoId")
+    suspend fun get(videoId: String): VideoSongEntity?
+
+    /** A page of the table in a stable order: a backup writes a row at a time instead of building all of them. */
+    @Query("SELECT * FROM video_songs ORDER BY videoId LIMIT :limit OFFSET :offset")
+    suspend fun page(limit: Int, offset: Int): List<VideoSongEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun put(e: VideoSongEntity)
+
+    /** A restored library's matches, in one go. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun putAll(rows: List<VideoSongEntity>)
 }
 
 @Database(

@@ -28,6 +28,7 @@ Music videos start at once, a long list no longer waits to be built before it pl
 ### Under the hood
 
 - Database schema 13 (the videos' songs), carried by a Library backup and read in once at the next start, with its migration.
+- A backup writes the videos' matches a row at a time, and a start reads only their ids: neither holds a library's worth of songs in memory, which failed a backup on a phone with the storage but not the memory for it.
 - The migration, the backup part, the morph's settling curve and the deck's folding are tested: two new test classes and new tests in three more.
 - Gradle builds with the configuration cache, a 1 GB metaspace ceiling, incremental Kotlin and KSP, non-final resource ids and no Jetifier.
 

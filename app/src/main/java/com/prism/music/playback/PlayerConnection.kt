@@ -608,21 +608,24 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     private val videoPreparePrefs = context.getSharedPreferences("video_prepare", Context.MODE_PRIVATE)
 
     /**
-     * The matches kept from before (the database's video_songs), read at start: a tap after a restart no longer waits
-     * on the search. Kept as a [Deferred] so [songFor] can wait for it rather than searching what's already known.
+     * Videos the table already answers for, with the song they're of ([knownSongs]) or that they're of none
+     * ([noSongFor]): the ids alone, read once at start, so a tap after a restart doesn't search what's already known.
+     * The songs themselves aren't decoded here: a library's worth of them at every start was tens of MB of memory the
+     * phone needed for the player (and for a backup), so [songFor] reads the one row it's asked about.
+     */
+    private val knownSongs = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    /**
+     * Which videos the table answers for, and the id of each song's own video, read at start; the songs' text is read
+     * as they're played. Kept as a [Deferred] so [songFor] can wait for it rather than searching what's already known.
      */
     private val matchesLoaded: Deferred<Unit> = scope.async(Dispatchers.IO) {
         // A restore's matches (they travel with the library, apart from the database): put in first, read back below.
-        Backup.readPendingVideoSongs(context.filesDir)?.forEach { row -> runCatching { c.db.videoSongs().put(row) } }
-        runCatching { c.db.videoSongs().all() }.getOrNull().orEmpty().forEach { row ->
-            val song = row.songJson?.let { runCatching { InnerTube.json.decodeFromString(Song.serializer(), it) }.getOrNull() }
-            when {
-                song != null -> {
-                    videoSongs.putIfAbsent(row.videoId, song)
-                    c.queue.counterparts.putIfAbsent(song.id, row.videoId)
-                }
-                row.songId == null -> noSongFor.add(row.videoId)
-            }
+        Backup.readPendingVideoSongs(context.filesDir)?.let { rows -> runCatching { c.db.videoSongs().putAll(rows) } }
+        runCatching { c.db.videoSongs().ids() }.getOrNull().orEmpty().forEach { row ->
+            // A song's own video is what its "Video" button offers: the pair itself is two ids, so it's kept for all.
+            row.songId?.let { songId -> c.queue.counterparts.putIfAbsent(songId, row.videoId) }
+            if (row.songId == null) noSongFor.add(row.videoId) else knownSongs.add(row.videoId)
         }
     }
 
@@ -639,6 +642,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
      * separate song. Suspends for the database write: call it off the main thread.
      */
     private suspend fun rememberVideoSong(videoId: String, song: Song?) {
+        knownSongs.remove(videoId)
         if (song == null) noSongFor.add(videoId) else {
             noSongFor.remove(videoId)
             videoSongs[videoId] = song
@@ -766,6 +770,23 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         videoSongs[video.id]?.let { return it }
         // The search answered nothing before: the video plays as itself, and not another search on every tap.
         if (video.id in noSongFor) return null
+        // Answered before: its one row is read and kept for this session, rather than the whole table at every start.
+        if (knownSongs.contains(video.id)) {
+            val row = runCatching { kotlinx.coroutines.withContext(Dispatchers.IO) { c.db.videoSongs().get(video.id) } }.getOrNull()
+            knownSongs.remove(video.id)
+            if (row != null) {
+                val saved = row.songJson?.let { runCatching { InnerTube.json.decodeFromString(Song.serializer(), it) }.getOrNull() }
+                if (saved != null) {
+                    videoSongs[video.id] = saved
+                    c.queue.counterparts[saved.id] = video.id
+                    return saved
+                }
+                // A row that holds no song (or one that won't read): the video plays as itself, as it did before.
+                noSongFor.add(video.id)
+                return null
+            }
+            // The row has gone (a table pruned, say): search as if it had never answered.
+        }
         val running = matchingSongs[video.id] ?: run {
             val started = scope.async(Dispatchers.IO) {
                 val attempt = runCatching { c.ytm.songForVideo(video) }

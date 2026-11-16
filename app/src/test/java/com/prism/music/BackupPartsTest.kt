@@ -2,6 +2,8 @@ package com.prism.music
 
 import com.prism.music.data.Backup
 import com.prism.music.data.BackupPart
+import com.prism.music.data.db.VideoSongEntity
+import com.prism.music.data.writeVideoSongsJson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -182,6 +184,28 @@ class BackupPartsTest {
             Backup.applyPending(app)
             assertFalse(part, File(files, "library/video_songs.json").exists())
         }
+    }
+
+    /**
+     * The videos' songs (1.8.5) go with the Library besides: a backup of the library alone brings them, and they're read
+     * into the database once at the next start. Written a page at a time: a library's worth built as one string was a
+     * single huge allocation, and a backup then failed on a phone with the storage but not the memory for it.
+     */
+    @Test fun theVideosSongsAreWrittenAPageAtATime() = kotlinx.coroutines.runBlocking {
+        val rows = (1..1_234).map { VideoSongEntity("v$it", "s$it", """{"id":"s$it"}""", 1L) }
+        val pages = mutableListOf<Int>()
+        val out = java.io.ByteArrayOutputStream()
+        writeVideoSongsJson(out) { offset, limit ->
+            pages += offset
+            rows.drop(offset).take(limit)
+        }
+        // The same array the whole-table encoding wrote, read back by the same decoder.
+        val read = com.prism.music.data.innertube.InnerTube.json.decodeFromString(
+            kotlinx.serialization.builtins.ListSerializer(VideoSongEntity.serializer()),
+            out.toString(Charsets.UTF_8.name()),
+        )
+        assertEquals(rows, read)
+        assertEquals("a page at a time, and the last short one ends it", listOf(0, 500, 1_000), pages)
     }
 
     /**

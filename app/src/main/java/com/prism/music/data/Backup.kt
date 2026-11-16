@@ -12,14 +12,17 @@ import com.prism.music.data.db.VideoSongEntity
 import com.prism.music.data.model.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.decodeFromStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.security.DigestOutputStream
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -110,7 +113,9 @@ class Backup(private val c: AppContainer) {
         val manifestBytes = InnerTube.json.encodeToString(BackupManifest.serializer(), manifest).toByteArray()
         // Every entry written after the manifest, so a restore can tell a whole file from a cut-short or altered one.
         val sums = LinkedHashMap<String, String>()
-        val sink = if (password != null && password.isNotEmpty()) BackupCrypto.seal(out, password) else out.buffered()
+        // Buffered underneath either way: a sealed backup goes through the cipher a block at a time.
+        val file = out.buffered()
+        val sink = if (password != null && password.isNotEmpty()) BackupCrypto.seal(file, password) else file
         // The key is made; the password itself isn't needed any more.
         password?.fill('\u0000')
         ZipOutputStream(sink).use { zip ->
@@ -129,10 +134,10 @@ class Backup(private val c: AppContainer) {
                 putEntry(zip, TAGS_ENTRY, bytes)
                 sums[TAGS_ENTRY] = sha256(bytes)
                 // Which song each music video is of (1.8.5): the library's too, so a restore without the history keeps
-                // the matches (and a video's own sound, for one of none) rather than looking them all up again.
-                val matches = InnerTube.json.encodeToString(VIDEO_SONG_LIST, c.db.videoSongs().all()).toByteArray()
-                putEntry(zip, VIDEO_SONGS_ENTRY, matches)
-                sums[VIDEO_SONGS_ENTRY] = sha256(matches)
+                // the matches (and a video's own sound, for one of none) rather than looking them all up again. Written
+                // a row at a time: a library's worth built as one string is a single huge allocation, and a backup then
+                // failed on a phone with the storage but not the memory for it.
+                sums[VIDEO_SONGS_ENTRY] = putStreamedEntry(zip, VIDEO_SONGS_ENTRY) { dst -> writeVideoSongs(dst) }
             }
             filesToBackUp(parts).forEach { f ->
                 val name = f.relativeTo(data).invariantSeparatorsPath
@@ -160,6 +165,28 @@ class Backup(private val c: AppContainer) {
         zip.write(bytes)
         zip.closeEntry()
     }
+
+    /**
+     * Writes an entry from [write] in pieces and answers its SHA-256, so an entry that can be a library's worth (the
+     * videos' matches) is never built whole: it was one string and one array of everything at once, and that failed a
+     * backup on a phone with the storage but not the memory.
+     */
+    private suspend fun putStreamedEntry(zip: ZipOutputStream, name: String, write: suspend (OutputStream) -> Unit): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        zip.putNextEntry(ZipEntry(name))
+        val out = DigestOutputStream(zip, digest)
+        write(out)
+        out.flush()
+        zip.closeEntry()
+        return hex(digest.digest())
+    }
+
+    /**
+     * The videos' matches as a JSON array, a page of rows at a time ([VIDEO_PAGE] each): one row's text in memory, never
+     * the table's.
+     */
+    internal suspend fun writeVideoSongs(out: OutputStream) =
+        writeVideoSongsJson(out) { offset, limit -> c.db.videoSongs().page(limit, offset) }
 
     /** About how big a backup of [parts] would be, in bytes. */
     suspend fun estimate(parts: Set<BackupPart>): Long = withContext(Dispatchers.IO) { filesToBackUp(parts).sumOf { it.length() } }
@@ -444,8 +471,14 @@ class Backup(private val c: AppContainer) {
         /** Settings are values (a small JSON): never read a whole gigabyte of them, or tags, into memory. */
         private const val MAX_SETTINGS = 16L * 1024 * 1024
         private const val MAX_TAGS = 64L * 1024 * 1024
-        /** Video matches: one line each, but a library's worth. */
-        private const val MAX_VIDEO_MATCHES = 64L * 1024 * 1024
+        /**
+         * Video matches: a library's worth of song text, uncompressed in the zip. Room for a very large library (the
+         * generic [MAX_ENTRY] is 4 GB, which for one entry of the listener's own text is no bound at all); a restore is
+         * still held to the space there is by [cap].
+         */
+        private const val MAX_VIDEO_MATCHES = 256L * 1024 * 1024
+        /** Video matches written to a backup a page at a time ([writeVideoSongsJson]). */
+        internal const val VIDEO_PAGE = 500
         /** Small files are checked again at start-up (settings, tags); audio-sized ones were checked when unpacked. */
         private const val VERIFY_AT_START = 16L * 1024 * 1024
         /** A restored phone re-fetches at most this many downloads at once (a backup can't ask for endless ones). */
@@ -526,12 +559,14 @@ class Backup(private val c: AppContainer) {
 
         /**
          * A restore's video matches, read in once at the next start: the rows the backup held (null when there are none
-         * waiting), and the file goes whether or not it reads.
+         * waiting), and the file goes whether or not it reads. Read as a stream: a library's worth is tens of MB of
+         * text, and holding all of it (and its twin, a decoded string) at a start is more than a phone may have spare.
          */
+        @OptIn(ExperimentalSerializationApi::class)
         internal fun readPendingVideoSongs(files: File): List<VideoSongEntity>? {
             val f = File(files, VIDEO_SONGS_ENTRY.removePrefix("files/"))
             if (!f.isFile) return null
-            val rows = runCatching { InnerTube.json.decodeFromString(VIDEO_SONG_LIST, f.readText()) }.getOrNull()
+            val rows = runCatching { f.inputStream().buffered().use { InnerTube.json.decodeFromStream(VIDEO_SONG_LIST, it) } }.getOrNull()
             f.delete()
             return rows
         }
@@ -897,4 +932,27 @@ class Backup(private val c: AppContainer) {
             if (!temp.renameTo(target)) { temp.copyTo(target, overwrite = true); temp.delete() }
         }
     }
+}
+
+/**
+ * The videos' matches as a JSON array, written a page at a time from [page] (given an offset and [Backup.VIDEO_PAGE]):
+ * one row's text is in memory as it goes, never the table's. It reads exactly as the whole-table encoding did, so older
+ * and newer backups are the same format.
+ */
+internal suspend fun writeVideoSongsJson(out: OutputStream, page: suspend (offset: Int, limit: Int) -> List<VideoSongEntity>) {
+    out.write('['.code)
+    var first = true
+    var offset = 0
+    while (true) {
+        val rows = page(offset, Backup.VIDEO_PAGE)
+        if (rows.isEmpty()) break
+        for (row in rows) {
+            if (!first) out.write(','.code)
+            first = false
+            out.write(InnerTube.json.encodeToString(VideoSongEntity.serializer(), row).toByteArray())
+        }
+        offset += rows.size
+        if (rows.size < Backup.VIDEO_PAGE) break
+    }
+    out.write(']'.code)
 }
