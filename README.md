@@ -51,16 +51,13 @@ The optional lock screen player needs a permission called "Display over other ap
 
 Prism walks you through this on the setting's page. It uses the permission only to bring its player up on your lock screen, and never draws over other apps.
 
-## New in 1.0.0
+## New in 1.1.0
 
-Prismatica-Refracted: the refactored line of Prismatica, on its own from Prism.
-
-- **Snooze** keeps a track out of automatic queues for 30 days; Snoozed tracks shows what's waiting, with the days left.
-- **The player morphs** between the mini player and the full player under your finger, with one motion for screens and tabs.
-- **Safer:** password-protected, hash-checked backups; sign-ins sealed on this phone; the library browsable only by Prism, the system and the car.
-- **Faster:** each sort key and search made once, database indices, and a progress bar that redraws when it moves.
-- **Normalize** hears every channel, and lists sort by the names you edited.
-- **Also new:** Search's keyboard can wait for a second tap of its tab.
+- **Music videos start at once:** a video's song is looked up once and kept, and "Prepare music videos" (Settings → Downloads, storage & data) can get the whole library ready ahead of a tap.
+- **Long lists start at once:** a queue of thousands no longer has to be built before the first sound, and it's read off the main thread.
+- **A swipe keeps the speed of your hand**, and previous and next morph with the rest of the player.
+- **The deck folds instead of jumping** over the lyrics and the queue, and the player's heart and menu fade in and out.
+- **A tap plays on 150 ms of audio** instead of a whole second.
 
 Everything is worked out on your phone. See every change in the [changelog](CHANGELOG.md).
 

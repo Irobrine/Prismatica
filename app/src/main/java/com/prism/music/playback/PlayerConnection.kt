@@ -7,6 +7,8 @@ import android.content.Context
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -16,10 +18,16 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.prism.music.AppContainer
+import com.prism.music.data.Backup
+import com.prism.music.data.db.VideoSongEntity
+import com.prism.music.data.innertube.InnerTube
 import com.prism.music.data.model.Song
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +36,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 
 data class QueueEntry(val index: Int, val song: Song, val uid: String)
@@ -108,6 +118,15 @@ fun lyricShiftOf(songOffsetMs: Long, settingMs: Int, videoLagMs: Long): Long = s
 private const val FILL_BATCH = 400
 /** With this little of the song left, the song after it stays where it is while a list fills in (#356). */
 private const val SOON_MS = 30_000L
+/**
+ * A list longer than this starts on a window round the song picked, rather than building the whole queue on the main
+ * thread first (a Downloads page can hold thousands; one tap waited a second on all of them). The rest joins behind it.
+ */
+private const val FAST_START_AT = 400
+/** A few songs after the one picked start with it (enough for Play next); the rest joins once it's under way. */
+private const val FAST_START_AFTER = 4
+/** How often the library's music videos are got ready by themselves ([PlayerConnection]'s once-a-day run). */
+private const val VIDEO_PREPARE_EVERY_MS = 24L * 60 * 60 * 1000
 
 /** Outputs that take over when they connect (not microphones, call channels or the phone's own parts). */
 private val NEW_OUTPUTS = setOf(
@@ -350,7 +369,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         s.musicSpeed = _musicSpeed.value
         s.musicPitch = _musicPitch.value
         s.player.addListener(this)
-        refresh()
+        refresh(rebuildQueue = true)
         pending.toList().forEach { it(s.player) }
         pending.clear()
     }
@@ -434,10 +453,25 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         // "Songs, not videos" everywhere (#80) plays it as its song too, and so does a shuffled start.
         // On mobile data with "No videos on mobile data" (#281) too, unless the picture's kept on the phone.
         val audioOnly = !c.settings.current.showVideoSwitch || everywhere || shuffle || (VideoOnData.off(c) && !c.downloads.videoSaved(tapped.id))
-        // A music video or live performance opens as the song it's of, already showing the video
-        // (the Song button then plays the track itself). With no song to match, the video plays as it is.
+        // A music video or live performance opens as the song it's of, already showing the video (the Song button then
+        // plays the track itself). With no song to match, the video plays as it is. The match is kept ([videoSongs]), so
+        // the next play of it starts at once.
         if (!audioOnly) _showPlayer.tryEmit(Unit)
+        // Known to have no separate song: it plays as the video it is, at once (no search waited on).
+        if (tapped.id in noSongFor) {
+            if (pairsFrom != null) scope.launch { pairPlaylist(pairsFrom, tapped.id, source.title) }
+            startQueue(songs, first, source, shuffle, tapped.id.takeUnless { audioOnly }, rest = rest)
+            return
+        }
         scope.launch {
+            // The matches kept from before: a video known to be of no separate song starts as itself at once, and one
+            // whose song is known skips the search (the wait is only on the first tap after a start).
+            if (!matchesLoaded.isCompleted) matchesLoaded.await()
+            if (tapped.id in noSongFor) {
+                if (pairsFrom != null) pairPlaylist(pairsFrom, tapped.id, source.title)
+                if (token == playToken) startQueue(songs, first, source, shuffle, tapped.id.takeUnless { audioOnly }, rest = rest)
+                return@launch
+            }
             // The playlist's own pairing first (a playlist from Home: Prism's title search missed half of #383's).
             val started = android.os.SystemClock.elapsedRealtime()
             if (pairsFrom != null) pairPlaylist(pairsFrom, tapped.id, source.title)
@@ -445,6 +479,12 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             if (token != playToken) return@launch
             val list = if (song == null) songs else songs.toMutableList().also { it[first] = song }
             startQueue(list, first, source, shuffle, tapped.id.takeUnless { audioOnly }, rest = rest)
+            if (song == null) scope.launch {
+                // It wasn't matched in time, so this one plays as the video. Look again once it's under way, only to
+                // remember the song: the next play of it then starts at once instead of waiting on the same search.
+                kotlinx.coroutines.withTimeoutOrNull(2_000) { isPlaying.first { it } }
+                if (token == playToken) songFor(tapped, 8_000)?.let { c.warmUp(it.id, cellular = c.settings.current.preloadCellular) }
+            }
         }
     }
 
@@ -541,7 +581,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         val pairs = kotlinx.coroutines.withTimeoutOrNull(2_500) {
             runCatching { withContext(Dispatchers.IO) { c.ytm.next(startId, playlistId).videoSongs() } }.getOrNull()
         } ?: return
-        pairs.forEach { (video, song) -> videoSongs.putIfAbsent(video, song) }
+        // Kept like a search's answer, so a playlist's videos aren't paired again after a restart.
+        pairs.forEach { (videoId, song) -> if (videoSongs.putIfAbsent(videoId, song) == null) rememberVideoSong(videoId, song) }
         AudioDiagnostics.log("queue", "\"$title\": YouTube pairs ${pairs.size} of its videos with their songs")
     }
 
@@ -551,14 +592,193 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             source.originId?.removePrefix("VL")?.takeIf { everywhere && signedIn && source.kind == QueueKind.PLAYLIST && it.isNotBlank() }
     }
 
+    /** Lookups running right now, by video id, so a tap and a screen's prefetch don't search twice. */
+    private val matchingSongs = java.util.concurrent.ConcurrentHashMap<String, Deferred<Song?>>()
+
+    /**
+     * Videos with no separate song of their own (the lookup answered, and answered nothing): they play as the video
+     * they are, and a tap doesn't wait on the same search again. Not kept when the lookup itself failed (no network).
+     */
+    private val noSongFor = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    /** Whether [videoId] is known to have no separate song (a video that plays as itself). */
+    fun hasNoSongVersion(videoId: String): Boolean = videoId in noSongFor
+
+    /** When the library's videos were last got ready by the once-a-day run ([prepareLibraryVideosByItself]). */
+    private val videoPreparePrefs = context.getSharedPreferences("video_prepare", Context.MODE_PRIVATE)
+
+    /**
+     * The matches kept from before (the database's video_songs), read at start: a tap after a restart no longer waits
+     * on the search. Kept as a [Deferred] so [songFor] can wait for it rather than searching what's already known.
+     */
+    private val matchesLoaded: Deferred<Unit> = scope.async(Dispatchers.IO) {
+        // A restore's matches (they travel with the library, apart from the database): put in first, read back below.
+        Backup.readPendingVideoSongs(context.filesDir)?.forEach { row -> runCatching { c.db.videoSongs().put(row) } }
+        runCatching { c.db.videoSongs().all() }.getOrNull().orEmpty().forEach { row ->
+            val song = row.songJson?.let { runCatching { InnerTube.json.decodeFromString(Song.serializer(), it) }.getOrNull() }
+            when {
+                song != null -> {
+                    videoSongs.putIfAbsent(row.videoId, song)
+                    c.queue.counterparts.putIfAbsent(song.id, row.videoId)
+                }
+                row.songId == null -> noSongFor.add(row.videoId)
+            }
+        }
+    }
+
+    init {
+        // Once a day by itself, after the matches are in so it reuses them; it waits for the library to be read.
+        scope.launch(Dispatchers.IO) {
+            matchesLoaded.await()
+            prepareLibraryVideosByItself()
+        }
+    }
+
+    /**
+     * Remembers (and keeps for next time) what [videoId] was found to be of: [song], or null for a video that's of no
+     * separate song. Suspends for the database write: call it off the main thread.
+     */
+    private suspend fun rememberVideoSong(videoId: String, song: Song?) {
+        if (song == null) noSongFor.add(videoId) else {
+            noSongFor.remove(videoId)
+            videoSongs[videoId] = song
+            c.queue.counterparts[song.id] = videoId
+        }
+        runCatching {
+            c.db.videoSongs().put(
+                VideoSongEntity(
+                    videoId = videoId,
+                    songId = song?.id,
+                    songJson = song?.let { InnerTube.json.encodeToString(Song.serializer(), it) },
+                    checkedAt = System.currentTimeMillis(),
+                )
+            )
+        }
+    }
+
+    /** Preparing every video in the library (Settings → Downloads & storage). */
+    var preparingVideos by androidx.compose.runtime.mutableStateOf(false)
+        private set
+    var videosPrepared by androidx.compose.runtime.mutableIntStateOf(0)
+        private set
+    var videosToPrepare by androidx.compose.runtime.mutableIntStateOf(0)
+        private set
+    private var prepareVideosJob: Job? = null
+
+    /**
+     * Looks up the song of every music video in [videos] and resolves its stream address (and the video's own for one
+     * with no song), ahead of time. It doesn't download any sound: the tap then only has to open an address it knows.
+     * Two at a time, and never beside a song that's loading; the listener can leave the page and it carries on.
+     */
+    fun prepareAllVideos(videos: List<Song>) {
+        if (preparingVideos) return
+        val targets = videos.filter { it.isVideo && !it.isLive && !it.isEpisode && !it.isLocal && !it.isRss }.distinctBy { it.id }
+        if (targets.isEmpty()) return
+        prepareVideosJob = scope.launch {
+            preparingVideos = true
+            videosPrepared = 0
+            videosToPrepare = targets.size
+            val limited = Semaphore(2)
+            try {
+                kotlinx.coroutines.coroutineScope {
+                    targets.forEach { video ->
+                        launch(Dispatchers.IO) {
+                            limited.withPermit {
+                                val song = songFor(video, 20_000)
+                                val id = song?.id ?: video.id
+                                // Downloaded, a file on the phone, or a whole cached song: the player reads it from the
+                                // phone, so there's no address to get and nothing of it to expire.
+                                if (!c.availableOffline(id)) runCatching { c.yieldToPlaying(id); c.streams.resolve(id) }
+                                withContext(Dispatchers.Main) { videosPrepared++ }
+                            }
+                        }
+                    }
+                }
+            } finally {
+                preparingVideos = false
+            }
+        }
+    }
+
+    /**
+     * Gets the library's music videos ready by itself once a day ([prepareAllVideos]): the matches are kept anyway, this
+     * re-resolves their stream addresses, which YouTube only honours for about an hour. On mobile data only with
+     * Settings → Load ahead on mobile data, as that's the part that spends data. Waits for the library to be read.
+     */
+    private suspend fun prepareLibraryVideosByItself() {
+        val videos = c.library.liked.first { it.isNotEmpty() }
+            .filter { it.isVideo && !it.isLive && !it.isEpisode && !it.isLocal && !it.isRss }
+        if (videos.isEmpty() || preparingVideos) return
+        val metered = context.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered != false
+        if (metered && !c.settings.current.preloadCellular) return
+        if (System.currentTimeMillis() - videoPreparePrefs.getLong("preparedAt", 0L) < VIDEO_PREPARE_EVERY_MS) return
+        videoPreparePrefs.edit().putLong("preparedAt", System.currentTimeMillis()).apply()
+        withContext(Dispatchers.Main) { prepareAllVideos(videos) }
+    }
+
+    /**
+     * Gets a music video's song ready while its row is on screen (Settings → Load ahead's mobile-data choice applies),
+     * so a tap starts as the song at once rather than waiting on the search. Not beside a song that's loading.
+     */
+    fun prefetchSongFor(video: Song) {
+        if (!video.isVideo || video.isLive || video.isEpisode || video.isLocal) return
+        if (videoSongs.containsKey(video.id) || matchingSongs.containsKey(video.id)) return
+        scope.launch(Dispatchers.IO) {
+            // The match alone doesn't make the sound ready: its stream is resolved too (and its start saved on Wi-Fi, or
+            // on mobile data when Load ahead allows it). [warmUp] keeps off the song that's loading, and on mobile data
+            // stops after the address is known, so this costs no audio data there. A video with no song of its own gets
+            // its own sound ready, so it can play at once too.
+            val song = songFor(video, 8_000)
+            val id = song?.id ?: video.id
+            // Downloaded (or a whole cached song): the player reads it from the phone, so there's nothing to get ready.
+            if (c.availableOffline(id)) return@launch
+            c.warmUp(id, cellular = c.settings.current.preloadCellular)
+        }
+    }
+
+    /**
+     * "Prepare this video" (a video's menu): finds the song it's of and gets its sound ready now, on any network, so
+     * the next tap plays it at once. [done] says whether both the match and its stream were got.
+     */
+    fun prepareVideoSong(video: Song, done: (Boolean) -> Unit) {
+        if (!video.isVideo || video.isLive || video.isEpisode || video.isLocal) { done(false); return }
+        scope.launch {
+            // No separate song: the video plays as itself, so get its own sound ready instead.
+            val id = songFor(video, 20_000)?.id ?: video.id
+            // Downloaded, a file on the phone, or a whole cached song: it already starts at once, with no address.
+            if (withContext(Dispatchers.IO) { c.availableOffline(id) }) { done(true); return@launch }
+            // An explicit prepare may cache the start even on mobile data; it's the listener asking.
+            val ok = runCatching { withContext(Dispatchers.IO) { c.streams.resolve(id) } }.isSuccess
+            if (ok) runCatching { withContext(Dispatchers.IO) { c.warmUp(id, cellular = true) } }
+            done(ok)
+        }
+    }
+
     /**
      * The song a music video is of ([YouTubeMusic.songForVideo]), remembered for the session; the video becomes the
-     * song's counterpart (its Video button). Null when there's none, or it took longer than [timeoutMs].
+     * song's counterpart (its Video button). Null when there's none, or it took longer than [timeoutMs]. The lookup
+     * carries on (and is kept) when a [prefetchSongFor] or an earlier tap already started it.
      */
-    suspend fun songFor(video: Song, timeoutMs: Long = 8_000): Song? =
-        (videoSongs[video.id] ?: kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
-            runCatching { kotlinx.coroutines.withContext(Dispatchers.IO) { c.ytm.songForVideo(video) } }.getOrNull()
-        }?.also { videoSongs[video.id] = it })?.also { c.queue.counterparts[it.id] = video.id }
+    suspend fun songFor(video: Song, timeoutMs: Long = 8_000): Song? {
+        videoSongs[video.id]?.let { return it }
+        // The matches kept from before, so one already answered isn't searched again (a wait only on the first tap).
+        if (!matchesLoaded.isCompleted) matchesLoaded.await()
+        videoSongs[video.id]?.let { return it }
+        // The search answered nothing before: the video plays as itself, and not another search on every tap.
+        if (video.id in noSongFor) return null
+        val running = matchingSongs[video.id] ?: run {
+            val started = scope.async(Dispatchers.IO) {
+                val attempt = runCatching { c.ytm.songForVideo(video) }
+                val found = attempt.getOrNull()
+                // Only an answer (a song, or none) is kept; a lookup that failed (no network) is asked again later.
+                if (attempt.isSuccess) rememberVideoSong(video.id, found)
+                found
+            }
+            started.invokeOnCompletion { matchingSongs.remove(video.id, started) }
+            matchingSongs.putIfAbsent(video.id, started)?.also { if (it !== started) started.cancel() } ?: started
+        }
+        return kotlinx.coroutines.withTimeoutOrNull(timeoutMs) { running.await() }
+    }
 
     private fun startQueue(songs: List<Song>, startIndex: Int, source: QueueSource, shuffle: Boolean, startVideo: String?, startMs: Long = 0, rest: (suspend () -> List<Song>?)? = null) {
         stopFill()
@@ -597,12 +817,23 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             val queue = kept.ifEmpty { songs }
             val first = queue.indexOfFirst { it.id == starting.id }.coerceAtLeast(0)
             val shuffled = mode != ShuffleMode.OFF
+            // A very long list (Downloads can hold thousands, the library hundreds) isn't made into media items on the
+            // main thread before the first sound: the picked song and a few after it start, and the rest joins once it's
+            // under way. Shuffled queues keep the old way (their order is the queue's own).
+            val fastStart = !shuffled && rest == null && queue.size > FAST_START_AT
+            val from = if (fastStart) first else 0
+            val to = if (fastStart) (first + FAST_START_AFTER + 1).coerceAtMost(queue.size) else queue.size
+            val at = first - from
             p.shuffleModeEnabled = shuffled
-            p.setMediaItems(queue.mapIndexed { i, s -> s.toMediaItem(if (i == first) startVideo else null) }, first, startMs.coerceAtLeast(0))
+            p.setMediaItems(
+                queue.subList(from, to).mapIndexed { i, s -> s.toMediaItem(if (i == at) startVideo else null) },
+                at, startMs.coerceAtLeast(0),
+            )
             // The song it starts on first, the rest in a new order.
             if (shuffled) reshuffle(p)
             p.prepare()
             p.play()
+            if (fastStart) fillAround(queue, first, to - first)
             if (mode == ShuffleMode.SMART) {
                 c.queue.smartShuffle.value = true
                 // Its picks now: the service's Smart Shuffle collector never saw it go off and on again above.
@@ -611,6 +842,29 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             service?.maybeAutoplay()
             if (dj) c.dj.setOn(true)
             if (rest != null && token == playToken) fillQueue(rest, source, queue)
+        }
+    }
+
+    /**
+     * The songs either side of a long list's first few ([startQueue]'s fast start): made into media items off the main
+     * thread once the picked song is playing (so the filling never slows its start), then put before and after it. Its
+     * own place doesn't move.
+     */
+    private fun fillAround(all: List<Song>, start: Int, started: Int) {
+        if (start <= 0 && start + started >= all.size) return
+        val token = playToken
+        val headEnd = start.coerceIn(0, all.size)
+        val tailFrom = (start + started).coerceIn(headEnd, all.size)
+        scope.launch {
+            // The first sound first: eight hundred songs made into items beside it was time it spent waiting.
+            kotlinx.coroutines.withTimeoutOrNull(2_000) { isPlaying.first { it } }
+            val head = if (headEnd > 0) withContext(Dispatchers.Default) { all.subList(0, headEnd).map { it.toMediaItem() } } else emptyList()
+            val tail = if (tailFrom < all.size) withContext(Dispatchers.Default) { all.subList(tailFrom, all.size).map { it.toMediaItem() } } else emptyList()
+            if (token != playToken) return@launch
+            val p = player ?: return@launch
+            // A few at a time, so the timeline isn't rebuilt and the queue re-read all at once.
+            head.chunked(FILL_BATCH).asReversed().forEach { if (token == playToken) runCatching { p.addMediaItems(0, it) } }
+            tail.chunked(FILL_BATCH).forEach { if (token == playToken) runCatching { p.addMediaItems(p.mediaItemCount, it) } }
         }
     }
 
@@ -1164,7 +1418,11 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
 
     // ------------------------------------------------------------ State mirroring
 
-    private fun refresh() {
+    /** The queue's songs, being read off the main thread (null: none to read). */
+    private var queueJob: Job? = null
+    private var queueVersion = 0
+
+    private fun refresh(rebuildQueue: Boolean = false) {
         val p = player ?: return
         val item = p.currentMediaItem
         val song = item?.toSong()
@@ -1180,12 +1438,25 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         _videoMode.value = item?.videoModeId != null
         _hasNext.value = p.hasNextMediaItem()
         _hasPrevious.value = p.hasPreviousMediaItem()
-        // Keys stay stable when items move (id + occurrence), so a dragged row keeps its gesture.
-        val seen = HashMap<String, Int>()
-        _queue.value = (0 until p.mediaItemCount).mapNotNull { i ->
-            val mi: MediaItem = p.getMediaItemAt(i)
-            val n = seen.merge(mi.mediaId, 1, Int::plus) ?: 1
-            mi.toSong()?.let { QueueEntry(i, it, "${mi.mediaId}#$n") }
+        // The queue itself changes only with its timeline, not with every play, pause or seek. Keys stay stable when
+        // items move (id + occurrence), so a dragged row keeps its gesture. Read off the main thread: a Downloads queue
+        // can hold thousands, and decoding them all held up the start.
+        if (rebuildQueue) {
+            val items = if (p.mediaItemCount == 0) emptyList() else (0 until p.mediaItemCount).map { p.getMediaItemAt(it) }
+            val version = ++queueVersion
+            queueJob?.cancel()
+            if (items.isEmpty()) _queue.value = emptyList() else {
+                queueJob = scope.launch {
+                    val entries = withContext(Dispatchers.Default) {
+                        val seen = HashMap<String, Int>()
+                        items.mapIndexedNotNull { i, mi ->
+                            val n = seen.merge(mi.mediaId, 1, Int::plus) ?: 1
+                            mi.toSong()?.let { QueueEntry(i, it, "${mi.mediaId}#$n") }
+                        }
+                    }
+                    if (version == queueVersion) _queue.value = entries
+                }
+            }
         }
         _upNext.value = buildList {
             val tl = p.currentTimeline
@@ -1262,6 +1533,6 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-        refresh()
+        refresh(rebuildQueue = true)
     }
 }

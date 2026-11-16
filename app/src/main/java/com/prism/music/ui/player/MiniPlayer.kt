@@ -165,21 +165,27 @@ fun MiniPlayer(
                 var raw = 0f
                 var morphing = false
                 var base = 0f
+                // The speed the card is let go at, so the morph it starts carries on at it (PlayerMorph.released).
+                val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                fun letGoSpeed(): Float = -tracker.calculateVelocity().y / morphSpan
                 detectVerticalDragGestures(
                     onDragStart = {
                         pull.cancel()
+                        tracker.resetTracking()
                         raw = pull.value
                         morphing = false
                     },
                     onDragEnd = {
                         val now = container.settings.current
                         if (morphing) {
+                            val v = letGoSpeed()
                             haptics.gestureEnd()
                             if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = true)) {
+                                PlayerMorph.released(v)
                                 onOpen()
                             } else {
                                 PlayerMorph.request(null)
-                                PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = now.reduceMotion)
+                                PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = now.reduceMotion, velocity = v)
                             }
                             pull.settle(scope, 0f)
                             return@detectVerticalDragGestures
@@ -221,6 +227,7 @@ fun MiniPlayer(
                     },
                 ) { change, d ->
                     change.consume()
+                    tracker.addPosition(change.uptimeMillis, change.position)
                     raw += d
                     val now = container.settings.current
                     if (raw < 0f && PlayerMorph.opensPlayer(now.miniSwipeUp)) {
@@ -239,7 +246,7 @@ fun MiniPlayer(
                         if (morphing) {
                             morphing = false
                             PlayerMorph.request(null)
-                            PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = now.reduceMotion)
+                            PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = now.reduceMotion, velocity = letGoSpeed())
                         }
                         // #222: a way with no gesture set (Settings → Player → Gestures: Nothing) doesn't move the card at all.
                         val after = when {
@@ -343,7 +350,10 @@ fun MiniPlayer(
                 }
             }
             if (settings.miniPrevButton) {
-                IconButton(onClick = { haptics.click(); pc.previous() }, modifier = Modifier.size(40.dp)) { Icon(PrismIcons.Previous, tr(R.string.widget_previous)) }
+                IconButton(
+                    onClick = { haptics.click(); pc.previous() },
+                    modifier = Modifier.size(40.dp).miniPrevAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesPrev) 0f else 1f },
+                ) { Icon(PrismIcons.Previous, tr(R.string.widget_previous)) }
             }
             // Play / pause can be left off (Reddit, 1.8.1): a tap still opens the player.
             if (!settings.view.miniPlayButton) {
@@ -364,7 +374,10 @@ fun MiniPlayer(
                 }
             }
             if (settings.miniSkipButtons) {
-                IconButton(onClick = { haptics.click(); pc.next() }, modifier = Modifier.size(40.dp)) { Icon(PrismIcons.Next, tr(R.string.widget_next)) }
+                IconButton(
+                    onClick = { haptics.click(); pc.next() },
+                    modifier = Modifier.size(40.dp).miniNextAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesNext) 0f else 1f },
+                ) { Icon(PrismIcons.Next, tr(R.string.widget_next)) }
             }
         }
         if (settings.miniProgress == MiniProgress.LINE) {

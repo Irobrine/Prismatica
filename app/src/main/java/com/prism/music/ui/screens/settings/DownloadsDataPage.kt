@@ -299,6 +299,25 @@ fun DownloadsDataPage(bottomPadding: Dp, find: String? = null, showBack: Boolean
             ) { choosingKept = true }
             if (choosingKept) DdKeptPlaylistsSheet { choosingKept = false }
         }
+        // The library's music videos, got ready ahead of a tap: the song matched and its stream address resolved.
+        group(tr(R.string.music_videos)) {
+            val library by c.library.likedShown.collectAsState()
+            val videos = remember(library) {
+                library.filter { it.isVideo && !it.isLive && !it.isEpisode && !it.isLocal && !it.isRss }
+            }
+            val preparing = c.player.preparingVideos
+            val prepared = c.player.videosPrepared
+            val prepareTotal = c.player.videosToPrepare
+            LinkRow(
+                tr(R.string.prepare_library_videos),
+                value = when {
+                    preparing -> "$prepared / $prepareTotal"
+                    prepared > 0 && prepareTotal > 0 && prepared >= prepareTotal -> tr(R.string.video_ready)
+                    else -> songCount(videos.size)
+                },
+                info = tr(R.string.prepare_library_videos_info),
+            ) { c.player.prepareAllVideos(videos) }
+        }
         group(tr(R.string.dd_files_on_your_phone)) {
             DdOwnSongFiles(ownChanged)
             // #207, #249 (1.8.2): which folders Local files lists.
@@ -492,6 +511,7 @@ val downloadsDataOldGroups: Map<String, String> by lazy {
 /** The page's lines in Settings' search (each names the group it is drawn in). */
 val downloadsDataIndex: List<SettingEntry> by lazy {
     val downloads = tr(R.string.downloads)
+    val videos = tr(R.string.music_videos)
     val files = tr(R.string.dd_files_on_your_phone)
     val smart = tr(R.string.dd_downloaded_for_you)
     val covers = tr(R.string.animated_covers)
@@ -512,6 +532,7 @@ val downloadsDataIndex: List<SettingEntry> by lazy {
             SettingEntry(page, downloads, tr(R.string.download_videos_when_you_play_them), tr(R.string.download_on_stream_keywords)),
             SettingEntry(page, downloads, tr(R.string.download_songs_ahead), tr(R.string.download_ahead_keywords)),
             SettingEntry(page, downloads, tr(R.string.keep_playlists_downloaded), tr(R.string.keep_playlists_keywords)),
+            SettingEntry(page, videos, tr(R.string.prepare_library_videos), tr(R.string.prepare_videos_keywords)),
             // #314 (1.8.1).
             SettingEntry(page, files, tr(R.string.use_your_own_song_files), tr(R.string.own_files_keywords)),
             SettingEntry(page, files, tr(R.string.scan_your_song_files_again), tr(R.string.own_files_keywords), needs = ownFiles),

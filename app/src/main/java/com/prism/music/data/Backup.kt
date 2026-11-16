@@ -8,10 +8,12 @@ import android.net.Uri
 import com.prism.music.AppContainer
 import com.prism.music.BuildConfig
 import com.prism.music.data.innertube.InnerTube
+import com.prism.music.data.db.VideoSongEntity
 import com.prism.music.data.model.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import java.io.ByteArrayOutputStream
@@ -126,6 +128,11 @@ class Backup(private val c: AppContainer) {
                 val bytes = c.tags.exportJson(c.tags.export()).toByteArray()
                 putEntry(zip, TAGS_ENTRY, bytes)
                 sums[TAGS_ENTRY] = sha256(bytes)
+                // Which song each music video is of (1.8.5): the library's too, so a restore without the history keeps
+                // the matches (and a video's own sound, for one of none) rather than looking them all up again.
+                val matches = InnerTube.json.encodeToString(VIDEO_SONG_LIST, c.db.videoSongs().all()).toByteArray()
+                putEntry(zip, VIDEO_SONGS_ENTRY, matches)
+                sums[VIDEO_SONGS_ENTRY] = sha256(matches)
             }
             filesToBackUp(parts).forEach { f ->
                 val name = f.relativeTo(data).invariantSeparatorsPath
@@ -171,6 +178,8 @@ class Backup(private val c: AppContainer) {
             .filter { it.isFile && (it.parentFile != ctx.filesDir || filePart(it.name) in parts) }
             // A restore's tags not read in yet: the database's are written above instead.
             .filter { "files/" + it.relativeTo(ctx.filesDir).invariantSeparatorsPath != TAGS_ENTRY }
+            // The restored video matches (read into the database at the next start): written above, not as they are here.
+            .filter { "files/" + it.relativeTo(ctx.filesDir).invariantSeparatorsPath != VIDEO_SONGS_ENTRY }
             .forEach { keep += it }
         return keep
     }
@@ -415,6 +424,7 @@ class Backup(private val c: AppContainer) {
         private const val EXO_DB = "exoplayer_internal.db"
         private val ALLOWED = listOf("databases/", "shared_prefs/", "datastore/", "files/")
         private val SETTINGS_MAP = MapSerializer(String.serializer(), String.serializer())
+        private val VIDEO_SONG_LIST = ListSerializer(VideoSongEntity.serializer())
 
         /** The trailing list of hashes that tells a whole backup from a cut-short or altered one ([BackupManifest.integrity]). */
         private const val INTEGRITY = "prism-integrity.json"
@@ -434,6 +444,8 @@ class Backup(private val c: AppContainer) {
         /** Settings are values (a small JSON): never read a whole gigabyte of them, or tags, into memory. */
         private const val MAX_SETTINGS = 16L * 1024 * 1024
         private const val MAX_TAGS = 64L * 1024 * 1024
+        /** Video matches: one line each, but a library's worth. */
+        private const val MAX_VIDEO_MATCHES = 64L * 1024 * 1024
         /** Small files are checked again at start-up (settings, tags); audio-sized ones were checked when unpacked. */
         private const val VERIFY_AT_START = 16L * 1024 * 1024
         /** A restored phone re-fetches at most this many downloads at once (a backup can't ask for endless ones). */
@@ -449,6 +461,11 @@ class Backup(private val c: AppContainer) {
         private const val BRING_LOOK = "bring/look.txt"
         /** The library's tags (1.8.3), read in at the next start ([TagStore.readPending]). */
         private const val TAGS_ENTRY = "files/library/" + TagStore.PENDING
+        /**
+         * The songs music videos were found to be of (1.8.5), a library entry read into the database at the next start
+         * ([readPendingVideoSongs]): so a restore that brings the library without the history keeps the matches.
+         */
+        internal const val VIDEO_SONGS_ENTRY = "files/library/video_songs.json"
         /** All a bundle may unpack to (its own size is held to [com.prism.music.connect.BringTransfer.MAX_BYTES]). */
         private const val BRING_UNPACKED_MAX = 128L * 1024 * 1024
 
@@ -507,6 +524,18 @@ class Backup(private val c: AppContainer) {
             BringContent(history ?: BringHistory(), prefs.orEmpty(), library, look)
         }.getOrNull()
 
+        /**
+         * A restore's video matches, read in once at the next start: the rows the backup held (null when there are none
+         * waiting), and the file goes whether or not it reads.
+         */
+        internal fun readPendingVideoSongs(files: File): List<VideoSongEntity>? {
+            val f = File(files, VIDEO_SONGS_ENTRY.removePrefix("files/"))
+            if (!f.isFile) return null
+            val rows = runCatching { InnerTube.json.decodeFromString(VIDEO_SONG_LIST, f.readText()) }.getOrNull()
+            f.delete()
+            return rows
+        }
+
         /** Saved preferences by part; anything not named here counts as Settings. Some never go in a backup (null). */
         private val PREFS_PARTS: Map<String, BackupPart?> = buildMap {
             // playlist_covers (with files/covers below) holds songs' and albums' own covers too (#305, 1.8.1).
@@ -541,6 +570,8 @@ class Backup(private val c: AppContainer) {
             put("cache_formats", null)
             // What this sitting's mixes have played (1.8.2): over within hours, nothing a restored phone would want.
             put("session_heard", null)
+            // When the library's music videos were last got ready (1.8.5): a restored phone does its own run.
+            put("video_prepare", null)
             // Which install this is (RestoredInstall): restoring one's own backup elsewhere mustn't look like Android's.
             put(RestoredInstall.PREFS, null)
         }
@@ -562,6 +593,10 @@ class Backup(private val c: AppContainer) {
             put("datastore", null)
             // Diagnostics and crash logs are this phone's, and have no place in a file shared with anyone.
             listOf("crashes", "diagnostics", "lyrics-tags").forEach { put(it, null) }
+            // ...and the crash log keeps its last details in a prefs file too (1.8.5).
+            put("crashlog", null)
+            // Which one-time moves into the database this install has done: another phone's database hasn't had them.
+            put("migrations", null)
             // Lyric translations (1.7.8) are a cache of Google's answers, asked for again when missing.
             put("translations", null)
             // Songs' "From" whole playlists (1.8.4, #473): read again from YouTube when missing, nothing to carry over.
@@ -575,6 +610,7 @@ class Backup(private val c: AppContainer) {
         private fun entryLimit(name: String): Long = when (name) {
             SETTINGS_ENTRY -> MAX_SETTINGS
             TAGS_ENTRY -> MAX_TAGS
+            VIDEO_SONGS_ENTRY -> MAX_VIDEO_MATCHES
             else -> MAX_ENTRY
         }
 
@@ -582,6 +618,7 @@ class Backup(private val c: AppContainer) {
         private fun entryPart(name: String): BackupPart? = when {
             name == SETTINGS_ENTRY -> BackupPart.SETTINGS
             name == TAGS_ENTRY -> BackupPart.LIBRARY
+            name == VIDEO_SONGS_ENTRY -> BackupPart.LIBRARY
             name.startsWith("databases/") -> {
                 val f = name.removePrefix("databases/")
                 when {
@@ -607,6 +644,7 @@ class Backup(private val c: AppContainer) {
         private fun entryAllowed(name: String, whole: Boolean, parts: Set<BackupPart>): Boolean {
             if (name == SETTINGS_ENTRY) return whole || BackupPart.SETTINGS in parts || BackupPart.ACCOUNTS in parts
             if (name == TAGS_ENTRY) return whole || BackupPart.LIBRARY in parts
+            if (name == VIDEO_SONGS_ENTRY) return whole || BackupPart.LIBRARY in parts
             // A store's own file (an old backup) also holds the sign-in: only a whole old backup may bring it.
             if (name.startsWith("datastore/")) return whole
             val part = entryPart(name) ?: return false
@@ -615,7 +653,7 @@ class Backup(private val c: AppContainer) {
 
         /** An entry whose name is one a restore might take (its part is checked once the manifest is read). */
         private fun entryCouldBeRestored(name: String): Boolean =
-            name == SETTINGS_ENTRY || name == TAGS_ENTRY || ALLOWED.any { name.startsWith(it) }
+            name == SETTINGS_ENTRY || name == TAGS_ENTRY || name == VIDEO_SONGS_ENTRY || ALLOWED.any { name.startsWith(it) }
 
         /** No climbing out, no absolute paths, no odd separators or control characters, and no ".." anywhere. */
         private fun safeEntryName(name: String): Boolean =

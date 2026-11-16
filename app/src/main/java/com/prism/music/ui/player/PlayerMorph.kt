@@ -1,9 +1,13 @@
 package com.prism.music.ui.player
 
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,10 +18,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -27,15 +35,19 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.lerp as lerpStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.sp
+import com.prism.music.data.prefs.MiniPlayerStyle
+import com.prism.music.data.prefs.TransportStyle
 import com.prism.music.ui.theme.LocalAppSettings
 import com.prism.music.ui.theme.PrismIcons
 import com.prism.music.ui.theme.PrismTokens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -44,9 +56,10 @@ import kotlin.math.roundToInt
  * finger while a swipe is in flight, so the whole change follows the hand, can turn back mid-way, and is only
  * finished (or undone) when it lifts. Taps and buttons play the same transition from wherever it is.
  *
- * The elements themselves — the cover, the title, the artist, the play control — are drawn by [PlayerMorphLayer]
- * between the two places their real counterparts report ([miniTitle] and [playerTitle], and the rest), so the change is
- * a morph rather than one player sliding over another; the surfaces around them (the player's layer in MainActivity
+ * The elements themselves — the cover, the title, the artist, and the play, previous and next controls — are drawn by
+ * [PlayerMorphLayer] between the two places their real counterparts report ([miniTitle] and [playerTitle], and the
+ * rest), so the change is a morph rather than one player sliding over another; the surfaces around them (the player's
+ * layer in MainActivity
  * and [playerMorphMini]) follow the same number.
  */
 object PlayerMorph {
@@ -79,12 +92,21 @@ object PlayerMorph {
 
     private var settleJob: Job? = null
 
+    /**
+     * The speed a hand let go at, [progress] a second, waiting for the transition it asked for (see [released]): the way
+     * in from the mini player and the way out of the player are finished through the same calls everything else uses, so
+     * the speed travels with the number instead of through a parameter every caller would have to carry.
+     */
+    private var handOff = 0f
+
     val isMorphing: Boolean get() = progress > 0.001f && progress < 1f
 
-    /** Whether the mini player's own cover, title, artist and play button stand down for the moving copies. */
+    /** Whether the mini player's own cover, title, artist and controls stand down for the moving copies. */
     val hidesTitle: Boolean get() = !animationsOff && progress > 0.001f && progress < 1f && miniTitle != null && playerTitle != null
     val hidesArtist: Boolean get() = !animationsOff && progress > 0.001f && progress < 1f && miniArtist != null && playerArtist != null
     val hidesPlay: Boolean get() = !animationsOff && progress > 0.001f && progress < 1f && miniPlay != null && playerPlay != null
+    val hidesPrev: Boolean get() = !animationsOff && progress > 0.001f && progress < 1f && miniPrev != null && playerPrev != null
+    val hidesNext: Boolean get() = !animationsOff && progress > 0.001f && progress < 1f && miniNext != null && playerNext != null
 
     /**
      * How much of the real player's title, artist and play button to show. The moving copies carry them for the whole
@@ -99,9 +121,31 @@ object PlayerMorph {
 
     val playReveal: Float get() = when {
         animationsOff -> 1f
-        playerPlay == null || miniPlay == null || !atRestAtPlayer() -> 0f
+        // Nothing to hand over (the mini player's play button is off, say): the player's own is the only one.
+        playerPlay == null || miniPlay == null -> 1f
+        !atRestAtPlayer() -> 0f
         else -> 1f
     }
+
+    /** The player's previous and next, handed over the same way the play control is. */
+    val prevReveal: Float get() = when {
+        animationsOff || miniPrev == null || playerPrev == null -> 1f
+        atRestAtPlayer() -> 1f
+        else -> 0f
+    }
+
+    val nextReveal: Float get() = when {
+        animationsOff || miniNext == null || playerNext == null -> 1f
+        atRestAtPlayer() -> 1f
+        else -> 0f
+    }
+
+    /** The transport is the compact one (the deck is small or tight); the moving play control lands on its size. */
+    var playCompact by mutableStateOf(false)
+
+    /** The player's previous / next are dimmed at the queue's ends; the moving copies land at the same weight. */
+    var prevEnabled by mutableStateOf(true)
+    var nextEnabled by mutableStateOf(true)
 
     /** The title or the artist are moving, so the player's own row must stand down until they land. */
     private fun hasRowMorph(): Boolean = playerTitle != null || playerArtist != null
@@ -148,6 +192,7 @@ object PlayerMorph {
     fun beginDrag(towardPlayer: Boolean) {
         settleJob?.cancel()
         settleJob = null
+        handOff = 0f
         dragging = true
         opening = towardPlayer
     }
@@ -156,34 +201,65 @@ object PlayerMorph {
         progress = value.coerceIn(0f, 1f)
     }
 
-    /** The finger lifted: finish the way it was going, or fall back. */
-    fun endDrag(towardPlayer: Boolean, complete: Boolean, scope: CoroutineScope, reduceMotion: Boolean, then: (() -> Unit)? = null) {
+    /**
+     * The hand lifted at [velocity] ([progress] a second, the way it was moving): the transition it asks for next starts
+     * at that speed, so letting go carries on where the finger left off instead of stopping dead to set off again.
+     */
+    fun released(velocity: Float) {
+        handOff = velocity
+    }
+
+    private fun takeHandOff(): Float = handOff.also { handOff = 0f }
+
+    /** The finger lifted: finish the way it was going (at [velocity]), or fall back. */
+    fun endDrag(
+        towardPlayer: Boolean,
+        complete: Boolean,
+        scope: CoroutineScope,
+        reduceMotion: Boolean,
+        velocity: Float = 0f,
+        then: (() -> Unit)? = null,
+    ) {
         dragging = false
         opening = towardPlayer
+        // A speed handed over for another way in or out isn't this one's.
+        handOff = 0f
         val to = if (complete) (if (towardPlayer) 1f else 0f) else (if (towardPlayer) 0f else 1f)
-        animateTo(scope, to, reduceMotion, then)
+        animateTo(scope, to, reduceMotion, velocity, then)
     }
 
     /** Opened by a tap, a button or an action: the same morph, finished on its own. */
     fun open(scope: CoroutineScope, reduceMotion: Boolean, then: (() -> Unit)? = null) {
         dragging = false
         opening = true
-        animateTo(scope, 1f, reduceMotion, then)
+        animateTo(scope, 1f, reduceMotion, takeHandOff(), then)
     }
 
     /** Closed by Back, a button or a swipe that went far enough: the same morph, reversed. */
     fun close(scope: CoroutineScope, reduceMotion: Boolean, then: (() -> Unit)? = null) {
         dragging = false
         opening = false
-        animateTo(scope, 0f, reduceMotion, then)
+        animateTo(scope, 0f, reduceMotion, takeHandOff(), then)
     }
 
-    private fun animateTo(scope: CoroutineScope, to: Float, reduceMotion: Boolean, then: (() -> Unit)?) {
+    private fun animateTo(scope: CoroutineScope, to: Float, reduceMotion: Boolean, velocity: Float, then: (() -> Unit)?) {
         settleJob?.cancel()
+        val from = progress
+        if (from == to) {
+            // Nothing to move: the place is already the one asked for (a tap on an open player, say).
+            settleJob = null
+            then?.invoke()
+            return
+        }
         settleJob = scope.launch {
             animate(
-                progress, to,
-                animationSpec = tween(if (reduceMotion) 140 else if (to > progress) 340 else 300, easing = PrismTokens.Motion.Ease),
+                from, to,
+                animationSpec = MorphSettle.spec(
+                    from, to, velocity,
+                    ms = if (to > from) 340 else 300,
+                    reduceMs = 140,
+                    reduceMotion = reduceMotion,
+                ),
             ) { v, _ -> progress = v }
             then?.invoke()
         }
@@ -193,6 +269,7 @@ object PlayerMorph {
     fun snap(value: Float) {
         settleJob?.cancel()
         settleJob = null
+        handOff = 0f
         dragging = false
         progress = value.coerceIn(0f, 1f)
     }
@@ -203,11 +280,15 @@ object PlayerMorph {
     var miniTitle by mutableStateOf<Rect?>(null)
     var miniArtist by mutableStateOf<Rect?>(null)
     var miniPlay by mutableStateOf<Rect?>(null)
+    var miniPrev by mutableStateOf<Rect?>(null)
+    var miniNext by mutableStateOf<Rect?>(null)
 
-    /** The full player's title, artist and play button, kept while the player is laid out. */
+    /** The full player's title, artist and controls, kept while the player is laid out. */
     var playerTitle by mutableStateOf<Rect?>(null)
     var playerArtist by mutableStateOf<Rect?>(null)
     var playerPlay by mutableStateOf<Rect?>(null)
+    var playerPrev by mutableStateOf<Rect?>(null)
+    var playerNext by mutableStateOf<Rect?>(null)
 
     internal fun note(which: Int, r: Rect) {
         when (which) {
@@ -217,6 +298,10 @@ object PlayerMorph {
             3 -> if (progress > 0.001f) playerTitle = if (near(playerTitle, r)) playerTitle else r
             4 -> if (progress > 0.001f) playerArtist = if (near(playerArtist, r)) playerArtist else r
             5 -> if (progress > 0.001f) playerPlay = if (near(playerPlay, r)) playerPlay else r
+            6 -> if (progress <= 0.001f) miniPrev = if (near(miniPrev, r)) miniPrev else r
+            7 -> if (progress <= 0.001f) miniNext = if (near(miniNext, r)) miniNext else r
+            8 -> if (progress > 0.001f) playerPrev = if (near(playerPrev, r)) playerPrev else r
+            9 -> if (progress > 0.001f) playerNext = if (near(playerNext, r)) playerNext else r
         }
     }
 
@@ -235,6 +320,10 @@ fun Modifier.miniArtistAnchor(): Modifier = onGloballyPositioned { PlayerMorph.n
 
 fun Modifier.miniPlayAnchor(): Modifier = onGloballyPositioned { PlayerMorph.note(2, it.boundsInRoot()) }
 
+fun Modifier.miniPrevAnchor(): Modifier = onGloballyPositioned { PlayerMorph.note(6, it.boundsInRoot()) }
+
+fun Modifier.miniNextAnchor(): Modifier = onGloballyPositioned { PlayerMorph.note(7, it.boundsInRoot()) }
+
 /** The player's parts keep reporting while they move: the copies land exactly where they are when the player settles. */
 fun Modifier.playerTitleAnchor(): Modifier = onGloballyPositioned { PlayerMorph.note(3, it.boundsInRoot()) }
 
@@ -242,10 +331,62 @@ fun Modifier.playerArtistAnchor(): Modifier = onGloballyPositioned { PlayerMorph
 
 fun Modifier.playerPlayAnchor(): Modifier = onGloballyPositioned { PlayerMorph.note(5, it.boundsInRoot()) }
 
+fun Modifier.playerPrevAnchor(): Modifier = onGloballyPositioned { PlayerMorph.note(8, it.boundsInRoot()) }
+
+fun Modifier.playerNextAnchor(): Modifier = onGloballyPositioned { PlayerMorph.note(9, it.boundsInRoot()) }
+
 /** The mini player as it opens: it stays where it is (so the moving copies start exactly on it) and fades away. */
 fun Modifier.playerMorphMini(): Modifier = graphicsLayer {
     // Gone a little past half-way: the player is all but opaque by then, and the copies carry the rest.
     alpha = 1f - (PlayerMorph.progress * 2.6f).coerceIn(0f, 1f)
+}
+
+/**
+ * How a number a hand has set is finished: from where the hand left it, at the speed the hand was moving, into its
+ * place. A settle used to be a fixed-length tween off a standstill, so letting go of a swipe stopped the player dead
+ * and set it off again from nothing — the hitch heard as judder in opening and closing it.
+ *
+ * The curve starts at the release's speed and eases to a stop, arriving at the place rather than at a speed (a
+ * transition that lands still moving has to stop there, which is the same hitch at the other end). The way left sets
+ * the length: the last tenth doesn't take as long as the whole way, and a hard flick with a little way to go is over in
+ * a moment instead of being slowed down first to be shown.
+ */
+internal object MorphSettle {
+    /** The steepest start the cubic can have without turning back on itself (its first slope's ceiling). */
+    private const val STEEPEST = 3f
+    /** Under this a settle is over before it's seen: the hand's speed is eased a little instead of kept whole. */
+    private const val BRIEFEST_MS = 90f
+
+    /**
+     * @param velocity the hand's speed in [from]/[to]'s units a second. Only the share toward the place counts: a hand
+     *   let go the other way is finished from where it is, without winding up backwards first.
+     * @param ms the whole settle's length at rest; [reduceMs] with Reduce motion, which is a plain fade as before.
+     */
+    fun spec(from: Float, to: Float, velocity: Float, ms: Int, reduceMs: Int, reduceMotion: Boolean): AnimationSpec<Float> {
+        if (reduceMotion) return tween(reduceMs, easing = PrismTokens.Motion.Ease)
+        val way = to - from
+        val span = abs(way)
+        if (span < 0.0001f) return tween(0)
+        // Less way to go, less time: a tenth still to go shouldn't take as long as the whole way did.
+        val base = ms * (0.35f + 0.65f * span.coerceAtMost(1f))
+        val speed = if (way * velocity > 0f) abs(velocity) else 0f
+        if (speed < 0.001f) return tween(base.roundToInt(), easing = PrismTokens.Motion.Ease)
+        // The curve carries at most this many times the average speed off the mark, so a quick hand with a long way to
+        // go needs less time than the way alone would ask for.
+        val fitted = STEEPEST * span / speed * 1000f
+        val length = fitted.coerceAtLeast(BRIEFEST_MS).coerceAtMost(base)
+        val slope = (speed * length / 1000f / span).coerceIn(0f, STEEPEST)
+        return tween(length.roundToInt(), easing = HandOff(slope))
+    }
+
+    /** 0 at the start and 1 at the end, off the mark at [slope] times the average speed and easing to a stop. */
+    private class HandOff(private val slope: Float) : Easing {
+        override fun transform(fraction: Float): Float {
+            val t = fraction.coerceIn(0f, 1f)
+            val t2 = t * t
+            return (3f * t2 - 2f * t2 * t) + slope * (t2 * t - 2f * t2 + t)
+        }
+    }
 }
 
 /**
@@ -275,18 +416,24 @@ internal class PanelShift(start: Float = 0f) {
         dragging = false
     }
 
-    fun animateTo(scope: CoroutineScope, to: Float, reduceMotion: Boolean, then: (() -> Unit)? = null) {
+    fun animateTo(scope: CoroutineScope, to: Float, reduceMotion: Boolean, velocity: Float = 0f, then: (() -> Unit)? = null) {
         job?.cancel()
+        val from = value
+        if (from == to) {
+            job = null
+            then?.invoke()
+            return
+        }
         job = scope.launch {
-            animate(value, to, animationSpec = tween(if (reduceMotion) 150 else 320, easing = PrismTokens.Motion.Ease)) { v, _ -> value = v }
+            animate(from, to, animationSpec = MorphSettle.spec(from, to, velocity, ms = 320, reduceMs = 150, reduceMotion)) { v, _ -> value = v }
             then?.invoke()
         }
     }
 }
 
 /**
- * The cover, title, artist and play control moving between the mini player's places and the full player's. Drawn only
- * while a morph is in flight (and never with Reduce motion), over both players, with no input of its own: it's a
+ * The cover, title, artist and transport controls moving between the mini player's places and the full player's. Drawn
+ * only while a morph is in flight (and never with Reduce motion), over both players, with no input of its own: it's a
  * picture of the hand-over, not another thing to touch.
  */
 @Composable
@@ -314,24 +461,130 @@ fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
     if (fromArtist != null && toArtist != null && artist.isNotBlank()) {
         MorphLine(artist, fromArtist, toArtist, t, artistStyle, artistColor, "playerMorphArtist")
     }
-    if (fromPlay != null && toPlay != null) {
-        val r = lerpRect(fromPlay, toPlay, t)
-        Box(
-            Modifier
-                .clearAndSetSemantics { testTag = "playerMorphPlay" }
-                .layout { m, c ->
-                    val w = r.width.roundToInt().coerceAtLeast(1)
-                    val h = r.height.roundToInt().coerceAtLeast(1)
-                    val p = m.measure(Constraints.fixed(w, h))
-                    layout(c.maxWidth, c.maxHeight) { p.place(r.left.roundToInt(), r.top.roundToInt()) }
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                if (isPlaying) PrismIcons.Pause else PrismIcons.Play, null,
-                Modifier.size(lerpDp(28.dp, 74.dp, t)),
-                tint = Color.White,
-            )
+    if (fromPlay != null && toPlay != null) MorphPlay(fromPlay, toPlay, t, isPlaying)
+    val fromPrev = PlayerMorph.miniPrev
+    val toPrev = PlayerMorph.playerPrev
+    if (fromPrev != null && toPrev != null) {
+        MorphSkip(
+            fromPrev, toPrev, t,
+            miniIcon = PrismIcons.Previous,
+            playerIcon = if (settings.transportStyle == TransportStyle.GLYPHS) PrismIcons.Backward else PrismIcons.Previous,
+            enabled = PlayerMorph.prevEnabled,
+            tag = "playerMorphPrev",
+        )
+    }
+    val fromNext = PlayerMorph.miniNext
+    val toNext = PlayerMorph.playerNext
+    if (fromNext != null && toNext != null) {
+        MorphSkip(
+            fromNext, toNext, t,
+            miniIcon = PrismIcons.Next,
+            playerIcon = if (settings.transportStyle == TransportStyle.GLYPHS) PrismIcons.Forward else PrismIcons.Next,
+            enabled = PlayerMorph.nextEnabled,
+            tag = "playerMorphNext",
+        )
+    }
+}
+
+/**
+ * The play control between its two homes. Its disc and glyph are the ones the full player draws: with "Play button" it
+ * lands on the white disc and its black glyph, with "Rings" on the glass disc and its ring, and with "Classic" on the
+ * bare oversized glyph. The moving copy used to keep one white glyph of its own, so only Classic landed without a jump.
+ */
+@Composable
+private fun MorphPlay(from: Rect, to: Rect, t: Float, isPlaying: Boolean) {
+    val settings = LocalAppSettings.current
+    val scheme = MaterialTheme.colorScheme
+    val style = settings.transportStyle
+    val mini = settings.miniPlayerStyle
+    val compact = PlayerMorph.playCompact
+    val disc = when (style) {
+        TransportStyle.GLYPHS -> 0.dp
+        TransportStyle.BUTTON, TransportStyle.OUTLINE -> if (compact) 64.dp else 78.dp
+    }
+    val icon = when (style) {
+        TransportStyle.GLYPHS -> if (compact) 58.dp else 74.dp
+        TransportStyle.BUTTON -> disc * 0.56f
+        TransportStyle.OUTLINE -> disc * 0.46f
+    }
+    val miniIcon = when (mini) {
+        MiniPlayerStyle.CARD -> 28.dp
+        MiniPlayerStyle.SLIM -> 26.dp
+        MiniPlayerStyle.PILL -> 24.dp
+    }
+    val miniDisc = if (mini == MiniPlayerStyle.PILL) 40.dp else 0.dp
+    val miniDiscColor = if (mini == MiniPlayerStyle.PILL) scheme.onSurface else Color.Transparent
+    val discColor = when (style) {
+        TransportStyle.GLYPHS -> Color.Transparent
+        TransportStyle.BUTTON -> Color.White
+        TransportStyle.OUTLINE -> Color.White.copy(alpha = 0.10f)
+    }
+    // The words turn white sooner than they grow; the control does the same on its way over the player's dark picture.
+    val ink = (t * 1.6f).coerceAtMost(1f)
+    val tint = lerp(if (mini == MiniPlayerStyle.PILL) scheme.surface else scheme.onSurface, if (style == TransportStyle.BUTTON) Color.Black else Color.White, ink)
+    val ring = style != TransportStyle.GLYPHS && settings.view.playRing
+    val r = lerpRect(from, to, t)
+    Box(
+        Modifier
+            .clearAndSetSemantics { testTag = "playerMorphPlay" }
+            .layout { m, c ->
+                val w = r.width.roundToInt().coerceAtLeast(1)
+                val h = r.height.roundToInt().coerceAtLeast(1)
+                val p = m.measure(Constraints.fixed(w, h))
+                layout(c.maxWidth, c.maxHeight) { p.place(r.left.roundToInt(), r.top.roundToInt()) }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        val d = lerpDp(miniDisc, disc, t)
+        if (d > 0.5.dp) Box(
+            Modifier.size(d).clip(CircleShape).background(lerp(miniDiscColor, discColor, t)).drawWithContent {
+                drawContent()
+                // The ring comes in with the disc, not all at once at the end.
+                if (ring) drawCircle(PrismTokens.spectrumRing(), radius = size.minDimension / 2f, style = Stroke(2.dp.toPx()), alpha = t)
+            },
+        )
+        Icon(
+            if (isPlaying) PrismIcons.Pause else PrismIcons.Play, null,
+            Modifier.size(lerpDp(miniIcon, icon, t)),
+            tint = tint,
+        )
+    }
+}
+
+/** Previous or next between its two homes, at the player's own glyph size, height and weight. */
+@Composable
+private fun MorphSkip(from: Rect, to: Rect, t: Float, miniIcon: ImageVector, playerIcon: ImageVector, enabled: Boolean, tag: String) {
+    val settings = LocalAppSettings.current
+    val scheme = MaterialTheme.colorScheme
+    val compact = PlayerMorph.playCompact
+    val glyphs = settings.transportStyle == TransportStyle.GLYPHS
+    val size: Dp = (if (compact) 44.dp else 53.dp) * (if (glyphs) 1f else 0.82f)
+    val heightScale = if (glyphs) 0.85f else 1f
+    val ink = (t * 1.6f).coerceAtMost(1f)
+    val tint = lerp(scheme.onSurface, Color.White, ink)
+    // The player dims a control it can't use (the queue's ends); the copy dims with it.
+    val weight = 1f + (if (enabled) 0f else -0.7f) * t
+    val r = lerpRect(from, to, t)
+    Box(
+        Modifier
+            .clearAndSetSemantics { testTag = tag }
+            .layout { m, c ->
+                val w = r.width.roundToInt().coerceAtLeast(1)
+                val h = r.height.roundToInt().coerceAtLeast(1)
+                val p = m.measure(Constraints.fixed(w, h))
+                layout(c.maxWidth, c.maxHeight) { p.place(r.left.roundToInt(), r.top.roundToInt()) }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        val glyph = Modifier.size(lerpDp(24.dp, size, t)).graphicsLayer { scaleY = 1f + (heightScale - 1f) * t }
+        Box(Modifier.graphicsLayer { alpha = weight }, contentAlignment = Alignment.Center) {
+            if (miniIcon === playerIcon) {
+                Icon(playerIcon, null, glyph, tint = tint)
+            } else {
+                // Classic's glyph is a different one from the mini player's: they hand over rather than cut.
+                Icon(miniIcon, null, glyph.graphicsLayer { alpha = 1f - ink }, tint = tint)
+                Icon(playerIcon, null, glyph.graphicsLayer { alpha = ink }, tint = tint)
+            }
         }
     }
 }

@@ -53,9 +53,20 @@ fun Song.toMediaItem(videoId: String? = null): MediaItem {
         .build()
 }
 
-fun MediaItem.toSong(): Song? = mediaMetadata.extras?.getString(EXTRA_SONG)?.let {
-    runCatching { InnerTube.json.decodeFromString(Song.serializer(), it) }.getOrNull()?.trusted()
+/**
+ * The [Song] carried by a media item. The same item is read again and again (the queue is mirrored on every player event),
+ * so its decoded song is kept by the text it came from: a queue of thousands is decoded once, not on every update.
+ */
+fun MediaItem.toSong(): Song? {
+    val text = mediaMetadata.extras?.getString(EXTRA_SONG) ?: return null
+    decodedSongs[text]?.let { return it }
+    val song = runCatching { InnerTube.json.decodeFromString(Song.serializer(), text) }.getOrNull()?.trusted() ?: return null
+    decodedSongs[text] = song
+    return song
 }
+
+/** Decoded songs by their own JSON, the text a media item keeps ([toSong]). */
+private val decodedSongs = java.util.concurrent.ConcurrentHashMap<String, Song>()
 
 private val SONG_IMAGE_HOSTS = listOf("ytimg.com", "ggpht.com", "googleusercontent.com", "gstatic.com")
 

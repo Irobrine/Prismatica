@@ -1,6 +1,9 @@
 package com.prism.music
 
+import androidx.compose.animation.core.TargetBasedAnimation
+import androidx.compose.animation.core.VectorConverter
 import com.prism.music.data.prefs.PlayerGesture
+import com.prism.music.ui.player.MorphSettle
 import com.prism.music.ui.player.PanelShift
 import com.prism.music.ui.player.PlayerMorph
 import com.prism.music.ui.player.PlayerPage
@@ -176,5 +179,50 @@ class PlayerMorphTest {
         val player = androidx.compose.ui.geometry.Rect(0f, 0f, 640f, 60f)
         assertEquals(640, com.prism.music.ui.player.morphRoom(mini, player))
         assertEquals(640, com.prism.music.ui.player.morphRoom(player, mini))
+    }
+
+    // ---- How a release is finished: at the hand's speed, into the place, in less time when there's less way.
+
+    private fun settle(from: Float, to: Float, velocity: Float, ms: Int = 340) =
+        target(from, to, MorphSettle.spec(from, to, velocity, ms = ms, reduceMs = 140, reduceMotion = false))
+
+    private fun target(from: Float, to: Float, spec: androidx.compose.animation.core.AnimationSpec<Float>) =
+        TargetBasedAnimation(
+            animationSpec = spec,
+            typeConverter = Float.VectorConverter,
+            initialValue = from,
+            targetValue = to,
+        )
+
+    /** The first frames move at the speed the hand let go at: no stop dead, no setting off again. */
+    @Test fun aReleaseCarriesTheHandsSpeed() {
+        val anim = settle(0.3f, 1f, velocity = 2f)
+        val speed = (anim.getValueFromNanos(1_000_000L) - anim.getValueFromNanos(0L)) / 0.001f
+        assertEquals("progress a second", 2f, speed, 0.05f)
+        // And it arrives at the place, not still moving past it (nothing to stop dead at the other end).
+        assertEquals(1f, anim.getValueFromNanos(anim.durationNanos), 0.0001f)
+    }
+
+    /** A hand let go the other way is finished from where it is: it doesn't wind up backwards first. */
+    @Test fun aHandGoingTheOtherWayIsNotCarried() {
+        val anim = settle(0.3f, 1f, velocity = -2f)
+        val speed = (anim.getValueFromNanos(1_000_000L) - anim.getValueFromNanos(0L)) / 0.001f
+        assertEquals("starts from where it is", 0f, speed, 0.05f)
+    }
+
+    /** Less way to go, less time: the last tenth doesn't take as long as the whole way did. */
+    @Test fun aShorterWayTakesLessTime() {
+        assertTrue(settle(0.9f, 1f, 0f).durationNanos < settle(0f, 1f, 0f).durationNanos)
+    }
+
+    /** A hard flick is over in a moment rather than slowed down first to be shown. */
+    @Test fun aFlickFinishesSooner() {
+        assertTrue(settle(0.3f, 1f, velocity = 12f).durationNanos < settle(0.3f, 1f, 0f).durationNanos)
+    }
+
+    /** With Reduce motion there is no carry: the same plain fade, whatever the hand was doing. */
+    @Test fun reduceMotionIsAPlainFade() {
+        val spec = MorphSettle.spec(0.3f, 1f, velocity = 4f, ms = 340, reduceMs = 140, reduceMotion = true)
+        assertEquals(140_000_000L, target(0.3f, 1f, spec).durationNanos)
     }
 }

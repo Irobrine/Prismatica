@@ -13,6 +13,7 @@ import android.net.ConnectivityManager
 import android.view.LayoutInflater
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -21,12 +22,15 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -83,6 +87,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode
@@ -193,6 +198,37 @@ private fun stripBalanced(parts: List<com.prism.music.data.prefs.DeckPart>, gaps
     if (at !in 1 until parts.lastIndex || stripOverScrubber(parts, at)) return gaps
     val even = (gaps[at - 1] + gaps[at]) / 2
     return gaps.toMutableList().also { it[at - 1] = even; it[at] = even }
+}
+
+/**
+ * How far the deck's current lyric has folded away over a panel (1 none of it left): with the panel's own number, and
+ * with what the lyrics ask of it (its words are on the screen) or Small does (the deck is smaller over either panel).
+ * The panel's number makes it go with the finger; the other two make it ease when what it answers to changes with the
+ * panel standing still — from the lyrics to the queue, say.
+ */
+internal fun deckStripGone(panel: Float, lyrics: Float, small: Float, lyricsOnPlayer: Boolean): Float =
+    if (!lyricsOnPlayer) 1f else minOf(maxOf(lyrics, small), panel).coerceIn(0f, 1f)
+
+/**
+ * The room [room] (0..1) a part of the deck takes: its whole height, or, between, the part squeezed into the room it has
+ * — its bottom edge held where the part below it sits, its top cut off and faded — so a fold never moves what is under
+ * it. Its own height is what the deck is summed from, so the deck's height needs no second animation of its own.
+ */
+internal fun Modifier.deckRoom(room: Float): Modifier {
+    val r = room.coerceIn(0f, 1f)
+    if (r >= 1f) return this
+    // The layer is outside the smaller layout, so what's cut off at the top is clipped by the room itself, not drawn
+    // over the part above it.
+    return this
+        .graphicsLayer {
+            clip = true
+            alpha = r
+        }
+        .layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints)
+            val room = (placeable.height * r).roundToInt()
+            layout(placeable.width, room) { placeable.place(0, room - placeable.height) }
+        }
 }
 
 /**
@@ -467,7 +503,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     // Pulled down (or sliding closed), the page under the player shows again: its backgrounds move again.
     val cover = com.prism.music.ui.components.LocalPlayerCover.current
     LaunchedEffect(cover) {
-        snapshotFlow { PlayerMorph.progress < 0.999f || closing }.collect { cover.pulled = it }
+        snapshotFlow { PlayerMorph.progress < 1f || closing }.collect { cover.pulled = it }
     }
     DisposableEffect(cover) { onDispose { cover.pulled = false } }
     // Opened again before it had gone, this is the same player still, part-way down or away: it comes back to its place,
@@ -869,45 +905,52 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             closeLyrics()
         }
         // The progress at which a closing panel has gone far enough is PlayerMorph's own (a tenth of the window).
-        fun settlePanel(startedOpen: Boolean) {
+        fun settlePanel(startedOpen: Boolean, velocity: Float = 0f) {
             panelShift.end()
             haptics.gestureEnd()
             val reduce = c.settings.current.reduceMotion
             val towardPlayer = !startedOpen
             if (PlayerMorph.completes(panelShift.value, towardPlayer)) {
-                if (towardPlayer) panelShift.animateTo(scope, 1f, reduce)
-                else panelShift.animateTo(scope, 0f, reduce) { closePanelsNow() }
+                if (towardPlayer) panelShift.animateTo(scope, 1f, reduce, velocity)
+                else panelShift.animateTo(scope, 0f, reduce, velocity) { closePanelsNow() }
             } else if (towardPlayer) {
                 // It fades with the morph and only then leaves the player, so the list isn't cut away mid-pull.
-                panelShift.animateTo(scope, 0f, reduce) { closePanelsNow() }
-            } else panelShift.animateTo(scope, 1f, reduce)
+                panelShift.animateTo(scope, 0f, reduce, velocity) { closePanelsNow() }
+            } else panelShift.animateTo(scope, 1f, reduce, velocity)
         }
-        fun settleMenuSwipe() {
+        fun settleMenuSwipe(velocity: Float = 0f) {
             panelShift.end()
             haptics.gestureEnd()
             val reduce = c.settings.current.reduceMotion
             if (PlayerMorph.completes(panelShift.value, towardPlayer = true)) {
-                panelShift.animateTo(scope, 1f, reduce)
+                panelShift.animateTo(scope, 1f, reduce, velocity)
                 menuBySwipe = true
                 showActions = true
             } else {
-                panelShift.animateTo(scope, 0f, reduce)
+                panelShift.animateTo(scope, 0f, reduce, velocity)
             }
         }
         val dismissGesture = Modifier.pointerInput(morphSpan) {
-            // The finger writes the morph's number as it moves; it eases back (or finishes) when the finger lifts.
+            // The finger writes the morph's number as it moves; it eases back (or finishes) when the finger lifts, at
+            // the speed it was moving then.
+            val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+            fun letGoSpeed(): Float = -tracker.calculateVelocity().y / morphSpan
             detectVerticalDragGestures(
-                onDragStart = { if (!closing) PlayerMorph.beginDrag(towardPlayer = false) },
+                onDragStart = { if (!closing) { PlayerMorph.beginDrag(towardPlayer = false); tracker.resetTracking() } },
                 onDragEnd = {
                     if (closing) return@detectVerticalDragGestures
-                    if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) slideClosed()
-                    else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
+                    val v = letGoSpeed()
+                    if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) {
+                        PlayerMorph.released(v)
+                        slideClosed()
+                    } else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion, velocity = v)
                 },
                 onDragCancel = {
                     if (!closing) PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
                 },
             ) { change, amount ->
                 change.consume()
+                tracker.addPosition(change.uptimeMillis, change.position)
                 if (!closing) PlayerMorph.dragTo(PlayerMorph.progress - amount / morphSpan)
             }
         }
@@ -949,20 +992,27 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             var base = 0f
             var startProgress = 1f
             val slop = 6.dp.toPx()
+            // The speed the finger lifts at, so the panel or the player carries on at it instead of stopping dead.
+            val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+            fun letGoSpeed(): Float = -tracker.calculateVelocity().y / morphSpan
             detectVerticalDragGestures(
                 onDragStart = {
                     total = 0f; mode = 0; menuTarget = false
+                    tracker.resetTracking()
                     startedOpen = trackPanels && (lyricsOpen || queueOpen || statsOpen)
                     base = panelShift.value
                     startProgress = PlayerMorph.progress
                 },
                 onDragEnd = {
+                    val v = letGoSpeed()
                     when (mode) {
-                        1 -> if (menuTarget) settleMenuSwipe() else settlePanel(startedOpen)
+                        1 -> if (menuTarget) settleMenuSwipe(v) else settlePanel(startedOpen, v)
                         2 -> {
                             if (closing) return@detectVerticalDragGestures
-                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) slideClosed()
-                            else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
+                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) {
+                                PlayerMorph.released(v)
+                                slideClosed()
+                            } else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion, velocity = v)
                         }
                         3 -> if (total < -90f) {
                             val up = c.settings.current.coverSwipeUp
@@ -984,6 +1034,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                 },
             ) { change, amount ->
                 change.consume()
+                tracker.addPosition(change.uptimeMillis, change.position)
                 total += amount
                 if (mode == 0 && kotlin.math.abs(total) > slop) {
                     if (total > 0f) {
@@ -1111,12 +1162,35 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                 BoxWithConstraints(
                     Modifier.weight(1f).fillMaxWidth()
                         // #276: a swipe down anywhere round the cover closes the player, not only on the cover and the strip
-                        // at the top (the Cover and Minimal layouts leave room above the cover that took nothing). What's
-                        // on it (the cover, the title's buttons) takes its own drags first.
-                        .then(if (lyricsOpen || queueOpen || statsOpen) Modifier else dismissGesture)
+                        // at the top (the Cover and Minimal layouts leave room above the cover that took nothing). The whole
+                        // area takes the cover's own swipes (Settings → Gestures → On the cover), so a swipe up set to the
+                        // lyrics or the queue follows the finger there too, as it does over the cover itself. It stays on
+                        // through the panel opening (the drag would be cut off if this changed mid-gesture); what's on it
+                        // (the cover, the title's buttons) takes its own taps first.
+                        .then(sleeveGesture)
                         .testTag("playerArtBox")
                         .padding(top = ART_BOX_TOP_PAD, bottom = if (roomyCover) 12.dp else 18.dp),
                 ) {
+                    // The cover and the words above the deck are laid out from the room the player has with its deck at
+                    // rest. While a panel opens or closes the deck changes shape (the smaller deck, a row that comes or
+                    // goes); its own height animates, but the cover's place must not be re-measured every frame of that
+                    // change or the cover, title and artist would jump with it.
+                    val panelsOpenNow = lyricsOpen || queueOpen || statsOpen
+                    var restingHeight by remember { mutableStateOf(maxHeight) }
+                    var panelSettling by remember { mutableStateOf(false) }
+                    LaunchedEffect(panelsOpenNow) {
+                        if (panelsOpenNow) panelSettling = true
+                        else {
+                            // Long enough for the deck's own size change to finish coming back.
+                            kotlinx.coroutines.delay(360)
+                            panelSettling = false
+                        }
+                    }
+                    val usesRestingLayout = panelsOpenNow || panelSettling
+                    LaunchedEffect(maxHeight, usesRestingLayout) {
+                        if (!usesRestingLayout) restingHeight = maxHeight
+                    }
+                    val layoutHeight = if (usesRestingLayout) restingHeight else maxHeight
                     // Settings → Player → Cover size: Large and Full width reach into the side margins (still square).
                     // The Cover layout's cover is at least Large (its controls are out of the way).
                     val extra = if (layout == com.prism.music.data.prefs.PlayerLayout.COVER) maxOf(settings.coverSize.extra, com.prism.music.data.prefs.CoverSize.LARGE.extra) else settings.coverSize.extra
@@ -1129,11 +1203,11 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                     val titleStyle = playerTitleStyle(MaterialTheme.typography, settings)
                     val artistStyle = playerArtistStyle(MaterialTheme.typography, settings)
                     val headerHeight = playerHeaderHeight(shownSong.title, titleStyle, shownSong.artistText, artistStyle)
-                    val (artWidth, fullArt) = coverBox(maxWidth, maxHeight, extra.dp, fullWidth, titleRoom = ART_TITLE_GAP + headerHeight)
+                    val (artWidth, fullArt) = coverBox(maxWidth, layoutHeight, extra.dp, fullWidth, titleRoom = ART_TITLE_GAP + headerHeight)
                     // Room the cover can't use (a tall screen) is shared above and below it, as before 1.6.4 (all of it
                     // above pushed the whole player down). The title drops into part of the room below, so no blank
                     // band opens up between the artist and the scrubber (issue #9).
-                    val slack = (maxHeight - fullArt - ART_TITLE_GAP - headerHeight).coerceAtLeast(0.dp)
+                    val slack = (layoutHeight - fullArt - ART_TITLE_GAP - headerHeight).coerceAtLeast(0.dp)
                     val groupTop = slack / 2
                     // #293: the title sits right above the controls, and the picture runs down to it.
                     val titleDrop = if (bleedRoomy) slack - groupTop else minOf(slack / 2, TITLE_DROP_MAX)
@@ -1364,13 +1438,29 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             Spacer(Modifier.width(8.dp))
                         }
                         val isLiked = song.id in liked
-                        if (!heartBelow && inHeader(PlayerPart.LIKE) && !song.isRss) {
-                            CircleGlyph(if (isLiked) PrismIcons.HeartFilled else PrismIcons.Heart, if (isLiked) tr(R.string.remove_from_liked) else tr(R.string.widget_like), isLiked) {
-                                c.library.toggleLike(song)
+                        val headerHeart = !heartBelow && inHeader(PlayerPart.LIKE) && !song.isRss
+                        AnimatedVisibility(
+                            headerHeart,
+                            enter = fadeIn(tween(200, easing = FastOutSlowInEasing)) +
+                                expandHorizontally(tween(240, easing = FastOutSlowInEasing)),
+                            exit = fadeOut(tween(140)) + shrinkHorizontally(tween(180, easing = FastOutSlowInEasing)),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircleGlyph(if (isLiked) PrismIcons.HeartFilled else PrismIcons.Heart, if (isLiked) tr(R.string.remove_from_liked) else tr(R.string.widget_like), isLiked) {
+                                    c.library.toggleLike(song)
+                                }
+                                Spacer(Modifier.width(8.dp))
                             }
-                            Spacer(Modifier.width(8.dp))
                         }
-                        if (settings.showsMenuButton() || collapsePastHalf) CircleGlyph(PrismIcons.More, tr(R.string.song_options)) { showActions = true }
+                        val headerMenu = settings.showsMenuButton() || collapsePastHalf
+                        AnimatedVisibility(
+                            headerMenu,
+                            enter = fadeIn(tween(200, easing = FastOutSlowInEasing)) +
+                                scaleIn(tween(220, easing = FastOutSlowInEasing), initialScale = 0.8f) +
+                                expandHorizontally(tween(220, easing = FastOutSlowInEasing)),
+                            exit = fadeOut(tween(140)) + scaleOut(tween(180, easing = FastOutSlowInEasing), targetScale = 0.8f) +
+                                shrinkHorizontally(tween(180, easing = FastOutSlowInEasing)),
+                        ) { CircleGlyph(PrismIcons.More, tr(R.string.song_options)) { showActions = true } }
                     }
 
                     // ---- Lyrics and queue panels, under the collapsed header
@@ -1427,19 +1517,26 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         var base = 0f
                         var startProgress = 1f
                         val slop = 6.dp.toPx()
+                        // The speed the finger lifts at: the panel (or the player) goes on at it.
+                        val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                        fun letGoSpeed(): Float = -tracker.calculateVelocity().y / morphSpan
                         detectVerticalDragGestures(
                             onDragStart = { at ->
                                 total = 0f; mode = 0; fromRight = at.x > size.width / 2
+                                tracker.resetTracking()
                                 startedOpen = lyricsOpen || queueOpen || statsOpen
                                 base = panelShift.value
                                 startProgress = PlayerMorph.progress
                             },
                             onDragEnd = {
+                                val v = letGoSpeed()
                                 when (mode) {
-                                    1 -> settlePanel(startedOpen)
+                                    1 -> settlePanel(startedOpen, v)
                                     2 -> if (!closing) {
-                                        if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) slideClosed()
-                                        else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion)
+                                        if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) {
+                                            PlayerMorph.released(v)
+                                            slideClosed()
+                                        } else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion, velocity = v)
                                     }
                                     else -> {}
                                 }
@@ -1457,6 +1554,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             },
                         ) { change, amount ->
                             change.consume()
+                            tracker.addPosition(change.uptimeMillis, change.position)
                             total += amount
                             if (mode == 0 && kotlin.math.abs(total) > slop) {
                                 if (total < 0f) {
@@ -1491,73 +1589,136 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         else -> sleeveGesture.then(doubleTapSeek)
                     }
                     Column(
-                        swipes.then(coverGestures).testTag("playerDeck").graphicsLayer { alpha = PlayerMorph.deckReveal }.inked(),
+                        swipes.then(coverGestures).testTag("playerDeck")
+                            .clipToBounds()
+                            .graphicsLayer { alpha = PlayerMorph.deckReveal }.inked(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        // #293: closer together over a full-bleed picture ("More room for the picture").
-                        val tightDeck = bleedRoomy && !lyricsOpen && !queueOpen && !statsOpen
-                        val deckGap = if (tightDeck) 8.dp else if (roomyCover) 12.dp else 18.dp
+                        // The deck takes its shape over a panel from the panel's own number (PanelShift), not from an
+                        // animation of its own: the parts a panel makes room for fold away as it comes and come back as
+                        // it goes, so a drag takes the deck apart under the finger, a pull that turns back puts it
+                        // together, and the parts at the bottom hold still. (They used to be cut out in one frame while
+                        // the deck's height eased after them: a jump up and then a slide down on opening, the same the
+                        // other way round on closing.)
+                        val panelsUp = lyricsOpen || queueOpen || statsOpen
+                        val panel = panelShift.value
+                        // Small (#230): over the lyrics or the queue, only the progress, a smaller transport and the
+                        // buttons (they switch between lyrics and queue), so the list keeps most of the screen.
+                        val smallTarget = (lyricsOpen || queueOpen) && panelPlayer == com.prism.music.data.prefs.PanelPlayer.SMALL
+                        val panelBeat = tween<Float>(320, easing = FastOutSlowInEasing)
+                        // What the deck answers to, each with a number of its own: the panel's, so a finger takes the
+                        // deck apart; the lyrics' (its words are on the screen) and Small's, so the deck still eases when
+                        // they change with the panel standing still — from the lyrics to the queue, say.
+                        val lyricsAmount by animateFloatAsState(if (lyricsOpen) 1f else 0f, panelBeat, label = "deckLyrics")
+                        val smallAmount by animateFloatAsState(if (smallTarget) 1f else 0f, panelBeat, label = "deckSmall")
+                        // How much of the panel's layout the deck has taken: the smaller deck and the tighter one
+                        // ("More room for the picture", #293) are both on that number.
+                        val small = minOf(smallAmount, panel)
+                        val tight = if (!bleedRoomy) 0f else if (panelsUp) 1f - panel else 1f
+                        val deckCompact = maxOf(small, tight)
+                        val stripGone = deckStripGone(panel, lyricsAmount, smallAmount, settings.lyricsOnPlayer)
+                        val volumeGone = minOf(smallAmount, panel)
+                        // What the deck draws as settings put it, before a panel takes any of it: the room each part
+                        // takes is read from this, so the parts a panel folds keep their place in the order (at no
+                        // height) and the ones under them never move.
+                        val all = settings.playerDeck
+                            // What's on the player (1.8.0): the progress bar and the buttons row can go too.
+                            .filter { it != com.prism.music.data.prefs.DeckPart.SCRUBBER || settings.shows(PlayerPart.PROGRESS) }
+                            .filter { it != com.prism.music.data.prefs.DeckPart.BUTTONS || settings.shows(PlayerPart.BUTTONS) }
+                        // #329: what's hidden leaves no hole; the hidden volume bar's room is shared between the gaps.
+                        val roomy = deckSpacing(all, settings.shows(PlayerPart.VOLUME), small = false, tight = false)
+                        val tighter = deckSpacing(all, settings.shows(PlayerPart.VOLUME), small = false, tight = true)
+                        // The gaps and the room under the deck at this point of the change.
+                        fun gapOf(i: Int): Dp = lerp(
+                            lerp(roomy.gaps.getOrNull(i) ?: 8.dp, tighter.gaps.getOrNull(i) ?: 8.dp, tight),
+                            2.dp, small,
+                        )
+                        val deckGap = lerp(lerp(if (roomyCover) 12.dp else 18.dp, 8.dp, tight), 6.dp, small)
+                        val underDeck = lerp(lerp(roomy.below, tighter.below, tight), 0.dp, small)
                         // With the lyrics open: Sing's one button at their lower right (1.7.8, V; their source is a line
-                        // at their end), and the source as a button at the lower left when asked for (1.7.9).
-                        if (lyricsOpen) LyricsButtonsRow(song, lyricsState, onChangeSource = { showProviders = true }, onNeedsDownload = { showSing = true }, modifier = Modifier.padding(bottom = 6.dp))
+                        // at their end), and the source as a button at the lower left when asked for (1.7.9). It's a row
+                        // of its own, so it also has a beat of its own: switched for the queue, the panel under it doesn't
+                        // move, and the row still comes and goes smoothly.
+                        AnimatedVisibility(
+                            lyricsOpen,
+                            enter = expandVertically(tween(320, easing = FastOutSlowInEasing), expandFrom = Alignment.Bottom) +
+                                fadeIn(tween(220, easing = FastOutSlowInEasing)),
+                            exit = shrinkVertically(tween(320, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Bottom) +
+                                fadeOut(tween(180)),
+                        ) {
+                            LyricsButtonsRow(song, lyricsState, onChangeSource = { showProviders = true }, onNeedsDownload = { showSing = true }, modifier = Modifier.padding(bottom = 6.dp))
+                        }
                         // Minimal: play, and gestures for the rest (the lyrics and queue still have the whole deck).
-                        if (layout == com.prism.music.data.prefs.PlayerLayout.MINIMAL && !lyricsOpen && !queueOpen && !statsOpen) {
+                        if (layout == com.prism.music.data.prefs.PlayerLayout.MINIMAL && !panelsUp) {
                             MinimalPlay(isPlaying, buffering)
                             Spacer(Modifier.height(deckGap))
                         } else {
                             // The parts in the listener's order (Settings → Player → Arrange, 1.7.4); what's switched off
                             // elsewhere stays off.
-                            // Small (#230): over the lyrics or the queue, only the progress, a smaller transport and the
-                            // buttons (they switch between lyrics and queue), so the list keeps most of the screen.
-                            val small = (lyricsOpen || queueOpen) && panelPlayer == com.prism.music.data.prefs.PanelPlayer.SMALL
-                            val parts = settings.playerDeck.filter { it != com.prism.music.data.prefs.DeckPart.STRIP || (!lyricsOpen && settings.lyricsOnPlayer) }
-                                .filter { !small || it == com.prism.music.data.prefs.DeckPart.SCRUBBER || it == com.prism.music.data.prefs.DeckPart.TRANSPORT || it == com.prism.music.data.prefs.DeckPart.BUTTONS }
-                                // What's on the player (1.8.0): the progress bar and the buttons row can go too.
-                                .filter { it != com.prism.music.data.prefs.DeckPart.SCRUBBER || settings.shows(PlayerPart.PROGRESS) }
-                                .filter { it != com.prism.music.data.prefs.DeckPart.BUTTONS || settings.shows(PlayerPart.BUTTONS) }
-                            // #329: what's hidden leaves no hole; the hidden volume bar's room is shared between the gaps.
-                            val spacing = deckSpacing(parts, settings.shows(PlayerPart.VOLUME), small, tight = tightDeck)
-                            spacing.parts.forEachIndexed { i, part ->
-                                when (part) {
-                                    com.prism.music.data.prefs.DeckPart.STRIP -> CurrentLyricStrip(lyricsState, isPlaying && !covered, overScrubber = stripOverScrubber(spacing.parts, i), onClick = openLyrics)
-                                    com.prism.music.data.prefs.DeckPart.SCRUBBER -> PlayheadScrubber(position, pc.duration) {
-                                        // Settings → Player → "Stream quality" hides it (the full stats stay in the ⋯ menu).
-                                        // In a song's opening seconds the middle offers its best part instead, while it's still ahead.
-                                        if (!SingWord() && !BestPartChip() && settings.showQuality) QualityLabel(Modifier.align(Alignment.Center), selected = statsOpen) { toggleStats() }
-                                    }
-                                    com.prism.music.data.prefs.DeckPart.TRANSPORT ->
-                                        TransportRow(
-                                            isPlaying, buffering, previousEnabled = hasPrevious || pastStart, nextEnabled = hasNext, compact = small || tightDeck, episode = song.isEpisode,
-                                            skips = settings.shows(PlayerPart.PREV_NEXT),
-                                            playAnchor = Modifier.playerPlayAnchor().graphicsLayer { alpha = PlayerMorph.playReveal },
-                                        )
-                                    com.prism.music.data.prefs.DeckPart.VOLUME -> VolumeRow(volume)
-                                    com.prism.music.data.prefs.DeckPart.BUTTONS -> PlayerActionRow(
-                                        lyricsOpen, queueOpen, videoMode, videoAvailable,
-                                        onToggleLyrics = { if (lyricsOpen) closeLyrics() else openLyrics() },
-                                        onToggleQueue = toggleQueue,
-                                        onVideoMode = { pc.setVideoMode(it) },
-                                        episode = song.isEpisode,
-                                        onButton = onButton,
-                                        onSnoozeMenu = { id -> snoozeFocus = id; showSnoozes = true },
-                                    )
+                            roomy.parts.forEachIndexed { i, part ->
+                                val room = when (part) {
+                                    com.prism.music.data.prefs.DeckPart.STRIP -> 1f - stripGone
+                                    com.prism.music.data.prefs.DeckPart.VOLUME -> 1f - volumeGone
+                                    else -> 1f
                                 }
-                                // The gaps the deck always had after each part (none after the last); Small keeps them tight.
-                                spacing.gaps.getOrNull(i)?.let { Spacer(Modifier.height(it)) }
+                                if (room > 0f) Box(Modifier.deckRoom(room)) {
+                                    when (part) {
+                                        com.prism.music.data.prefs.DeckPart.STRIP -> CurrentLyricStrip(lyricsState, isPlaying && !covered, overScrubber = stripOverScrubber(roomy.parts, i), onClick = openLyrics)
+                                        com.prism.music.data.prefs.DeckPart.SCRUBBER -> PlayheadScrubber(position, pc.duration) {
+                                            // Settings → Player → "Stream quality" hides it (the full stats stay in the ⋯ menu).
+                                            // In a song's opening seconds the middle offers its best part instead, while it's still ahead.
+                                            if (!SingWord() && !BestPartChip() && settings.showQuality) QualityLabel(Modifier.align(Alignment.Center), selected = statsOpen) { toggleStats() }
+                                        }
+                                        com.prism.music.data.prefs.DeckPart.TRANSPORT ->
+                                            TransportRow(
+                                                isPlaying, buffering, previousEnabled = hasPrevious || pastStart, nextEnabled = hasNext,
+                                                compact = deckCompact >= 0.5f, episode = song.isEpisode,
+                                                compactFraction = deckCompact,
+                                                skips = settings.shows(PlayerPart.PREV_NEXT),
+                                                playAnchor = Modifier.playerPlayAnchor().graphicsLayer { alpha = PlayerMorph.playReveal },
+                                            )
+                                        com.prism.music.data.prefs.DeckPart.VOLUME -> VolumeRow(volume)
+                                        com.prism.music.data.prefs.DeckPart.BUTTONS -> PlayerActionRow(
+                                            lyricsOpen, queueOpen, videoMode, videoAvailable,
+                                            onToggleLyrics = { if (lyricsOpen) closeLyrics() else openLyrics() },
+                                            onToggleQueue = toggleQueue,
+                                            onVideoMode = { pc.setVideoMode(it) },
+                                            episode = song.isEpisode,
+                                            onButton = onButton,
+                                            onSnoozeMenu = { id -> snoozeFocus = id; showSnoozes = true },
+                                        )
+                                    }
+                                }
+                                // The gap after a part goes with it: nothing is left behind when one folds, and Small's
+                                // tighter gaps are the same fold.
+                                if (room > 0f && i < roomy.parts.lastIndex) Spacer(Modifier.height(gapOf(i) * room))
                             }
-                            Spacer(Modifier.height((if (small) 6.dp else deckGap) + spacing.below))
+                            Spacer(Modifier.height(deckGap + underDeck))
                         }
-                        val smallDeck = (lyricsOpen || queueOpen) && panelPlayer == com.prism.music.data.prefs.PanelPlayer.SMALL
-                        // The device line, with the sleep timer beside it while one is set (on its own when the line is hidden).
-                        if (smallDeck) SleepBadge()
-                        else if (settings.showOutputDevice) Row(verticalAlignment = Alignment.CenterVertically) {
-                            OutputCaption()
-                            SleepBadge(Modifier.padding(start = 8.dp))
+                        // The device line, with the sleep timer beside it while one is set (on its own when the line is
+                        // hidden; over a panel, Small keeps the timer alone). It changes size over the same beat as the
+                        // panel rather than in one frame, so the room above it doesn't move when it does.
+                        if (settings.showOutputDevice) AnimatedContent(
+                            smallTarget,
+                            transitionSpec = {
+                                (fadeIn(tween(220, easing = FastOutSlowInEasing)) togetherWith fadeOut(tween(180)))
+                                    .using(androidx.compose.animation.SizeTransform(clip = true))
+                            },
+                            contentAlignment = Alignment.Center,
+                            label = "deckDevice",
+                        ) { small ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (!small) {
+                                    OutputCaption()
+                                    Spacer(Modifier.width(8.dp))
+                                }
+                                SleepBadge()
+                            }
                         } else {
                             SleepBadge()
-                            if (!roomyCover && !tightDeck) Spacer(Modifier.height(14.dp))
+                            if (!roomyCover) Spacer(Modifier.height(lerp(14.dp, 0.dp, tight)))
                         }
-                        Spacer(Modifier.height(if (smallDeck) 6.dp else deckGap))
+                        Spacer(Modifier.height(deckGap))
                     }
                 }
                 // The controls away over the lyrics or the queue: a swipe up from the bottom edge brings them back (a tap

@@ -597,8 +597,11 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
         // The two ends of the morph, watched as booleans so the app isn't recomposed for every frame of it: the mini
         // player stays with us until the player has wholly taken over, and the player is laid out from the first frame
         // of the drag (its own picture follows the finger inside [NowPlayingScreen]).
-        val morphKeepsMini by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress < 0.999f } }
-        val morphKeepsPlayer by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress > 0.001f } }
+        // Both change hands only at the very ends, not a hair before them: swapping the mini player out (or the player)
+        // at 0.999 made the last frame of the morph wait on a fresh layout, which read as a short stall just before it
+        // finished.
+        val morphKeepsMini by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress < 1f } }
+        val morphKeepsPlayer by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress > 0f } }
 
         // Decided once: the tab Prism opens on is the root every other tab sits on, and the welcome
         // screen is a real destination, so signing in from it navigates inside a graph that already exists.
@@ -1027,8 +1030,8 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                 // The full player, laid out from the first frame of a swipe (so the morph has somewhere to land) and kept
                 // until the last frame of its close: everything on it — the queue's place, the lyrics, its scroll — lives
                 // through the whole transition. Its own picture is the same number the mini player's is.
-                val playerSettled by remember { derivedStateOf { playerOpen && PlayerMorph.progress >= 0.999f } }
-                val playerLeaving by remember { derivedStateOf { !playerOpen && PlayerMorph.progress > 0.001f } }
+                val playerSettled by remember { derivedStateOf { playerOpen && PlayerMorph.progress >= 1f } }
+                val playerLeaving by remember { derivedStateOf { !playerOpen && PlayerMorph.progress > 0f } }
                 if (playerOpen || morphKeepsPlayer) {
                     androidx.compose.runtime.SideEffect {
                         playerCover.settled = playerSettled
@@ -1043,6 +1046,8 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                             com.prism.music.ui.player.PlayerMorph.playerTitle = null
                             com.prism.music.ui.player.PlayerMorph.playerArtist = null
                             com.prism.music.ui.player.PlayerMorph.playerPlay = null
+                            com.prism.music.ui.player.PlayerMorph.playerPrev = null
+                            com.prism.music.ui.player.PlayerMorph.playerNext = null
                         }
                     }
                     Box(
@@ -1055,7 +1060,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                                 val s = 0.94f + 0.06f * t
                                 scaleX = s
                                 scaleY = s
-                                clip = t < 0.999f
+                                // The clip stays on until the very end: turning it off a hair early changed the layer
+                                // while the last frames were still moving.
+                                clip = t < 1f
                                 shape = RoundedCornerShape(((1f - t) * 28f).dp)
                                 // The page behind (and the tab bar under the mini player) gives way to the player's own
                                 // background all the way through, evenly: strictly linear, with no ramp or snap.

@@ -11,5 +11,6 @@ captures/
 *.jks
 *.keystore
 .claude/settings.local.json
+.opencode/
 keystore.properties
 CLAUDE.md

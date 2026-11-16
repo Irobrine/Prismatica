@@ -20,6 +20,7 @@ import com.prism.music.data.model.ArtistRef
 import com.prism.music.data.model.Song
 import com.prism.music.data.model.UNKNOWN_ARTIST
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "songs",
@@ -730,12 +731,37 @@ interface RomanizedDao {
     suspend fun put(e: RomanizedEntity)
 }
 
+/**
+ * Which song a music video is of, kept so the lookup isn't made again after a restart: a row with no [songId] says the
+ * video is of no separate song and plays as itself.
+ */
+@Serializable
+@Entity(tableName = "video_songs")
+data class VideoSongEntity(
+    @PrimaryKey val videoId: String,
+    /** The song the video is of, or null for one that's of none. */
+    val songId: String?,
+    /** The song itself as JSON (it needn't be in the library), null with [songId]. */
+    val songJson: String?,
+    /** When the lookup answered: a look again for a video that had none can wait a long while. */
+    val checkedAt: Long,
+)
+
+@Dao
+interface VideoSongDao {
+    @Query("SELECT * FROM video_songs")
+    suspend fun all(): List<VideoSongEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun put(e: VideoSongEntity)
+}
+
 @Database(
     entities = [SongEntity::class, PlayEventEntity::class, LyricsEntity::class, GenreEntity::class, MotionArtEntity::class, HeatmapEntity::class,
         RomanizedEntity::class, ReleaseEntity::class, MixEntity::class, BlendEntity::class, RecognitionEntity::class,
-        ImportedPlayEntity::class, ImportMatchEntity::class, SongTraitsEntity::class, SongTagEntity::class],
+        ImportedPlayEntity::class, ImportMatchEntity::class, SongTraitsEntity::class, SongTagEntity::class, VideoSongEntity::class],
     views = [CountedPlay::class],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class PrismDatabase : RoomDatabase() {
@@ -761,6 +787,8 @@ abstract class PrismDatabase : RoomDatabase() {
     abstract fun traits(): TraitsDao
     /** The listener's own labels on songs (1.8.3). */
     abstract fun tags(): TagDao
+    /** Which song each music video is of (looked up once, not on every tap). */
+    abstract fun videoSongs(): VideoSongDao
 
     companion object {
         /**
@@ -858,6 +886,13 @@ abstract class PrismDatabase : RoomDatabase() {
                     db.execSQL("CREATE INDEX IF NOT EXISTS `index_songs_artistId` ON `songs` (`artistId`)")
                     db.execSQL("CREATE INDEX IF NOT EXISTS `index_songs_smartDownload` ON `songs` (`smartDownload`)")
                     db.execSQL("CREATE INDEX IF NOT EXISTS `index_play_events_songId_timestamp` ON `play_events` (`songId`, `timestamp`)")
+                }
+            },
+            // 1.8.5: the song each music video is of, remembered (the search took a second on every tap, and a video
+            // found to have no separate song plays as itself at once).
+            object : Migration(12, 13) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("CREATE TABLE IF NOT EXISTS `video_songs` (`videoId` TEXT NOT NULL, `songId` TEXT, `songJson` TEXT, `checkedAt` INTEGER NOT NULL, PRIMARY KEY(`videoId`))")
                 }
             },
         )

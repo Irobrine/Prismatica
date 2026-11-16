@@ -201,6 +201,15 @@ fun SongRow(
     val pickable = selection != null && selectScope != null && onLongClick == null
     val pick by remember(song.id, selection, pickable) { derivedStateOf { if (pickable) selection?.picked?.let { song.id in it } else null } }
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    // A video's song is looked up while its row rests on screen, so tapping it starts as the song straight away rather
+    // than on the search. Rows only passing through a scroll leave before it starts.
+    if (song.isVideo && !song.isLive && !song.isEpisode && !song.isLocal && com.prism.music.ui.theme.LocalAppRunning.current) {
+        val c = LocalContainer.current
+        LaunchedEffect(song.id) {
+            kotlinx.coroutines.delay(350)
+            c.player.prefetchSongFor(song)
+        }
+    }
 
     @Composable
     fun Row(rowModifier: Modifier) = SongRowLayout(
@@ -784,6 +793,12 @@ fun SongActionsSheet(song: Song, extra: List<SheetItem> = emptyList(), onDismiss
     val more = extra.map { it.toAction() } + listOfNotNull(
         // Your own FLAC / MP3 files (a Local file, or the lossless file played for this song) can keep its lyrics (#16).
         if (local || dl?.lossless == true) ActionItem(PrismIcons.Lyrics, tr(R.string.save_lyrics_into_the_file)) { c.lyricsToFiles.request(listOf(song)) } else null,
+        // A video's song, looked up and its sound got ready now, so the next tap starts at once.
+        if (!song.isVideo || song.isLive || song.isEpisode || local || rss) null
+        else ActionItem(PrismIcons.Sync, tr(R.string.prepare_video)) {
+            toast(tr(R.string.getting_this_song_ready))
+            c.player.prepareVideoSong(song) { ok -> toast(if (ok) tr(R.string.video_ready) else tr(R.string.couldn_t_get_this_song_ready)) }
+        },
         // Another recording of it in its place (Reddit 1.7.9: an album song played as someone's cover).
         if (song.isEpisode || local || song.isLive || guest != null) null
         else ActionItem(PrismIcons.SwapVertical, tr(R.string.play_a_different_version), active = song.id in picks, keepOpen = true) { versions = true },

@@ -156,8 +156,32 @@ class BackupPartsTest {
         assertEquals(null, Backup.prefsPart("lastfm"))
         // Last session's songs, by id and name: not a setting, and over in six hours anyway.
         assertEquals(null, Backup.prefsPart("session_heard"))
+        // When the videos were last got ready: a restored phone does its own run.
+        assertEquals(null, Backup.prefsPart("video_prepare"))
         assertEquals(BackupPart.ACCOUNTS, Backup.filePart("account"))
         assertEquals(null, Backup.filePart("models"))
+    }
+
+    /**
+     * The videos' songs (1.8.5) are the database's, but they go with the Library besides: a backup of the library alone
+     * brings them, and they're read into the database once at the next start.
+     */
+    @Test fun theLibraryBringsTheVideosSongs() {
+        phone()
+        val json = """[{"videoId":"v1","songId":null,"songJson":null,"checkedAt":1}]"""
+        stage("""{"format":2,"app":"${app.packageName}","parts":["LIBRARY"]}""", "files/library/video_songs.json" to json)
+        Backup.applyPending(app)
+        assertEquals("the file came with the library", json, read("files/library/video_songs.json"))
+        val rows = Backup.readPendingVideoSongs(files)!!
+        assertEquals(listOf("v1"), rows.map { it.videoId })
+        assertFalse("read in once", File(files, "library/video_songs.json").exists())
+        // Not with Settings, or History alone: a backup that names one part and carries another's entry is refused.
+        for (part in listOf("SETTINGS", "HISTORY")) {
+            File(files, "library/video_songs.json").delete()
+            stage("""{"format":2,"app":"${app.packageName}","parts":["$part"]}""", "files/library/video_songs.json" to json)
+            Backup.applyPending(app)
+            assertFalse(part, File(files, "library/video_songs.json").exists())
+        }
     }
 
     /**

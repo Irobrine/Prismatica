@@ -224,13 +224,15 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             }
         }
         player = ExoPlayer.Builder(this, renderers)
-            // Start (and resume after a switch to video) once 1 s is buffered rather than 2.5 s. Ahead of that, the whole
-            // song: it used to keep only 30–60 s, so a signal drop longer than that (a tunnel, a lift, a weak spot) stalled
-            // a streamed song even though the rest of it is only a few MB. Kept loading in one go (min = max), and the
-            // song cache keeps what's loaded. 32 MB at most, so a music video (far bigger per minute) stays a minute or two.
+            // Start as soon as a quarter second is buffered rather than waiting on a whole second: a tap then plays at
+            // once, with the rest of the song loading behind it. Ahead of that, the whole song: it used to keep only
+            // 30–60 s, so a signal drop longer than that (a tunnel, a lift, a weak spot) stalled a streamed song even
+            // though the rest of it is only a few MB. Kept loading in one go (min = max), and the song cache keeps what's
+            // loaded. 32 MB at most, so a music video (far bigger per minute) stays a minute or two. After a rebuffer,
+            // a second's cushion, so a weak patch doesn't start-stop.
             .setLoadControl(
                 androidx.media3.exoplayer.DefaultLoadControl.Builder()
-                    .setBufferDurationsMs(WHOLE_SONG_MS, WHOLE_SONG_MS, 1_000, 2_000)
+                    .setBufferDurationsMs(WHOLE_SONG_MS, WHOLE_SONG_MS, START_BUFFER_MS, REBUFFER_BUFFER_MS)
                     .setTargetBufferBytes(32 * 1024 * 1024)
                     .build()
             )
@@ -3732,3 +3734,7 @@ private const val SMART_LOOK_AHEAD = 12
 private const val QUEUE_AHEAD = 3
 /** How far ahead the player loads: a whole song (and the start of the next, near its end). */
 private const val WHOLE_SONG_MS = 300_000
+/** How much audio is needed before a tapped song starts (the rest keeps loading behind it). */
+private const val START_BUFFER_MS = 150
+/** After a stall: a second's cushion before starting again, so a weak patch doesn't start-stop. */
+private const val REBUFFER_BUFFER_MS = 1_000

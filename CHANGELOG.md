@@ -2,6 +2,35 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.1.0
+
+Music videos start at once, a long list no longer waits to be built before it plays, and a swipe keeps the speed of your hand.
+
+### Music videos
+
+- **A video's song is remembered.** A music video in your library plays as its song straight away after the first time, instead of searching again on every tap, and a video that turns out to have no separate song plays at once as itself. The matches are kept on the phone (schema 13) and travel with a Library backup.
+- **Prepare music videos** (Settings → Downloads, storage & data): looks up the song of every music video in the library and resolves its stream address ahead of time, so a tap only has to start it. It also does this once a day by itself, on mobile data only with "Load ahead on mobile data". No sound is downloaded, and downloaded videos are skipped.
+- **A video's row gets its song ready while it's on screen**, and a video's menu has "Prepare this video" for when you'd rather ask.
+
+### Starting a song
+
+- **A long list starts at once.** A queue of more than 400 songs (a Downloads page can hold thousands) no longer has every song made before the first sound: the one you picked and a few after it start, and the rest joins behind it.
+- **The queue is read off the main thread**, and each song's text is decoded once, so playing, pausing and seeking don't re-read a queue of thousands.
+- **A tap starts on 150 ms of audio** instead of a whole second, with a second's cushion after a stall so a weak patch doesn't start-stop.
+
+### The player
+
+- **A swipe keeps the speed of your hand.** Letting go of the mini player, the player or a panel midway carries on at the speed it was moving instead of stopping dead and setting off again, and a short way left finishes sooner.
+- **Previous and next morph with the rest**, at the player's own size and weight, and dimmed at the queue's ends.
+- **The deck folds instead of jumping.** The current lyric and the volume bar fold away under the finger over the lyrics or the queue, keeping the parts under them exactly still; the smaller deck and the tighter gaps ease with the panel rather than cutting.
+- **The player's heart and menu fade in and out** instead of appearing in one frame, and the last frame of a morph no longer waits on a fresh layout.
+
+### Under the hood
+
+- Database schema 13 (the videos' songs), carried by a Library backup and read in once at the next start, with its migration.
+- The migration, the backup part, the morph's settling curve and the deck's folding are tested: two new test classes and new tests in three more.
+- Gradle builds with the configuration cache, a 1 GB metaspace ceiling, incremental Kotlin and KSP, non-final resource ids and no Jetifier.
+
 ## 1.0.0
 
 A refactor of Prismatica that diverges from Prism. Built on Prismatica 1.8.5 and updated over it, with its own version line and its own updates; from here this line no longer follows Prism's releases.

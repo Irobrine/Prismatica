@@ -45,7 +45,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
- * 1.8.4, Settings → Downloads & data rebuilt with the kit (plan §2.3, the ledger's Downloads & data table): five groups
+ * 1.8.4, Settings → Downloads & data rebuilt with the kit (plan §2.3, the ledger's Downloads & data table): six groups
  * of the five rows within the budgets, a control for every stored setting the ledger gives the page (worked here, and
  * the store follows), "Use mobile data for" as chips over the eight stored switches with Data saver its own switch,
  * the new "Sections in Local files" row, Reset this page, and the page drawn in light, dark, Performance mode and at
@@ -58,6 +58,7 @@ class DownloadsDataPageTest : ListeningPageHarness(SettingsPageId.DOWNLOADS_DATA
     private fun t(id: Int, vararg args: Any?) = if (args.isEmpty()) tr(id) else tr(id, *args)
 
     private val manage = t(R.string.manage_downloads)
+    private val prepareVideos = t(R.string.prepare_library_videos)
     private val wifiOnly = t(R.string.download_on_wi_fi_only)
     private val likes = t(R.string.download_liked_songs_automatically)
     private val keep = t(R.string.keep_playlists_downloaded)
@@ -76,6 +77,7 @@ class DownloadsDataPageTest : ListeningPageHarness(SettingsPageId.DOWNLOADS_DATA
     private val useFor = t(R.string.dd_use_mobile_data_for)
 
     private val gDownloads = t(R.string.downloads)
+    private val gVideos = t(R.string.music_videos)
     private val gFiles = t(R.string.dd_files_on_your_phone)
     private val gSmart = t(R.string.dd_downloaded_for_you)
     private val gCovers = t(R.string.animated_covers)
@@ -118,17 +120,17 @@ class DownloadsDataPageTest : ListeningPageHarness(SettingsPageId.DOWNLOADS_DATA
         compose.waitForIdle()
     }
 
-    @Test fun fiveGroupsWithinTheBudgets() {
+    @Test fun sixGroupsWithinTheBudgets() {
         show()
         assertBudgets("defaults")
         // The ledger's layout with a fresh install's settings (Load ahead joined Mobile data: its group was named as its row).
-        assertEquals(listOf(gDownloads, gFiles, gSmart, gCovers, gData), groupTitles())
-        assertEquals(listOf(7, 3, 3, 3, 3), groupSizes())
+        assertEquals(listOf(gDownloads, gVideos, gFiles, gSmart, gCovers, gData), groupTitles())
+        assertEquals(listOf(7, 1, 3, 3, 3, 3), groupSizes())
         assertEquals("nothing differs from how Prism comes", 0, changedRows())
         // No group is named as the page, and none as one of its own rows (§2.7: "Smart Downloads" and "Load ahead" were both).
         assertTrue(groupTitles().none { it == SettingsPageId.DOWNLOADS_DATA.title })
         // ("Animated covers" is also a chip of "Use mobile data for": a chip, not a row.)
-        val rowTitles = listOf(manage, wifiOnly, likes, keep, ownFiles, folders, sections, smart, space, clearSmart, saveCovers, savedCovers, recentCovers, loadAhead, dataSaver, useFor)
+        val rowTitles = listOf(manage, prepareVideos, wifiOnly, likes, keep, ownFiles, folders, sections, smart, space, clearSmart, saveCovers, savedCovers, recentCovers, loadAhead, dataSaver, useFor)
         for (title in rowTitles) assertTrue("the row \"$title\" is drawn", hasRow(title))
         for (g in groupTitles()) assertFalse("a group and a row are both \"$g\"", g in rowTitles)
         // Four or more groups: the jump chips are there.
@@ -136,6 +138,7 @@ class DownloadsDataPageTest : ListeningPageHarness(SettingsPageId.DOWNLOADS_DATA
         // Each row is the type the ledger gives it, and says its state.
         assertEquals(SettingsTags.ROW_LINK, typeOf(manage))
         assertEquals(t(R.string.no_downloads_yet), valueOf(manage))
+        assertEquals(SettingsTags.ROW_LINK, typeOf(prepareVideos))
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(wifiOnly))
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(likes))
         assertEquals(SettingsTags.ROW_LINK, typeOf(keep))
@@ -252,7 +255,7 @@ class DownloadsDataPageTest : ListeningPageHarness(SettingsPageId.DOWNLOADS_DATA
 
         // Every row with a setting now differs from how Prism comes, says so, and the page still fits.
         assertBudgets("everything changed")
-        assertEquals(listOf(7, 4, 3, 3, 3), groupSizes())
+        assertEquals(listOf(7, 1, 4, 3, 3, 3), groupSizes())
         assertEquals(11, changedRows())
         // The root's line is live.
         val line = downloadsLine()
@@ -271,7 +274,7 @@ class DownloadsDataPageTest : ListeningPageHarness(SettingsPageId.DOWNLOADS_DATA
         }
         assertEquals(setOf("PLkept"), stored.behavior.keptPlaylists)
         assertEquals(0, changedRows())
-        assertEquals(listOf(7, 3, 3, 3, 3), groupSizes())
+        assertEquals(listOf(7, 1, 3, 3, 3, 3), groupSizes())
     }
 
     /**
@@ -408,7 +411,7 @@ class DownloadsDataPageTest : ListeningPageHarness(SettingsPageId.DOWNLOADS_DATA
         val mine = SettingsIndex.entries.filter { it.page == SettingsPageId.DOWNLOADS_DATA && it.group.isNotBlank() }
         val lost = mine.filter { it.group !in drawn }
         assertTrue("search lines in groups the page doesn't have: ${lost.map { it.group + " › " + it.title }}", lost.isEmpty())
-        for (title in listOf(manage, wifiOnly, likes, keep, ownFiles, scanAgain, folders, sections, smart, space, clearSmart, saveCovers, savedCovers, recentCovers, loadAhead, dataSaver, useFor)) {
+        for (title in listOf(manage, prepareVideos, wifiOnly, likes, keep, ownFiles, scanAgain, folders, sections, smart, space, clearSmart, saveCovers, savedCovers, recentCovers, loadAhead, dataSaver, useFor)) {
             assertEquals(title, 1, mine.count { it.title == title })
         }
         // Rows under a switch say what to turn on first.
@@ -422,7 +425,7 @@ class DownloadsDataPageTest : ListeningPageHarness(SettingsPageId.DOWNLOADS_DATA
         until("animated covers off") { !it.canvasEnabled }
         show()
         assertBudgets("animated covers off")
-        assertEquals(listOf(gDownloads, gFiles, gSmart, gData), groupTitles())
+        assertEquals(listOf(gDownloads, gVideos, gFiles, gSmart, gData), groupTitles())
         assertFalse(MobileUse.ANIMATED_COVERS.label in chips(useFor) || MobileUse.SAVING_COVERS.label in chips(useFor))
     }
 

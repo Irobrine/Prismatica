@@ -101,6 +101,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import androidx.compose.foundation.border
@@ -594,6 +595,8 @@ object BestPartButton {
 @Composable
 fun TransportRow(
     isPlaying: Boolean, isLoading: Boolean, previousEnabled: Boolean, nextEnabled: Boolean, compact: Boolean = false, episode: Boolean = false,
+    /** 0 the full transport, 1 the compact one; between while the deck reshapes over the lyrics or the queue. */
+    compactFraction: Float = if (compact) 1f else 0f,
     /** Previous and next on the player: What's on the player can hide them (1.8.0). An episode keeps its back / ahead skips. */
     skips: Boolean = true,
     /** Where the play control is, for the player's morph (PlayerMorph); nothing on the wide player. */
@@ -601,15 +604,27 @@ fun TransportRow(
 ) {
     val pc = LocalContainer.current.player
     val style = LocalAppSettings.current.transportStyle
-    val playSize = if (compact) 58.dp else 74.dp
-    // With shuffle and repeat beside it, play's touch area gives a little room back (narrow phones).
-    val playTouch = if (compact) 76.dp else if (LocalAppSettings.current.playerShuffleRepeat) 80.dp else 92.dp
-    val skipSize = if (compact) 44.dp else 53.dp
     // Settings → Player: shuffle and repeat either side of the transport.
     val modes = LocalAppSettings.current.playerShuffleRepeat
+    val c = compactFraction.coerceIn(0f, 1f)
+    val playSize = lerpDp(74.dp, 58.dp, c)
+    // With shuffle and repeat beside it, play's touch area gives a little room back (narrow phones).
+    val playTouch = lerpDp(if (modes) 80.dp else 92.dp, 76.dp, c)
+    val skipSize = lerpDp(53.dp, 44.dp, c)
     val shuffle by pc.shuffle.collectAsState()
     val smart by LocalContainer.current.queue.smartShuffle.collectAsState()
     val repeat by pc.repeatMode.collectAsState()
+    // The moving play control lands on this transport's own size (the deck is smaller over the lyrics and the queue).
+    androidx.compose.runtime.SideEffect {
+        PlayerMorph.playCompact = c >= 0.5f
+        PlayerMorph.prevEnabled = previousEnabled
+        PlayerMorph.nextEnabled = nextEnabled
+        // Nothing to hand over when the player has no previous / next of its own (an episode shows skips instead).
+        if (episode || !skips) {
+            PlayerMorph.playerPrev = null
+            PlayerMorph.playerNext = null
+        }
+    }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
         if (modes) ShuffleGlyph(shuffle, smart) { pc.toggleShuffle() }
         val prevIcon = if (style == TransportStyle.GLYPHS) PrismIcons.Backward else PrismIcons.Previous
@@ -622,24 +637,31 @@ fun TransportRow(
         // A podcast episode skips within itself, as podcast players do: back 15 s, ahead 30 s.
         if (skips || episode) {
             if (episode) SkipGlyph(EPISODE_BACK_S, ahead = false, touch = 53.dp) { pc.seekBy(-EPISODE_BACK_S * 1000L) }
-            else PreviousGlyph(prevIcon, skip, if (style == TransportStyle.GLYPHS) 0.85f else 1f, previousEnabled, holdSeek = back, onPrevious = pc::previous, onPreviousSong = pc::previousSong)
+            else PreviousGlyph(
+                prevIcon, skip, if (style == TransportStyle.GLYPHS) 0.85f else 1f, previousEnabled, holdSeek = back,
+                onPrevious = pc::previous, onPreviousSong = pc::previousSong,
+                modifier = Modifier.playerPrevAnchor().graphicsLayer { alpha = PlayerMorph.prevReveal },
+            )
         }
         if (style == TransportStyle.GLYPHS) {
             if (isLoading) {
                 Box(Modifier.size(playTouch).then(playAnchor), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color.White, strokeWidth = 3.dp, modifier = Modifier.size(if (compact) 30.dp else 38.dp))
+                    CircularProgressIndicator(color = Color.White, strokeWidth = 3.dp, modifier = Modifier.size(lerpDp(38.dp, 30.dp, c)))
                 }
             } else {
                 TransportGlyph(if (isPlaying) PrismIcons.Pause else PrismIcons.Play, if (isPlaying) tr(R.string.widget_pause) else tr(R.string.widget_play), playSize, playTouch, modifier = playAnchor) { pc.togglePlay() }
             }
         } else {
             Box(playAnchor) {
-                PlayDisc(isPlaying, isLoading, filled = style == TransportStyle.BUTTON, size = if (compact) 64.dp else 78.dp) { pc.togglePlay() }
+                PlayDisc(isPlaying, isLoading, filled = style == TransportStyle.BUTTON, size = lerpDp(78.dp, 64.dp, c)) { pc.togglePlay() }
             }
         }
         if (skips || episode) {
             if (episode) SkipGlyph(EPISODE_AHEAD_S, ahead = true, touch = 53.dp) { pc.seekBy(EPISODE_AHEAD_S * 1000L) }
-            else TransportGlyph(nextIcon, tr(R.string.widget_next), skip, 53.dp, if (style == TransportStyle.GLYPHS) 0.85f else 1f, nextEnabled, onHold = ahead) { pc.next() }
+            else TransportGlyph(
+                nextIcon, tr(R.string.widget_next), skip, 53.dp, if (style == TransportStyle.GLYPHS) 0.85f else 1f, nextEnabled, onHold = ahead,
+                modifier = Modifier.playerNextAnchor().graphicsLayer { alpha = PlayerMorph.nextReveal },
+            ) { pc.next() }
         }
         if (modes) ModeGlyph(
             PrismIcons.Repeat,

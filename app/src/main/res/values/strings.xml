@@ -5540,4 +5540,9 @@
     <string name="persistent_making_mix">Making Daily Mix %1$d…</string>
     <string name="persistent_getting_quick_picks">Getting Quick picks…</string>
     <string name="persistent_getting_library_songs">Getting Library songs…</string>
+    <string name="prepare_video" translatable="false">Prepare this video</string>
+    <string name="video_ready" translatable="false">Ready to play</string>
+    <string name="prepare_library_videos" translatable="false">Prepare music videos</string>
+    <string name="prepare_library_videos_info" translatable="false">Looks up the song for each music video in your library and saves its stream address, so taps start at once. Downloaded videos are skipped. It also does this by itself once a day, on mobile data only when Load ahead on mobile data is on. No sound is downloaded.</string>
+    <string name="prepare_videos_keywords" translatable="false">music videos song match stream address ready prepare ahead</string>
 </resources>
