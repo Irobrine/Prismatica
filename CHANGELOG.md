@@ -2,6 +2,50 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.0.0
+
+A refactor of Prismatica that diverges from Prism. Built on Prismatica 1.8.5, with its own package and its own updates; from here this line no longer follows Prism's releases.
+
+### Snooze
+
+- **Snooze a song out of automatic queues.** Snooze (the timer in the player's row, or a song's menu) keeps a track out of Autoplay, radios and the songs Prism picks behind a list, for 30 days unless you set another number. Playing it yourself, Add to the queue and Play next still work: only what Prism picks by itself leaves it out.
+- **Snoozed tracks** (Settings → Player → the gear beside "Buttons in the row", or holding the player's Snooze button): every snoozed song with the days it has left. Change a number, Unsnooze it, or open the song where it lives. Select many can snooze a whole pick at once.
+
+### The player, in one motion
+
+- **The mini player and the player are one thing that morphs.** Swipe up from the mini player and the cover, title, artist, play button, background and words follow the finger; turn back mid-swipe and it goes back. A tap or a button plays the same change from where it is, and a swipe past a tenth of the screen finishes it.
+- **A quicker, interruption-safe change.** Screens, tabs, the mini player and the player move with one ease and a 300 ms screen change, and a tab hands over faster than a page opened from a list.
+
+### Search
+
+- **Search's keyboard can wait for a second tap** (Settings → Home & Library → Search → "Open the keyboard"). A second tap of Search's tab while Search is showing brings the keyboard up; Search opened from anywhere else still types at once.
+
+### Safer by default
+
+- **Backups can have a password.** The zip is sealed with AES-256-GCM under a key made from the password (PBKDF2, 210,000 rounds, a random salt and IV): its contents and names can't be read without it, and a changed byte is refused instead of restored. Backups without one still restore, and Accounts need a password now.
+- **A backup is checked whole before anything is replaced.** Every entry has a SHA-256, a cut-short or corrupted file says so first, and a restore cut off part-way is written down so it can be finished. Accounts and downloads are off unless you pick them.
+- **Sign-ins stay on this phone.** Last.fm's session key is sealed under a key only this phone has, Spotify's tokens keep one key per secret, and a Last.fm callback is only taken for a sign-in started here in the last 15 minutes, once. A redirect to another host loses Cookie, Authorization and X-Goog-AuthUser.
+- **Only Prism, the system and the car can browse the library.** A media controller that is none of those can control playback, but can't read or search the library, or run Prism's own commands (like, radio, lyrics).
+- **A speaker's or TV's description can't lead anywhere else** (redirects are off), and a shared link is read at most 8,192 characters with malformed queries dropped.
+- **A song sent by another app is checked**: its id and its cover address must be ones Prism can play and fetch, or they're dropped.
+- **A provider's answer can't grow without end**: lyrics are capped at 4 MB (8 MB of KRC, 4 million characters), and a broken settings file starts Prism with its defaults instead of stopping it.
+
+### Normalize
+
+- **Normalize hears every channel when it measures a song**, not a mono fold-down that read a wide mix up to 3 dB quieter. Songs measured the old way are measured again, a playing song with no figure yet is measured even out of sight so its next play starts at its own level, and a mono file is counted as heard on both speakers.
+
+### Faster
+
+- **Each sort key and search text is made once.** Library, Search, Uploads, Local files and albums' years sort on keys made once, and Uploads searches the kept text instead of sorting again on every keystroke.
+- **The library's lists read through indices** (schema 12): liked songs and their ids, recently played songs, a song's play count, an album's or an artist's songs.
+- **The progress bar redraws only when it moves**, the text a list compares is made once, the models are immutable to Compose, and the duration patterns are compiled once.
+- **Lists sorted by what songs show are sorted again when a title, artist or album is edited**, so an edited song moves to where its new name goes.
+
+### Under the hood
+
+- One transition for the player, one easing, metadata edits counted so lists know to re-sort, per-secret Keystore keys, and eleven new test classes (backup crypto and parts, database plans, media-item trust, metadata sorting, sort keys, stereo loudness, snooze, three for the morph, tab fading).
+- The new text is in every one of Prismatica's 31 languages.
+
 ## 1.8.5
 
 ### Replay & Rewind 2026

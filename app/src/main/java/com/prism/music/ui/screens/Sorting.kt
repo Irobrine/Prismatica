@@ -1,5 +1,18 @@
 package com.prism.music.ui.screens
 
+import androidx.compose.runtime.Composable
+import com.prism.music.ui.theme.LocalContainer
+
+/**
+ * A key for `remember`: changes whenever what a song shows does, a metadata edit (1.8.3) or a picked version (1.7.9).
+ * Lists ordered by a song's title, artists or album take it, so they're put in order again when one is edited.
+ */
+@Composable
+internal fun shownRevision(): Long {
+    val c = LocalContainer.current
+    return (c.metadata.revision.toLong() shl 32) or (c.versions.revision.toLong() and 0xFFFF_FFFFL)
+}
+
 /**
  * [sortedBy], with each item's key made once.
  *

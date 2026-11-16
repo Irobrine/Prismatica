@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.prism.music.data.LibraryRepository
 import com.prism.music.data.SyncState
+import com.prism.music.data.shown
 import com.prism.music.data.model.ArtistItem
 import com.prism.music.data.model.SongItem
 import com.prism.music.ui.LocalNavigator
@@ -213,6 +214,8 @@ fun LibraryScreen(bottomPadding: Dp) {
     val remoteAlbums by c.library.albums.collectAsState()
     val remoteArtists by c.library.artists.collectAsState()
     val liked by c.library.likedShown.collectAsState()
+    // Metadata edited on this phone re-orders the songs below: their sorts read what each song shows.
+    val shownRev = shownRevision()
     val sync by c.library.syncState.collectAsState()
     val dls by c.downloadState.collectAsState()
     val thumbs by c.library.artistThumbs.collectAsState()
@@ -340,12 +343,12 @@ fun LibraryScreen(bottomPadding: Dp) {
         else com.prism.music.data.SongsFrom.merge(liked, songsFrom.playlists.map { id -> prismLists.firstOrNull { it.id == id }?.songs ?: fromLoaded[id].orEmpty() }, songsFrom)
     }
     var choosingFrom by remember { mutableStateOf(false) }
-    val sortedSongs = remember(songsBase, songSort) {
+    val sortedSongs = remember(songsBase, songSort, shownRev) {
         when (songSort) {
             SongSort.RECENT -> songsBase
-            SongSort.TITLE -> songsBase.sortedByKey { it.title.lowercase() }
-            SongSort.ARTIST -> songsBase.sortedByKey({ it.primaryArtist.lowercase() }, { it.album?.title?.lowercase() ?: "" })
-            SongSort.ALBUM -> songsBase.sortedByKey({ it.album?.title?.lowercase() ?: "\uFFFF" }, { it.title.lowercase() })
+            SongSort.TITLE -> songsBase.sortedByKey { it.shown.title.lowercase() }
+            SongSort.ARTIST -> songsBase.sortedByKey({ it.shown.primaryArtist.lowercase() }, { it.shown.album?.title?.lowercase() ?: "" })
+            SongSort.ALBUM -> songsBase.sortedByKey({ it.shown.album?.title?.lowercase() ?: "\uFFFF" }, { it.shown.title.lowercase() })
         }
     }
     // Each song's names as search reads them, normalized once for the list: filtering as the listener types used to

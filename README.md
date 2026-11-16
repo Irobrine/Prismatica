@@ -51,16 +51,16 @@ The optional lock screen player needs a permission called "Display over other ap
 
 Prism walks you through this on the setting's page. It uses the permission only to bring its player up on your lock screen, and never draws over other apps.
 
-## New in 1.8.5
+## New in 1.0.0
 
-Replay & Rewind 2026.
+Prismatica-Refracted: the refactored line of Prismatica, on its own from Prism.
 
-- **Listening clock and calendar:** your week hour by hour and every day with music, both shareable as a picture.
-- **Milestones and a monthly recap:** your 25th, 100th or 1,000th play of a song, hours of music, days in a row, and last month at a glance on Home.
-- **Rewind 2026** opens on December 1 with four new slides.
-- **Replay widgets** for your home screen, and **Finish the lyric**, a game from your most played songs.
-- **Also new:** search your history and remove a play, 30 recent searches, hold Previous for the song before, Pause when face down, and a tap on the small cover to play or pause.
-- **Fixes** for static at the start of a song with Normalize volume on, and more.
+- **Snooze** keeps a track out of automatic queues for 30 days; Snoozed tracks shows what's waiting, with the days left.
+- **The player morphs** between the mini player and the full player under your finger, with one motion for screens and tabs.
+- **Safer:** password-protected, hash-checked backups; sign-ins sealed on this phone; the library browsable only by Prism, the system and the car.
+- **Faster:** each sort key and search made once, database indices, and a progress bar that redraws when it moves.
+- **Normalize** hears every channel, and lists sort by the names you edited.
+- **Also new:** Search's keyboard can wait for a second tap of its tab.
 
 Everything is worked out on your phone. See every change in the [changelog](CHANGELOG.md).
 

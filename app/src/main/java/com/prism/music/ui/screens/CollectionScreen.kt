@@ -98,6 +98,7 @@ import com.prism.music.download.forRow
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import coil3.compose.AsyncImage
 import com.prism.music.data.ShareLinks
+import com.prism.music.data.shown
 import com.prism.music.data.innertube.YouTubeMusic
 import com.prism.music.data.model.AlbumItem
 import com.prism.music.data.model.CollectionKind
@@ -339,6 +340,8 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
     val downloads by c.downloadState.collectAsState()
     val songs by live.songs.collectAsState()
     val loadingMore by live.loadingMore.collectAsState()
+    // Metadata edited on this phone re-orders the songs below: their sorts read what each song shows.
+    val shownRev = shownRevision()
     val page = live.page.copy(songs = songs)
     // Plain map + a version counter: results land in batches, so the list re-sorts a handful
     // of times rather than once per song.
@@ -418,7 +421,7 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
             s.id to "${s.title} ${s.artistText} ${s.album?.title.orEmpty()}".lowercase()
         }
     }
-    val visible = remember(songs, genreFilter, sort, query, explicit, if (genreFilter != null || sort == SortMode.GENRE || groupByGenre) genreVersion else 0) {
+    val visible = remember(songs, genreFilter, sort, query, explicit, if (genreFilter != null || sort == SortMode.GENRE || groupByGenre) genreVersion else 0, shownRev) {
         val words = query.trim().lowercase().split(SPACES).filter { it.isNotEmpty() }
         val filtered = page.songs.filter { s ->
             com.prism.music.data.ExplicitFilter.shows(explicit, s) &&
@@ -428,11 +431,11 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
         }
         when (sort) {
             SortMode.DEFAULT -> filtered
-            SortMode.TITLE -> filtered.sortedByKey { it.title.lowercase() }
-            SortMode.ARTIST -> filtered.sortedByKey { it.artistText.lowercase() }
-            SortMode.GENRE -> filtered.sortedByKey({ genres[it.id] ?: "￿" }, { it.artistText.lowercase() })
+            SortMode.TITLE -> filtered.sortedByKey { it.shown.title.lowercase() }
+            SortMode.ARTIST -> filtered.sortedByKey { it.shown.artistText.lowercase() }
+            SortMode.GENRE -> filtered.sortedByKey({ genres[it.id] ?: "￿" }, { it.shown.artistText.lowercase() })
             SortMode.DURATION -> filtered.sortedBy { it.durationSec }
-            SortMode.ALBUM -> filtered.sortedByKey { it.album?.title?.lowercase() ?: "" }
+            SortMode.ALBUM -> filtered.sortedByKey { it.shown.album?.title?.lowercase() ?: "" }
             SortMode.OLDEST -> filtered.asReversed()
         }
     }

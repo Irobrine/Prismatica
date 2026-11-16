@@ -50,6 +50,12 @@ class SongMetadata(context: Context) {
     /** The same edits as Compose state, so a row, header or player on screen changes the moment one is saved. */
     private val shownEdits = androidx.compose.runtime.mutableStateOf(_edits.value)
 
+    /** Counts the saves, as Compose state: a list sorted by what songs show knows to put them in order again. */
+    private val _revision = androidx.compose.runtime.mutableIntStateOf(0)
+
+    /** Changes whenever an edit is saved or cleared ([of], [shown] read the edits themselves). */
+    val revision: Int get() = _revision.intValue
+
     init { shared = this }
 
     fun of(songId: String): SongMetadataEdit? = _edits.value[songId]
@@ -115,6 +121,7 @@ class SongMetadata(context: Context) {
         ed.apply()
         _edits.value = next
         shownEdits.value = next
+        _revision.intValue++
     }
 
     private fun read(): Map<String, SongMetadataEdit> = prefs.all.mapNotNull { (id, value) ->

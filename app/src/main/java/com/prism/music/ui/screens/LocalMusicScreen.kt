@@ -246,6 +246,8 @@ fun LocalMusicScreen(bottomPadding: Dp) {
     val scope = rememberCoroutineScope()
     val tracks by c.localMusic.tracks.collectAsState()
     val scanned by c.localMusic.scanned.collectAsState()
+    // Metadata edited on this phone re-orders the lists below: their sorts read what each song shows.
+    val shownRev = shownRevision()
     var allowed by remember { mutableStateOf(c.localMusic.hasPermission()) }
     val allow = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         allowed = granted
@@ -291,8 +293,8 @@ fun LocalMusicScreen(bottomPadding: Dp) {
     val recentIds by c.library.recentLocalIds.collectAsState()
     val dls by c.downloadState.collectAsState()
 
-    val albums = remember(tracks) { albumsOf(tracks) }
-    val artists = remember(tracks, albums) {
+    val albums = remember(tracks, shownRev) { albumsOf(tracks) }
+    val artists = remember(tracks, albums, shownRev) {
         val albumOf = albums.flatMap { a -> a.tracks.map { it.song.id to a.id } }.toMap()
         tracks.groupBy { artistKey(SongMetadata.shownOf(it.song).primaryArtist) }.map { (key, t) ->
             val ids = t.mapNotNull { albumOf[it.song.id] }.toSet()
@@ -304,8 +306,8 @@ fun LocalMusicScreen(bottomPadding: Dp) {
     val artist = openArtist?.let { k -> artists.firstOrNull { it.key == k } }
 
     // What each section lists (and what the Play / Shuffle buttons at the top play).
-    val songsSorted = remember(tracks, sort) { sorted(tracks, sort).map { it.song } }
-    val favourites = remember(tracks, liked, sort) { sorted(tracks.filter { it.song.id in liked }, sort).map { it.song } }
+    val songsSorted = remember(tracks, sort, shownRev) { sorted(tracks, sort).map { it.song } }
+    val favourites = remember(tracks, liked, sort, shownRev) { sorted(tracks.filter { it.song.id in liked }, sort).map { it.song } }
     val addedSongs = remember(tracks) { tracks.sortedByDescending { it.addedAt }.take(ADDED_SONGS).map { it.song } }
     val addedAlbums = remember(albums) { albums.sortedByDescending { it.addedAt }.take(ADDED_ALBUMS) }
     val downloads = remember(dls) { c.downloads.completedSongs() }
@@ -315,7 +317,7 @@ fun LocalMusicScreen(bottomPadding: Dp) {
     }
     // Search in Local files (#225): every word typed has to turn up in the title, the artists or the album, as on playlists.
     var query by rememberSaveable { mutableStateOf("") }
-    val found = remember(tracks, sort, query) {
+    val found = remember(tracks, sort, query, shownRev) {
         val words = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
         if (words.isEmpty()) emptyList()
         else {

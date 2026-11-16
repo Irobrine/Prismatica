@@ -37,10 +37,16 @@ class SongVersions(private val prefs: SharedPreferences) {
     /** The same picks as Compose state, so a song on screen shows a new pick (or the original again) at once. */
     private val shownPicks = androidx.compose.runtime.mutableStateOf(_picks.value)
 
+    /** Counts the changes, as Compose state: a list sorted by what songs show knows to put them in order again. */
+    private val _revision = androidx.compose.runtime.mutableIntStateOf(0)
+
+    /** Changes whenever a pick is set or the picks are read again. */
+    val revision: Int get() = _revision.intValue
+
     init { shared = this }
 
     /** Reads the picks again (after "Bring your Prism" merged a phone's in, 1.8.0). */
-    fun reload() { _picks.value = read(); shownPicks.value = _picks.value }
+    fun reload() { _picks.value = read(); shownPicks.value = _picks.value; _revision.intValue++ }
 
     /** The recording that plays for [songId], or null for its own. */
     fun of(songId: String): String? = _picks.value[songId]?.id
@@ -61,6 +67,7 @@ class SongVersions(private val prefs: SharedPreferences) {
         ed.apply()
         _picks.value = read(if (pick == null || pick.id == songId) _picks.value - songId else _picks.value + (songId to pick))
         shownPicks.value = _picks.value
+        _revision.intValue++
     }
 
     /**

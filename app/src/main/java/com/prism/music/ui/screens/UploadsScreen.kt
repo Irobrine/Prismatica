@@ -49,6 +49,7 @@ import com.prism.music.data.model.Releases
 import com.prism.music.data.model.Song
 import com.prism.music.data.model.songCount
 import com.prism.music.data.opensOffline
+import com.prism.music.data.shown
 import com.prism.music.playback.QueueKind
 import com.prism.music.playback.QueueSource
 import com.prism.music.tr
@@ -97,9 +98,9 @@ internal fun uploadAlbumArtist(subtitle: String): String {
 }
 
 internal fun sortUploadedSongs(songs: List<Song>, by: String): List<Song> = when (by) {
-    "TITLE" -> songs.sortedByKey { it.title.lowercase() }
-    "ARTIST" -> songs.sortedByKey({ it.primaryArtist.lowercase() }, { it.album?.title?.lowercase() ?: "" }, { it.title.lowercase() })
-    "ALBUM" -> songs.sortedByKey({ it.album?.title?.lowercase() ?: "￿" }, { it.title.lowercase() })
+    "TITLE" -> songs.sortedByKey { it.shown.title.lowercase() }
+    "ARTIST" -> songs.sortedByKey({ it.shown.primaryArtist.lowercase() }, { it.shown.album?.title?.lowercase() ?: "" }, { it.shown.title.lowercase() })
+    "ALBUM" -> songs.sortedByKey({ it.shown.album?.title?.lowercase() ?: "￿" }, { it.shown.title.lowercase() })
     "LENGTH" -> songs.sortedByDescending { it.durationSec }
     else -> songs
 }
@@ -137,6 +138,8 @@ fun UploadsScreen(bottomPadding: Dp) {
     val scope = rememberCoroutineScope()
     val state by c.uploads.state.collectAsState()
     val lists by c.uploads.lists.collectAsState()
+    // Metadata edited on this phone re-orders the songs below: their sorts read what each song shows.
+    val shownRev = shownRevision()
     LaunchedEffect(settings.isLoggedIn, settings.dataSyncId) { c.uploads.load() }
 
     var query by rememberSaveable { mutableStateOf("") }
@@ -145,7 +148,7 @@ fun UploadsScreen(bottomPadding: Dp) {
     var artistSort by remember { mutableStateOf(UploadArtistSort.entries.firstOrNull { it.name == c.library.sortOf("uploads:artists") } ?: UploadArtistSort.LIBRARY) }
     // Sorted once per list and sort, then searched as the listener types: the sort used to be done again on every
     // keystroke, and every name lowercased again for every song.
-    val sortedSongs = remember(lists.songs, songSort) { sortUploadedSongs(lists.songs, songSort.name) }
+    val sortedSongs = remember(lists.songs, songSort, shownRev) { sortUploadedSongs(lists.songs, songSort.name) }
     val songHay = remember(sortedSongs, query.isNotBlank()) {
         if (query.isBlank()) emptyMap() else sortedSongs.associate { s ->
             s.id to "${s.title} ${s.artistText} ${s.album?.title.orEmpty()}".lowercase()
