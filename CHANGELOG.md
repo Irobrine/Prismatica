@@ -4,7 +4,7 @@ What changed in each release. Older releases are described on the [Releases page
 
 ## 1.0.0
 
-A refactor of Prismatica that diverges from Prism. Built on Prismatica 1.8.5, with its own package and its own updates; from here this line no longer follows Prism's releases.
+A refactor of Prismatica that diverges from Prism. Built on Prismatica 1.8.5 and updated over it, with its own version line and its own updates; from here this line no longer follows Prism's releases.
 
 ### Snooze
 
