@@ -156,6 +156,8 @@ class BackupPartsTest {
         assertEquals(BackupPart.SETTINGS, Backup.prefsPart("icon_style"))
         assertEquals(null, Backup.prefsPart("discord"))
         assertEquals(null, Backup.prefsPart("lastfm"))
+        // 1.8.5's crash log is a prefs file: this phone's, never a backup's.
+        assertEquals(null, Backup.prefsPart("crashlog"))
         // Last session's songs, by id and name: not a setting, and over in six hours anyway.
         assertEquals(null, Backup.prefsPart("session_heard"))
         // When the videos were last got ready: a restored phone does its own run.

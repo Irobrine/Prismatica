@@ -121,6 +121,8 @@ private const val SOON_MS = 30_000L
 /**
  * A list longer than this starts on a window round the song picked, rather than building the whole queue on the main
  * thread first (a Downloads page can hold thousands; one tap waited a second on all of them). The rest joins behind it.
+ * A shuffled start uses the same window (1.1.1): building 800 songs' media items before the first sound was the wait on
+ * Shuffle, not the shuffle itself.
  */
 private const val FAST_START_AT = 400
 /** A few songs after the one picked start with it (enough for Play next); the rest joins once it's under way. */
@@ -496,8 +498,14 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     fun queueStarting(): Int = ++playToken
     fun stillStarting(token: Int) = token == playToken
 
-    /** The job adding a long list's later pages to the queue (#356). */
+    /** The job adding a long list's later pages to the queue (#356), or a shuffled queue's rest (1.1.1). */
     private var fill: kotlinx.coroutines.Job? = null
+
+    /** What the last queue start built before playback could begin (tests read it; see [startQueue]). */
+    internal data class QueueStart(val songs: Int, val builtBeforePlay: Int, val shuffled: Boolean, val ms: Long)
+
+    @androidx.annotation.VisibleForTesting
+    internal var lastQueueStart: QueueStart? = null
 
     private fun stopFill() {
         fill?.cancel()
@@ -538,21 +546,22 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                     page.filterTo(waiting) {
                         com.prism.music.data.ExplicitFilter.plays(mode, it) && !c.snoozes.isSnoozed(it) && seen.add(it.id)
                     }
-                    if (waiting.size >= FILL_BATCH) { addFilled(waiting); waiting.clear() }
+                    if (waiting.size >= FILL_BATCH) { addFilled(waiting, ::wanted); waiting.clear() }
                 }
-                if (wanted() && waiting.isNotEmpty()) addFilled(waiting)
+                if (wanted() && waiting.isNotEmpty()) addFilled(waiting, ::wanted)
             } finally {
                 if (fill === job) { fill = null; c.queue.filling = false }
             }
-            // The list is all in: only now can autoplay tell the queue is nearly over.
-            if (wanted()) service?.maybeAutoplay()
+            // The list is all in: only now can autoplay (and Smart Shuffle) tell the queue is nearly over.
+            if (wanted()) service?.afterQueueFilled()
         }
         fill = job
     }
 
     /** [songs] at the end of the queue (before autoplay's suggestions), and shuffled in among what's still to come. */
-    private suspend fun addFilled(songs: List<Song>) {
+    private suspend fun addFilled(songs: List<Song>, still: () -> Boolean = { true }) {
         val items = withContext(Dispatchers.Default) { songs.map { it.toMediaItem() } }
+        if (!still()) return
         val p = player ?: return
         val auto = c.queue.autoplayStart.value
         val at = if (auto in 0..p.mediaItemCount) auto else p.mediaItemCount
@@ -567,6 +576,37 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         val queued = ahead.takeWhile { p.getMediaItemAt(it).mediaId in c.queue.userQueued.value }.size
         val soon = p.duration > 0 && p.duration - p.currentPosition < SOON_MS
         p.setShuffleOrder(order.scattered((at until at + items.size).toList(), playing, keep = queued + if (soon) 1 else 0))
+    }
+
+    /**
+     * A shuffled start's rest (1.1.1): the songs either side of the window that started ([startQueue]'s fast shuffle),
+     * made into media items off the main thread and shuffled in among what's still to come. The first song plays while
+     * this runs, so a library's 800 songs aren't built before its first sound.
+     */
+    private fun fillShuffled(all: List<Song>, from: Int, to: Int, token: Int) {
+        val rest = ArrayList<Song>(all.size - (to - from))
+        if (from > 0) rest.addAll(all.subList(0, from))
+        if (to < all.size) rest.addAll(all.subList(to, all.size))
+        if (rest.isEmpty()) {
+            c.queue.filling = false
+            return
+        }
+        c.queue.filling = true
+        var job: kotlinx.coroutines.Job? = null
+        job = scope.launch {
+            try {
+                // Built beside the first song, never before it: the call that started it has already prepared and
+                // played, and this runs on the main thread only to put each batch in.
+                for (chunk in rest.chunked(FILL_BATCH)) {
+                    if (token != playToken) return@launch
+                    addFilled(chunk) { token == playToken }
+                }
+            } finally {
+                if (fill === job) { fill = null; c.queue.filling = false }
+            }
+            if (token == playToken) service?.afterQueueFilled()
+        }
+        fill = job
     }
 
     /** Settings → Playback → "Songs, not videos" → Everywhere (#80). */
@@ -838,23 +878,32 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             val queue = kept.ifEmpty { songs }
             val first = queue.indexOfFirst { it.id == starting.id }.coerceAtLeast(0)
             val shuffled = mode != ShuffleMode.OFF
-            // A very long list (Downloads can hold thousands, the library hundreds) isn't made into media items on the
-            // main thread before the first sound: the picked song and a few after it start, and the rest joins once it's
-            // under way. Shuffled queues keep the old way (their order is the queue's own).
+            // A long list (Downloads can hold thousands, the library hundreds) isn't made into media items on the main
+            // thread before the first sound: the picked song and a few after it start, and the rest joins once it's
+            // under way. A shuffled queue did build every item first (1.1.0), which is what made Shuffle wait on 800
+            // songs: it now starts on a window too, the window's order random and the rest shuffled in behind it.
             val fastStart = !shuffled && rest == null && queue.size > FAST_START_AT
-            val from = if (fastStart) first else 0
-            val to = if (fastStart) (first + FAST_START_AFTER + 1).coerceAtMost(queue.size) else queue.size
+            val fastShuffle = shuffled && rest == null && queue.size > FAST_START_AT
+            val fast = fastStart || fastShuffle
+            val from = if (fast) first else 0
+            val to = if (fast) (first + FAST_START_AFTER + 1).coerceAtMost(queue.size) else queue.size
             val at = first - from
+            c.queue.filling = rest != null || fastShuffle
             p.shuffleModeEnabled = shuffled
-            p.setMediaItems(
-                queue.subList(from, to).mapIndexed { i, s -> s.toMediaItem(if (i == at) startVideo else null) },
-                at, startMs.coerceAtLeast(0),
+            val built = android.os.SystemClock.elapsedRealtime()
+            val items = queue.subList(from, to).mapIndexed { i, s -> s.toMediaItem(if (i == at) startVideo else null) }
+            p.setMediaItems(items, at, startMs.coerceAtLeast(0))
+            lastQueueStart = QueueStart(queue.size, items.size, shuffled, android.os.SystemClock.elapsedRealtime() - built)
+            AudioDiagnostics.log(
+                "queue",
+                (if (fastShuffle) "shuffle " else "") + "${queue.size} songs: ${items.size} items in ${lastQueueStart!!.ms} ms before play",
             )
             // The song it starts on first, the rest in a new order.
             if (shuffled) reshuffle(p)
             p.prepare()
             p.play()
-            if (fastStart) fillAround(queue, first, to - first)
+            if (fastShuffle) fillShuffled(queue, from, to, token)
+            else if (fastStart) fillAround(queue, first, to - first)
             if (mode == ShuffleMode.SMART) {
                 c.queue.smartShuffle.value = true
                 // Its picks now: the service's Smart Shuffle collector never saw it go off and on again above.

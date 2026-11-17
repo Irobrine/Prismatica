@@ -97,10 +97,32 @@ class HistoryShuffleOrder(private val order: IntArray, private val current: () -
      */
     fun scattered(added: Collection<Int>, playing: Int, keep: Int = 0, random: kotlin.random.Random = kotlin.random.Random.Default): HistoryShuffleOrder {
         val adding = added.toHashSet()
-        val list = order.filterNot { it in adding }.toMutableList()
-        val first = (list.indexOf(playing) + 1 + keep).coerceAtMost(list.size)
-        added.shuffled(random).forEach { list.add(random.nextInt(first, list.size + 1), it) }
-        return HistoryShuffleOrder(list.toIntArray(), current)
+        val base = order.filterNot { it in adding }
+        val tailStart = (base.indexOf(playing) + 1 + keep).coerceAtMost(base.size)
+        val tail = base.size - tailStart
+        val k = added.size
+        if (k == 0) return HistoryShuffleOrder(base.toIntArray(), current)
+        // k distinct places for the new songs among the (tail + k) places after what stays put: one pass, so a very
+        // large library's later batches don't shift a list once per song (that was O(songs × added) per batch).
+        val chosen = HashSet<Int>(k * 2)
+        while (chosen.size < k) chosen += random.nextInt(0, tail + k)
+        val places = chosen.toIntArray().apply { sort() }
+        val shuffled = added.shuffled(random)
+        val out = IntArray(base.size + k)
+        for (i in 0 until tailStart) out[i] = base[i]
+        var at = tailStart
+        var baseAt = tailStart
+        var addedAt = 0
+        var placeAt = 0
+        for (place in 0 until tail + k) {
+            if (placeAt < places.size && places[placeAt] == place) {
+                out[at++] = shuffled[addedAt++]
+                placeAt++
+            } else {
+                out[at++] = base[baseAt++]
+            }
+        }
+        return HistoryShuffleOrder(out, current)
     }
 
     /** Whether [other] plays the queue in the same order. */

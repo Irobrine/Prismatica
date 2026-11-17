@@ -2,6 +2,31 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.1.1
+
+Older backups restore again, and Shuffle starts on the first sound instead of building a library's whole queue first.
+
+### Backups
+
+- **A backup from 1.8.5-archaic (and older) restores.** A file this line was built on restores its library, listening, playlists, tags, preferences and settings into 1.1.1, opening its schema 11 database through 12 and 13 with every song, like and play kept.
+- **What older backups carried but this version keeps off a phone is skipped, not a reason to refuse the file.** Backups made by 1.7.8–1.8.6 with "Settings" ticked held the settings store's own file (which also holds the YouTube Music sign-in), crash and diagnostic logs, and migration marks; one of them made the whole restore be dropped. The store's own file is never restored, the logs and caches stay this phone's, and the rest still goes in. A restore staged by an older version, or one interrupted by an update, is put in place too.
+- **Only what the backup replaces is moved aside.** A whole (pre-1.7.8) backup no longer takes this phone's Last.fm session, crash log, diagnostics or settings store with it when the backup has no replacement for them.
+- **The Last.fm session and crash log never travel.** Last.fm's key is sealed to the phone that made it, and the crash log names songs and account state; both are left out of a backup now (Last.fm reconnects after a restore).
+- **A password-protected backup is sealed a chunk at a time** (1 MB under its own key stream): Android's AES-GCM otherwise held the whole encrypted file in memory, which failed a large backup on a phone with the storage but not the memory for it. Backups sealed the old way still open.
+
+### Shuffle
+
+- **Shuffle starts at once, with 800 songs or 5,000.** The tap used to make every song's media item on the main thread before the first sound. A shuffled start now builds the random song and a few after it, starts playback, and adds the rest behind it off the main thread, in a fresh random order. A large library's first sound no longer waits on its whole queue.
+- **Tapping Shuffle again while a song plays switches at once**, and rapid taps keep the last queue: an older fill stops adding its songs when a newer queue starts.
+- **Smart Shuffle's picks wait for the whole queue**, so they're placed among the songs still to come rather than at the end of a queue that is still arriving.
+- **The shuffle order stays random and complete**: every song once, a new order each time, the chosen song first, and Previous still goes back through what played.
+
+### Under the hood
+
+- The shuffle-to-playback stages are timed: `PlayerConnection.lastQueueStart` records the songs, how many items were built before playback, and how long that took; the timing also goes to playback diagnostics when they're on.
+- New tests: `LegacyBackupTest` (a 1.8.5-archaic fixture, a whole pre-1.7.8 backup, a staged older restore, malformed files and a current-version round trip) and `ShuffleStartTest` (small, 800 and 5,000 songs; stopped, playing, repeated and rapid shuffles; the play order and the measured build).
+- The backup restore pipeline is split at the point it restarts, so the staged result can be checked in tests (`Backup.stage`).
+
 ## 1.1.0
 
 Music videos start at once, a long list no longer waits to be built before it plays, and a swipe keeps the speed of your hand.

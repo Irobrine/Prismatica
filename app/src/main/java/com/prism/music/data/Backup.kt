@@ -130,7 +130,9 @@ class Backup(private val c: AppContainer) {
             }
             // Tags (1.8.3) live in the database (History) but belong to the library: they go as a file of their own.
             if (BackupPart.LIBRARY in parts) {
-                val bytes = c.tags.exportJson(c.tags.export()).toByteArray()
+                // Read once: export() walks every tag and song; doing it again for the JSON was a second library's worth.
+                val tags = c.tags.export()
+                val bytes = c.tags.exportJson(tags).toByteArray()
                 putEntry(zip, TAGS_ENTRY, bytes)
                 sums[TAGS_ENTRY] = sha256(bytes)
                 // Which song each music video is of (1.8.5): the library's too, so a restore without the history keeps
@@ -259,6 +261,15 @@ class Backup(private val c: AppContainer) {
      * the parts the manifest names (never a sign-in's or a pairing's own files).
      */
     suspend fun restore(uri: Uri, password: CharArray? = null) = withContext(Dispatchers.IO) {
+        stage(uri, password)
+        restart()
+    }
+
+    /**
+     * Checks the backup at [uri] and unpacks it to be put in place at the next launch, without restarting.
+     * [restore] restarts once this has succeeded; tests call this to look at what was staged.
+     */
+    internal suspend fun stage(uri: Uri, password: CharArray? = null) = withContext(Dispatchers.IO) {
         val staging = File(ctx.filesDir, STAGING)
         staging.deleteRecursively()
         staging.mkdirs()
@@ -344,6 +355,8 @@ class Backup(private val c: AppContainer) {
                     name == TAGS_ENTRY -> whole || BackupPart.LIBRARY in parts
                     // The store's own file also holds the sign-in: only a whole backup from before 1.7.8 brings it.
                     name.startsWith("datastore/") -> whole
+                    // Some builds of that era kept it under files/: still only a whole (old) backup.
+                    name == "files/datastore" || name.startsWith("files/datastore/") -> whole
                     else -> part != null && part in parts
                 }
                 if (!keep) {
@@ -366,15 +379,15 @@ class Backup(private val c: AppContainer) {
             File(staging, COMPLETE).writeText(m.integrity.toString())
         } catch (e: Throwable) {
             staging.deleteRecursively()
-            // A protected file that won't open is either the wrong password or one that was changed/cut short.
-            if (opened?.encrypted == true && (e is BackupCrypto.NeedsPassword || e is java.io.IOException)) {
+            // A protected file that won't open is either the wrong password or one that was changed/cut short. A
+            // chunked seal's bad tag is a GeneralSecurityException, the whole-file seal's came as an IOException.
+            if (opened?.encrypted == true && (e is BackupCrypto.NeedsPassword || e is java.io.IOException || e is java.security.GeneralSecurityException)) {
                 error(tr(R.string.backup_password_wrong))
             }
             throw e
         } finally {
             runCatching { opened?.stream?.close() }
         }
-        restart()
     }
 
     private fun restart() {
@@ -609,6 +622,8 @@ class Backup(private val c: AppContainer) {
             put("video_prepare", null)
             // Which install this is (RestoredInstall): restoring one's own backup elsewhere mustn't look like Android's.
             put(RestoredInstall.PREFS, null)
+            // ...and the crash log keeps its last details in a prefs file too (1.8.5): this phone's, never a backup's.
+            put("crashlog", null)
         }
 
         /** Folders (and files) right under files/ by part; anything else counts as Settings. */
@@ -628,8 +643,6 @@ class Backup(private val c: AppContainer) {
             put("datastore", null)
             // Diagnostics and crash logs are this phone's, and have no place in a file shared with anyone.
             listOf("crashes", "diagnostics", "lyrics-tags").forEach { put(it, null) }
-            // ...and the crash log keeps its last details in a prefs file too (1.8.5).
-            put("crashlog", null)
             // Which one-time moves into the database this install has done: another phone's database hasn't had them.
             put("migrations", null)
             // Lyric translations (1.7.8) are a cache of Google's answers, asked for again when missing.
@@ -675,13 +688,28 @@ class Backup(private val c: AppContainer) {
             else -> null
         }
 
+        /** An entry this version deliberately never restores: this phone's logs, caches, store or install marks. */
+        private fun entryNeverTravels(name: String): Boolean = when {
+            name == "datastore" || name.startsWith("datastore/") -> true
+            name.startsWith("files/") -> {
+                val top = name.removePrefix("files/").substringBefore('/')
+                top.isNotBlank() && top in FILE_PARTS && FILE_PARTS[top] == null
+            }
+            name.startsWith("shared_prefs/") -> {
+                val f = name.removePrefix("shared_prefs/")
+                !f.contains('/') && f.endsWith(".xml") && f.removeSuffix(".xml") in PREFS_PARTS &&
+                    PREFS_PARTS[f.removeSuffix(".xml")] == null
+            }
+            else -> false
+        }
+
         /** Whether [name] is a file this backup's [parts] may bring (and not one that never travels). */
         private fun entryAllowed(name: String, whole: Boolean, parts: Set<BackupPart>): Boolean {
             if (name == SETTINGS_ENTRY) return whole || BackupPart.SETTINGS in parts || BackupPart.ACCOUNTS in parts
             if (name == TAGS_ENTRY) return whole || BackupPart.LIBRARY in parts
             if (name == VIDEO_SONGS_ENTRY) return whole || BackupPart.LIBRARY in parts
             // A store's own file (an old backup) also holds the sign-in: only a whole old backup may bring it.
-            if (name.startsWith("datastore/")) return whole
+            if (name.startsWith("datastore/") || name == "files/datastore" || name.startsWith("files/datastore/")) return whole
             val part = entryPart(name) ?: return false
             return part in parts
         }
@@ -754,6 +782,13 @@ class Backup(private val c: AppContainer) {
                 if (m.integrity == 1 && !File(staging, COMPLETE).exists()) error(tr(R.string.that_file_isn_t_a_prism_2))
                 val whole = m.parts == null
                 val parts = m.partSet()
+                // A backup by parts never brings the settings store's own file. One made by 1.7.8 to 1.8.6 with
+                // "Settings" ticked did (#498): restored, it would sign this phone in as whoever made the backup.
+                // (A whole backup from before 1.7.8 may still bring the store, its settings' only form then.)
+                if (!whole) {
+                    File(staging, "files/datastore").deleteRecursively()
+                    File(staging, "datastore").deleteRecursively()
+                }
                 // Every staged file is checked again against the backup's hashes before a single thing is replaced.
                 val staged = stagedFiles(staging, m, whole, parts) ?: error(tr(R.string.that_file_isn_t_a_prism_2))
                 // Tags are the library's, kept in the database: a restore of the history alone keeps this phone's.
@@ -771,7 +806,7 @@ class Backup(private val c: AppContainer) {
                 } else null
                 val redownload = !m.withDownloads && m.downloads.isNotEmpty()
 
-                val old = oldPaths(data, files, m, whole, parts)
+                val old = oldPaths(data, files, m, whole, parts, staged)
                 val new = staged.toMutableList().apply {
                     if (settingsText != null) add(RESTORED_SETTINGS)
                     if (redownload) add(REDOWNLOAD)
@@ -811,9 +846,15 @@ class Backup(private val c: AppContainer) {
             staging.walkTopDown().filter { it.isFile }.forEach { f ->
                 val rel = f.relativeTo(staging).invariantSeparatorsPath
                 if (rel == MANIFEST || rel == INTEGRITY || rel == COMPLETE) return@forEach
-                if (!entryAllowed(rel, whole, parts)) return null
-                if (f.length() > entryLimit(rel)) return null
                 names += rel
+                // A backup made before this version's part map may carry files it now keeps off a phone (the settings
+                // store, crash and diagnostic logs, migration marks): those are skipped, not a reason to refuse the
+                // whole restore (1.1.1: a 1.8.5-archaic backup holds files/datastore). Anything else is refused.
+                if (!entryAllowed(rel, whole, parts)) {
+                    if (entryNeverTravels(rel)) return@forEach
+                    return null
+                }
+                if (f.length() > entryLimit(rel)) return null
                 // Settings are values read above, not a file put among this phone's own (it's a transfer file).
                 if (rel != SETTINGS_ENTRY) rels += rel
             }
@@ -832,18 +873,27 @@ class Backup(private val c: AppContainer) {
         }
 
         /** What the backup replaces: this phone's own copies, kept in [OLD] until everything is in. */
-        private fun oldPaths(data: File, files: File, m: BackupManifest, whole: Boolean, parts: Set<BackupPart>): List<String> {
+        private fun oldPaths(data: File, files: File, m: BackupManifest, whole: Boolean, parts: Set<BackupPart>, staged: List<String>): List<String> {
             val old = mutableListOf<String>()
             File(data, "databases").listFiles()?.forEach {
                 if ((BackupPart.HISTORY in parts && it.name.startsWith(DB)) || (BackupPart.DOWNLOADS in parts && it.name.startsWith(EXO_DB))) old += "databases/${it.name}"
             }
-            File(data, "shared_prefs").listFiles()?.forEach { if (whole || prefsPart(it.name.removeSuffix(".xml")) in parts) old += "shared_prefs/${it.name}" }
-            // A backup from before 1.7.8 brings the settings store's own file; a newer one, its values.
-            if (whole && File(data, "datastore").exists()) old += "datastore"
+            File(data, "shared_prefs").listFiles()?.forEach {
+                val part = prefsPart(it.name.removeSuffix(".xml"))
+                // A prefs file this version never restores stays this phone's (1.1.1: 1.8.5's lastfm and crashlog).
+                if (part != null && (whole || part in parts)) old += "shared_prefs/${it.name}"
+            }
+            // A backup from before 1.7.8 brings the settings store's own file; a newer one, its values. Only move it
+            // when the backup actually holds one: a whole backup that doesn't mustn't leave this phone without its store.
+            if (whole && staged.any { it == "datastore" || it.startsWith("datastore/") } && File(data, "datastore").exists()) old += "datastore"
+            if (whole && staged.any { it == "files/datastore" || it.startsWith("files/datastore/") }) old += "files/datastore"
             files.listFiles()?.forEach { f ->
                 if (f.name == STAGING) return@forEach
-                if (whole) { if (m.withDownloads || filePart(f.name) != BackupPart.DOWNLOADS) old += "files/${f.name}" }
-                else if (filePart(f.name) in parts) old += "files/${f.name}"
+                val part = filePart(f.name)
+                // Never-travel files (logs, caches, the settings store) are not the backup's to replace.
+                if (part == null) return@forEach
+                if (whole) { if (m.withDownloads || part != BackupPart.DOWNLOADS) old += "files/${f.name}" }
+                else if (part in parts) old += "files/${f.name}"
             }
             return old
         }

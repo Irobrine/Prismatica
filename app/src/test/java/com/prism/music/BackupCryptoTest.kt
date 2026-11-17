@@ -15,9 +15,9 @@ import java.io.ByteArrayOutputStream
 class BackupCryptoTest {
     private val content = ByteArray(64 * 1024) { (it * 31 % 251).toByte() }
 
-    private fun sealed(password: String): ByteArray {
+    private fun sealed(password: String, bytes: ByteArray = content): ByteArray {
         val out = ByteArrayOutputStream()
-        BackupCrypto.seal(out, password.toCharArray()).use { it.write(content) }
+        BackupCrypto.seal(out, password.toCharArray()).use { it.write(bytes) }
         return out.toByteArray()
     }
 
@@ -42,6 +42,50 @@ class BackupCryptoTest {
     @Test fun aChangedByteIsRefused() {
         val file = sealed("a long enough password").also { it[it.size - 20] = (it[it.size - 20].toInt() xor 1).toByte() }
         assertNull(read(file, "a long enough password"))
+    }
+
+    /**
+     * A backup is sealed a chunk at a time (1.1.1): Android's AES-GCM keeps a `CipherOutputStream`'s whole output in
+     * memory, so a library's backup couldn't be written at all. Nothing of the size may matter now.
+     */
+    @Test fun aBackupBiggerThanAChunkComesBackWhole() {
+        val big = ByteArray(BackupCrypto.CHUNK * 2 + 1234) { (it * 31 % 251).toByte() }
+        val file = sealed("a long enough password", big)
+        assertArrayEquals(big, read(file, "a long enough password"))
+        assertNull("nor does a wrong password", read(file, "another password"))
+    }
+
+    /** A change in any chunk is refused, not just in the last one. */
+    @Test fun aChangedByteInAnEarlyChunkIsRefused() {
+        val big = ByteArray(BackupCrypto.CHUNK * 2 + 1234) { (it * 31 % 251).toByte() }
+        val file = sealed("a long enough password", big)
+        // Past the header (8 + 1 + 4 + 16 + 8 + 4) and into the first chunk's ciphertext.
+        val at = 41 + 100
+        file[at] = (file[at].toInt() xor 1).toByte()
+        assertNull(read(file, "a long enough password"))
+    }
+
+    /** A file written by 1.0.0-1.1.0 (one GCM seal over the whole zip) still opens. */
+    @Test fun aBackupSealedTheOldWayStillOpens() {
+        val password = "a long enough password"
+        val salt = ByteArray(16) { it.toByte() }
+        val iv = ByteArray(12) { (it * 3).toByte() }
+        val rounds = BackupCrypto.ITERATIONS
+        val out = ByteArrayOutputStream()
+        out.write(BackupCrypto.MAGIC.toByteArray(Charsets.US_ASCII))
+        out.write(BackupCrypto.VERSION)
+        out.write(byteArrayOf((rounds ushr 24).toByte(), (rounds ushr 16).toByte(), (rounds ushr 8).toByte(), rounds.toByte()))
+        out.write(salt)
+        out.write(iv)
+        val key = javax.crypto.spec.SecretKeySpec(
+            javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(javax.crypto.spec.PBEKeySpec(password.toCharArray(), salt, rounds, 256)).encoded,
+            "AES",
+        )
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, key, javax.crypto.spec.GCMParameterSpec(128, iv))
+        javax.crypto.CipherOutputStream(out, cipher).use { it.write(content) }
+        assertArrayEquals(content, read(out.toByteArray(), password))
     }
 
     @Test fun anOrdinaryZipIsReadAsItIs() {

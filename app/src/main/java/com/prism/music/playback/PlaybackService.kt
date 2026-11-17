@@ -1629,6 +1629,15 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     }
 
     /**
+     * The queue just finished arriving (a shuffled start's window, or a long list's later pages): its autoplay
+     * suggestions and Smart Shuffle's picks can be worked out now that the whole queue is there.
+     */
+    internal fun afterQueueFilled() {
+        smartAhead()
+        maybeAutoplay()
+    }
+
+    /**
      * With Autoplay on, keeps the queue topped up with YouTube Music radio
      * suggestions as it nears its end: seeded by the song for a single-song
      * play, or by the last track of an album / playlist.
@@ -2316,6 +2325,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     private fun smartAhead() {
         smartJob?.cancel()
         if (!c.queue.smartShuffle.value || !player.shuffleModeEnabled || !c.queue.smartAllowed()) return
+        // A queue still being filled (a shuffled start, a long list) has only its first few songs yet: its picks go in
+        // once the rest is there ([afterQueueFilled]), not at the wrong place in a queue that's still arriving.
+        if (c.queue.filling) return
         smartJob = scope.launch {
             val picks = c.queue.smartPicks.value
             val tl = player.currentTimeline
