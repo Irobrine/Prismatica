@@ -73,6 +73,18 @@ class PlayerMorphTest {
         assertFalse("an open that came back", PlayerMorph.completes(0.2f, towardPlayer = true))
     }
 
+    /** A fast flick finishes without the finger having to reach the tenth (the player and its panels alike). */
+    @Test fun aFastFlickFinishesShortOfTheTenth() {
+        assertFalse("a slow drag short of the mark falls back", PlayerMorph.completes(0.10f, towardPlayer = true, velocity = 0.2f))
+        assertTrue("a flick toward the player opens it", PlayerMorph.completes(0.10f, towardPlayer = true, velocity = PlayerMorph.FLICK))
+        assertFalse("a flick the other way doesn't", PlayerMorph.completes(0.10f, towardPlayer = true, velocity = -PlayerMorph.FLICK))
+        assertTrue("a flick down closes the player", PlayerMorph.completes(0.90f, towardPlayer = false, velocity = -PlayerMorph.FLICK))
+        assertFalse("a flick up doesn't close it", PlayerMorph.completes(0.90f, towardPlayer = false, velocity = PlayerMorph.FLICK))
+        // A panel's way out is the same number, and the same rule.
+        assertTrue(PlayerMorph.completes(0.10f, towardPlayer = true, velocity = 4f))
+        assertTrue(PlayerMorph.completes(0.90f, towardPlayer = false, velocity = -4f))
+    }
+
     /** Opening and closing move the same number: the moving words only hand back to the player's own at the very end. */
     @Test fun theMovingWordsHandBackAtTheEnd() {
         PlayerMorph.miniTitle = androidx.compose.ui.geometry.Rect(0f, 0f, 120f, 20f)

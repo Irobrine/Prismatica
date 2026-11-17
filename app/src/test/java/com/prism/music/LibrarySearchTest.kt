@@ -100,6 +100,7 @@ class LibrarySearchTest {
         while (spellings.known.value.size < 2 && System.currentTimeMillis() < until) Thread.sleep(20)
         val index = LibrarySearch.Index(LibrarySearch.songEntries(listOf(song, korean), emptyList(), emptyList(), emptyList()), spellings.known.value)
         assertEquals(listOf("j"), LibrarySearch.find(index, "tori no uta", LibFilter()).map { it.item.id })
+        assertEquals("run together too", listOf("j"), LibrarySearch.find(index, "torinouta", LibFilter()).map { it.item.id })
         assertEquals(listOf("k"), LibrarySearch.find(index, "sarang", LibFilter()).map { it.item.id })
         assertEquals("the script itself still finds it", listOf("j"), LibrarySearch.find(index, "とりのうた", LibFilter()).map { it.item.id })
         // Kept: spelled once, read from the table after.

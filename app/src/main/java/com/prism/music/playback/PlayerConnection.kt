@@ -444,8 +444,10 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         val everywhere = songsEverywhere()
         // #383: a playlist's videos, as YouTube pairs them with their songs (one request), for when each comes up.
         val pairsFrom = playlistToPair(everywhere, source, c.settings.current.isLoggedIn)
-        // Live streams play as they are: they have no "song version" to swap in.
-        if ((shuffle && !everywhere) || !tapped.isVideo || tapped.isLive || tapped.isEpisode) {
+        // Live streams play as they are: they have no "song version" to swap in. A shuffled start does too: it's picked
+        // to be played at once, so it never waits on a video's song (with "Songs, not videos" everywhere as well, the
+        // random pick landing on a music video was the wait on Shuffle sometimes).
+        if (shuffle || !tapped.isVideo || tapped.isLive || tapped.isEpisode) {
             if (pairsFrom != null) scope.launch { pairPlaylist(pairsFrom, tapped.id, source.title) }
             startQueue(songs, first, source, shuffle, null, rest = rest)
             return

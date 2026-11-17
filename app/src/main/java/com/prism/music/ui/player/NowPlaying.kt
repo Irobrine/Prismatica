@@ -910,7 +910,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             haptics.gestureEnd()
             val reduce = c.settings.current.reduceMotion
             val towardPlayer = !startedOpen
-            if (PlayerMorph.completes(panelShift.value, towardPlayer)) {
+            if (PlayerMorph.completes(panelShift.value, towardPlayer, velocity)) {
                 if (towardPlayer) panelShift.animateTo(scope, 1f, reduce, velocity)
                 else panelShift.animateTo(scope, 0f, reduce, velocity) { closePanelsNow() }
             } else if (towardPlayer) {
@@ -922,7 +922,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             panelShift.end()
             haptics.gestureEnd()
             val reduce = c.settings.current.reduceMotion
-            if (PlayerMorph.completes(panelShift.value, towardPlayer = true)) {
+            if (PlayerMorph.completes(panelShift.value, towardPlayer = true, velocity = velocity)) {
                 panelShift.animateTo(scope, 1f, reduce, velocity)
                 menuBySwipe = true
                 showActions = true
@@ -940,7 +940,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                 onDragEnd = {
                     if (closing) return@detectVerticalDragGestures
                     val v = letGoSpeed()
-                    if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) {
+                    if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false, velocity = v)) {
                         PlayerMorph.released(v)
                         slideClosed()
                     } else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion, velocity = v)
@@ -1009,7 +1009,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         1 -> if (menuTarget) settleMenuSwipe(v) else settlePanel(startedOpen, v)
                         2 -> {
                             if (closing) return@detectVerticalDragGestures
-                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) {
+                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false, velocity = v)) {
                                 PlayerMorph.released(v)
                                 slideClosed()
                             } else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion, velocity = v)
@@ -1533,7 +1533,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                                 when (mode) {
                                     1 -> settlePanel(startedOpen, v)
                                     2 -> if (!closing) {
-                                        if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false)) {
+                                        if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false, velocity = v)) {
                                             PlayerMorph.released(v)
                                             slideClosed()
                                         } else PlayerMorph.endDrag(towardPlayer = false, complete = false, scope = scope, reduceMotion = c.settings.current.reduceMotion, velocity = v)

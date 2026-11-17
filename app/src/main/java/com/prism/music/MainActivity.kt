@@ -396,10 +396,11 @@ private fun navHeight(style: NavBarStyle, size: com.prism.music.data.prefs.NavBa
 
 /**
  * The pages' transitions with "Slide between screens" (#208): all null when it's off, and the fades apply. [rtl]
- * mirrors them, so a page always comes in from where reading goes.
+ * mirrors them, so a page always comes in from where reading goes. For moves between two tabs [sideAt] follows the tab
+ * bar's order (see [pageSlideSide]): the page of the tab on the right comes in from the right.
  */
-internal class PageSlides(on: Boolean, rtl: Boolean) {
-    private val side = if (rtl) -1 else 1
+internal class PageSlides(on: Boolean, rtl: Boolean, sideAt: Int? = null) {
+    private val side: Int = sideAt ?: if (rtl) -1 else 1
     // The same length as the cross-fade a page gets (PrismTokens.Motion.SCREEN): moving between screens shouldn't
     // take longer just because it slides.
     private val ms = 300
@@ -421,6 +422,22 @@ private fun miniHeight(style: MiniPlayerStyle): Dp = when (style) {
  */
 internal fun bothAreTabs(fromRoute: String?, toRoute: String?, tabRoutes: Set<String>): Boolean =
     fromRoute?.substringBefore('?') in tabRoutes && toRoute?.substringBefore('?') in tabRoutes
+
+/**
+ * Which side a page comes in from: +1 the right edge, -1 the left. Moving between two tabs follows their places on the
+ * bar (the tab to the right comes in from the right, whichever way reading goes); any other page keeps the old way,
+ * from where reading goes in the language ([rtl]).
+ */
+internal fun pageSlideSide(fromRoute: String?, toRoute: String?, tabs: List<String>, rtl: Boolean): Int {
+    val readingSide = if (rtl) -1 else 1
+    val from = fromRoute?.substringBefore('?') ?: return readingSide
+    val to = toRoute?.substringBefore('?') ?: return readingSide
+    val fromIndex = tabs.indexOf(from)
+    val toIndex = tabs.indexOf(to)
+    if (fromIndex < 0 || toIndex < 0 || fromIndex == toIndex) return readingSide
+    val towardRight = toIndex > fromIndex
+    return if (towardRight == !rtl) 1 else -1
+}
 
 @Composable
 private fun rememberArtworkColor(song: Song?, settings: com.prism.music.data.prefs.AppSettings): Color? {
@@ -667,8 +684,12 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
             val stack = navController.currentBackStack.value.mapNotNull { it.destination.route?.substringBefore('?') }
             val currentTab = stack.drop(1).firstOrNull { it in tabRoutes } ?: root
             when {
-                // The root tab always means its top, from anywhere.
-                r == root -> if (!navController.popBackStack(root, inclusive = false, saveState = true)) goRoot()
+                // The root tab always means its top, from anywhere. Already there, it changes nothing: navigating to
+                // the same page again played the "Changing screens" animation for a screen that didn't change.
+                r == root -> {
+                    val atRoot = navController.currentDestination?.route?.substringBefore('?') == root
+                    if (!atRoot && !navController.popBackStack(root, inclusive = false, saveState = true)) goRoot()
+                }
                 // Tapping the tab you're in takes you back to its top.
                 r == currentTab -> navController.popBackStack(r, inclusive = false)
                 // Every other tab keeps its own pages: leaving Settings on Appearance comes back to Appearance.
@@ -741,21 +762,49 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                     val fadeSpec = tween<Float>(fadeMs, easing = fadeEase)
                     // Between two tabs, the bar has already said what happened: the pages hand over quicker than a page
                     // opening from a list or a card does. (A tab's page with arguments, "liked?genre=…", is still its tab.)
-                    val tabRoutes = tabs.map { it.route.substringBefore('?') }.toSet()
+                    val tabRoutesList = tabs.map { it.route.substringBefore('?') }
+                    val tabRoutes = tabRoutesList.toSet()
                     fun isTabSwap(from: androidx.navigation.NavBackStackEntry, to: androidx.navigation.NavBackStackEntry): Boolean =
                         bothAreTabs(from.destination.route, to.destination.route, tabRoutes)
                     val tabFadeSpec = tween<Float>(if (settings.reduceMotion) 0 else 180, easing = fadeEase)
                     // "Slide between screens" (#208, 1.7.9.2): a new page comes in from the side and Back takes it
                     // away the same way (from the left in right-to-left languages); the page underneath moves a little.
-                    val slides = PageSlides(settings.behavior.screenFades && settings.behavior.pageSlide, androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl)
+                    // Moving between tabs follows the bar's places: a page from the tab on the right comes in from the
+                    // right, and one from the tab on the left from the left, so the slide matches the tap (#208).
+                    val rtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
+                    val slideOn = settings.behavior.screenFades && settings.behavior.pageSlide
+                    fun slidesOf(from: androidx.navigation.NavBackStackEntry, to: androidx.navigation.NavBackStackEntry) =
+                        PageSlides(slideOn, rtl, pageSlideSide(from.destination.route, to.destination.route, tabRoutesList, rtl))
                     NavHost(
                         navController, startDestination = start,
-                        enterTransition = { slides.enter ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec) },
-                        exitTransition = { slides.exit ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec) },
-                        popEnterTransition = { slides.popEnter ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec) },
-                        popExitTransition = { slides.popExit ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec) },
-                        predictivePopEnterTransition = { slides.popEnter ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec) },
-                        predictivePopExitTransition = { slides.popExit ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec) },
+                        enterTransition = {
+                            slidesOf(initialState, targetState).enter ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                        },
+                        exitTransition = {
+                            slidesOf(initialState, targetState).exit ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                        },
+                        popEnterTransition = {
+                            val slides = slidesOf(initialState, targetState)
+                            // A tab tapped on the bar is a move between two tabs even when Back to it pops: it still
+                            // comes from its side of the bar, not from the "back" side.
+                            (if (isTabSwap(initialState, targetState)) slides.enter else slides.popEnter)
+                                ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                        },
+                        popExitTransition = {
+                            val slides = slidesOf(initialState, targetState)
+                            (if (isTabSwap(initialState, targetState)) slides.exit else slides.popExit)
+                                ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                        },
+                        predictivePopEnterTransition = {
+                            val slides = slidesOf(initialState, targetState)
+                            (if (isTabSwap(initialState, targetState)) slides.enter else slides.popEnter)
+                                ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                        },
+                        predictivePopExitTransition = {
+                            val slides = slidesOf(initialState, targetState)
+                            (if (isTabSwap(initialState, targetState)) slides.exit else slides.popExit)
+                                ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                        },
                     ) {
                         composable(Routes.WELCOME) {
                             WelcomeScreen(

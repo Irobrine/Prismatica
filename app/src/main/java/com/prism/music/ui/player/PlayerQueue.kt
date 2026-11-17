@@ -163,13 +163,20 @@ fun InlineQueue(onRevealPlayer: () -> Unit, onHidePlayer: () -> Unit, modifier: 
     }
 
     Column(modifier.fillMaxWidth()) {
-        // Pulled down by its title row, the queue closes (#149); the list itself keeps scrolling as before.
+        // Pulled down by its title row, the queue closes (#149); the list itself keeps scrolling as before. A flick
+        // down closes it without the pull having to reach the mark, as the player's own panels do.
         val pullToClose = if (onClose == null) Modifier else Modifier.pointerInput(Unit) {
             var total = 0f
+            val flick = 700.dp.toPx()
+            val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
             detectVerticalDragGestures(
-                onDragStart = { total = 0f },
-                onDragEnd = { if (total > 90f) onClose() },
-            ) { change, amount -> change.consume(); total += amount }
+                onDragStart = { total = 0f; tracker.resetTracking() },
+                onDragEnd = { if (total > 90f || tracker.calculateVelocity().y >= flick) onClose() },
+            ) { change, amount ->
+                change.consume()
+                tracker.addPosition(change.uptimeMillis, change.position)
+                total += amount
+            }
         }
         if (selecting) {
             val n = selected.orEmpty().size

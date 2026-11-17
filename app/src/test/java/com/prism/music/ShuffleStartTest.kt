@@ -89,6 +89,30 @@ class ShuffleStartTest {
         assertTrue("shuffled, not 0..799 in order", order != (0 until 800).toList())
     }
 
+    /**
+     * A shuffled start plays its random song at once even when "Songs, not videos" is everywhere and that song is a
+     * music video: it no longer waited on the video's separate song first (the delay on Shuffle, sometimes).
+     */
+    @Test fun aShuffleOnAVideoStartsAtOnceWithSongsEverywhere() {
+        start()
+        val p = player!!
+        val c = container!!
+        c.settings.setSongsEverywhere(true)
+        val until = System.currentTimeMillis() + 10_000
+        val main = shadowOf(android.os.Looper.getMainLooper())
+        while (!c.settings.current.songsEverywhere && System.currentTimeMillis() < until) {
+            main.idle()
+            Thread.sleep(2)
+        }
+        assertTrue("the setting is on", c.settings.current.songsEverywhere)
+        val videos = (0 until 800).map { Song("v$it", "Video $it", durationSec = 200, isVideo = true) }
+        c.player.playQueue(videos, 0, source("Songs"), shuffle = true)
+        val measured = c.player.lastQueueStart
+        assertTrue("the queue started without waiting on a video's song", measured != null)
+        assertTrue("only a window before play", measured!!.builtBeforePlay <= 5)
+        assertTrue("the video plays as audio", p.currentMediaItem?.mediaId?.startsWith("v") == true)
+    }
+
     @Test fun aSmallLibraryIsStillAllThereAtOnce() {
         start()
         val p = player!!
@@ -163,7 +187,18 @@ class ShuffleStartTest {
     @After fun after() {
         player?.release()
         player = null
-        container?.let { lazyOf(it).closeAfterTest() }
+        container?.let { c ->
+            if (c.settings.current.songsEverywhere) {
+                c.settings.setSongsEverywhere(false)
+                val main = shadowOf(android.os.Looper.getMainLooper())
+                val until = System.currentTimeMillis() + 5_000
+                while (c.settings.current.songsEverywhere && System.currentTimeMillis() < until) {
+                    main.idle()
+                    Thread.sleep(2)
+                }
+            }
+            lazyOf(c).closeAfterTest()
+        }
         container = null
     }
 }

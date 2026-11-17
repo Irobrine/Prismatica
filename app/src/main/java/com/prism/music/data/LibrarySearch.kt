@@ -70,11 +70,14 @@ object LibrarySearch {
     }
 
     /** An index of [entries] to search as one types, with [spellings] (a name → its Latin spelling) in it too. */
-    class Index(val entries: List<LibEntry>, spellings: Map<String, String>) {
-        internal val titles = Array(entries.size) { norm(spelled(entries[it].names.first(), spellings)) }
-        internal val hays = Array(entries.size) { i -> entries[i].names.joinToString(" ") { norm(spelled(it, spellings)) } }
+    class Index(val entries: List<LibEntry>, internal val spellings: Map<String, String>) {
+        internal val titles = Array(entries.size) { norm(spelled(entries[it].names.first())) }
+        internal val hays = Array(entries.size) { i -> entries[i].names.joinToString(" ") { norm(spelled(it)) } }
+        // The same without its spaces, so "torinouta" finds "鳥の歌" and "acdc" finds "AC/DC" as search on the phone does.
+        internal val haysJoined = Array(hays.size) { hays[it].replace(" ", "") }
 
-        private fun spelled(name: String, spellings: Map<String, String>) = spellings[name]?.let { "$name $it" } ?: name
+        private fun spelled(name: String) =
+            spellings[name]?.let { "$name $it ${norm(it).replace(" ", "")}" } ?: name
     }
 
     /**
@@ -84,6 +87,7 @@ object LibrarySearch {
     fun find(index: Index, query: String, filter: LibFilter, limit: Int = 500): List<LibEntry> {
         val q = norm(query)
         val words = q.split(' ').filter { it.isNotBlank() }
+        val joined = q.replace(" ", "")
         val hits = ArrayList<Pair<Int, Int>>()
         for (i in index.entries.indices) {
             val e = index.entries[i]
@@ -91,8 +95,11 @@ object LibrarySearch {
             if (filter.liked && !e.liked || filter.downloaded && !e.downloaded || filter.onPhone && !e.onPhone) continue
             val rank = when {
                 // Nothing typed (filters alone): everything they let through.
-                words.isEmpty() -> if (query.isBlank()) 2 else if (e.names.any { it.contains(query.trim(), ignoreCase = true) }) 1 else null
-                !words.all { it in index.hays[i] } -> null
+                words.isEmpty() -> if (query.isBlank()) 2 else if (e.names.any {
+                    it.contains(query.trim(), ignoreCase = true) ||
+                        index.spellings[it]?.contains(query.trim(), ignoreCase = true) == true
+                }) 1 else null
+                !words.all { it in index.hays[i] } && (joined.isEmpty() || joined !in index.haysJoined[i]) -> null
                 index.titles[i].startsWith(q) -> 0
                 words.all { it in index.titles[i] } -> 1
                 else -> 2

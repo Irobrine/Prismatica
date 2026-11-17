@@ -146,27 +146,39 @@ fun UploadsScreen(bottomPadding: Dp) {
     var songSort by remember { mutableStateOf(UploadSongSort.entries.firstOrNull { it.name == c.library.sortOf("uploads:songs") } ?: UploadSongSort.LIBRARY) }
     var albumSort by remember { mutableStateOf(UploadAlbumSort.entries.firstOrNull { it.name == c.library.sortOf("uploads:albums") } ?: UploadAlbumSort.LIBRARY) }
     var artistSort by remember { mutableStateOf(UploadArtistSort.entries.firstOrNull { it.name == c.library.sortOf("uploads:artists") } ?: UploadArtistSort.LIBRARY) }
+    // Titles, artists and albums in other scripts, in Latin letters, for this page's search too (#363).
+    val spellings by c.titleSpellings.known.collectAsState()
+    LaunchedEffect(lists, query.isNotBlank()) {
+        if (query.isNotBlank()) c.titleSpellings.want(buildList {
+            lists.songs.forEach { addAll(listOfNotNull(it.title, it.artistText, it.album?.title)) }
+            lists.albums.forEach { a ->
+                add(a.title)
+                uploadAlbumArtist(a.subtitle).takeIf { it.isNotBlank() }?.let { add(it) }
+            }
+            lists.artists.forEach { add(it.title) }
+        })
+    }
     // Sorted once per list and sort, then searched as the listener types: the sort used to be done again on every
-    // keystroke, and every name lowercased again for every song.
+    // keystroke, and every name normalized again for every song.
     val sortedSongs = remember(lists.songs, songSort, shownRev) { sortUploadedSongs(lists.songs, songSort.name) }
-    val songHay = remember(sortedSongs, query.isNotBlank()) {
+    val songHay = remember(sortedSongs, query.isNotBlank(), spellings) {
         if (query.isBlank()) emptyMap() else sortedSongs.associate { s ->
-            s.id to "${s.title} ${s.artistText} ${s.album?.title.orEmpty()}".lowercase()
+            s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
         }
     }
     val songs = remember(sortedSongs, query, songHay) {
-        val words = searchWords(query)
+        val words = libraryWords(query)
         if (words.isEmpty()) sortedSongs else sortedSongs.filter { s -> val hay = songHay[s.id].orEmpty(); words.all { it in hay } }
     }
     val sortedAlbums = remember(lists.albums, albumSort) { sortUploadedAlbums(lists.albums, albumSort.name) }
-    val albums = remember(sortedAlbums, query) {
-        val words = searchWords(query)
-        if (words.isEmpty()) sortedAlbums else sortedAlbums.filter { a -> val hay = "${a.title} ${a.subtitle}".lowercase(); words.all { it in hay } }
+    val albums = remember(sortedAlbums, query, spellings) {
+        if (query.isBlank()) sortedAlbums else sortedAlbums.filter {
+            libraryMatches(query, spellings, arrayOf(it.title, it.subtitle, uploadAlbumArtist(it.subtitle)))
+        }
     }
     val sortedArtists = remember(lists.artists, lists.songs, artistSort) { sortUploadedArtists(lists.artists, lists.songs, artistSort.name) }
-    val artists = remember(sortedArtists, query) {
-        val words = searchWords(query)
-        if (words.isEmpty()) sortedArtists else sortedArtists.filter { a -> val hay = a.title.lowercase(); words.all { it in hay } }
+    val artists = remember(sortedArtists, query, spellings) {
+        if (query.isBlank()) sortedArtists else sortedArtists.filter { libraryMatches(query, spellings, arrayOf(it.title)) }
     }
 
     // Without a network only what's on the phone plays or opens; the rest is dimmed, as on album pages.

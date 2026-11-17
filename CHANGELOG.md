@@ -2,6 +2,38 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.1.2
+
+Search in other scripts reaches the rest of the Library, fast swipes finish without the distance, Shuffle starts without waiting on a video lookup, tab changes follow the bar, and a music video plays at the same level as its song.
+
+### Search
+
+- **Latin spellings work in the Library and other lists.** Titles, artists, albums, playlists, folders, uploads and history in Japanese, Korean, Cyrillic, Greek and other scripts answer to their Latin spellings — "tori no uta" or "torinouta" finds 鳥の歌 — in Library → Songs, Albums, Artists, Playlists and History, on collection pages, and in Uploads. It uses the same on-phone romanizers as Search → On this phone and Local files, so it works offline and at once.
+- **Run-together spellings work too**, and the whole-library search also finds "acdc" for "AC/DC".
+
+### The player and its panels
+
+- **A fast swipe finishes without reaching the mark.** Letting go of the mini player, the player, the queue or the lyrics with a flick carries the transition on at the hand's speed and finishes it, even when it hasn't travelled the usual tenth of the screen.
+- **Closing the queue and the immersive player get the same flick.** A quick downward flick closes them without a long pull.
+
+### Shuffle
+
+- **Shuffle no longer waits on a video's song lookup.** A random shuffled start plays at once, including when “Songs, not videos” is set to everywhere and the pick lands on a music video. Large libraries still start on a small window and fill behind it.
+
+### Tabs
+
+- **Tapping the Library tab while already in the Library no longer replays the changing-screens animation.** It stays exactly where it is.
+- **Slide direction follows the bottom bar.** Moving to a tab on the right slides its page in from the right, and moving left slides in from the left (mirrored in right-to-left languages); Back and pages opened from a list keep their usual direction.
+
+### Volume
+
+- **A music video and its song play at the same level.** Each form's own audio is measured and normalized: the video's own loudness while watching, the song's otherwise, with the song's figure standing in until the video's is known. Switching between them changes to that form's gain instead of keeping the other one's, so the volume no longer jumps.
+
+### Under the hood
+
+- `MediaItem.audioId` names the audio actually heard; loudness lookup, YouTube figures, background scans, album gain and the normalizer's per-flush gain all use it, with the song as a fallback until the other form is measured.
+- New and extended tests: `NormalizerSongStartTest` checks that a song and its video each start at their own gain; `LibraryFindTest`, `LibrarySearchTest`, `HistorySearchTest`, `PageSlidesTest`, `PlayerMorphTest` and `ShuffleStartTest` cover the rest.
+
 ## 1.1.1
 
 Older backups restore again, and Shuffle starts on the first sound instead of building a library's whole queue first.

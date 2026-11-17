@@ -223,6 +223,9 @@ fun LibraryScreen(bottomPadding: Dp) {
     // Playlists and albums kept on the phone (without an account, the only ones there are).
     val prismLists by c.prismLibrary.lists.collectAsState()
     val savedAlbums by c.prismLibrary.albums.collectAsState()
+    // Titles in other scripts in Latin letters, for the tabs' own searches (#363): spelled in the background once a search
+    // wants them, so "tori no uta" finds "鳥の歌" here as it does under Search → On this phone.
+    val spellings by c.titleSpellings.known.collectAsState()
     val scope = rememberCoroutineScope()
     var creating by remember { mutableStateOf(false) }
     var newSmart by remember { mutableStateOf(false) }
@@ -353,9 +356,9 @@ fun LibraryScreen(bottomPadding: Dp) {
     }
     // Each song's names as search reads them, normalized once for the list: filtering as the listener types used to
     // normalize every name of every song on every keystroke, the slowest part of a Library search.
-    val songHay = remember(sortedSongs, songQuery.isNotBlank()) {
+    val songHay = remember(sortedSongs, songQuery.isNotBlank(), spellings) {
         if (songQuery.isBlank()) emptyMap() else sortedSongs.associate { s ->
-            s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()))
+            s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
         }
     }
     val shownSongs = remember(sortedSongs, songQuery, songHay) {
@@ -363,7 +366,7 @@ fun LibraryScreen(bottomPadding: Dp) {
         when {
             songQuery.isBlank() -> sortedSongs
             // Punctuation only ("!!!" is a band): looked for in the names themselves, as [libraryMatches] does.
-            words.isEmpty() -> sortedSongs.filter { s -> libraryMatches(songQuery, s.title, s.artistText, s.album?.title.orEmpty()) }
+            words.isEmpty() -> sortedSongs.filter { s -> libraryMatches(songQuery, spellings, arrayOf(s.title, s.artistText, s.album?.title.orEmpty())) }
             else -> sortedSongs.filter { s -> words.all { it in songHay[s.id].orEmpty() } }
         }
     }
@@ -388,9 +391,12 @@ fun LibraryScreen(bottomPadding: Dp) {
     }
     var albumKind by remember { mutableStateOf(AlbumKind.entries.firstOrNull { it.name == c.library.sortOf("library:albums:kind") } ?: AlbumKind.ALL) }
     val albumKinds = remember(albums) { albums.map { AlbumKind.ALBUMS.shows(it) }.toSet() }
-    val shownAlbums = remember(sortedAlbums, albumKind, albumQuery, pinned) {
+    val shownAlbums = remember(sortedAlbums, albumKind, albumQuery, pinned, spellings) {
         val single = tr(R.string.single)
-        pinnedFirst(sortedAlbums.filter { a -> albumKind.shows(a) && (albumQuery.isBlank() || libraryMatches(albumQuery, a.title, *albumNames(a.subtitle, single).toTypedArray())) })
+        pinnedFirst(sortedAlbums.filter { a ->
+            albumKind.shows(a) && (albumQuery.isBlank() ||
+                libraryMatches(albumQuery, spellings, arrayOf(a.title, *albumNames(a.subtitle, single).toTypedArray())))
+        })
     }
     val artistSongs = remember(mine) { mine.flatMap { s -> s.artists.mapNotNull { it.id } }.groupingBy { it }.eachCount() }
     val sortedArtists = remember(artists, artistSort, artistSongs, favorites) {
@@ -401,8 +407,10 @@ fun LibraryScreen(bottomPadding: Dp) {
             ArtistSort.NAME -> artists.sortedByKey({ if (it.id in fav) 0 else 1 }, { it.title.lowercase().removePrefix("the ") })
         }
     }
-    val shownArtists = remember(sortedArtists, artistQuery, pinned) {
-        pinnedFirst(if (artistQuery.isBlank()) sortedArtists else sortedArtists.filter { libraryMatches(artistQuery, it.title) })
+    val shownArtists = remember(sortedArtists, artistQuery, pinned, spellings) {
+        pinnedFirst(if (artistQuery.isBlank()) sortedArtists else sortedArtists.filter {
+            libraryMatches(artistQuery, spellings, arrayOf(it.title))
+        })
     }
     // Playlists: YouTube Music's order, by title, or the listener's own (arranged in Rearrange mode).
     val playlistOrder by c.library.playlistOrder.collectAsState()
@@ -439,21 +447,46 @@ fun LibraryScreen(bottomPadding: Dp) {
     var rearranging by rememberSaveable { mutableStateOf(false) }
     // A search goes through every playlist, the ones in folders too, and the folders by name.
     val searchingPlaylists = playlistQuery.isNotBlank() && !rearranging
-    val foundFolders = remember(folders, playlistQuery) { if (playlistQuery.isBlank()) folders else folders.filter { libraryMatches(playlistQuery, it.name) } }
-    val foundPlaylists = remember(myPlaylists, sortedPlaylists, playlistQuery, pinned) {
+    val foundFolders = remember(folders, playlistQuery, spellings) {
+        if (playlistQuery.isBlank()) folders else folders.filter { libraryMatches(playlistQuery, spellings, arrayOf(it.name)) }
+    }
+    val foundPlaylists = remember(myPlaylists, sortedPlaylists, playlistQuery, pinned, spellings) {
         if (playlistQuery.isBlank()) sortedPlaylists
         else {
             val inList = sortedPlaylists.map { it.id }.toSet()
-            pinnedFirst(sortedPlaylists + myPlaylists.filter { it.id !in inList }).filter { libraryMatches(playlistQuery, it.title) }
+            pinnedFirst(sortedPlaylists + myPlaylists.filter { it.id !in inList }).filter {
+                libraryMatches(playlistQuery, spellings, arrayOf(it.title))
+            }
         }
     }
-    val foundFollowed = remember(spotifyFollowed, playlistQuery) { if (playlistQuery.isBlank()) spotifyFollowed else spotifyFollowed.filter { libraryMatches(playlistQuery, it.name) } }
+    val foundFollowed = remember(spotifyFollowed, playlistQuery, spellings) {
+        if (playlistQuery.isBlank()) spotifyFollowed else spotifyFollowed.filter {
+            libraryMatches(playlistQuery, spellings, arrayOf(it.name))
+        }
+    }
     // Moving one (or starting to) saves the whole order as shown, and switches to it.
     fun saveOrder(list: List<com.prism.music.data.model.BrowseItem>) {
         c.library.setPlaylistOrder(list.map { it.id })
         c.library.setPlaylistSort(PlaylistSort.CUSTOM.name)
     }
     val localTracks by c.localMusic.tracks.collectAsState()
+
+    // Spell the names the tabs can search, in the background: Latin letters for titles, artists, albums, playlists and
+    // folders in other scripts (#363). Each title is spelled once, and only the ones needing it are queued; nothing is
+    // spelled until a search asks (the phone's own tags already answer at once, see [libraryHaystack]).
+    val searchingTabs = songQuery.isNotBlank() || playlistQuery.isNotBlank() || albumQuery.isNotBlank() || artistQuery.isNotBlank()
+    LaunchedEffect(songsBase, albums, artists, myPlaylists, spotifyFollowed, folders, searchingTabs) {
+        if (!searchingTabs) return@LaunchedEffect
+        val single = tr(R.string.single)
+        c.titleSpellings.want(buildList {
+            songsBase.forEach { addAll(listOfNotNull(it.title, it.artistText, it.album?.title)) }
+            albums.forEach { add(it.title); addAll(albumNames(it.subtitle, single)) }
+            artists.forEach { add(it.title) }
+            myPlaylists.forEach { add(it.title) }
+            spotifyFollowed.forEach { add(it.name) }
+            folders.forEach { add(it.name) }
+        })
+    }
 
     LaunchedEffect(pager.currentPage == LibTab.ARTISTS.ordinal, artists.size) {
         if (pager.currentPage == LibTab.ARTISTS.ordinal) c.library.loadArtistThumbs(artists.filter { it.thumbnail == null }.take(60).map { it.id })
@@ -517,12 +550,25 @@ fun LibraryScreen(bottomPadding: Dp) {
                 }.value
             } else null
             val fromAccountShown = fromAccount && settings.isLoggedIn
+            // The account's songs are in other scripts too: spell their names while History is searched (#363). The
+            // phone's own history is read with the phone's Roman tags directly (HistorySearch), so it needs no wait.
+            LaunchedEffect(tab, historyQuery, accountHistory) {
+                if (tab == LibTab.HISTORY && historyQuery.isNotBlank()) {
+                    c.titleSpellings.want(accountHistory?.getOrNull().orEmpty().flatMap { (_, songs) ->
+                        songs.flatMap { listOfNotNull(it.title, it.artistText, it.album?.title) }
+                    })
+                }
+            }
             // Filtering the whole account history is only redone when the list or the search changes, not on every
             // recomposition of the tab (a row scrolled in, the playing song's change).
-            val accountSections = if (fromAccountShown) remember(accountHistory, historyQuery) {
+            val accountSections = if (fromAccountShown) remember(accountHistory, historyQuery, spellings) {
                 accountHistory?.getOrNull()?.let { all ->
                     if (historyQuery.isBlank()) all
-                    else all.map { (t, songs) -> t to songs.filter { s -> libraryMatches(historyQuery, s.title, s.artistText, s.album?.title.orEmpty()) } }.filter { it.second.isNotEmpty() }
+                    else all.map { (t, songs) ->
+                        t to songs.filter { s ->
+                            libraryMatches(historyQuery, spellings, arrayOf(s.title, s.artistText, s.album?.title.orEmpty()))
+                        }
+                    }.filter { it.second.isNotEmpty() }
                 }
             } else null
             // "Go to the playing song" (D54) on Songs: its place among the songs shown (-1: not one of them).

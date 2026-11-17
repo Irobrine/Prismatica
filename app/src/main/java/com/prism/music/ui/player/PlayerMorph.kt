@@ -68,6 +68,12 @@ object PlayerMorph {
     /** Past this share of the window's height a swipe finishes the transition instead of falling back. */
     const val THRESHOLD = 0.10f
 
+    /**
+     * A flick this fast finishes the way it was going without the distance: [progress] a second, so one full morph a
+     * second. A hand crossing a phone's height in a third of a second is clearly on its way, however far it got.
+     */
+    const val FLICK = 1f
+
     /** The point in [progress] the [THRESHOLD] corresponds to, opening. */
     const val COMPLETE_AT = THRESHOLD / TRAVEL
 
@@ -180,9 +186,15 @@ object PlayerMorph {
         return if (towardPlayer) f else 1f - f
     }
 
-    /** Whether letting go at [progress] finishes the way it was going: a tenth of the window's travel. */
-    fun completes(progress: Float, towardPlayer: Boolean): Boolean =
-        if (towardPlayer) progress >= COMPLETE_AT else progress <= 1f - COMPLETE_AT
+    /**
+     * Whether letting go at [progress] finishes the way it was going: a tenth of the window's travel, or a [velocity]
+     * flick toward that end however little way it had got (and not a flick the other way).
+     */
+    fun completes(progress: Float, towardPlayer: Boolean, velocity: Float = 0f): Boolean {
+        if (if (towardPlayer) progress >= COMPLETE_AT else progress <= 1f - COMPLETE_AT) return true
+        val toward = if (towardPlayer) 1f else -1f
+        return velocity * toward >= FLICK
+    }
 
     /** Whether [gesture] takes the player up (rather than acting on the song where it is). */
     fun opensPlayer(gesture: com.prism.music.data.prefs.PlayerGesture): Boolean =

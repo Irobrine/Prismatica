@@ -1,13 +1,18 @@
 package com.prism.music
 
 import androidx.media3.common.C
-import androidx.media3.common.MediaItem
 import androidx.media3.common.Timeline
 import androidx.media3.common.audio.AudioProcessor
+import com.prism.music.data.model.Song
 import com.prism.music.playback.NormalizerProcessor
+import com.prism.music.playback.audioId
+import com.prism.music.playback.toMediaItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.PI
@@ -22,16 +27,26 @@ import kotlin.math.sin
  * restart had the right gain already, so it sounded clean. Now the processor asks for a song's gain when its sound
  * starts (the flush that comes with it).
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class NormalizerSongStartTest {
     private val rate = 48_000
 
-    /** One window and period per id; "loud#video" is another item (the song swapped for its video) of the song "loud". */
+    /**
+     * One window and period per id; "loud#video" is another item (the song swapped for its video) of the song "loud":
+     * the same media id, heard from the video's audio ([EXTRA_VIDEO]).
+     */
     private class Songs(private val ids: List<String>) : Timeline() {
         override fun getWindowCount() = ids.size
-        override fun getWindow(windowIndex: Int, window: Window, defaultPositionProjectionUs: Long): Window = window.set(
-            ids[windowIndex], MediaItem.Builder().setMediaId(ids[windowIndex].substringBefore('#')).build(), null, 0, 0, 0, true, false,
-            null, 0, 200_000_000L, windowIndex, windowIndex, 0,
-        )
+        override fun getWindow(windowIndex: Int, window: Window, defaultPositionProjectionUs: Long): Window {
+            val id = ids[windowIndex]
+            val songId = id.substringBefore('#')
+            val media = Song(songId, songId).toMediaItem(if (id.endsWith("#video")) "$songId-video" else null)
+            return window.set(
+                id, media, null, 0, 0, 0, true, false,
+                null, 0, 200_000_000L, windowIndex, windowIndex, 0,
+            )
+        }
         override fun getPeriodCount() = ids.size
         override fun getPeriod(periodIndex: Int, period: Period, setIds: Boolean): Period =
             period.set(ids[periodIndex], ids[periodIndex], periodIndex, 200_000_000L, 0)
@@ -40,11 +55,14 @@ class NormalizerSongStartTest {
     }
 
     private val songs = Songs(listOf("quiet", "loud", "unknown", "loud#video"))
-    /** What the service knows: the quiet song is lifted 6 dB, the loud one brought down 8; the third isn't known. */
-    private val gains = mutableMapOf("quiet" to 6f, "loud" to -8f)
+    /**
+     * What the service knows, by the audio actually heard: the quiet song is lifted 6 dB, the loud one brought down 8;
+     * the third isn't known, and the video's own master is quieter than its song's (brought down 3).
+     */
+    private val gains = mutableMapOf("quiet" to 6f, "loud" to -8f, "loud-video" to -3f)
 
     private fun processor() = NormalizerProcessor().apply {
-        songGainDb = { item, _ -> gains[item.mediaId] }
+        songGainDb = { item, _ -> gains[item.audioId] }
         configure(AudioProcessor.AudioFormat(rate, 2, C.ENCODING_PCM_16BIT))
     }
 
@@ -106,22 +124,24 @@ class NormalizerSongStartTest {
     }
 
     /**
-     * Review (1.8.5): the song swapped for its video mid-song (or another form of it: the same song, but a new item, so a
-     * new period) is the same listen and keeps the gain it had. A figure measured since is for its next play (past its
-     * first seconds the service leaves the volume alone), not snapped to halfway through this one.
+     * A music video and its song are the same listen but different audio, and often mastered at different levels: each
+     * form starts at its own gain, so switching between them doesn't change the volume the listener hears. The media id
+     * is the same; the video's own figure is keyed by the audio heard ([com.prism.music.playback.audioId]).
      */
-    @Test fun theSameSongSwappedForItsVideoKeepsItsGain() {
+    @Test fun aSongAndItsVideoEachStartAtTheirOwnGain() {
+        assertEquals("the video item carries its own audio id", "loud-video", songs.getWindow(3, Timeline.Window(), 0).mediaItem?.audioId)
         val p = processor()
         startOf(p, "loud")
-        p.setGainDb(-8f)
+        p.setGainDb(-8f, songId = "loud")
         play(p, 1.0)
-        // Measured 30 s in: -3 dB, kept for next time.
-        gains["loud"] = -3f
+        // Swapped for its video mid-song: the video's audio gets the video's gain, not the song's.
         startOf(p, "loud#video", positionUs = 30_000_000)
-        assertEquals("the video goes on at the song's -8 dB", -8.2, play(p, 0.2).first(), 0.3)
-        // And back to the song.
+        assertEquals("the video's own -3 dB", -3.2, play(p, 0.2).first(), 0.3)
+        p.setGainDb(-3f, songId = "loud-video")
+        assertEquals(-3.2, play(p, 0.2).last(), 0.3)
+        // And back to the song: its own gain again.
         startOf(p, "loud", positionUs = 31_000_000)
-        assertEquals(-8.2, play(p, 0.2).first(), 0.3)
+        assertEquals("the song's own -8 dB", -8.2, play(p, 0.2).first(), 0.3)
         // Another song after it still starts at its own gain: a tone at -10.5 dBFS lifted 6 dB.
         startOf(p, "quiet")
         assertEquals(-4.5, play(p, 0.2, peak = 0.3).first(), 0.3)

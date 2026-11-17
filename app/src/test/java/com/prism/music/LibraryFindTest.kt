@@ -63,6 +63,20 @@ class LibraryFindTest {
         assertFalse(libraryMatches("!!!", "Road trip"))
     }
 
+    /** #363: a title in another script is found by its Latin spelling too, with the words apart or run together. */
+    @Test fun aSearchFindsATitleByItsLatinSpelling() {
+        val spellings = mapOf("鳥の歌" to "tori no uta", "사랑해" to "saranghae", "Я тебя люблю" to "ya tebya lyublyu")
+        assertTrue(libraryMatches("tori no uta", spellings, arrayOf("鳥の歌")))
+        assertTrue("run together", libraryMatches("torinouta", spellings, arrayOf("鳥の歌")))
+        // Kana the phone reads itself, with no spelling pass to wait for.
+        assertTrue("the phone reads kana at once", libraryMatches("tori no uta", "とりのうた"))
+        assertTrue("run together too", libraryMatches("torinouta", "とりのうた"))
+        assertTrue(libraryMatches("sarang", spellings, arrayOf("사랑해")))
+        assertTrue("any order", libraryMatches("uta tori", spellings, arrayOf("鳥の歌")))
+        assertFalse("another song's spelling", libraryMatches("sarang", spellings, arrayOf("鳥の歌")))
+        assertTrue("the script itself still finds it", libraryMatches("鳥", spellings, arrayOf("鳥の歌")))
+    }
+
     @Test fun anAlbumsKindIsntPartOfItsNames() {
         assertEquals(listOf("An artist", "2024"), albumNames("Album • An artist • 2024", "Sencillo"))
         assertEquals(listOf("An artist"), albumNames("Sencillo • An artist", "Sencillo"))

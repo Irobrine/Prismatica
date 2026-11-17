@@ -166,8 +166,8 @@ class NormalizerProcessor : BaseAudioProcessor() {
      * nothing to glide from across a jump in the sound.
      *
      * The same song in another form (swapped for its video, or back: a new item, so a new period, but the same media id)
-     * is the same listen and keeps the gain it had: past its first seconds the service leaves a song's volume alone, and
-     * a figure measured since is for its next play.
+     * is the same listen but not the same sound: the video's audio has its own loudness, so it gets its own gain rather
+     * than keeping the song's (the volume of a music video and its song then match). [MediaItem.audioId] is that form.
      */
     override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
         val uid = streamMetadata.periodUid
@@ -175,7 +175,7 @@ class NormalizerProcessor : BaseAudioProcessor() {
             val tl = streamMetadata.timeline
             val item = tl.getIndexOfPeriod(uid).takeIf { it != C.INDEX_UNSET }
                 ?.let { tl.getWindow(tl.getPeriod(it, Timeline.Period()).windowIndex, Timeline.Window()).mediaItem }
-            val id = item?.mediaId?.takeIf { it.isNotEmpty() }
+            val id = item?.audioId?.takeIf { it.isNotEmpty() }
             // Without [songGainDb] (a Mix blend's ending song, given its gain once), the gain set stays.
             val gainOf = songGainDb
             if (gainOf != null && (id == null || id != songId)) {

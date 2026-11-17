@@ -180,7 +180,7 @@ fun MiniPlayer(
                         if (morphing) {
                             val v = letGoSpeed()
                             haptics.gestureEnd()
-                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = true)) {
+                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = true, velocity = v)) {
                                 PlayerMorph.released(v)
                                 onOpen()
                             } else {

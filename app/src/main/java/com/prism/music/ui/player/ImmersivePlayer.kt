@@ -220,10 +220,20 @@ fun ImmersivePlayer(
             }
             .pointerInput(Unit) { detectTapGestures(onTap = { button = !button }) }
             .pointerInput(Unit) {
+                val flick = 700.dp.toPx()
+                val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
                 detectVerticalDragGestures(
-                    onDragEnd = { if (drag > 220f) onCollapse(); drag = 0f },
+                    onDragStart = { tracker.resetTracking() },
+                    onDragEnd = {
+                        if (drag > 220f || tracker.calculateVelocity().y >= flick) onCollapse()
+                        drag = 0f
+                    },
                     onDragCancel = { drag = 0f },
-                ) { change, amount -> change.consume(); drag += amount }
+                ) { change, amount ->
+                    change.consume()
+                    tracker.addPosition(change.uptimeMillis, change.position)
+                    drag += amount
+                }
             }
             .pointerInput(Unit) {
                 val mark = 72.dp.toPx()

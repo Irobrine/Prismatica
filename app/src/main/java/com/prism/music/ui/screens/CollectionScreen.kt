@@ -339,6 +339,8 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
     val current by c.player.currentSong.collectAsState()
     val downloads by c.downloadState.collectAsState()
     val songs by live.songs.collectAsState()
+    // Titles, artists and albums in other scripts, in Latin letters, for the search here too (#363).
+    val spellings by c.titleSpellings.known.collectAsState()
     val loadingMore by live.loadingMore.collectAsState()
     // Metadata edited on this phone re-orders the songs below: their sorts read what each song shows.
     val shownRev = shownRevision()
@@ -415,14 +417,18 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
     }
     // #216: "Hide them" leaves explicit songs out of the list (they're never played either way).
     val explicit = settings.behavior.explicitContent
-    // Each song's names as the search below reads them, lowercased once for the list rather than on every keystroke.
-    val searchHay = remember(songs, query.isNotBlank()) {
+    // A search wants the Latin spellings of the names in other scripts that it reads (#363), spelled in the background.
+    LaunchedEffect(songs, query.isNotBlank()) {
+        if (query.isNotBlank()) c.titleSpellings.want(songs.flatMap { listOfNotNull(it.title, it.artistText, it.album?.title) })
+    }
+    // Each song's names as the search below reads them, normalized once for the list rather than on every keystroke.
+    val searchHay = remember(songs, query.isNotBlank(), spellings) {
         if (query.isBlank()) emptyMap() else songs.associate { s ->
-            s.id to "${s.title} ${s.artistText} ${s.album?.title.orEmpty()}".lowercase()
+            s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
         }
     }
-    val visible = remember(songs, genreFilter, sort, query, explicit, if (genreFilter != null || sort == SortMode.GENRE || groupByGenre) genreVersion else 0, shownRev) {
-        val words = query.trim().lowercase().split(SPACES).filter { it.isNotEmpty() }
+    val visible = remember(songs, genreFilter, sort, query, explicit, if (genreFilter != null || sort == SortMode.GENRE || groupByGenre) genreVersion else 0, shownRev, searchHay) {
+        val words = libraryWords(query)
         val filtered = page.songs.filter { s ->
             com.prism.music.data.ExplicitFilter.shows(explicit, s) &&
             (genreFilter == null || genreFilter in genresOf(s.id)) &&
@@ -1432,13 +1438,17 @@ private fun DownloadedCollections(visible: List<Song>, sort: SortMode, query: St
     val done = remember(all) { all.filterValues { it.state == Download.STATE_COMPLETED }.keys }
     val skipped by c.downloadSkips.ids.collectAsState()
     val standIns by c.downloadStandIns.collectAsState()
+    val spellings by c.titleSpellings.known.collectAsState()
     val kept by produceState<List<Pair<String, CollectionPage>>?>(null) {
         value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { c.offline.pages() }
     }
-    val (albums, playlists) = remember(kept, done, visible, sort, query, filtered, skipped, standIns) {
-        val words = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    LaunchedEffect(kept, query.isNotBlank()) {
+        if (query.isNotBlank()) c.titleSpellings.want(kept.orEmpty().flatMap { (_, p) -> listOf(p.title) + p.artists.map { it.name } })
+    }
+    val (albums, playlists) = remember(kept, done, visible, sort, query, filtered, skipped, standIns, spellings) {
+        val words = libraryWords(query)
         fun matches(p: CollectionPage) = words.isEmpty() ||
-            "${p.title} ${p.artists.joinToString(" ") { it.name }}".lowercase().let { hay -> words.all { it in hay } }
+            words.all { it in libraryHaystack(listOf(p.title) + p.artists.map { it.name }, spellings) }
         // A single's page is one song: that's already in the list below.
         val (keptAlbums, keptPlaylists) = kept.orEmpty()
             // Songs marked to skip don't keep a list out of here (#221).
@@ -2052,9 +2062,6 @@ fun FailedDownloadsSheet(onDismiss: () -> Unit) {
 }
 
 private const val MAX_FAILED_ROWS = 60
-
-/** The gaps between the words of a search ("ac   dc"). */
-private val SPACES = Regex("\\s+")
 
 /** Downloads' ⋯ menu entries: lyrics and bulk deletes. */
 @Composable

@@ -19,7 +19,12 @@ object HistorySearch {
         internal val ids = Array(songs.size) { songs[it].id }
         internal val hays = Array(songs.size) { i ->
             val s = songs[i]
-            listOfNotNull(s.title, s.artistName, s.albumTitle).joinToString(" ") { LibrarySearch.norm(it) }
+            // Titles in other scripts answer to their Latin spellings too (#363), as the rest of the library's search does.
+            listOfNotNull(s.title, s.artistName, s.albumTitle).joinToString(" ") { name ->
+                val normal = LibrarySearch.norm(name)
+                val tags = com.prism.music.data.local.SearchTags.forText(name)
+                if (tags.isEmpty()) normal else "$normal ${tags.joinToString(" ") { LibrarySearch.norm(it) }}"
+            }
         }
         internal val raw = Array(songs.size) { i -> songs[i].let { listOfNotNull(it.title, it.artistName, it.albumTitle).joinToString(" ") } }
         val size get() = ids.size

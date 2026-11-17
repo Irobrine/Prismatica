@@ -29,21 +29,24 @@ class HistorySearchTest {
     private val halo = Song("halo", "Halo", listOf(ArtistRef("Beyoncé")), album = AlbumRef("I Am... Sasha Fierce"), durationSec = 260)
     private val joga = Song("joga", "Jóga", listOf(ArtistRef("Björk")), album = AlbumRef("Homogenic"), durationSec = 300)
     private val acdc = Song("tnt", "T.N.T.", listOf(ArtistRef("AC/DC")), album = AlbumRef("High Voltage"), durationSec = 214)
+    private val tori = Song("tori", "とりのうた", listOf(ArtistRef("Lia")), durationSec = 240)
 
     private fun find(q: String, limit: Int = 300) = runBlocking {
         HistorySearch.rows(dao, HistorySearch.match(HistorySearch.Index(dao.playedSongNames(0)), q), limit)
     }
 
     @Test fun byTitleArtistOrAlbumWithoutCapitalsOrAccents() = runBlocking {
-        db.songs().upsertAll(listOf(halo.toEntity(), joga.toEntity(), acdc.toEntity()))
+        db.songs().upsertAll(listOf(halo.toEntity(), joga.toEntity(), acdc.toEntity(), tori.toEntity()))
         var t = 1_000_000L
-        for (s in listOf(halo, joga, acdc, halo)) dao.insert(PlayEventEntity(songId = s.id, timestamp = t++, playedMs = 60_000))
+        for (s in listOf(halo, joga, acdc, tori, halo)) dao.insert(PlayEventEntity(songId = s.id, timestamp = t++, playedMs = 60_000))
         assertEquals(listOf("halo", "halo"), find("HALO").map { it.song.id })
         assertEquals("the artist, without the accent", listOf("halo", "halo"), find("beyonce").map { it.song.id })
         assertEquals("the album", listOf("joga"), find("homogenic").map { it.song.id })
         assertEquals("the title's accent typed", listOf("joga"), find("jóga").map { it.song.id })
         assertEquals("björk without the umlaut", listOf("joga"), find("Bjork").map { it.song.id })
         assertEquals("punctuation as spaces", listOf("tnt"), find("ac dc").map { it.song.id })
+        assertEquals("a title in another script by its Latin spelling", listOf("tori"), find("tori no uta").map { it.song.id })
+        assertEquals("run together too", listOf("tori"), find("torinouta").map { it.song.id })
         assertEquals("every word, anywhere", listOf("halo", "halo"), find("sasha halo").map { it.song.id })
         assertTrue(find("nothing like it").isEmpty())
         // Newest first, each play with its own row.

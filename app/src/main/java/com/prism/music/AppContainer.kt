@@ -446,7 +446,8 @@ class AppContainer(val app: Application) {
         return null
     }
     /** Per-song lyric timing nudges, in ms (positive = lyrics earlier). Keyed by song id, plus ":video" in video mode. */
-    /** YouTube's loudness figure per song (dB from its reference level), kept for offline normalization. */
+    /** YouTube's loudness figure per audio heard: a song, or a music video's own while it's watched (dB from the
+     *  reference level), kept for offline normalization. */
     val loudness: android.content.SharedPreferences = app.getSharedPreferences("loudness", android.content.Context.MODE_PRIVATE)
     val lyricOffsets: android.content.SharedPreferences = app.getSharedPreferences("lyric_offsets", android.content.Context.MODE_PRIVATE)
 
