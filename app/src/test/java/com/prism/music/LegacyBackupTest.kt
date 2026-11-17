@@ -351,6 +351,9 @@ class LegacyBackupTest {
     /** A password-protected backup of this version (PRISMBK3, chunked) restores with its password. */
     @Test fun aPasswordProtectedCurrentBackupStillRestores() = runBlocking {
         phone()
+        // More than one 1 MB chunk, so the zip itself crosses chunk boundaries (not just the crypto tests' bytes).
+        val big = ByteArray(2_500_000) { (it * 31 % 251).toByte() }
+        File(data, "files/covers/big.jpg").apply { parentFile?.mkdirs(); writeBytes(big) }
         val file = File(app.cacheDir, "current-sealed.zip")
         val c = container()
         c.backup.export(Uri.fromFile(file), setOf(BackupPart.SETTINGS, BackupPart.LIBRARY, BackupPart.HISTORY), "a long enough password".toCharArray())
@@ -364,6 +367,7 @@ class LegacyBackupTest {
         Backup.applyPending(app)
         assertTrue("the sealed library came back", read("files/library/prism.json")!!.contains("old library"))
         assertTrue("the sealed settings came back", read("shared_prefs/icon_style.xml")!!.contains("old settings"))
+        assertTrue("the large file came back whole", File(data, "files/covers/big.jpg").readBytes().contentEquals(big))
     }
 
     @org.junit.After fun after() {
