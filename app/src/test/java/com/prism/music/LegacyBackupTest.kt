@@ -348,6 +348,24 @@ class LegacyBackupTest {
         assertTrue("the exported settings came back", read("shared_prefs/icon_style.xml")!!.contains("old settings"))
     }
 
+    /** A password-protected backup of this version (PRISMBK3, chunked) restores with its password. */
+    @Test fun aPasswordProtectedCurrentBackupStillRestores() = runBlocking {
+        phone()
+        val file = File(app.cacheDir, "current-sealed.zip")
+        val c = container()
+        c.backup.export(Uri.fromFile(file), setOf(BackupPart.SETTINGS, BackupPart.LIBRARY, BackupPart.HISTORY), "a long enough password".toCharArray())
+        assertTrue("sealed", c.backup.isEncrypted(Uri.fromFile(file)))
+        close(c)
+        write("files/library/prism.json", "changed library")
+        write("shared_prefs/icon_style.xml", "changed settings")
+        val c2 = container()
+        c2.backup.stage(Uri.fromFile(file), "a long enough password".toCharArray())
+        close(c2)
+        Backup.applyPending(app)
+        assertTrue("the sealed library came back", read("files/library/prism.json")!!.contains("old library"))
+        assertTrue("the sealed settings came back", read("shared_prefs/icon_style.xml")!!.contains("old settings"))
+    }
+
     @org.junit.After fun after() {
         File(files, "restore_pending").deleteRecursively()
         File(files, "restore_settings.json").delete()
