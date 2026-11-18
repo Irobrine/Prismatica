@@ -5416,4 +5416,5 @@
     <string name="nothing_snoozed_body">트랙을 스누즈하면 한동안 Prism이 자동으로 만드는 대기열에 들어가지 않습니다. 직접 재생하거나 대기열에 추가하거나 다음으로 재생할 수 있습니다.</string>
     <string name="snoozed_n_tracks">%1$d개 트랙을 스누즈했습니다</string>
     <string name="invalid_number">잘못된 숫자</string>
+    <string name="eq_refused">Android가 지금 음향 효과를 거부하고 있어요. 휴대전화를 다시 시작하면 해결돼요.</string>
 </resources>

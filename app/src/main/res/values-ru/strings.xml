@@ -5641,4 +5641,5 @@
     <string name="nothing_snoozed_body">Отложите трек, чтобы он какое-то время не попадал в очередь, которую Prism собирает сам. Включить его вручную, добавить в очередь или поставить следующим по-прежнему можно.</string>
     <string name="snoozed_n_tracks">Отложено: %1$d</string>
     <string name="invalid_number">Неверное число</string>
+    <string name="eq_refused">Android сейчас не разрешает звуковые эффекты. Перезагрузка телефона это исправит.</string>
 </resources>

@@ -5566,4 +5566,5 @@
     <string name="nothing_snoozed_body">Adie uma faixa para mantê-la por um tempo fora da fila que o Prism monta sozinho. Reproduzir você mesmo continua funcionando, assim como Adicionar à fila e Reproduzir em seguida.</string>
     <string name="snoozed_n_tracks">%1$d faixas adiadas</string>
     <string name="invalid_number">Número inválido</string>
+    <string name="eq_refused">O Android está recusando efeitos sonoros agora. Reiniciar o celular resolve.</string>
 </resources>

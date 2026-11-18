@@ -5416,4 +5416,5 @@
     <string name="nothing_snoozed_body">曲をスヌーズすると、しばらく Prism が自動で作るキューに入りません。自分で再生したり、キューに追加したり、次に再生したりすることはできます。</string>
     <string name="snoozed_n_tracks">%1$d 曲をスヌーズしました</string>
     <string name="invalid_number">無効な数値</string>
+    <string name="eq_refused">Android がいまサウンドエフェクトを拒否しています。スマホを再起動すると直ります。</string>
 </resources>

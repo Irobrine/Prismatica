@@ -5416,4 +5416,5 @@
     <string name="nothing_snoozed_body">Tạm ẩn một bản nhạc để giữ nó một thời gian ngoài hàng đợi do Prism tự tạo. Bạn vẫn có thể tự phát, thêm vào hàng đợi và phát tiếp theo.</string>
     <string name="snoozed_n_tracks">Đã tạm ẩn %1$d bản nhạc</string>
     <string name="invalid_number">Số không hợp lệ</string>
+    <string name="eq_refused">Android hiện đang từ chối hiệu ứng âm thanh. Khởi động lại điện thoại sẽ khắc phục được.</string>
 </resources>

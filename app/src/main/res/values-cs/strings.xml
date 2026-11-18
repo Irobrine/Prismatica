@@ -5641,4 +5641,5 @@
     <string name="nothing_snoozed_body">Odložte skladbu, aby nějakou dobu zůstala mimo frontu, kterou Prism sestavuje sám. Ruční přehrání, Přidat do fronty i Přehrát jako další stále fungují.</string>
     <string name="snoozed_n_tracks">Odloženo %1$d skladeb</string>
     <string name="invalid_number">Neplatné číslo</string>
+    <string name="eq_refused">Android teď odmítá zvukové efekty. Pomůže restart telefonu.</string>
 </resources>

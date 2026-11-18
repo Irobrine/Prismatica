@@ -966,6 +966,14 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** Plays a lone song; autoplay then continues with similar music. */
     fun playSingle(song: Song) = playQueue(listOf(song), 0, QueueSource(QueueKind.SINGLE, tr(R.string.autoplay), seedId = song.id))
 
+    /** [playSingle] from [startMs] in (a recognized song carrying on from what was heard, #215); 0 is the start. */
+    fun playSingleFrom(song: Song, startMs: Long) {
+        // The explicit filter (#216) has its say the usual way.
+        if (startMs <= 0 || (song.explicit && c.settings.current.behavior.explicitContent != com.prism.music.data.prefs.ExplicitContent.SHOW)) { playSingle(song); return }
+        ++playToken
+        startQueue(listOf(song), 0, QueueSource(QueueKind.SINGLE, tr(R.string.autoplay), seedId = song.id), shuffle = false, startVideo = null, startMs = startMs)
+    }
+
     /**
      * Plays [song] from its best part (its most replayed stretch, or its chorus), then on as [playSingle] would.
      * Without one it plays from the start, and says so.
@@ -1033,6 +1041,15 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         return kept
     }
 
+    /**
+     * With nothing on, [songs] become the queue: one song as a single (its radio follows), several (songs picked with
+     * Select many, which come with no [source], #476: only the first used to play) in their order.
+     */
+    private fun startWith(songs: List<Song>, source: QueueSource?) {
+        if (source == null && songs.size == 1) playSingle(songs.first())
+        else playQueue(songs, 0, source ?: QueueSource(QueueKind.OTHER, ""))
+    }
+
     /** Songs (one, or a whole album or playlist) straight after the current song, or played, with nothing on. */
     fun playNext(songs: List<Song>, source: QueueSource?) {
         if (songs.isEmpty()) return
@@ -1040,7 +1057,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         if (allowed.size < songs.size) return playNext(allowed, source)
         withPlayer { p ->
             if (p.mediaItemCount == 0) {
-                if (source == null) playSingle(songs.first()) else playQueue(songs, 0, source)
+                startWith(songs, source)
             } else {
                 // #368: a song already coming up moves up (it used to go in a second time). Next already: nothing moves,
                 // so a stream or a blend being got ready for it carries on.
@@ -1068,7 +1085,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         if (allowed.size < songs.size) return addToQueue(allowed, source)
         withPlayer { p ->
             if (p.mediaItemCount == 0) {
-                if (source == null) playSingle(songs.first()) else playQueue(songs, 0, source)
+                startWith(songs, source)
             } else {
                 val auto = c.queue.autoplayStart.value
                 val cur = p.currentMediaItemIndex

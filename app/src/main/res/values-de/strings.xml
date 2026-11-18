@@ -5491,4 +5491,5 @@
     <string name="nothing_snoozed_body">Stelle einen Titel zurück, damit er eine Zeit lang nicht in der von Prism selbst gebauten Warteschlange landet. Selbst abspielen, Zur Warteschlange hinzufügen und Als Nächstes spielen gehen weiterhin.</string>
     <string name="snoozed_n_tracks">%1$d Titel zurückgestellt</string>
     <string name="invalid_number">Ungültige Zahl</string>
+    <string name="eq_refused">Android verweigert gerade Soundeffekte. Ein Neustart des Handys behebt das.</string>
 </resources>

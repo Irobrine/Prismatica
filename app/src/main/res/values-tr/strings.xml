@@ -5491,4 +5491,5 @@
     <string name="nothing_snoozed_body">Prism kendi oluşturduğu sıraya bir süre girmesin diye bir parçayı ertele. Kendin çalmaya, sıraya eklemeye ve sıradaki olarak çalmaya devam edebilirsin.</string>
     <string name="snoozed_n_tracks">%1$d parça ertelendi</string>
     <string name="invalid_number">Geçersiz sayı</string>
+    <string name="eq_refused">Android şu anda ses efektlerine izin vermiyor. Telefonu yeniden başlatmak sorunu çözer.</string>
 </resources>

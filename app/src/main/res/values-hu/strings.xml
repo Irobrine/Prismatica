@@ -5491,4 +5491,5 @@
     <string name="nothing_snoozed_body">Halassz el egy számot, hogy egy ideig ne kerüljön a Prism által magától épített sorba. A saját lejátszás, a Sorba helyezés és a Következőként indítás továbbra is működik.</string>
     <string name="snoozed_n_tracks">%1$d szám elhalasztva</string>
     <string name="invalid_number">Érvénytelen szám</string>
+    <string name="eq_refused">Az Android most nem engedélyezi a hangeffektusokat. A telefon újraindítása megoldja.</string>
 </resources>

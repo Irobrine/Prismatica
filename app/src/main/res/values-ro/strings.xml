@@ -5566,4 +5566,5 @@
     <string name="nothing_snoozed_body">Amână o piesă ca să o ții o vreme în afara cozii pe care o construiește Prism singur. Redarea ei manuală merge în continuare, la fel Adaugă în coadă și Redă următoarea.</string>
     <string name="snoozed_n_tracks">%1$d piese amânate</string>
     <string name="invalid_number">Număr invalid</string>
+    <string name="eq_refused">Android refuză acum efectele sonore. Repornirea telefonului rezolvă problema.</string>
 </resources>

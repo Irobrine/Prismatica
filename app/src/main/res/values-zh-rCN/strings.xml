@@ -5416,4 +5416,5 @@
     <string name="nothing_snoozed_body">将曲目设为稍后播放，可在一段时间内不让它进入 Prism 自动构建的队列。你仍可自行播放、添加到队列或设为下一首。</string>
     <string name="snoozed_n_tracks">已将 %1$d 首曲目设为稍后播放</string>
     <string name="invalid_number">无效数字</string>
+    <string name="eq_refused">Android 目前拒绝创建音效。重启手机即可解决。</string>
 </resources>

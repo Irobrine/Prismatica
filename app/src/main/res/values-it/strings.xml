@@ -5566,4 +5566,5 @@
     <string name="nothing_snoozed_body">Rimanda un brano per tenerlo per un po fuori dalla coda creata da Prism. Riprodurlo da te funziona ancora, come Aggiungi alla coda e Riproduci dopo.</string>
     <string name="snoozed_n_tracks">%1$d brani rimandati</string>
     <string name="invalid_number">Numero non valido</string>
+    <string name="eq_refused">Android sta rifiutando gli effetti sonori. Riavviare il telefono risolve il problema.</string>
 </resources>

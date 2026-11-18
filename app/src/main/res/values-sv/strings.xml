@@ -5491,4 +5491,5 @@
     <string name="nothing_snoozed_body">Skjut upp en låt för att hålla den ett tag utanför kön som Prism bygger själv. Att spela den själv fungerar fortfarande, liksom Lägg i kön och Spela nästa.</string>
     <string name="snoozed_n_tracks">%1$d låtar uppskjutna</string>
     <string name="invalid_number">Ogiltigt nummer</string>
+    <string name="eq_refused">Android vägrar just nu ljudeffekter. Det löser sig om du startar om telefonen.</string>
 </resources>

@@ -5491,4 +5491,5 @@
     <string name="nothing_snoozed_body">I-snooze ang isang track para hindi ito mapunta sa awtomatikong pila ng Prism nang ilang panahon. Gumagana pa rin ang pag-play mo mismo, pagdagdag sa pila, at pag-play sa susunod.</string>
     <string name="snoozed_n_tracks">%1$d track ang naka-snooze</string>
     <string name="invalid_number">Di-wastong numero</string>
+    <string name="eq_refused">Tinatanggihan ngayon ng Android ang mga sound effect. Maaayos ito ng pag-restart ng phone.</string>
 </resources>

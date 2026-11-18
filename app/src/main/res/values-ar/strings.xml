@@ -5791,4 +5791,5 @@
     <string name="nothing_snoozed_body">أجّل مسارًا لتبقيه لبعض الوقت خارج القائمة التي يبنيها Prism تلقائيًا. يظل تشغيله بنفسك وإضافته إلى القائمة وتشغيله التالي متاحًا.</string>
     <string name="snoozed_n_tracks">تم تأجيل %1$d مسارات</string>
     <string name="invalid_number">رقم غير صالح</string>
+    <string name="eq_refused">يرفض Android حاليًا المؤثرات الصوتية. تُحلّ المشكلة بإعادة تشغيل الهاتف.</string>
 </resources>

@@ -92,11 +92,25 @@ internal fun blendsAcrossAlbum(from: String?, to: String?, albumPlaying: Boolean
 }
 
 @Serializable
-private data class SavedQueue(
+internal data class SavedQueue(
     val songs: List<Song>, val index: Int, val positionMs: Long, val title: String,
     // Shuffle (with its order) and repeat, so a restart keeps them (#101: shuffle was off again after Prism restarted).
     val shuffle: Boolean = false, val shuffleOrder: List<Int> = emptyList(), val repeat: Int = Player.REPEAT_MODE_OFF,
 )
+
+/**
+ * queue.json's text from what the player holds: each lined-up item's stored song ([songJson], as [toMediaItem] put it in
+ * the item; null or unreadable ones are left out), where playback is, and shuffle ([order]: the play order by index,
+ * kept only when every item made it into the list) and repeat. 1.8.7: the songs are read and written again here, off the
+ * main thread (with 1,100 songs lined up it held the main thread for up to 200 ms after every song change on the A16).
+ */
+internal fun savedQueueText(
+    songJson: List<String?>, index: Int, positionMs: Long, title: String, shuffle: Boolean, order: List<Int>, repeat: Int,
+): String {
+    val songs = songJson.mapNotNull { s -> s?.let { runCatching { InnerTube.json.decodeFromString(Song.serializer(), it) }.getOrNull() } }
+    val q = SavedQueue(songs, index, positionMs, title, shuffle = shuffle, shuffleOrder = if (shuffle && songs.size == songJson.size) order else emptyList(), repeat = repeat)
+    return InnerTube.json.encodeToString(SavedQueue.serializer(), q)
+}
 
 @OptIn(UnstableApi::class)
 open class PlaybackService : MediaLibraryService(), Player.Listener {
@@ -323,6 +337,13 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         })
 
         effects.attach(player.audioSessionId)
+        // #519: the effects are made once the session has a track on it, never on an empty one (AudioEffects' note).
+        player.addAnalyticsListener(object : AnalyticsListener {
+            override fun onAudioTrackInitialized(eventTime: AnalyticsListener.EventTime, audioTrackConfig: AudioSink.AudioTrackConfig) =
+                effects.trackReady()
+        })
+        // The Equalizer screen says when Android refuses what the settings ask (its register of effects full).
+        scope.launch { effects.refused.collect { c.eqRefused.value = it } }
         c.onStreamResolved = { id -> scope.launch { applyStreamStats(id) } }
         // The equalizer as set, or the preset picked for the output playing now (the car's, the earbuds'; A3).
         scope.launch {
@@ -444,13 +465,15 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             main = player,
             scope = scope,
             tempo = c.mixTempo,
-            // DJ mode blends every song into the next, beat-matched, at Crossfade's automatic length.
+            // DJ mode blends every song into the next, beat-matched, at Crossfade's automatic length, or at the
+            // listener's own when they set one (#502, [DjBlend]).
             // Not while casting: the renderer plays one song at a time (and the phone's own player is muted).
             mixMs = { c.settings.current.let { s -> if ((s.mix || c.dj.onNow) && !c.cast.casting) s.mixSeconds * 1000L else null } },
-            auto = { c.settings.current.mixAuto || c.dj.onNow },
+            auto = { c.settings.current.let { s -> DjBlend.automatic(s.mix, s.mixAuto, c.dj.onNow) } },
             beatMatch = { c.settings.current.mixBeatMatch || c.dj.onNow },
             harmonic = { from, to ->
-                if (!c.dj.onNow) null else {
+                val s = c.settings.current
+                if (!DjBlend.keysSetLength(c.dj.onNow, DjBlend.automatic(s.mix, s.mixAuto, c.dj.onNow))) null else {
                     val a = c.mixTempo.key(from); val b = c.mixTempo.key(to)
                     if (a?.sure == true && b?.sure == true) MusicKey.clash(a, b) else null
                 }
@@ -468,7 +491,6 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         sessionPlayer.remote = object : LyricsOverlayPlayer.Remote {
             override val volume: Int? get() = if (c.cast.casting) c.cast.volume else null
             override fun setVolume(v: Int) = c.cast.setVolume(v)
-            override fun adjust(delta: Int) = c.cast.adjustVolume(delta)
         }
         c.cast.attach(player, object : com.prism.music.connect.Cast.Hooks {
             override fun beforeCasting() {
@@ -582,6 +604,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     it.setAudioSessionId(session)
                     val tailEffects = AudioEffects(this, announce = false).apply { apply(eq); attach(session) }
                     it.addAnalyticsListener(object : AnalyticsListener {
+                        // Made once the tail's track is (#519: never on a session with nothing on it yet).
+                        override fun onAudioTrackInitialized(eventTime: AnalyticsListener.EventTime, audioTrackConfig: AudioSink.AudioTrackConfig) =
+                            tailEffects.trackReady()
                         override fun onPlayerReleased(eventTime: AnalyticsListener.EventTime) = tailEffects.shutdown()
                     })
                     AudioDiagnostics.log("mix", "tail on its own session $session with the equalizer (${eq.preset})")
@@ -686,6 +711,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         carLyrics.stop()
         // Released on the effects thread, after anything still queued there: a stalled audio server can't hold this up.
         effects.shutdown()
+        // The Equalizer screen's refusal line is about the effects this service had.
+        c.eqRefused.value = false
         session.release()
         player.release()
         scope.cancel()
@@ -3225,19 +3252,20 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      */
     private fun saveQueue(now: Boolean = false) {
         if (!::player.isInitialized) return
-        val songs = (0 until player.mediaItemCount).mapNotNull { player.getMediaItemAt(it).toSong() }
-        // The play order while shuffled, walked from its first song (only when every item made it into the list).
-        val order = if (player.shuffleModeEnabled && songs.size == player.mediaItemCount) player.shuffleOrder.let { so ->
+        // On this thread only what the player has to be asked for: each item's stored song as it is (not read), the
+        // place, and the play order while shuffled, walked from its first song. The file is put together by the writer.
+        val count = player.mediaItemCount
+        val songJson = List(count) { player.getMediaItemAt(it).mediaMetadata.extras?.getString(EXTRA_SONG) }
+        val shuffle = player.shuffleModeEnabled
+        val order = if (shuffle) player.shuffleOrder.let { so ->
             generateSequence(so.firstIndex.takeIf { it != androidx.media3.common.C.INDEX_UNSET }) { i -> so.getNextIndex(i).takeIf { it != androidx.media3.common.C.INDEX_UNSET } }
-                .take(songs.size).toList()
+                .take(count).toList()
         } else emptyList()
-        val q = SavedQueue(
-            songs, player.currentMediaItemIndex, player.currentPosition, c.queue.source.value.title,
-            shuffle = player.shuffleModeEnabled, shuffleOrder = order, repeat = player.repeatMode,
-        )
-        val text = InnerTube.json.encodeToString(SavedQueue.serializer(), q)
+        val index = player.currentMediaItemIndex; val position = player.currentPosition
+        val title = c.queue.source.value.title; val repeat = player.repeatMode
+        val text = { savedQueueText(songJson, index, position, title, shuffle, order, repeat) }
         placeKeeper.saved(currentPlace())
-        if (now) writeQueue(text) else scope.launch(queueWriter) { writeQueue(text) }
+        if (now) writeQueue(text()) else scope.launch(queueWriter) { writeQueue(text()) }
     }
 
     private val queueWriter = Dispatchers.IO.limitedParallelism(1)

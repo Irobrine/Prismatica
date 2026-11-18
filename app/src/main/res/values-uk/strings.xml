@@ -5641,4 +5641,5 @@
     <string name="nothing_snoozed_body">Відкладіть трек, щоб він якийсь час не потрапляв у чергу, яку Prism збирає сам. Відтворити його вручну, додати в чергу чи поставити наступним і далі можна.</string>
     <string name="snoozed_n_tracks">Відкладено: %1$d</string>
     <string name="invalid_number">Невірне число</string>
+    <string name="eq_refused">Android зараз відмовляється створювати звукові ефекти. Допоможе перезапуск телефона.</string>
 </resources>

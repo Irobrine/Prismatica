@@ -5641,4 +5641,5 @@
     <string name="nothing_snoozed_body">Odłóż utwór, aby przez jakiś czas nie trafiał do kolejki, którą Prism tworzy sam. Odtwarzanie go ręcznie nadal działa, podobnie jak Dodaj do kolejki i Odtwórz następny.</string>
     <string name="snoozed_n_tracks">Odłożono %1$d utworów</string>
     <string name="invalid_number">Nieprawidłowa liczba</string>
+    <string name="eq_refused">Android odmawia teraz efektów dźwiękowych. Pomaga ponowne uruchomienie telefonu.</string>
 </resources>

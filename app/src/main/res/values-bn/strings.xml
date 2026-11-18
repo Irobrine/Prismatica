@@ -5491,4 +5491,5 @@
     <string name="nothing_snoozed_body">একটি ট্র্যাক স্নুজ করে কিছু সময়ের জন্য Prism-এর নিজে তৈরি কিউয়ের বাইরে রাখুন। নিজে চালানো, কিউতে যোগ করা এবং পরেরটি চালানো এখনও কাজ করে।</string>
     <string name="snoozed_n_tracks">%1$d ট্র্যাক স্নুজ করা হয়েছে</string>
     <string name="invalid_number">অবৈধ সংখ্যা</string>
+    <string name="eq_refused">Android এখন সাউন্ড ইফেক্ট দিচ্ছে না। ফোন রিস্টার্ট করলে ঠিক হয়ে যায়।</string>
 </resources>

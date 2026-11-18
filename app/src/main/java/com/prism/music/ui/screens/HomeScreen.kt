@@ -155,7 +155,9 @@ private fun forgetHomeLists() {
 internal fun extraShelves(shelves: List<Shelf>, known: Set<String>, placed: Collection<Shelf>, picks: Shelf?, feedPicks: Shelf?, dial: Shelf?, hiddenKinds: Set<String>): List<Shelf> =
     shelves.filter { s ->
         shelfKey(s.title) !in known && placed.none { it === s } && s !== picks && s !== feedPicks && s !== dial && shelfKind(s) !in hiddenKinds
-    }
+    // Each is a row of Home keyed by its title as a key has it ("Mixed for you", "Mixed for You "): once (1.8.7: a
+    // second one was a key Home's list had already used, and it closed).
+    }.distinctBy { shelfKey(it.title) }
 
 /**
  * What YouTube's own Quick picks may offer while the set made around your artists is made: nothing on a pull to refresh
@@ -1179,6 +1181,15 @@ private fun SpeedDialTile(item: BrowseItem, modifier: Modifier, shape: androidx.
 internal fun HeroRow(items: List<BrowseItem>, open: (BrowseItem) -> Unit) {
     val ui = com.prism.music.ui.theme.LocalUi.current
     val menu = rememberPlayMenu()
+    val c = LocalContainer.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // #507: the circle plays the card straight away, as the long press's Play does (a song's card plays already, and
+    // what can't be played, a mood, opens); the rest of the card opens it.
+    val play: (BrowseItem) -> Unit = { item ->
+        val target = item.playable()
+        if (item is SongItem || target == null) open(item)
+        else com.prism.music.ui.components.playPlayable(c, context, target, item.title, shuffle = false)
+    }
     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(items.take(10)) { item ->
             Box(
@@ -1192,8 +1203,11 @@ internal fun HeroRow(items: List<BrowseItem>, open: (BrowseItem) -> Unit) {
                         Text(item.title, color = Color.White, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(com.prism.music.data.model.shownKinds(item.subtitle), color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall, maxLines = 1)
                     }
-                    Box(Modifier.size(44.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
-                        Icon(PrismIcons.Play, null, tint = Color.Black)
+                    Box(
+                        Modifier.size(44.dp).clip(CircleShape).background(Color.White).clickable { play(item) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(PrismIcons.Play, tr(R.string.widget_play), tint = Color.Black)
                     }
                 }
             }

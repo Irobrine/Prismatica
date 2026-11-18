@@ -5491,4 +5491,5 @@
     <string name="nothing_snoozed_body">یک آهنگ را به تعویق بیندازید تا مدتی از صفی که Prism خودش می‌سازد بیرون بماند. پخش دستی، افزودن به صف و پخش بعدی همچنان کار می‌کند.</string>
     <string name="snoozed_n_tracks">%1$d آهنگ به تعویق افتاد</string>
     <string name="invalid_number">عدد نامعتبر</string>
+    <string name="eq_refused">Android در حال حاضر جلوه‌های صوتی را رد می‌کند. راه‌اندازی دوباره گوشی آن را درست می‌کند.</string>
 </resources>

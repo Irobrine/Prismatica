@@ -5491,4 +5491,5 @@
     <string name="nothing_snoozed_body">Βάλτε ένα τραγούδι σε αναβολή ώστε να μείνει για λίγο έξω από την ουρά που φτιάχνει μόνο του το Prism. Η χειροκίνητη αναπαραγωγή, η προσθήκη στην ουρά και το Επόμενο λειτουργούν κανονικά.</string>
     <string name="snoozed_n_tracks">%1$d τραγούδια σε αναβολή</string>
     <string name="invalid_number">Μη έγκυρος αριθμός</string>
+    <string name="eq_refused">Το Android αρνείται αυτή τη στιγμή τα ηχητικά εφέ. Η επανεκκίνηση του τηλεφώνου το διορθώνει.</string>
 </resources>

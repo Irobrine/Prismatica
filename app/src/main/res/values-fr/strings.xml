@@ -5566,4 +5566,5 @@
     <string name="nothing_snoozed_body">Reportez un titre pour le tenir un moment hors de la file que Prism crée seul. Le lire vous-même fonctionne toujours, comme Ajouter à la file et Lire ensuite.</string>
     <string name="snoozed_n_tracks">%1$d titres reportés</string>
     <string name="invalid_number">Nombre invalide</string>
+    <string name="eq_refused">Android refuse actuellement les effets sonores. Redémarrer le téléphone règle le problème.</string>
 </resources>

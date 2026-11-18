@@ -5416,4 +5416,5 @@
     <string name="nothing_snoozed_body">พักแทร็กไว้เพื่อกันไม่ให้อยู่ในคิวที่ Prism สร้างเองชั่วคราว คุณยังเล่นเอง เพิ่มเข้าคิว และเล่นเป็นเพลงถัดไปได้</string>
     <string name="snoozed_n_tracks">พักไว้ %1$d แทร็ก</string>
     <string name="invalid_number">ตัวเลขไม่ถูกต้อง</string>
+    <string name="eq_refused">ตอนนี้ Android ไม่ยอมสร้างเอฟเฟกต์เสียง การรีสตาร์ตโทรศัพท์จะแก้ได้</string>
 </resources>

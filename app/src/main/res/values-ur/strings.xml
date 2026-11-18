@@ -5491,4 +5491,5 @@
     <string name="nothing_snoozed_body">کسی ٹریک کو اسنوز کر کے کچھ دیر کے لیے Prism کی خود بنائی قطار سے باہر رکھیں۔ خود چلانا، قطار میں شامل کرنا اور اگلا چلانا اب بھی کام کرتا ہے۔</string>
     <string name="snoozed_n_tracks">%1$d ٹریکس اسنوز کیے گئے</string>
     <string name="invalid_number">غلط نمبر</string>
+    <string name="eq_refused">Android اس وقت ساؤنڈ ایفیکٹس سے انکار کر رہا ہے۔ فون ری اسٹارٹ کرنے سے ٹھیک ہو جاتا ہے۔</string>
 </resources>

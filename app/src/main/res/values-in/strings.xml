@@ -5416,4 +5416,5 @@
     <string name="nothing_snoozed_body">Tunda sebuah trek untuk menjaganya sementara di luar antrean yang dibuat Prism sendiri. Memutarnya sendiri, menambahkannya ke antrean, dan memutarnya berikutnya tetap berfungsi.</string>
     <string name="snoozed_n_tracks">%1$d trek ditunda</string>
     <string name="invalid_number">Angka tidak valid</string>
+    <string name="eq_refused">Android sedang menolak efek suara. Memulai ulang ponsel akan memperbaikinya.</string>
 </resources>
