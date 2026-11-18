@@ -492,8 +492,16 @@ class Backup(private val c: AppContainer) {
         private const val MAX_VIDEO_MATCHES = 256L * 1024 * 1024
         /** Video matches written to a backup a page at a time ([writeVideoSongsJson]). */
         internal const val VIDEO_PAGE = 500
-        /** Small files are checked again at start-up (settings, tags); audio-sized ones were checked when unpacked. */
-        private const val VERIFY_AT_START = 16L * 1024 * 1024
+        /**
+         * The staged files checked again at start-up: the small state Prism reads right after the restart, which a
+         * restore may not get to. Everything else was hashed when the backup was unpacked, and it is the app's own
+         * folder besides. Hashing every file under an old 16 MB per-file rule read a library's covers again
+         * (thousands of them): the launch went past Android's start-up deadline, the phone ANR'd with a black screen,
+         * nothing was applied, and the next launch hashed it all again (2026-11-18).
+         */
+        private val VERIFY_AT_START = setOf(SETTINGS_ENTRY, TAGS_ENTRY, LIBRARY_ENTRY)
+        /** What the old rule read, kept for those three: a library's own files stay checked up to this size. */
+        private const val VERIFY_AT_START_MAX = 16L * 1024 * 1024
         /** A restored phone re-fetches at most this many downloads at once (a backup can't ask for endless ones). */
         private const val MAX_REDOWNLOAD = 20_000
         /** Kept free while a restore unpacks beside the files it will replace. */
@@ -502,8 +510,10 @@ class Backup(private val c: AppContainer) {
 
         private const val BRING_HISTORY = "bring/history.json"
         private const val BRING_PREFS = "bring/prefs.json"
+        /** The library's own file (its playlists): where a backup brings it, and where a "Bring your Prism" bundle carries it. */
+        private const val LIBRARY_ENTRY = "files/library/prism.json"
         /** Prism's playlists in the library file's own format, at the library file's own place in a backup. */
-        private const val BRING_LIBRARY = "files/library/prism.json"
+        private const val BRING_LIBRARY = LIBRARY_ENTRY
         private const val BRING_LOOK = "bring/look.txt"
         /** The library's tags (1.8.3), read in at the next start ([TagStore.readPending]). */
         private const val TAGS_ENTRY = "files/library/" + TagStore.PENDING
@@ -860,13 +870,14 @@ class Backup(private val c: AppContainer) {
             }
             if (integrity != null) {
                 if (integrity.version > 1 || integrity.entries.keys != names) return null
-                // The whole list is checked here; a file's own bytes were hashed when the backup was unpacked. Hashing
-                // gigabytes again at start-up would hold the phone's launch up for nothing (it is the app's own folder).
+                // The whole list is checked here; a file's own bytes were hashed when the backup was unpacked. Only
+                // the small state read right after the restart is read again: hashing a library's covers at launch is
+                // what ANR'd starts (see [VERIFY_AT_START]).
                 for ((name, hash) in integrity.entries) {
+                    if (name !in VERIFY_AT_START) continue
                     val file = File(staging, name)
-                    if (file.length() <= VERIFY_AT_START) {
-                        if (!hash.equals(sha256(file), true)) return null
-                    }
+                    if (file.length() > VERIFY_AT_START_MAX) continue
+                    if (!hash.equals(sha256(file), true)) return null
                 }
             }
             return rels

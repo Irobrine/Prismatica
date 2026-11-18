@@ -233,19 +233,33 @@ class BackupPartsTest {
 
     /** A backup that doesn't check out (an entry altered, or a restore cut short) is never put in place. */
     @Test fun anAlteredOrUnfinishedRestoreIsntPutInPlace() {
-        fun stageChecked(expected: String, actual: String, withComplete: Boolean) {
+        fun stageChecked(
+            expected: String,
+            actual: String,
+            withComplete: Boolean,
+            entry: String = "files/library/prism.json",
+            parts: String = "LIBRARY",
+        ) {
             phone()
-            val manifest = """{"format":2,"app":"${app.packageName}","parts":["LIBRARY"],"integrity":1}"""
+            val manifest = """{"format":2,"app":"${app.packageName}","parts":["$parts"],"integrity":1}"""
             write("files/restore_pending/prism-backup.json", manifest)
             write(
                 "files/restore_pending/prism-integrity.json",
-                """{"version":1,"entries":{"files/library/prism.json":"${sha(expected)}"},"manifest":"${sha(manifest)}"}""",
+                """{"version":1,"entries":{"$entry":"${sha(expected)}"},"manifest":"${sha(manifest)}"}""",
             )
             if (withComplete) write("files/restore_pending/.complete", "1")
-            write("files/restore_pending/files/library/prism.json", actual)
+            write("files/restore_pending/$entry", actual)
         }
         // The file doesn't match its recorded hash.
         stageChecked("new library", "tampered", withComplete = true)
+        Backup.applyPending(app)
+        assertEquals("old library", read("files/library/prism.json"))
+
+        // The small state read right after the restart is checked the same way.
+        stageChecked("new settings", "tampered", withComplete = true, entry = "settings.json", parts = "SETTINGS")
+        Backup.applyPending(app)
+        assertEquals("old settings", read("shared_prefs/icon_style.xml"))
+        stageChecked("new tags", "tampered", withComplete = true, entry = "files/library/tags.json")
         Backup.applyPending(app)
         assertEquals("old library", read("files/library/prism.json"))
 
@@ -258,6 +272,23 @@ class BackupPartsTest {
         stageChecked("new library", "new library", withComplete = true)
         Backup.applyPending(app)
         assertEquals("new library", read("files/library/prism.json"))
+    }
+
+    /** A library's covers aren't read again at start-up (thousands of files held launches past Android's deadline). */
+    @Test fun aLibrariesCoversArentReadAgainAtStartUp() {
+        phone()
+        write("files/covers/one.jpg", "old cover")
+        val manifest = """{"format":2,"app":"${app.packageName}","parts":["LIBRARY"],"integrity":1}"""
+        write("files/restore_pending/prism-backup.json", manifest)
+        write(
+            "files/restore_pending/prism-integrity.json",
+            """{"version":1,"entries":{"files/covers/one.jpg":"${sha("as unpacked")}"},"manifest":"${sha(manifest)}"}""",
+        )
+        write("files/restore_pending/.complete", "1")
+        write("files/restore_pending/files/covers/one.jpg", "new cover")
+        Backup.applyPending(app)
+        assertEquals("new cover", read("files/covers/one.jpg"))
+        assertFalse(File(files, "restore_pending").exists())
     }
 
     /** An apply that stopped partway puts this phone's own files back, without needing the staging any more. */
