@@ -327,6 +327,9 @@ private fun MeasureSongsRow() {
                     scope.launch {
                         val network = c.measureSongs.network(s.mixTempoOnCellular)
                         c.measureSongs.start(c.measureSongs.pending(set.ids(c)), network)
+                        // Kept going with Prism out of sight: a foreground service (the kind downloads use) and the
+                        // budget's allowance for it, rather than resting the walk until the screen comes back.
+                        com.prism.music.playback.MeasureService.start(context)
                         // Songs not on the phone wait for Wi-Fi unless mobile data is allowed for the scan: said so, as the
                         // scan's own row on a smart playlist does.
                         if (!network) Toast.makeText(context, tr(R.string.on_wi_fi_songs_not_on_the_phone_are_measured_too), Toast.LENGTH_LONG).show()

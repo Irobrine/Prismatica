@@ -131,6 +131,9 @@ class PrismApp : Application(), coil3.SingletonImageLoader.Factory {
         com.prism.music.playback.BackgroundBudget.where = {
             when {
                 container.visible.value -> com.prism.music.playback.BackgroundBudget.Where.ON_SCREEN
+                // A measuring walk the listener started runs under its own foreground service (MeasureService): kept to a
+                // core's worth, as music playing is, rather than rested to nothing out of sight (1.1.3).
+                container.measureSongs.running.value -> com.prism.music.playback.BackgroundBudget.Where.PLAYING
                 container.player.isPlaying.value || container.player.buffering.value -> com.prism.music.playback.BackgroundBudget.Where.PLAYING
                 else -> com.prism.music.playback.BackgroundBudget.Where.AWAY
             }
