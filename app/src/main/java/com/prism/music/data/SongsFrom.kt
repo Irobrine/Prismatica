@@ -59,15 +59,17 @@ class PlaylistSongs(
     private val cache: PlaylistSongsCache? = null,
 ) {
     private val kept = ConcurrentHashMap<String, List<Song>>()
+    /** When each kept copy was read: a copy older than [SESSION_TTL_MS] is read again (a process may live for days). */
+    private val at = ConcurrentHashMap<String, Long>()
 
     /**
-     * The playlist's songs: from the session's kept copy, or read (a whole playlist the first time, then only the songs
-     * added since [cache]'s last read). Only a whole read is kept, in memory and on the phone: one that stopped short
-     * shows what it has and is read again next time, so neither a lost page nor a read the screen's leaving cancelled
-     * leaves it short for ever.
+     * The playlist's songs: from the session's kept copy (for [SESSION_TTL_MS]), or read (a whole playlist the first
+     * time, then only the songs added since [cache]'s last read). Only a whole read is kept, in memory and on the phone:
+     * one that stopped short shows what it has and is read again next time, so neither a lost page nor a read the
+     * screen's leaving cancelled leaves it short for ever.
      */
     suspend fun songs(id: String): List<Song>? {
-        kept[id]?.let { return it }
+        kept[id]?.let { if (fresh(id)) return it }
         // Prism's own lists are read from the phone as they are now: never kept as if they were YouTube's.
         val disk = cache?.takeUnless { PrismLibrary.isPrismList(id) }
         val cached = disk?.read(id)
@@ -75,6 +77,7 @@ class PlaylistSongs(
             load(id, cached).let { read ->
                 if (read.complete) {
                     kept[id] = read.songs
+                    at[id] = System.currentTimeMillis()
                     disk?.write(id, read)
                 }
                 read.songs
@@ -82,8 +85,8 @@ class PlaylistSongs(
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
-            // Offline: a whole copy from an earlier start still beats nothing.
-            cached?.songs
+            // Offline: a copy read earlier still beats nothing — this session's, or the one kept from an earlier start.
+            cached?.songs ?: kept[id]
         }
     }
 
@@ -102,17 +105,47 @@ class PlaylistSongs(
 
     fun refresh(id: String) {
         kept.remove(id)
+        at.remove(id)
+    }
+
+    /**
+     * Every playlist is read again next time it's shown (the disk copies stay, so the read is still the short one):
+     * what a library sync means, since the account's playlists may have changed.
+     */
+    fun refreshAll() {
+        kept.clear()
+        at.clear()
+    }
+
+    /**
+     * A playlist read elsewhere (the kept-download check reads it every hour): the same read serves this view, in
+     * memory and on the phone, instead of a second request. Only a whole read belongs here.
+     */
+    suspend fun noteRead(id: String, songs: List<Song>, count: Int?) {
+        val key = id.removePrefix("VL")
+        if (songs.isEmpty() || PrismLibrary.isPrismList(key)) return
+        kept[key] = songs
+        at[key] = System.currentTimeMillis()
+        cache?.write(key, PlaylistRead(songs, complete = true, count = count))
+    }
+
+    private fun fresh(id: String): Boolean {
+        val read = at[id] ?: return false
+        return System.currentTimeMillis() - read < SESSION_TTL_MS
     }
 
     /** Signing out or switching accounts: no kept playlist of the old one stays. */
     fun clear() {
         kept.clear()
+        at.clear()
         cache?.clearAll()
     }
 
     companion object {
         /** The most songs read of one playlist (as a queue takes). */
         const val MAX = 2000
+        /** How long a session's copy is trusted: a process kept alive by the player must not show yesterday's list. */
+        const val SESSION_TTL_MS = 30 * 60_000L
     }
 }
 
@@ -152,9 +185,16 @@ suspend fun refreshPlaylist(
 ): PlaylistRead {
     if (cached == null || cached.songs.isEmpty()) return readAll()
     val count = first.trackCount
-    // As many songs as last time: nothing new to read. Fewer means songs went: read them all.
+    // As many songs as last time, nothing new to read — unless the first page isn't the copy's own beginning any more
+    // (songs swapped, or reordered, without the number changing). Fewer means songs went: read them all.
     if (count != null && cached.count != null) {
-        if (count == cached.count) return PlaylistRead(cached.songs, complete = true, count = count)
+        if (count == cached.count) {
+            val head = first.songs
+            val sameHead = head.isNotEmpty() && cached.songs.size >= head.size &&
+                head.indices.all { head[it].id == cached.songs[it].id }
+            if (sameHead) return PlaylistRead(cached.songs, complete = true, count = count)
+            return readAll()
+        }
         if (count < cached.count) return readAll()
     }
     val ids = cached.songs.mapTo(HashSet()) { it.id }
@@ -190,7 +230,8 @@ suspend fun refreshPlaylist(
     }
     // A count that doesn't match means songs went too, or the order isn't the one new songs join: read them all.
     if (count != null && merged.size != count) return readAll()
-    return PlaylistRead(merged, complete = true, count = count ?: merged.size)
+    // No header count stays none: the next read mustn't compare its own size against it as if YouTube had said it.
+    return PlaylistRead(merged, complete = true, count = count)
 }
 
 private suspend fun pageWithRetries(

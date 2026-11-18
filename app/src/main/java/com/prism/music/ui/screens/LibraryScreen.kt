@@ -421,7 +421,7 @@ fun LibraryScreen(bottomPadding: Dp) {
     val savedPlaylists by c.prismLibrary.playlists.collectAsState()
     val myPlaylists = remember(playlists, prismLists, savedPlaylists, settings.isLoggedIn) {
         // A Spotify playlist (1.8.1) says so where Prism's own say "Prism playlist".
-        prismLists.map { l -> l.item().let { if (c.spotify.isSpotifyPlaylist(l.id)) it.copy(subtitle = tr(R.string.spot_playlist_subtitle, com.prism.music.data.model.songCount(l.songs.size))) else it } } + (if (settings.isLoggedIn) emptyList() else savedPlaylists.map { it.item() }) + playlists.filter { it.id != "LM" }
+        prismLists.map { l -> l.item().let { if (c.spotify.isSpotifyPlaylist(l.id)) it.copy(subtitle = tr(R.string.spot_playlist_subtitle, com.prism.music.data.model.songCount(l.songs.size))) else it } } + (if (settings.isLoggedIn) emptyList() else savedPlaylists.map { it.item() }) + playlists.filter { com.prism.music.download.PlaylistDownloads.canKeep(it.id) }
     }
     if (choosingFrom) SongsFromSheet(songsFrom, myPlaylists, { choosingFrom = false }) { chosen ->
         // Opened again: a YouTube playlist picked anew is read afresh.

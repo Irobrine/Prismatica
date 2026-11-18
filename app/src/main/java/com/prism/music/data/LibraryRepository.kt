@@ -264,6 +264,9 @@ class LibraryRepository(private val c: AppContainer) {
             lastError.value = null
             // Likes from YouTube Music are in: bring the Liked songs playlist (if there is one) in line.
             c.likedPlaylist.syncInBackground(full = true)
+            // Library → Songs' copies of the chosen playlists are read again (their kept copies stay, so the read is
+            // only what changed since), and the kept-download check below feeds them a fresh read in turn.
+            c.playlistSongs.refreshAll()
             // New songs in playlists kept downloaded (#298).
             if (c.settings.current.behavior.keptPlaylists.isNotEmpty()) c.scope.launch(Dispatchers.IO) { runCatching { c.keptPlaylists.syncAll() } }
         } catch (e: Exception) {

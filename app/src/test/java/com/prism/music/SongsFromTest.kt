@@ -1,5 +1,6 @@
 package com.prism.music
 
+import com.prism.music.data.KeptPlaylist
 import com.prism.music.data.PlaylistRead
 import com.prism.music.data.PlaylistSongs
 import com.prism.music.data.SongsFrom
@@ -9,6 +10,7 @@ import com.prism.music.data.model.CollectionKind
 import com.prism.music.data.model.CollectionPage
 import com.prism.music.data.model.Song
 import com.prism.music.data.readPlaylist
+import com.prism.music.data.refreshPlaylist
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -126,8 +128,64 @@ class SongsFromTest {
         }
     }
 
-    private fun page(songs: List<String>, continuation: String?) = CollectionPage(
+    @Test fun everyPlaylistIsReadAgainAfterALibrarySync() = runBlocking {
+        var reads = 0
+        val lists = PlaylistSongs(load = { id, _ -> reads++; PlaylistRead(listOf(s("$id-1")), complete = true) })
+        lists.songs("x")
+        lists.songs("y")
+        assertEquals(2, reads)
+        // A library sync: the account's playlists may have changed, so the session's copies go.
+        lists.refreshAll()
+        lists.songs("x")
+        assertEquals(3, reads)
+    }
+
+    @Test fun aReadMadeByTheKeptDownloadCheckServesThisViewToo() = runBlocking {
+        var reads = 0
+        val lists = PlaylistSongs(load = { _, _ -> reads++; PlaylistRead(emptyList(), complete = true) })
+        // The kept-download check has already read the playlist: no second request when Songs opens.
+        lists.noteRead("PLx", listOf(s("k1"), s("k2")), count = 2)
+        assertEquals(listOf("k1", "k2"), lists.songs("PLx")!!.map { it.id })
+        assertEquals(0, reads)
+    }
+
+    @Test fun aSameNumberOfSongsWithTheSameStartKeepsTheCopy() = runBlocking {
+        val cached = KeptPlaylist(listOf(s("a"), s("b")), 2)
+        var all = false
+        val read = refreshPlaylist(
+            page(listOf("a", "b"), continuation = null, count = 2), cached,
+            newestPage = { error("nothing new to ask for") },
+            readAll = { all = true; PlaylistRead(listOf(s("a"), s("b")), complete = true, count = 2) },
+        )
+        assertEquals(listOf("a", "b"), read.songs.map { it.id })
+        assertFalse("the copy is the playlist as it stands", all)
+    }
+
+    @Test fun aSwapWithTheSameNumberIsReadAgain() = runBlocking {
+        val cached = KeptPlaylist(listOf(s("a"), s("b")), 2)
+        var all = false
+        val read = refreshPlaylist(
+            page(listOf("b", "a"), continuation = null, count = 2), cached,
+            newestPage = { error("not asked") },
+            readAll = { all = true; PlaylistRead(listOf(s("b"), s("a")), complete = true, count = 2) },
+        )
+        assertTrue("the copy's start isn't the playlist's any more", all)
+        assertEquals(listOf("b", "a"), read.songs.map { it.id })
+    }
+
+    @Test fun aCountYouTubeNeverGaveStaysUnknown() = runBlocking {
+        val cached = KeptPlaylist(listOf(s("a"), s("b")), null)
+        val read = refreshPlaylist(
+            page(listOf("c"), continuation = null, count = null, newest = "newest"), cached,
+            newestPage = { YouTubeMusic.PlaylistChunk(listOf(s("c"), s("a")), next = null, setVideoIds = emptyMap()) },
+            readAll = { error("the newest page joins it") },
+        )
+        assertEquals(listOf("c", "a", "b"), read.songs.map { it.id })
+        assertNull("not invented from the list's own size", read.count)
+    }
+
+    private fun page(songs: List<String>, continuation: String?, count: Int? = null, newest: String? = null) = CollectionPage(
         id = "playlist", kind = CollectionKind.PLAYLIST, title = "Playlist", subtitle = "", thumbnail = null,
-        songs = songs.map(::s), continuation = continuation,
+        songs = songs.map(::s), continuation = continuation, newestContinuation = newest, trackCount = count,
     )
 }

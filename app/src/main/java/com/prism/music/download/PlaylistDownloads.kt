@@ -1,6 +1,7 @@
 package com.prism.music.download
 
 import android.content.Context
+import android.util.Log
 import com.prism.music.AppContainer
 import com.prism.music.data.PrismLibrary
 import com.prism.music.data.model.Song
@@ -160,7 +161,7 @@ class KeptPlaylists(private val c: AppContainer) {
 
     private fun deleted(id: String): Set<String> = reads.getStringSet(DELETED + id, null).orEmpty()
 
-    /** While any playlist is kept: each time downloads may run again, and when a song goes into one of Prism's own. */
+    /** While any playlist is kept: each time downloads may run again, on a slow timer, and when a song goes into one of Prism's own. */
     suspend fun watch(): Unit = coroutineScope {
         // Not with Prism's own start, nor before the first song has come in.
         delay(START_WAIT_MS)
@@ -168,6 +169,17 @@ class KeptPlaylists(private val c: AppContainer) {
             combine(c.network.online, c.network.metered, c.settings.flow.map { it.downloadWifiOnly }.distinctUntilChanged()) { on, metered, wifiOnly ->
                 PlaylistDownloads.mayFetch(on, metered, wifiOnly)
             }.distinctUntilChanged().collectLatest { may -> if (may) { c.quietNetwork(); syncAll() } }
+        }
+        // The player keeps the process (and this) alive for days on a steady network, where nothing else changes:
+        // look again on a timer, since each list is only read once an hour anyway.
+        launch {
+            while (true) {
+                delay(PlaylistDownloads.READ_GAP_MS / 2)
+                if (mayFetch()) {
+                    c.quietNetwork()
+                    runCatching { syncAll() }.onFailure { Log.w(TAG, "kept playlists: couldn't check", it) }
+                }
+            }
         }
         launch {
             c.prismLibrary.lists.drop(1).collectLatest {
@@ -194,18 +206,33 @@ class KeptPlaylists(private val c: AppContainer) {
     }
 
     private suspend fun sync(id: String, now: Boolean = false, since: Int = stops) {
-        if (!mayFetch()) return
+        if (!mayFetch()) {
+            Log.d(TAG, "kept $id: not now, the network waits")
+            return
+        }
         var whole = true
-        val songs = if (id.startsWith(PrismLibrary.PREFIX)) {
+        var count: Int? = null
+        val mine = id.startsWith(PrismLibrary.PREFIX)
+        val readAt = System.currentTimeMillis()
+        val songs = if (mine) {
             // One of Prism's own, deleted: nothing left to keep.
             val list = c.prismLibrary.list(id)
             if (list == null) set(id, false)
             list?.songs.orEmpty()
         } else {
-            val time = System.currentTimeMillis()
-            if (!now && !PlaylistDownloads.readDue(reads.getLong(id, 0L), time)) return
-            reads.edit().putLong(id, time).apply()
-            c.ytm.playlistAll(id, notAll = { whole = false }).songs
+            if (!now && !PlaylistDownloads.readDue(reads.getLong(id, 0L), readAt)) {
+                Log.d(TAG, "kept $id: read not due yet")
+                return
+            }
+            try {
+                c.ytm.playlistAll(id, notAll = { whole = false }).also { count = it.trackCount }.songs
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Not marked: a read that didn't come is asked for again at the next check, not in an hour.
+                Log.w(TAG, "kept $id: the playlist couldn't be read", e)
+                return
+            }
         }
         if (since != stops) return
         if (whole && songs.isNotEmpty()) synchronized(deletedLock) {
@@ -213,15 +240,27 @@ class KeptPlaylists(private val c: AppContainer) {
             val left = PlaylistDownloads.stillDeleted(had, songs, c.downloadStandIns.value)
             if (left.size != had.size) reads.edit().putStringSet(DELETED + id, left).apply()
         }
-        fetch(id, songs)
+        // The same read is Library → Songs' copy too: no second request when that tab opens.
+        if (whole) c.playlistSongs.noteRead(id, songs, count)
+        if (!fetch(id, songs)) return
+        // Marked only once the read and the check both paid off, so a failure costs a check, not the hour.
+        if (!mine) reads.edit().putLong(id, readAt).apply()
+        Log.d(TAG, "kept $id: ${songs.size} songs")
     }
 
-    private fun fetch(id: String, songs: List<Song>) {
+    private fun fetch(id: String, songs: List<Song>): Boolean {
         val d = c.downloads
         // What the download list says, not what's been loaded of it yet: a finished song added again would be fetched again.
-        val known = d.knownIds() ?: return
+        val known = d.knownIds()
+        if (known == null) {
+            Log.d(TAG, "kept $id: the download list isn't read yet")
+            return false
+        }
         val deleted = synchronized(deletedLock) { deleted(id) }
-        PlaylistDownloads.toFetch(songs, c.downloadSkips.ids.value, c.downloadStandIns.value, known, d.failures.value.keys, deleted).forEach(d::download)
+        val todo = PlaylistDownloads.toFetch(songs, c.downloadSkips.ids.value, c.downloadStandIns.value, known, d.failures.value.keys, deleted)
+        todo.forEach(d::download)
+        if (todo.isNotEmpty()) Log.d(TAG, "kept $id: ${todo.size} new")
+        return true
     }
 
     private companion object {
@@ -230,3 +269,6 @@ class KeptPlaylists(private val c: AppContainer) {
         const val DELETED = "deleted:"
     }
 }
+
+/** What the kept playlists' checks say in logcat. */
+private const val TAG = "PrismKept"
