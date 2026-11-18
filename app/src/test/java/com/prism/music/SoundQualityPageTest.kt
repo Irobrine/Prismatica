@@ -192,9 +192,10 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
     }
 
     /**
-     * 1.8.5: "Measure songs now" walks a set of the listener's songs through the whole-song scan, one at a time. A tap
+     * 1.1.3: "Measure songs now" walks a set of the listener's songs through the whole-song scan, one at a time. A tap
      * opens the sheet of the four sets, each with how many songs of it are left; a pick starts the walk and the sheet goes;
-     * while it runs the row says how far it is, and a tap stops it rather than opening the sheet.
+     * while it runs the row says how far it is, and a tap stops it rather than opening the sheet — keeping its count, so
+     * the tap after that carries on from it instead of starting the set over.
      */
     @Test fun measureSongsWalksASetAndStops() {
         // One of the listener's own songs, a file on the phone (its scan needs no network, so its walk is over at once): a
@@ -206,13 +207,18 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
         compose.waitUntil(5_000) { container.library.likedIds.value == setOf(own.id) }
         // While a walk runs the row says how far it is (as the scan does on a smart playlist), and a tap stops it instead.
         container.measureSongs.progress.value = 2 to 5
+        container.measureSongs.running.value = true
         compose.waitForIdle()
         assertEquals(tr(R.string.measuring_n_of_n, 2, 5), valueOf(measureSongs))
         tap(measureSongs)
         assertEquals("tapping the row while it runs stops the walk", 0, sheets())
-        container.measureSongs.progress.value = null
+        container.measureSongs.running.value = false
         compose.waitForIdle()
-        assertEquals("", valueOf(measureSongs))
+        assertEquals("a stopped walk keeps its count for the row to carry on from", tr(R.string.measure_songs_stopped_at, 2, 5), valueOf(measureSongs))
+        // And the tap after that carries on with it (the walk itself is MeasureSongsTest's; here its empty set means done).
+        tap(measureSongs)
+        assertEquals("not the sheet", 0, sheets())
+        compose.waitUntil(5_000) { valueOf(measureSongs) == "" }
 
         tap(measureSongs)
         assertEquals(1, sheets())

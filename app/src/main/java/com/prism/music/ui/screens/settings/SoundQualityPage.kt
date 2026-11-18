@@ -277,7 +277,8 @@ private fun StreamingQualityRow(quality: StreamingQuality, changed: Boolean, onW
  *
  * A tap opens the sheet of the four sets, each with how many of its songs are left (worked out as it opens: the three on
  * hand at once, the Library's once the database has answered). A pick starts the walk and the sheet goes; while it runs
- * the row says how far it is, and a tap stops it (the sheet is gone by then, so the row is the one place to stop it).
+ * the row says how far it is, and a tap stops it — the count is kept, and the next tap carries on from it rather than
+ * starting the set over (the sheet is gone by then, so the row is the one place for both).
  */
 @Composable
 private fun MeasureSongsRow() {
@@ -285,6 +286,7 @@ private fun MeasureSongsRow() {
     val s = LocalAppSettings.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val running by c.measureSongs.running.collectAsState()
     val measuring by c.measureSongs.progress.collectAsState()
     val title = tr(R.string.measure_songs_now)
     var open by rememberSaveable(title, "measure-songs") { mutableStateOf(false) }
@@ -292,10 +294,17 @@ private fun MeasureSongsRow() {
     var left by remember(title) { mutableStateOf<Map<MeasureScope, Int>>(emptyMap()) }
     LinkRow(
         title,
-        value = measuring?.let { tr(R.string.measuring_n_of_n, it.first, it.second) },
+        value = measuring?.let {
+            tr(if (running) R.string.measuring_n_of_n else R.string.measure_songs_stopped_at, it.first, it.second)
+        },
         info = tr(R.string.measure_songs_now_info), action = true,
     ) {
-        if (measuring != null) c.measureSongs.stop() else open = true
+        when {
+            running -> c.measureSongs.stop()
+            // A stopped walk carries on where it stopped: its count is kept, and what it counted isn't walked again.
+            measuring != null -> c.measureSongs.resume()
+            else -> open = true
+        }
     }
     if (open) {
         LaunchedEffect(open) {

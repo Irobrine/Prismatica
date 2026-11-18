@@ -17,16 +17,17 @@ import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Settings → Sound & quality's "Measure songs now" (1.8.5, [MeasureSongs]): a set of songs through the whole-song scan,
- * one at a time, counting the ones it has walked; a stop measures nothing more; the songs a walk is made of are each
- * song's form (the recording that actually plays), once each, minus what's measured already; and whether songs not on the
- * phone may be fetched is the network's and the listener's setting's together.
+ * Settings → Sound & quality's "Measure songs now" (1.1.3, [MeasureSongs]): a set of songs through the whole-song scan,
+ * one at a time, counting the ones it has walked; a stop measures nothing more and keeps its count, and being carried on
+ * from there measures only what's left; the songs a walk is made of are each song's form (the recording that actually
+ * plays), once each, minus what's measured already; and whether songs not on the phone may be fetched is the network's
+ * and the listener's setting's together.
  */
 class MeasureSongsTest {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** The forms measured so far, by the current scan (as [com.prism.music.playback.MixTempo.loudnessCurrent] has it). */
-    private val measuredNow = mutableSetOf<String>()
+    private val measuredNow = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     /** The recording each song plays as, where that isn't the song itself (a version picked for it). */
     private val versions = mutableMapOf<String, String>()
@@ -38,8 +39,9 @@ class MeasureSongsTest {
 
     private fun engine(
         metered: Boolean = false,
-        measure: suspend (String, String?, Boolean) -> Unit = { form, song, network -> asked += Triple(form, song, network) },
+        measure: suspend (String, String?, Boolean) -> Unit = { form, song, network -> asked += Triple(form, song, network); measuredNow += form },
     ) = MeasureSongs(scope, measure, { it in measuredNow }, { versions[it] ?: it }, { !metered })
+
 
     /** Waits for [check] to hold (the walk runs on threads of its own), failing with what was waited for instead of hanging. */
     private fun until(what: String, check: () -> Boolean) = runBlocking {
@@ -92,19 +94,44 @@ class MeasureSongsTest {
         assertEquals(listOf("a", "b", "c"), asked.map { it.first })
     }
 
-    /** Stopped part-way, the song being measured is cancelled and nothing after it is measured. */
-    @Test fun stoppingItMeasuresNothingMore() {
+    /**
+     * Stopped part-way: the song being measured is cancelled, nothing after it is measured, and the count it got to is
+     * kept — not cleared — so the row can carry on from there rather than start the set over.
+     */
+    @Test fun stoppingItKeepsTheCountAndMeasuresNothingMore() {
         val gate = CompletableDeferred<Unit>()
         val entered = AtomicInteger()
-        val e = engine(measure = { _, _, _ -> if (entered.incrementAndGet() == 1) gate.await() })
+        val e = engine(measure = { form, _, _ -> asked += Triple(form, null, false); if (entered.incrementAndGet() == 1) gate.await(); measuredNow += form })
         e.start(listOf("a" to "a", "b" to "b", "c" to "c", "d" to "d"), network = false)
         until("the first song") { entered.get() == 1 }
         assertEquals(0 to 4, e.progress.value)
+        assertTrue(e.running.value)
         e.stop()
-        until("the walk to end") { e.progress.value == null }
+        until("the walk to end") { !e.running.value }
+        assertEquals("its count stays where it got to", 0 to 4, e.progress.value)
         assertEquals("the one being measured was cancelled inside the scan", 1, entered.get())
         runBlocking { delay(50) }
         assertEquals("and no song after it", 1, entered.get())
+        assertFalse("nothing it walked was counted measured", "a" in measuredNow)
+    }
+
+    /**
+     * Carried on after a stop ([MeasureSongs.resume]), a walk measures only what's left — the finished song never
+     * again — and its count runs on from where it stopped: 1 of 3 at the stop, then on to the end.
+     */
+    @Test fun aStoppedWalkCarriesOnWhereItStopped() {
+        val gate = CompletableDeferred<Unit>()
+        val e = engine(measure = { form, _, _ -> asked += Triple(form, null, false); if (form == "b") gate.await(); measuredNow += form })
+        e.start(listOf("a" to "a", "b" to "b", "c" to "c"), network = false)
+        until("the second song") { asked.map { it.first } == listOf("a", "b") }
+        assertEquals("the first finished, the second is under way", 1 to 3, e.progress.value)
+        e.stop()
+        until("the walk to end") { !e.running.value }
+        assertEquals("its count stays at what finished", 1 to 3, e.progress.value)
+        gate.complete(Unit)
+        e.resume()
+        until("the rest") { e.progress.value == null && asked.map { it.first } == listOf("a", "b", "b", "c") }
+        assertFalse("the finished first song is never walked again", asked.count { it.first == "a" } > 1)
     }
 
     /** A second tap stops the walk running and starts its own: two walks never count at once. */
@@ -113,11 +140,11 @@ class MeasureSongsTest {
         val second = CompletableDeferred<Unit>()
         val e = engine(measure = { form, _, _ -> if (form == "a" || form == "b") first.await() else second.await() })
         e.start(listOf("a" to "a", "b" to "b"), network = false)
-        until("the first walk") { e.progress.value == (0 to 2) }
+        until("the first walk") { e.progress.value == (0 to 2) && e.running.value }
         e.start(listOf("c" to "c", "d" to "d", "e" to "e"), network = false)
         until("the newer walk's count at once") { e.progress.value == (0 to 3) }
         second.complete(Unit)
-        until("its end") { e.progress.value == null }
+        until("its end") { e.progress.value == null && !e.running.value }
         assertFalse("the first walk was stopped, not waited for", first.isCompleted)
     }
 

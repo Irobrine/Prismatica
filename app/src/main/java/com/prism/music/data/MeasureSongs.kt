@@ -1,5 +1,6 @@
 package com.prism.music.data
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -19,7 +20,10 @@ import kotlinx.coroutines.launch
  * measured with the current scan ([measured]) aren't walked again, so [pending] is the real remaining work, which is
  * what the page counts before a tap.
  *
- * [progress]: done of all, while it runs; null when it isn't. A walk stopped part-way just leaves it null.
+ * [progress]: done of all, while a walk runs and after one is stopped part-way — [running] says which. A stop keeps the
+ * count ([stop]), and [resume] carries on with the same set from where it stopped: what's been measured isn't walked
+ * again, so a second tap never starts the work over. Null when no walk is under way, or when the last one measured
+ * everything.
  */
 class MeasureSongs(
     private val scope: CoroutineScope,
@@ -33,9 +37,16 @@ class MeasureSongs(
     private val unmetered: () -> Boolean,
 ) {
     val progress = MutableStateFlow<Pair<Int, Int>?>(null)
+
+    /** Whether a walk is moving [progress] now: a stopped one keeps its count still, for [resume] to carry on. */
+    val running = MutableStateFlow(false)
+
     private var job: Job? = null
     /** Which walk is the current one: an older walk's last step and end are not its to show ([start]). */
     private var walk = 0
+    /** The set the last walk was of, and the network it was given: a stop keeps both, so [resume] carries on with them. */
+    private var walkSet: List<Pair<String, String>> = emptyList()
+    private var network = true
 
     /**
      * Whether a walk now may fetch songs not on the phone from the network: an unmetered network, or [cellular] (the
@@ -54,27 +65,68 @@ class MeasureSongs(
      * Walks [pairs] ([pending]'s, as form to song) on [network] (whether songs not on the phone are fetched), one at a
      * time: the scan has one song at a time anyway, and the count the page shows must be of one walk.
      *
-     * A walk already running is stopped first, so two taps never leave two walks interleaving their counts.
+     * A walk already running is stopped first, so two taps never leave two walks interleaving their counts — and a set
+     * started this way sets aside whatever a stopped one was part-way through.
      */
     fun start(pairs: List<Pair<String, String>>, network: Boolean) {
         job?.cancel()
-        if (pairs.isEmpty()) return
+        walkSet = pairs
+        this.network = network
+        if (pairs.isEmpty()) {
+            progress.value = null
+            running.value = false
+            return
+        }
+        walk(pairs, done = 0)
+    }
+
+    /**
+     * Carries on with the set a stop left part-measured ([stop]): only what isn't measured is walked, and the count runs
+     * on from where it stopped instead of starting again. Nothing left — everything measured meanwhile, by a play or
+     * another walk — means the row is done.
+     */
+    fun resume() {
+        if (running.value) return
+        val left = walkSet.filter { !measured(it.first) }
+        if (left.isEmpty()) {
+            progress.value = null
+            return
+        }
+        walk(left, done = walkSet.size - left.size)
+    }
+
+    private fun walk(items: List<Pair<String, String>>, done: Int) {
         val mine = ++walk
+        running.value = true
         job = scope.launch(Dispatchers.IO) {
+            var finished = false
             // This walk's to show, only while it is the current one: a newer start cancels it, and the count is then the
             // newer walk's (this one's last step landing on it would take the newer one's place).
-            fun note(done: Int?) { if (mine == walk) progress.value = done?.let { it to pairs.size } }
-            note(0)
+            fun note(at: Int) { if (mine == walk) progress.value = at to walkSet.size }
+            note(done)
             try {
-                pairs.forEachIndexed { i, (form, song) ->
+                items.forEachIndexed { i, (form, song) ->
                     // Stopped (or taken over) part-way: nothing more is measured.
                     if (mine != walk || !isActive) return@launch
                     runCatching { measure(form, song.takeIf { it != form }, network) }
-                    note(i + 1)
+                        .exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                    // Stopped during it: that song wasn't measured, and a [resume] takes it up again — no step is counted
+                    // for it, so the count never runs ahead of the work done.
+                    if (!isActive) return@launch
+                    note(done + i + 1)
                 }
-            } finally { note(null) }
+                finished = true
+            } finally {
+                if (mine == walk) {
+                    running.value = false
+                    // Everything walked and measured: the row asks for a set again. A stop leaves the count where it got
+                    // to, for [resume] to carry on from.
+                    if (finished) progress.value = null
+                }
+            }
         }
     }
 
+    /** Stops the walk where it is: nothing more is measured, and its count is kept for [resume]. */
     fun stop() { job?.cancel() }
 }

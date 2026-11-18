@@ -529,6 +529,9 @@ class MixTempo(
                     android.os.Process.setThreadPriority(before)
                     AudioDiagnostics.log("background", "song scan of $id ended after ${(System.nanoTime() - started) / 1_000_000} ms")
                 }
+                // A scan the listener stopped (a second tap on the settings' "Measure songs now", or Prism going) isn't
+                // the song's failure: it's measured next time, not set aside as failed for the rest of the run.
+                (r.exceptionOrNull() as? kotlinx.coroutines.CancellationException)?.let { throw it }
                 val s = r.getOrNull()
                 when {
                     r.isFailure -> { failed += id; cached(id) }
