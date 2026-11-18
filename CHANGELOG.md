@@ -2,9 +2,18 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
-## 1.1.3
+## 1.2.0
 
-Shuffle starts anywhere in the list again, opening the player no longer crashes, every recording — a song, its video, the version picked for it — plays at its own level, and the mini player's swipe up is never taken for a tap.
+Material You joins Prism's own design, a set of songs can be measured on demand, every recording plays at its own level, opening the player no longer crashes, and Prismatica 1.8.7.5/1.8.7.6's speed-ups and fixes arrive.
+
+### Material You
+
+- **Material You is a built-in Look and a design language.** Settings → Looks → Material You, or Settings → Colors → Design language: Material 3 as AOSP and Pixel draw it — a tonal palette, Material's type and shape scales, flat tonal surfaces instead of glass, and Material's own components. Prism's own looks ignore the palette and draw as before.
+- **The colors are Material's.** The accent is the wallpaper's on Android 12 and newer (`MaterialYou.dynamic`, android 31+), the baseline lavender where Android can't give one. The Palette row picks the palette variant — Default (tonal spot), Vibrant, Expressive, Neutral, Monochrome (the seed's hue and how much color the primary, secondary and tertiary palettes carry) — and the Contrast row folds the three levels into the tones. Light and dark are the same palette at two tones, and pure black still applies to dark pages.
+- **The whole app draws with it**: navigation and the tab bar, the mini player and the player, dialogs, sheets and menus, switches, sliders and buttons, through `Theme`, `Tokens` and `Controls`; the Looks and Colors previews render it live.
+- The design language and palette are part of `ShapeLook`, so they're saved and restored with the rest of a Look's choices.
+- New and extended tests: `MaterialYouTest` (the tonal palettes, contrast, pure black, the wallpaper's scheme and its fallback), `MaterialYouRenderTest` and `MaterialYouPlayerRenderTest` (the look's pages and the player), `DesignGalleryTest`, and `ThemeColorsPageTest` (the Palette and Design language rows).
+- Material You's own names stay untranslated, as Google's own translations leave them.
 
 ### The mini player
 
@@ -32,6 +41,33 @@ Shuffle starts anywhere in the list again, opening the player no longer crashes,
 
 - **A shuffle no longer tends to start near the top.** A shuffled start whose random song was snoozed gave way to the first song left in the list, so with tracks snoozed a library's shuffles kept starting at the top of Library → Songs — once for every pick that hit one (with a fifth of a list snoozed, a fifth of its shuffles started at the very top). The pick now gives way to another random song, and a shuffle's start is as likely anywhere in what's left (6 of 400 at the top after the fix, where chance says ~5). A tap, Play next and Add to queue still keep a snoozed song, as they did.
 - `ShuffleStartTest` gains a snoozed-pick case: with 20 of 100 songs snoozed, 200 shuffles never start on a snoozed one and the first allowed song starts no more often than chance allows.
+
+### Faster
+
+- **Home's feed is streamed to disk** (`HomeCache`) instead of being copied at every level, so loading it no longer takes a large, short-lived chunk of memory.
+- **The kept Moods page is parsed once** (`MoodsCache`), and song scans let go of their decoded samples.
+- **The player's mesh is blurred once** into a small picture instead of every frame, and its one lyric line moves 30 times a second rather than as often as the screen draws.
+- **`queue.json` is put together off the main thread**, so saving the queue no longer interrupts what's playing.
+- New tests: `HomeCacheWriteTest`, `MoodsCacheTest`, `MeshBakeTest`, `CalmLyricClockTest` and `SavedQueueTextTest`.
+
+### Fixed
+
+- **The equalizer does something again (#519).** Prism was filling a list Android keeps of sound effects until Android refused new ones; its effects are now made only once a track plays and only when asked, and the Equalizer screen says when Android is refusing them. If it still does nothing after updating, restarting the phone empties the list. (`AudioEffects`, `EqualizerScreen`, `AudioEffectsTrackTest`, `EqRefusedLineTest`.)
+- **A song whose server keeps answering with an error is asked again quickly**, then tried another way (#514, `StreamResolver`, `StreamChunkRefusedTest`).
+- **Songs marked as made for kids play without signing in**, through the older TV app (#531, `MadeForKids531Test`).
+- **Casting to a speaker: one press of a volume key is one step**, and a held key no longer runs to full or silent (#534, `RemoteVolume534Test`).
+- **Select many, then Play next or Add to queue: every picked song is queued** (#476, `PickedSongsQueue476Test`).
+- **The play circle on Home's big cards plays straight away** (#507, `HeroPlayCircle507Test`).
+- **Sing shows once with the lyrics open** (#501, `LyricsSingButtonTest`).
+- **A recognized song plays from the moment you heard it**, and the player opens on its lyrics (#215, `RecognizeStartTest`).
+- **A lazy list keeps a repeated row** (`RowKeys`, `ListDuplicateKeysTest`).
+- **Covers of albums from your own files are sharp on large views** (#520, `LocalFullArtInterceptor`, `LocalFullArtTest`).
+- **DJ mode keeps the crossfade length you set** (#502, `DjBlendTest`).
+- Full unit suite at the time of the port: 2,692 tests completed, 2 failed, 11 skipped; both failures reproduce unchanged on the previous HEAD (a local-socket test and a settings screenshot test), so they are pre-existing in the build environment.
+
+### Signing
+
+- **1.2.0 is the first build signed with a dedicated release key** (`CN=Prismatica-Refracted, O=Prismatica, C=US`, certificate SHA-256 `234669914166aa14b4e6c3833110f4295ab776ea2b594cbf9d6c5180dd5c6fe7`), kept out of the repository. 1.0.0 and Prismatica 1.8.x were signed with the Android debug key, and 1.1.1 and 1.1.2 with the AOSP platform test key, both public. The key change means an install of 1.1.2 has to be backed up, uninstalled and restored to reach this version; every release after it is signed with the same key.
 
 ## 1.1.2
 
