@@ -173,6 +173,30 @@ object BuiltInLooks {
 
     val all: List<Look> = listOf(
         Look("prism", tr(R.string.app_name), builtIn = true, note = tr(R.string.how_prism_comes_outfit_the_split)),
+        // Material You (1.9): Material 3's design language as AOSP and Pixel draw it. A tonal palette from the wallpaper
+        // where Android can give one, otherwise the Material baseline lavender; Material's type and shape scales; tonal
+        // surfaces instead of glass. The Colors page hosts its palette, accent and contrast.
+        Look(
+            "material-you", tr(R.string.material_you), builtIn = true, note = tr(R.string.material_you_note),
+            values = mapOf(
+                "design_language" to "s:MATERIAL_YOU", "material_palette" to "s:TONAL_SPOT",
+                "theme_mode" to "s:SYSTEM", "pure_black" to "b:0",
+                // The wallpaper's palette on Android 12 and later; the baseline lavender where it can't.
+                "color_source" to "s:DYNAMIC", "accent" to color(0xFF6750A4), "contrast_level" to "s:STANDARD",
+                "font_choice" to "s:SYSTEM", "type_weight" to "s:REGULAR", "type_spacing" to "s:NORMAL",
+                "type_classic" to "b:0", "controls_classic" to "b:0",
+                "corners" to "s:ROUND", "ui_density" to "s:COMFORTABLE", "title_size" to "s:MEDIUM", "card_size" to "s:MEDIUM",
+                "cover_shape_songs" to "s:ROUNDED", "cover_shape_albums" to "s:ROUNDED", "cover_shape_artists" to "s:CIRCLE",
+                "cover_shape_player" to "s:ROUNDED", "button_shape" to "s:PILL", "tab_icon_tint" to "s:INK",
+                // Material 3's flat tonal surfaces: no glass or Prism backgrounds (a picture or design can still be picked).
+                "liquid_glass" to "b:0", "frosted_glass" to "b:0", "frosted_pages" to "b:0",
+                "nav_style" to "s:DOCKED", "nav_labels" to "s:ALWAYS", "nav_bar_fill" to "s:SOLID", "start_tab" to "s:HOME",
+                "mini_player_style" to "s:CARD", "mini_progress" to "s:LINE", "mini_progress_color" to "s:ACCENT",
+                "mini_skip_buttons" to "b:1", "mini_prev_button" to "b:1", "mini_play_button" to "b:1",
+                "player_background" to "s:THEME", "player_art_corners" to "i:16", "transport_style" to "s:BUTTON",
+                "scrubber_color" to "s:ACCENT", "play_ring" to "b:0", "player_buttons_pill" to "b:0",
+            ),
+        ),
         Look(
             "paper", tr(R.string.paper), builtIn = true, note = tr(R.string.light_serif_type_ink_instead_of),
             values = mapOf(
@@ -261,6 +285,7 @@ object BuiltInLooks {
 object LookLabels {
     private val titles = mapOf(
         "glass_blur" to tr(R.string.glass_blur), "glass_frost" to tr(R.string.glass_frost), "glass_more" to tr(R.string.glass_on_more_of_the_screen), "player_gradient_depth" to tr(R.string.gradient_depth),
+        "design_language" to tr(R.string.design_language), "material_palette" to tr(R.string.palette),
         "theme_mode" to tr(R.string.theme), "pure_black" to tr(R.string.pure_black), "color_source" to tr(R.string.accent_from), "accent" to tr(R.string.accent_color),
         "light_style" to tr(R.string.light), "accent_exact" to tr(R.string.exactly_as_picked), "accent_light" to tr(R.string.light_mode_accent), "spectrum_preset" to tr(R.string.spectrum),
         "spectrum_stops" to tr(R.string.your_light_s_colors), "spectrum_bands" to tr(R.string.spectrum_in_bands), "surface_tint" to tr(R.string.page_background),
@@ -336,6 +361,8 @@ object LookLabels {
         val p = com.prism.music.data.prefs.ThemeMode.entries
         mapOf(
             "theme_mode" to e(p) { it.label },
+            "design_language" to e(com.prism.music.data.prefs.DesignLanguage.entries) { it.label },
+            "material_palette" to e(com.prism.music.data.prefs.MaterialPalette.entries) { it.label },
             "color_source" to e(com.prism.music.data.prefs.ColorSource.entries) { it.label },
             "light_style" to e(com.prism.music.data.prefs.LightStyle.entries) { it.label },
             "surface_tint" to e(com.prism.music.data.prefs.SurfaceTint.entries) { it.label },
@@ -449,10 +476,11 @@ object LookLabels {
 
     /** The parts of Prism's look, in the order they're named, and the settings each is made of. */
     private val areaOf: List<Pair<String, Set<String>>> = listOf(
-        "theme" to setOf("theme_mode", "pure_black"),
+        "theme" to setOf("theme_mode", "pure_black", "design_language"),
         "colors" to setOf(
             "color_source", "accent", "light_style", "accent_exact", "accent_light", "spectrum_preset", "spectrum_stops", "spectrum_bands",
             "surface_tint", "surface_tint_strength", "surface_color", "contrast_level", "artwork_swatch", "artwork_vivid", "artwork_change", "page_picture_accent", "playing_page_color",
+            "material_palette",
         ),
         "type" to setOf("font_choice", "app_font_name", "lyrics_font", "text_scale", "type_classic"),
         "backgrounds" to setOf("liquid_glass", "glass_kind", "frosted_glass", "frosted_pages", "backdrops", "backdrop_dim", "backdrop_motion", "reduce_motion", "backdrop_fade", "glass_blur", "glass_frost", "glass_more"),

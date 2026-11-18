@@ -116,7 +116,11 @@ private fun MiniBar(c: ThemeColors, song: Song?) {
                 Text(song?.artistText ?: tr(R.string.prism_sample), style = MaterialTheme.typography.bodySmall, color = c.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (s.miniPrevButton) Icon(PrismIcons.Previous, null, Modifier.size(22.dp), tint = scheme.onBackground)
-            if (s.view.miniPlayButton) Box(Modifier.padding(horizontal = 6.dp).size(36.dp).clip(CircleShape).border(1.5.dp, Brush.sweepGradient(c.ring), CircleShape), contentAlignment = Alignment.Center) {
+            if (s.view.miniPlayButton) if (c.material) Box(
+                Modifier.padding(horizontal = 6.dp).size(36.dp).clip(CircleShape).background(scheme.primary),
+                contentAlignment = Alignment.Center,
+            ) { Icon(PrismIcons.Play, null, Modifier.size(16.dp), tint = scheme.onPrimary) }
+            else Box(Modifier.padding(horizontal = 6.dp).size(36.dp).clip(CircleShape).border(1.5.dp, Brush.sweepGradient(c.ring), CircleShape), contentAlignment = Alignment.Center) {
                 Icon(PrismIcons.Play, null, Modifier.size(16.dp), tint = scheme.onBackground)
             }
             if (s.miniSkipButtons) Icon(PrismIcons.Next, null, Modifier.size(22.dp), tint = scheme.onBackground)
@@ -142,26 +146,38 @@ private fun NavTab.icon(): ImageVector = when (this) {
 private fun TabBarPreview(c: ThemeColors) {
     val s = LocalAppSettings.current
     val scheme = c.scheme
+    val material = c.material
     val light = Brush.horizontalGradient(*c.run.toTypedArray())
     val docked = s.navStyle == NavBarStyle.DOCKED
     val minimal = s.navStyle == NavBarStyle.MINIMAL
     val shape = if (docked) RoundedCornerShape(0.dp) else CircleShape
     Row(
         Modifier.fillMaxWidth().height(if (minimal) 54.dp else 62.dp).clip(shape)
-            .background(if (docked) scheme.background.copy(alpha = 0.94f) else frostFill(2.6f))
+            .background(if (docked) (if (material) scheme.surfaceContainer else scheme.background.copy(alpha = 0.94f)) else frostFill(2.6f))
             .then(if (docked) Modifier else Modifier.border(1.dp, c.line, shape)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         s.navTabs.forEachIndexed { i, tab ->
             val on = i == 0
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (docked && on) Box(Modifier.width(24.dp).height(2.dp).clip(CircleShape).background(light))
-                if (docked) Spacer(Modifier.height(6.dp))
+                if (docked && on && !material) Box(Modifier.width(24.dp).height(2.dp).clip(CircleShape).background(light))
+                if (docked) Spacer(Modifier.height(if (material) 4.dp else 6.dp))
                 val words = !minimal && s.navLabels == NavLabels.WORDS
-                if (!words) Icon(tab.icon(), null, Modifier.size(22.dp), tint = if (on) scheme.onBackground else c.ink3)
+                if (!words) {
+                    if (material && docked) Box(
+                        Modifier.size(width = 48.dp, height = 26.dp).clip(CircleShape).background(if (on) scheme.secondaryContainer else Color.Transparent),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(tab.icon(), null, Modifier.size(20.dp), tint = if (on) scheme.onSecondaryContainer else scheme.onSurfaceVariant)
+                    } else Icon(tab.icon(), null, Modifier.size(22.dp), tint = if (on) (if (material) scheme.onSecondaryContainer else scheme.onBackground) else (if (material) scheme.onSurfaceVariant else c.ink3))
+                }
                 val showLabel = !minimal && (s.navLabels == NavLabels.ALWAYS || words || (s.navLabels == NavLabels.SELECTED && on))
-                if (showLabel) Text(s.tabNames[tab] ?: tab.label, style = MaterialTheme.typography.labelSmall, color = if (on) scheme.onBackground else c.ink3, maxLines = 1)
-                if (!docked && on) Box(Modifier.padding(top = 3.dp).width(14.dp).height(2.dp).clip(CircleShape).background(light))
+                if (showLabel) Text(
+                    s.tabNames[tab] ?: tab.label, style = MaterialTheme.typography.labelSmall,
+                    color = if (on) (if (material) scheme.onSurface else scheme.onBackground) else (if (material) scheme.onSurfaceVariant else c.ink3),
+                    maxLines = 1,
+                )
+                if (!docked && on) Box(Modifier.padding(top = 3.dp).width(14.dp).height(2.dp).clip(CircleShape).background(if (material) androidx.compose.ui.graphics.SolidColor(scheme.primary) else light))
             }
         }
     }

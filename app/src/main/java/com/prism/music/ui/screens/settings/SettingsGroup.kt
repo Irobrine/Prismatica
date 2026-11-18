@@ -76,7 +76,7 @@ fun SettingsGroup(
     content: @Composable () -> Unit,
 ) {
     val ui = LocalUi.current
-    val shape = ui.shape(20.dp)
+    val shape = if (ui.material) ui.card else ui.shape(20.dp)
     val scheme = MaterialTheme.colorScheme
     var open by rememberSaveable(title, "settings-group") { mutableStateOf(false) }
     val glow = remember { Animatable(0f) }

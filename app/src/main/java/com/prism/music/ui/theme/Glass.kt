@@ -177,6 +177,19 @@ fun GlassSurface(
     val settings = LocalAppSettings.current
     val haze = LocalHazeState.current.takeUnless { inPage }
     val dark = LocalIsDark.current
+    // Material You: no glass, just Material 3's tonal surface at its elevation.
+    if (LocalUi.current.material) {
+        val scheme = MaterialTheme.colorScheme
+        val fill = if (tint.isSpecified) tint else if (onMedia) scheme.surfaceContainer.copy(alpha = 0.94f) else scheme.surfaceContainerHigh
+        Box(
+            modifier
+                .then(if (!inPage && elevation > 0.dp) Modifier.shadow(3.dp, shape, ambientColor = Color.Black.copy(alpha = 0.16f), spotColor = Color.Black.copy(alpha = 0.16f)) else Modifier)
+                .clip(shape)
+                .background(fill),
+            content = content,
+        )
+        return
+    }
     if (inPage && com.prism.music.ui.components.LocalFrosted.current) {
         Box(
             modifier

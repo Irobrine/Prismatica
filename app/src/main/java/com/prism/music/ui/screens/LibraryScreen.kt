@@ -1061,7 +1061,11 @@ private fun ShortcutTile(title: String, subtitle: String, icon: ImageVector, asL
                 else androidx.compose.ui.graphics.SolidColor(com.prism.music.ui.theme.PrismTokens.hue(shortcutHue(icon))),
             ),
             contentAlignment = Alignment.Center,
-        ) { Icon(icon, null, Modifier.size(iconSize), tint = androidx.compose.ui.graphics.Color.White) }
+        ) { Icon(
+            icon, null, Modifier.size(iconSize),
+            tint = if (icon == PrismIcons.HeartFilled && com.prism.music.ui.theme.LocalUi.current.material) scheme.onPrimary
+            else com.prism.music.ui.theme.PrismTokens.onHue(shortcutHue(icon)),
+        ) }
     }
     if (asList) {
         Row(

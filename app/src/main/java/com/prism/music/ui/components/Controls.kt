@@ -57,12 +57,18 @@ private val ButtonPadding = PaddingValues(horizontal = 22.dp, vertical = 10.dp)
 @Composable
 private fun classic(): Boolean = com.prism.music.ui.theme.LocalUi.current.classicControls
 
-/** The page's glass: a see-through fill and a light top edge (frosted on any background). */
+/** Material You: Material 3's own components, in the scheme's color roles and shape scale. */
 @Composable
-internal fun glassFill(strength: Float = 1f): Color = frostFill(strength)
+private fun material(): Boolean = com.prism.music.ui.theme.LocalUi.current.material
+
+/** The page's glass: a see-through fill and a light top edge (frosted on any background). Material You: a tonal surface. */
+@Composable
+internal fun glassFill(strength: Float = 1f): Color =
+    if (material()) MaterialTheme.colorScheme.surfaceContainerHigh else frostFill(strength)
 
 @Composable
 internal fun glassEdge(): Brush {
+    if (material()) return androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.outlineVariant)
     val dark = LocalIsDark.current
     // #326, "Glass on more of the screen": a brighter lit edge, on chips, round buttons and cards.
     if (com.prism.music.ui.theme.LocalAppSettings.current.glassEverywhere) {
@@ -83,6 +89,17 @@ fun PrismButton(
 ) {
     if (classic()) { Button(onClick, modifier, enabled, contentPadding = contentPadding, content = content); return }
     val s = MaterialTheme.colorScheme
+    if (material()) {
+        Button(
+            onClick, modifier.heightIn(min = 40.dp), enabled, shape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = s.primary, contentColor = s.onPrimary,
+                disabledContainerColor = s.onSurface.copy(alpha = 0.12f), disabledContentColor = s.onSurface.copy(alpha = 0.38f),
+            ),
+            elevation = ButtonDefaults.buttonElevation(0.dp, 1.dp, 0.dp, 0.dp, 0.dp), contentPadding = contentPadding, content = content,
+        )
+        return
+    }
     Button(
         onClick, modifier.heightIn(min = 46.dp), enabled, shape,
         colors = ButtonDefaults.buttonColors(
@@ -105,6 +122,15 @@ fun PrismOutlinedButton(
 ) {
     if (classic()) { OutlinedButton(onClick, modifier, enabled, contentPadding = contentPadding, content = content); return }
     val s = MaterialTheme.colorScheme
+    if (material()) {
+        OutlinedButton(
+            onClick, modifier.heightIn(min = 40.dp), enabled, shape,
+            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.Transparent, contentColor = s.primary, disabledContentColor = s.onSurface.copy(alpha = 0.38f)),
+            border = BorderStroke(1.dp, if (enabled) s.outline else s.onSurface.copy(alpha = 0.12f)),
+            contentPadding = contentPadding, content = content,
+        )
+        return
+    }
     OutlinedButton(
         onClick, modifier.heightIn(min = 46.dp), enabled, shape,
         colors = ButtonDefaults.outlinedButtonColors(containerColor = glassFill(1.3f), contentColor = s.onSurface, disabledContentColor = s.onSurface.copy(alpha = 0.38f)),
@@ -125,6 +151,17 @@ fun PrismFilledTonalButton(
 ) {
     if (classic()) { FilledTonalButton(onClick, modifier, enabled, contentPadding = contentPadding, content = content); return }
     val s = MaterialTheme.colorScheme
+    if (material()) {
+        FilledTonalButton(
+            onClick, modifier.heightIn(min = 40.dp), enabled, shape,
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = s.secondaryContainer, contentColor = s.onSecondaryContainer,
+                disabledContainerColor = s.onSurface.copy(alpha = 0.12f), disabledContentColor = s.onSurface.copy(alpha = 0.38f),
+            ),
+            elevation = null, contentPadding = contentPadding, content = content,
+        )
+        return
+    }
     FilledTonalButton(
         onClick, modifier.heightIn(min = 46.dp), enabled, shape,
         colors = ButtonDefaults.filledTonalButtonColors(
@@ -147,6 +184,14 @@ fun PrismTextButton(
 ) {
     if (classic()) { TextButton(onClick, modifier, enabled, contentPadding = contentPadding, content = content); return }
     val s = MaterialTheme.colorScheme
+    if (material()) {
+        TextButton(
+            onClick, modifier, enabled, shape,
+            colors = ButtonDefaults.textButtonColors(contentColor = s.primary, disabledContentColor = s.onSurface.copy(alpha = 0.38f)),
+            contentPadding = contentPadding, content = content,
+        )
+        return
+    }
     TextButton(
         onClick, modifier, enabled, shape,
         colors = ButtonDefaults.textButtonColors(contentColor = s.onSurface, disabledContentColor = s.onSurface.copy(alpha = 0.38f)),
@@ -180,6 +225,22 @@ fun PrismTextField(
 ) {
     val scheme = MaterialTheme.colorScheme
     val ink = scheme.onSurface
+    if (material()) {
+        androidx.compose.material3.OutlinedTextField(
+            value, onValueChange, modifier, enabled = enabled, textStyle = textStyle, label = label, placeholder = placeholder,
+            leadingIcon = leadingIcon, trailingIcon = trailingIcon, supportingText = supportingText, isError = isError,
+            keyboardOptions = keyboardOptions, keyboardActions = keyboardActions, singleLine = singleLine, maxLines = maxLines, minLines = minLines,
+            shape = MaterialTheme.shapes.extraSmall,
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent,
+                focusedBorderColor = scheme.primary, unfocusedBorderColor = scheme.outline,
+                focusedLabelColor = scheme.primary, unfocusedLabelColor = scheme.onSurfaceVariant, cursorColor = scheme.primary,
+                errorBorderColor = scheme.error, errorLabelColor = scheme.error, errorCursorColor = scheme.error,
+            ),
+            visualTransformation = visualTransformation,
+        )
+        return
+    }
     androidx.compose.material3.OutlinedTextField(
         value, onValueChange, modifier, enabled = enabled, textStyle = textStyle, label = label, placeholder = placeholder,
         leadingIcon = leadingIcon, trailingIcon = trailingIcon, supportingText = supportingText, isError = isError,
@@ -208,6 +269,19 @@ fun PrismSwitch(
 ) {
     if (classic()) { androidx.compose.material3.Switch(checked, onCheckedChange, modifier, enabled = enabled); return }
     val s = MaterialTheme.colorScheme
+    if (material()) {
+        androidx.compose.material3.Switch(
+            checked, onCheckedChange, modifier, enabled = enabled,
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedThumbColor = s.onPrimary, checkedTrackColor = s.primary, checkedBorderColor = Color.Transparent,
+                uncheckedThumbColor = s.outline, uncheckedTrackColor = s.surfaceContainerHighest, uncheckedBorderColor = s.outline,
+                disabledCheckedThumbColor = s.onSurface.copy(alpha = 0.38f), disabledCheckedTrackColor = s.onSurface.copy(alpha = 0.12f),
+                disabledUncheckedThumbColor = s.onSurface.copy(alpha = 0.38f), disabledUncheckedTrackColor = s.surfaceContainerHighest,
+                disabledUncheckedBorderColor = s.onSurface.copy(alpha = 0.12f),
+            ),
+        )
+        return
+    }
     val dim = if (enabled) 1f else 0.4f
     val lit by animateFloatAsState(if (checked) 1f else 0f, tween(PrismTokens.Motion.STANDARD), label = "lit")
     // White light: the accent's track with its own ink for the knob (or, with a white accent, an ink track and the
@@ -269,6 +343,20 @@ fun PrismSlider(
         return
     }
     val s = MaterialTheme.colorScheme
+    if (material()) {
+        Slider(
+            value = value, onValueChange = onValueChange, modifier = modifier, enabled = enabled,
+            valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
+            colors = androidx.compose.material3.SliderDefaults.colors(
+                thumbColor = s.primary, activeTrackColor = s.primary,
+                activeTickColor = s.onPrimary, inactiveTickColor = s.onSecondaryContainer,
+                inactiveTrackColor = s.secondaryContainer,
+                disabledThumbColor = s.onSurface.copy(alpha = 0.38f), disabledActiveTrackColor = s.onSurface.copy(alpha = 0.38f),
+                disabledInactiveTrackColor = s.onSurface.copy(alpha = 0.12f),
+            ),
+        )
+        return
+    }
     val dark = LocalIsDark.current
     val track = s.onSurface.copy(alpha = 0.14f)
     val alpha = if (enabled) 1f else 0.4f

@@ -341,9 +341,22 @@ fun classicTypography(family: FontFamily, titleFamily: FontFamily = family, weig
 /** The app's type for [s]: its font, titles in their own font if one's picked, the weight and spacing (1.7.7). */
 fun appTypography(s: AppSettings): Typography {
     val family = AppFonts.family(s.fontChoice)
-    if (s.type.classic) return classicTypography(family, s.type.titleFont?.let { AppFonts.family(it) } ?: family, s.type.weight.shift, s.type.spacing.em).hyphenated()
+    val titleFamily = s.type.titleFont?.let { AppFonts.family(it) } ?: family
+    // Material You: Material 3's type scale, the titles' own font still honoured.
+    if (s.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU) {
+        val base = MaterialYou.typography(family, s.type.weight.shift, s.type.spacing.em)
+        return base.hyphenated().let { t ->
+            if (titleFamily === family) t else t.copy(
+                displayLarge = t.displayLarge.copy(fontFamily = titleFamily), displayMedium = t.displayMedium.copy(fontFamily = titleFamily),
+                displaySmall = t.displaySmall.copy(fontFamily = titleFamily), headlineLarge = t.headlineLarge.copy(fontFamily = titleFamily),
+                headlineMedium = t.headlineMedium.copy(fontFamily = titleFamily), headlineSmall = t.headlineSmall.copy(fontFamily = titleFamily),
+                titleLarge = t.titleLarge.copy(fontFamily = titleFamily),
+            )
+        }
+    }
+    if (s.type.classic) return classicTypography(family, titleFamily, s.type.weight.shift, s.type.spacing.em).hyphenated()
     return prismTypography(
-        family, s.type.titleFont?.let { AppFonts.family(it) } ?: family,
+        family, titleFamily,
         weightShift = s.type.weight.shift, tracking = s.type.spacing.em,
     ).hyphenated()
 }
@@ -375,14 +388,16 @@ class ThemeColors(
     val contrast: Int,
     /** The settings these colors came from (the Color page's examples draw the real page background with them). */
     val settings: AppSettings? = null,
+    /** Material You: the scheme is a Material 3 tonal palette, and [run] / [ring] are its primary rather than a split light. */
+    val material: Boolean = false,
 ) {
     /** The light across a line, as drawn on this page. */
     val run: List<Pair<Float, Color>> get() = PrismTokens.runOf(white, whiteAccent, light, dark)
     /** The light round a ring. */
     val ring: List<Color> get() = PrismTokens.ringOf(white, whiteAccent, light)
-    val ink2: Color get() = scheme.onBackground.copy(alpha = InkLevels.secondary[contrast])
-    val ink3: Color get() = scheme.onBackground.copy(alpha = InkLevels.quiet[contrast])
-    val line: Color get() = scheme.onBackground.copy(alpha = InkLevels.line[contrast])
+    val ink2: Color get() = if (material) scheme.onSurfaceVariant else scheme.onBackground.copy(alpha = InkLevels.secondary[contrast])
+    val ink3: Color get() = if (material) scheme.onSurfaceVariant else scheme.onBackground.copy(alpha = InkLevels.quiet[contrast])
+    val line: Color get() = if (material) scheme.outlineVariant else scheme.onBackground.copy(alpha = InkLevels.line[contrast])
 }
 
 /** The color the accent grows from: the cover's, or the one picked (light mode's own, when there is one). */
@@ -394,10 +409,26 @@ fun seedFor(s: AppSettings, dark: Boolean, artworkColor: Color?): Color = when (
 
 /** The wallpaper's schemes, when the accent follows it (Android 12+); null otherwise. */
 fun dynamicSchemes(s: AppSettings, context: android.content.Context): ((Boolean) -> ColorScheme)? =
-    if (s.colorSource == ColorSource.DYNAMIC && Build.VERSION.SDK_INT >= 31) { d -> if (d) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context) } else null
+    if (s.colorSource == ColorSource.DYNAMIC && Build.VERSION.SDK_INT >= 31) { d ->
+        if (d) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    } else null
 
 /** See [ThemeColors]. [seed] is [seedFor] (animated, in the app); [dynamic] is [dynamicSchemes]. */
 fun themeColors(s: AppSettings, dark: Boolean, seed: Color, dynamic: ((Boolean) -> ColorScheme)?): ThemeColors {
+    // Material You: a Material 3 tonal scheme, and its primary where Prism draws its split light. The light, the page
+    // tint and White light are Prism's own color system: Material 3's palette replaces them.
+    if (s.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU) {
+        val scheme = MaterialYou.scheme(s, dark, seed, dynamic)
+        val primary = scheme.primary
+        return ThemeColors(
+            scheme = scheme,
+            whiteAccent = PrismTokens.Accent(primary, primary, primary),
+            light = SpectrumPresets.PRISM_LIGHT,
+            white = true, dark = dark,
+            contrast = s.contrast.ordinal.coerceIn(0, 2),
+            settings = s, material = true,
+        )
+    }
     val white = s.lightStyle == com.prism.music.data.prefs.LightStyle.WHITE
     val light = SpectrumPresets.light(s.spectrumPreset, s.spectrumStops, s.spectrumBands)
     val minRatio = s.contrast.minRatio
@@ -469,10 +500,12 @@ private const val MIN_SWATCH_SHARE = 0.02f
 fun PrismTheme(settings: AppSettings, artworkColor: Color?, content: @Composable () -> Unit) {
     val dark = isAppDark(settings)
     val context = LocalContext.current
+    val material = settings.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU
+    if (PrismTokens.material != material) PrismTokens.material = material
     // White light: neutral surfaces (no tint from the accent) and, where the spectrum would be, the accent color as in
     // Prism's earlier look; with a white accent, greys and ink only (PrismTokens). Written before anything below reads
     // it, so the first frame is already right.
-    val white = settings.lightStyle == com.prism.music.data.prefs.LightStyle.WHITE
+    val white = material || settings.lightStyle == com.prism.music.data.prefs.LightStyle.WHITE
     if (PrismTokens.white != white) PrismTokens.white = white
     // Your light (1.7.2): the split light's own colors, worked out once per change.
     // From the cover (#123): a new light with each cover (no fade: the whole app would redraw every frame of one).
@@ -490,6 +523,20 @@ fun PrismTheme(settings: AppSettings, artworkColor: Color?, content: @Composable
     val scheme = colors.scheme
     val whiteAccent = colors.whiteAccent
     if (PrismTokens.whiteAccent?.now != whiteAccent?.now || (PrismTokens.whiteAccent == null) != (whiteAccent == null)) PrismTokens.whiteAccent = whiteAccent
+    if (material) {
+        // Material You's seven Settings hues are its tonal roles (the same palette, not a rainbow beside it).
+        val hues = listOf(
+            scheme.primary, scheme.secondary, scheme.tertiary,
+            scheme.primaryContainer, scheme.secondaryContainer, scheme.tertiaryContainer, scheme.outlineVariant,
+        )
+        val onHues = listOf(
+            scheme.onPrimary, scheme.onSecondary, scheme.onTertiary,
+            scheme.onPrimaryContainer, scheme.onSecondaryContainer, scheme.onTertiaryContainer, scheme.onSurfaceVariant,
+        )
+        if (PrismTokens.materialHues != hues) PrismTokens.materialHues = hues
+        if (PrismTokens.materialOnHues != onHues) PrismTokens.materialOnHues = onHues
+        if (PrismTokens.materialTertiary != scheme.tertiary) PrismTokens.materialTertiary = scheme.tertiary
+    }
 
     // Shapes (1.7.7) are part of it: a cover shape, the corner slider or the buttons' shape applies at once.
     val ui = remember(settings.corners, settings.shapes, settings.uiDensity, settings.cardSize, settings.titleSize, settings.reduceMotion) { PrismUi.from(settings) }

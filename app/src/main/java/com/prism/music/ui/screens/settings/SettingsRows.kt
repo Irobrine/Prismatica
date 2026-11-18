@@ -40,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -188,7 +189,10 @@ private fun RowFrame(
                     if (info != null) InfoMark(open, title) { open = !open }
                 }
                 if (value != null) Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(value, Modifier.weight(1f, fill = false), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurface.copy(alpha = 0.7f))
+                    Text(
+                        value, Modifier.weight(1f, fill = false), style = MaterialTheme.typography.bodyMedium,
+                        color = if (ui.material) scheme.onSurfaceVariant else scheme.onSurface.copy(alpha = 0.7f),
+                    )
                     if (dot) ChangedDot()
                 }
             }
@@ -357,13 +361,21 @@ private fun KitChips(modifier: Modifier = Modifier, chips: @Composable () -> Uni
 @Composable
 private fun KitChip(selected: Boolean, label: String, modifier: Modifier = Modifier, icon: ImageVector? = null, onLongClick: (() -> Unit)? = null, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
-    // The pill's round ends at one line; a rounded box when it grows.
-    val shape = RoundedCornerShape(18.dp)
-    val bg by animateColorAsState(glassFill(if (selected) 2.6f else 1.2f), tween(180), label = "chipBg")
-    val fg by animateColorAsState(if (selected) scheme.onSurface else scheme.onSurfaceVariant, tween(180), label = "chipFg")
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    // The pill's round ends at one line; a rounded box when it grows. Material You: Material 3's filter chip.
+    val shape = if (material) RoundedCornerShape(8.dp) else RoundedCornerShape(18.dp)
+    val bg by animateColorAsState(if (material) (if (selected) scheme.secondaryContainer else Color.Transparent) else glassFill(if (selected) 2.6f else 1.2f), tween(180), label = "chipBg")
+    val fg by animateColorAsState(if (selected) (if (material) scheme.onSecondaryContainer else scheme.onSurface) else scheme.onSurfaceVariant, tween(180), label = "chipFg")
     Row(
-        modifier.heightIn(min = 36.dp).clip(shape).background(bg)
-            .then(if (selected) Modifier.spectrumRing(shape) else Modifier.border(1.dp, glassEdge(), shape))
+        modifier.heightIn(min = if (material) 32.dp else 36.dp).clip(shape).background(bg)
+            .then(
+                when {
+                    material && selected -> Modifier
+                    material -> Modifier.border(1.dp, scheme.outline, shape)
+                    selected -> Modifier.spectrumRing(shape)
+                    else -> Modifier.border(1.dp, glassEdge(), shape)
+                },
+            )
             .semantics { this.selected = selected }
             .then(
                 if (onLongClick == null) Modifier.clickable(onClick = onClick)

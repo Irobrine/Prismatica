@@ -222,7 +222,7 @@ fun ThinSlider(
             val v = valueAt?.invoke() ?: value
             val filled = size.width * v.coerceIn(0f, 1f)
             // The player is always dark: White light's white (not its mid grey) on it (Reddit: "white is giving gray").
-            val brush = fill ?: if (spectrum) Brush.horizontalGradient(*com.prism.music.ui.theme.PrismTokens.spectrumColors(true).toTypedArray(), startX = 0f, endX = size.width) else null
+            val brush = fill ?: if (spectrum) Brush.horizontalGradient(*playerSpectrumColors().toTypedArray(), startX = 0f, endX = size.width) else null
             if (wave != null && wave.isNotEmpty()) {
                 // The waveform: a bar per point, its height the song's loudness there; the played part in the fill.
                 val step = size.width / wave.size
@@ -353,15 +353,28 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRibbonStrands(
  * always dark, so an accent too deep to see on it is lifted, and the cover's color is its brightest swatch.
  */
 @Composable
-fun scrubberFill(color: com.prism.music.data.prefs.ScrubberColor, cover: String?): Brush? = when (color) {
-    com.prism.music.data.prefs.ScrubberColor.SPECTRUM -> null
-    com.prism.music.data.prefs.ScrubberColor.WHITE -> androidx.compose.ui.graphics.SolidColor(Color.White.copy(alpha = 0.92f))
-    com.prism.music.data.prefs.ScrubberColor.ACCENT -> androidx.compose.ui.graphics.SolidColor(onDark(MaterialTheme.colorScheme.primary))
-    com.prism.music.data.prefs.ScrubberColor.COVER -> {
-        val palette = com.prism.music.ui.components.rememberArtPalette(cover)
-        androidx.compose.ui.graphics.SolidColor(onDark(palette?.vibrant ?: MaterialTheme.colorScheme.primary))
+fun scrubberFill(color: com.prism.music.data.prefs.ScrubberColor, cover: String?, adapt: Boolean = false, onLight: Boolean = false): Brush? {
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    fun role(c: Color): Color = if (material) c else onDark(c)
+    fun ready(c: Color): Color = if (adapt) PlayerInk.over(c) else c
+    return when (color) {
+        com.prism.music.data.prefs.ScrubberColor.SPECTRUM -> null
+        com.prism.music.data.prefs.ScrubberColor.WHITE -> androidx.compose.ui.graphics.SolidColor(
+            ready(if (material) MaterialTheme.colorScheme.onSurface else Color.White.copy(alpha = 0.92f)),
+        )
+        com.prism.music.data.prefs.ScrubberColor.ACCENT -> androidx.compose.ui.graphics.SolidColor(
+            ready(role(MaterialTheme.colorScheme.primary)),
+        )
+        com.prism.music.data.prefs.ScrubberColor.COVER -> {
+            val palette = com.prism.music.ui.components.rememberArtPalette(cover)
+            androidx.compose.ui.graphics.SolidColor(ready(role(palette?.vibrant ?: MaterialTheme.colorScheme.primary)))
+        }
     }
 }
+
+/** The split light as a player bar draws it: Material You's primary, readied for a light player if it sits on one. */
+internal fun playerSpectrumColors(): List<Pair<Float, Color>> =
+    com.prism.music.ui.theme.PrismTokens.spectrumColors(true).map { (at, c) -> at to PlayerInk.accent(c) }
 
 /** [c] lightened until it reads on the player's dark background. */
 private fun onDark(c: Color): Color {
@@ -442,7 +455,10 @@ private fun PlayerScrubberBody(
     val blendMark = blend?.takeIf { settings.view.crossfadeMark && it.songId == current?.id && blendShape?.fadesOut != true }
         ?.let { (it.startMs.toFloat() / duration).takeIf { f -> f in 0.01f..0.99f } }
     val times = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
-    val fill = scrubberFill(settings.scrubberColor, current?.let { com.prism.music.data.PlaylistCovers.artOf(it) })
+    val fill = scrubberFill(
+        settings.scrubberColor, current?.let { com.prism.music.data.PlaylistCovers.artOf(it) },
+        adapt = PlayerInk.accentAdapted, onLight = PlayerInk.light && com.prism.music.ui.theme.LocalUi.current.material,
+    )
     // Waveform: the song's outline from its scan (a plain bar until there is one).
     val waveStamp by c.waves.stamp.collectAsState()
     val wave by androidx.compose.runtime.produceState<FloatArray?>(null, style, current?.id, waveStamp) {
@@ -748,17 +764,33 @@ private fun ModeGlyph(icon: ImageVector, description: String, active: Boolean, b
 private fun PlayDisc(isPlaying: Boolean, isLoading: Boolean, filled: Boolean, size: Dp, onClick: () -> Unit) {
     val haptics = rememberHaptics()
     val pressed = remember { MutableInteractionSource() }
+    val scheme = MaterialTheme.colorScheme
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    val adapted = PlayerInk.accentAdapted
+    val discFill = when {
+        material -> PlayerInk.accent(if (filled) scheme.primary else scheme.surfaceContainerHighest)
+        adapted && filled -> PlayerInk.accent(scheme.primary)
+        adapted -> PlayerInk.accent(scheme.surfaceContainerHighest)
+        filled -> Color.White
+        else -> Color.White.copy(alpha = 0.10f)
+    }
     Box(
         Modifier.size(size + 14.dp).testTag("playDisc").clickable(pressed, indication = null) { haptics.click(); onClick() },
         contentAlignment = Alignment.Center,
     ) {
         Box(
             Modifier.size(size).clip(CircleShape)
-                .background(if (filled) Color.White else Color.White.copy(alpha = 0.10f))
-                .then(if (com.prism.music.ui.theme.LocalAppSettings.current.view.playRing) Modifier.border(2.dp, com.prism.music.ui.theme.PrismTokens.spectrumRing(), CircleShape) else Modifier),
+                .background(discFill)
+                .then(if (!material && com.prism.music.ui.theme.LocalAppSettings.current.view.playRing) Modifier.border(2.dp, com.prism.music.ui.theme.PrismTokens.spectrumRing(), CircleShape) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
-            val tint = if (filled) Color.Black else Color.White
+            val tint = when {
+                material -> PlayerInk.accent(if (filled) scheme.onPrimary else scheme.onSurface)
+                adapted && filled -> PlayerInk.accent(scheme.onPrimary)
+                adapted -> PlayerInk.accent(scheme.onSurface)
+                filled -> Color.Black
+                else -> Color.White
+            }
             if (isLoading) CircularProgressIndicator(color = tint, strokeWidth = 1.5.dp, modifier = Modifier.size(size * 0.42f))
             else Crossfade(isPlaying, animationSpec = tween(160), label = "playDisc") { p ->
                 Icon(if (p) PrismIcons.Pause else PrismIcons.Play, if (p) tr(R.string.widget_pause) else tr(R.string.widget_play), tint = tint, modifier = Modifier.size(size * (if (filled) 0.56f else 0.46f)))

@@ -261,7 +261,33 @@ enum class PlayerTitleWeight(val label: String, val title: androidx.compose.ui.t
     BOLD(tr(R.string.bold), androidx.compose.ui.text.font.FontWeight.Bold, androidx.compose.ui.text.font.FontWeight.SemiBold),
 }
 
-/** Customize Prism → Icons & shapes (1.7.7). */
+/**
+ * The app's design language. [PRISM] is Prism's own (the split light, glass and soft custom shapes); [MATERIAL_YOU] is
+ * Material 3 as AOSP and Pixel draw it (tonal palettes, Material's type and shape scales, flat tonal surfaces and
+ * Material components).
+ */
+enum class DesignLanguage(val label: String) {
+    PRISM(tr(R.string.app_name)), MATERIAL_YOU(tr(R.string.material_you)),
+}
+
+/**
+ * A Material You palette variant (Material 3's "tonal spot" and its expressive siblings): which hues and how much color
+ * the primary, secondary and tertiary palettes carry. Prism's own looks ignore it.
+ */
+enum class MaterialPalette(val label: String) {
+    /** Material's default: the seed's hue, a low-chroma secondary, a tertiary 60° round. */
+    TONAL_SPOT(tr(R.string.default_text)),
+    /** More saturated primaries and secondaries. */
+    VIBRANT(tr(R.string.vibrant)),
+    /** A wider spread: the secondary shifts a little, the tertiary 105° round. */
+    EXPRESSIVE(tr(R.string.expressive)),
+    /** Almost grey: a quiet, paper-like palette. */
+    NEUTRAL(tr(R.string.neutral)),
+    /** Ink and greys only, as Android's monochrome wallpaper palette. */
+    MONOCHROME(tr(R.string.monochrome)),
+}
+
+/** Customize Prism → Icons & shapes (1.7.7), and the design language with it (Material You). */
 data class ShapeLook(
     /** Corners as a slider: 0 square … 2× round; null follows [AppSettings.corners] (Looks made before 1.7.7 name a step). */
     val cornerScale: Float? = null,
@@ -277,6 +303,10 @@ data class ShapeLook(
     val tabTint: TabTint = TabTint.INK,
     /** Prism 1.6's switches, sliders and buttons (1.7.8, #155): Material's, in the accent. */
     val classicControls: Boolean = false,
+    /** Prism's own design, or Material You (1.9): the color, type, shape and component system the whole app draws with. */
+    val design: DesignLanguage = DesignLanguage.PRISM,
+    /** Material You's palette variant (the seed's hue and how much color its palettes carry). */
+    val palette: MaterialPalette = MaterialPalette.TONAL_SPOT,
 )
 
 /** The current tab's icon color (1.7.7). */
@@ -2141,6 +2171,9 @@ class SettingsRepository(
         val textScale = floatPreferencesKey("text_scale")
         val corners = stringPreferencesKey("corners")
         val cornerScale = floatPreferencesKey("corner_scale")
+        // 1.9: the design language (Prism's own or Material You) and Material You's palette variant.
+        val designLanguage = stringPreferencesKey("design_language")
+        val materialPalette = stringPreferencesKey("material_palette")
         val songShape = stringPreferencesKey("cover_shape_songs")
         val albumShape = stringPreferencesKey("cover_shape_albums")
         val artistShape = stringPreferencesKey("cover_shape_artists")
@@ -2419,6 +2452,7 @@ class SettingsRepository(
                 tabNames, navBarSize, navBarFill, miniPlayerJoined, libraryViews, libraryColumns, librarySubtitles,
                 homeHeader, homeHeaderHeight,
                 cornerScale, songShape, albumShape, artistShape, playerShape, buttonShape, playOutlined,
+                designLanguage, materialPalette,
                 typeWeight, typeSpacing, titleFont, tabTint, playerTitleWeight, typeClassic, controlsClassic,
                 panelPlayer, queueHeadings, queueDjChip, castMark, immersiveVideo, bleedFit, coverFlight, videoControlsHide,
                 coverFlightBack, videoButtonsHide, bleedRoomy, queueLengths, queuePlayedMoves, queueTidy,
@@ -2458,6 +2492,7 @@ class SettingsRepository(
                 libraryView to 's', libraryViews to 's', libraryColumns to 's', librarySubtitles to 'b', playlistHeroCover to 'b',
                 homeHeader to 's', homeHeaderHeight to 's', replayThemeColors to 'b', replayCard to 's', hideStatusBar to 'b',
                 cornerScale to 'f', songShape to 's', albumShape to 's', artistShape to 's', playerShape to 's', buttonShape to 's', playOutlined to 'b',
+                designLanguage to 's', materialPalette to 's',
                 typeWeight to 's', typeSpacing to 's', titleFont to 's', tabTint to 's', playerTitleWeight to 's', typeClassic to 'b', controlsClassic to 'b',
                 panelPlayer to 's', queueHeadings to 'b', queueDjChip to 'b', castMark to 'b', immersiveVideo to 'b', bleedFit to 's', coverFlight to 'b',
                 videoControlsHide to 'b', crossfadeMark to 'b', blendCovers to 'b', buttonsPill to 'b', playerHiddenParts to 's',
@@ -2761,6 +2796,8 @@ class SettingsRepository(
                 playOutlined = p[K.playOutlined] ?: d.shapes.playOutlined,
                 classicControls = p[K.controlsClassic] ?: d.shapes.classicControls,
                 tabTint = p.enum(K.tabTint, d.shapes.tabTint),
+                design = p.enum(K.designLanguage, d.shapes.design),
+                palette = p.enum(K.materialPalette, d.shapes.palette),
             ),
             type = TypeLook(
                 weight = p.enum(K.typeWeight, d.type.weight),
@@ -3433,6 +3470,10 @@ class SettingsRepository(
     fun setTextScale(v: Float) = edit { it[K.textScale] = v }
     /** A corners step: the slider goes back to following it. */
     fun setCorners(v: Corners) = edit { it[K.corners] = v.name; it.remove(K.cornerScale) }
+    /** The design language (Prism's own or Material You). */
+    fun setDesignLanguage(v: DesignLanguage) = edit { it[K.designLanguage] = v.name }
+    /** Material You's palette variant. */
+    fun setMaterialPalette(v: MaterialPalette) = edit { it[K.materialPalette] = v.name }
     fun setCornerScale(v: Float) = edit { it[K.cornerScale] = v.coerceIn(0f, 2f) }
     fun setCoverShape(which: String, v: CoverShape) = edit { p ->
         val key = when (which) { "songs" -> K.songShape; "albums" -> K.albumShape; "artists" -> K.artistShape; "player" -> K.playerShape; else -> return@edit }

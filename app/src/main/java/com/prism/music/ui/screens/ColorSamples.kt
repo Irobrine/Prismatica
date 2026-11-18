@@ -356,7 +356,10 @@ fun ChoiceCard(title: String, detail: String?, selected: Boolean, modifier: Modi
     Column(
         modifier.clip(ui.tile)
             .background(frostFill(if (selected) 2.6f else 1f))
-            .then(if (selected) Modifier.border(2.dp, PrismTokens.spectrum, ui.tile) else Modifier.border(1.dp, scheme.onSurface.copy(alpha = 0.08f), ui.tile))
+            .then(
+                if (selected) Modifier.border(2.dp, PrismTokens.spectrum, ui.tile)
+                else Modifier.border(1.dp, if (ui.material) scheme.outlineVariant else scheme.onSurface.copy(alpha = 0.08f), ui.tile),
+            )
             .semantics { role = Role.RadioButton; this.selected = selected }
             .clickable(onClick = onClick).padding(8.dp),
     ) {

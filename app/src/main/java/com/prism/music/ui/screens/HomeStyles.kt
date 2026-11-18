@@ -56,6 +56,8 @@ class HomeEntry(
     val fill: Brush? = null,
     /** Light text over [fill] (a colored tile); else the theme's. */
     val onFill: Boolean = false,
+    /** The exact ink over [fill], when it isn't white (Material You's on-container roles). */
+    val ink: Color? = null,
     val art: (@Composable (Modifier) -> Unit)? = null,
     val onLongClick: (() -> Unit)? = null,
     val onClick: () -> Unit,
@@ -139,7 +141,10 @@ private fun EntryArt(e: HomeEntry, modifier: Modifier, shape: Shape, iconSize: D
             modifier.clip(shape).background(e.fill ?: Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.colorScheme.surfaceContainerHigh))),
             contentAlignment = Alignment.Center,
         ) {
-            e.icon?.let { Icon(it, null, Modifier.size(iconSize), tint = if (e.onFill) Color.White else MaterialTheme.colorScheme.onSurface) }
+            e.icon?.let { Icon(
+                it, null, Modifier.size(iconSize),
+                tint = e.ink ?: if (e.onFill) (if (LocalUi.current.material) MaterialTheme.colorScheme.onPrimary else Color.White) else MaterialTheme.colorScheme.onSurface,
+            ) }
         }
     }
 }

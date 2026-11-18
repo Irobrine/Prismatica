@@ -34,6 +34,20 @@ object PrismTokens {
     var white by mutableStateOf(false)
 
     /**
+     * Material You (1.9): true while the app draws as Material 3. The split light becomes the scheme's primary (through
+     * [whiteAccent]), settings' seven hues become the scheme's tonal roles, and anything Prism draws in many colors is
+     * drawn in one. Set by [PrismTheme] from the settings; snapshot state, so what reads it redraws.
+     */
+    var material by mutableStateOf(false)
+
+    /** Material You's role colors for the seven Settings hues (primary, container and outline steps). */
+    var materialHues: List<Color> by mutableStateOf(emptyList())
+    /** The ink each of [materialHues] carries (Material 3's on-primary and on-container roles). */
+    var materialOnHues: List<Color> by mutableStateOf(emptyList())
+    /** Material You's tertiary: the second color of a sweep (progress, rings) that isn't the primary. */
+    var materialTertiary: Color by mutableStateOf(Color.Unspecified)
+
+    /**
      * White light with an accent color (as in Prism's earlier look): where the spectrum would be, the accent instead,
      * as read on dark pages, on light ones, and on the page showing now. Null for a neutral (white) accent: greys and ink.
      */
@@ -92,11 +106,21 @@ object PrismTokens {
     private val splitHues get() = light.hues
     /** White light's single tile color: a grey white icons still read on. */
     private val whiteHue = Color(0xFF74747C)
-    val hues: List<Color> get() = if (white) List(splitHues.size) { whiteHue } else splitHues
-    fun hue(i: Int): Color = if (white) whiteHue else splitHues[((i % splitHues.size) + splitHues.size) % splitHues.size]
+    val hues: List<Color> get() = if (material && materialHues.isNotEmpty()) materialHues else if (white) List(splitHues.size) { whiteHue } else splitHues
+    fun hue(i: Int): Color = if (material && materialHues.isNotEmpty()) materialHues[((i % materialHues.size) + materialHues.size) % materialHues.size]
+        else if (white) whiteHue else splitHues[((i % splitHues.size) + splitHues.size) % splitHues.size]
+
+    /** What sits on [hue]: white in Prism's saturated hues, Material 3's on-role colors in Material You. */
+    fun onHue(i: Int): Color = if (material && materialOnHues.isNotEmpty()) {
+        materialOnHues[((i % materialOnHues.size) + materialOnHues.size) % materialOnHues.size]
+    } else Color.White
 
     /** The color [t] (0 red … 1 violet) along the hue run, so any number of rows can run evenly red to violet. */
     fun spectrumAt(t: Float): Color {
+        // Material You: one palette, so a run goes from the primary to the tertiary rather than through seven hues.
+        if (material) return androidx.compose.ui.graphics.lerp(
+            whiteAccent?.now ?: Color(0xFF6750A4), if (materialTertiary != Color.Unspecified) materialTertiary else (whiteAccent?.now ?: Color(0xFF6750A4)), t.coerceIn(0f, 1f),
+        )
         if (white) return whiteHue
         val x = t.coerceIn(0f, 1f) * (splitHues.size - 1)
         val i = x.toInt().coerceAtMost(splitHues.size - 2)
@@ -137,7 +161,7 @@ object PrismTokens {
  * Spectrum; in White light a grey of about its weight, kept dark enough for white text on it.
  */
 fun Color.lit(): Color {
-    if (!PrismTokens.white) return this
+    if (!PrismTokens.white || PrismTokens.material) return this
     val l = toHsl().third
     return Color.hsl(0f, 0f, (0.16f + l * 0.30f).coerceIn(0.16f, 0.40f), alpha)
 }
@@ -150,11 +174,11 @@ object InkLevels {
 }
 
 /** Secondary text: 60% ink (firmer with more contrast). */
-val ColorScheme.ink2: Color get() = onBackground.copy(alpha = InkLevels.secondary[PrismTokens.contrast.coerceIn(0, 2)])
+val ColorScheme.ink2: Color get() = if (PrismTokens.material) onSurfaceVariant else onBackground.copy(alpha = InkLevels.secondary[PrismTokens.contrast.coerceIn(0, 2)])
 /** Tertiary text and quiet icons: 38% ink (firmer with more contrast). */
-val ColorScheme.ink3: Color get() = onBackground.copy(alpha = InkLevels.quiet[PrismTokens.contrast.coerceIn(0, 2)])
+val ColorScheme.ink3: Color get() = if (PrismTokens.material) onSurfaceVariant else onBackground.copy(alpha = InkLevels.quiet[PrismTokens.contrast.coerceIn(0, 2)])
 /** Hairlines. */
-val ColorScheme.hairline: Color get() = onBackground.copy(alpha = InkLevels.line[PrismTokens.contrast.coerceIn(0, 2)])
+val ColorScheme.hairline: Color get() = if (PrismTokens.material) outlineVariant else onBackground.copy(alpha = InkLevels.line[PrismTokens.contrast.coerceIn(0, 2)])
 
 /**
  * The split light's colors (1.7.2): Prism's own, a preset, or the listener's. [Light] holds every form the tokens use:

@@ -233,7 +233,9 @@ class LockScreenActivity : ComponentActivity() {
  */
 @Composable
 internal fun LockTheme(settings: AppSettings, artworkColor: Color? = null, content: @Composable () -> Unit) {
-    PrismTheme(settings, artworkColor) { LookTheme(settings, true) { content() } }
+    // The lock screen is always the dark world of its own: the theme's tokens are the dark ones too (Material You's
+    // dark tonal palette in Material You), so its split light/primary reads on the cover whatever the app's mode.
+    PrismTheme(settings.copy(themeMode = com.prism.music.data.prefs.ThemeMode.DARK), artworkColor) { LookTheme(settings, true) { content() } }
 }
 
 /** The real thing: the player's state made into a [LockScreenContent], inside the swipe that unlocks. */

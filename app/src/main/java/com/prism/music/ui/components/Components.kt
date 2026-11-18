@@ -302,7 +302,7 @@ fun SongRowLayout(
     Row(
         modifier
             .fillMaxWidth()
-            .then(if (pick == true) Modifier.background(scheme.onSurface.copy(alpha = 0.08f)) else Modifier)
+            .then(if (pick == true) Modifier.background(if (ui.material) scheme.secondaryContainer else scheme.onSurface.copy(alpha = 0.08f)) else Modifier)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .then(if (pick != null) Modifier.semantics { selected = pick } else Modifier)
             // The playing song says so to TalkBack too, not only in color and the bars.
@@ -352,7 +352,7 @@ fun SongRowLayout(
         }
         if (playing) PlayingBars(
             Modifier.padding(start = 8.dp).size(13.dp, 14.dp).then(if (pageMark != null) Modifier.testTag("pageColorBars") else Modifier),
-            color = pageMark ?: Color.White, spectrum = pageMark == null,
+            color = pageMark ?: if (ui.material) scheme.primary else Color.White, spectrum = pageMark == null,
         )
         if (pick == null) IconButton(onClick = onMore) { Icon(PrismIcons.More, tr(R.string.more), Modifier.size(20.dp), tint = scheme.ink3) }
         else SongPickMark(pick)
@@ -491,7 +491,8 @@ fun PrismSpinner(modifier: Modifier = Modifier, stroke: androidx.compose.ui.unit
     val still = com.prism.music.ui.theme.LocalUi.current.reduceMotion
     // With reduced motion it doesn't turn, and no animation runs for it.
     val turn = if (still) null else rememberInfiniteTransition(label = "spin").animateFloat(0f, 360f, infiniteRepeatable(tween(900, easing = androidx.compose.animation.core.LinearEasing)), label = "turn")
-    val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    val track = if (com.prism.music.ui.theme.LocalUi.current.material) MaterialTheme.colorScheme.secondaryContainer
+    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
     androidx.compose.foundation.Canvas(modifier.then(Modifier.semantics { contentDescription = tr(R.string.loading) })) {
         val w = stroke.toPx()
         val inset = w / 2
@@ -514,7 +515,8 @@ fun PrismSpinner(modifier: Modifier = Modifier, stroke: androidx.compose.ui.unit
 fun PrismProgressBar(progress: (() -> Float)?, modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = 3.dp) {
     val dark = com.prism.music.ui.theme.LocalIsDark.current
     val still = com.prism.music.ui.theme.LocalUi.current.reduceMotion
-    val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    val track = if (com.prism.music.ui.theme.LocalUi.current.material) MaterialTheme.colorScheme.secondaryContainer
+    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
     // Read as it's drawn (it used to recompose the bar every frame).
     val run = if (progress == null && !still) {
         rememberInfiniteTransition(label = "bar").animateFloat(-0.35f, 1f, infiniteRepeatable(tween(1300, easing = androidx.compose.animation.core.FastOutSlowInEasing)), label = "run")
@@ -577,10 +579,12 @@ fun MarqueeText(text: String, modifier: Modifier = Modifier, style: androidx.com
 fun SearchField(query: String, hint: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, container: Color = Color.Unspecified) {
     val scheme = MaterialTheme.colorScheme
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
-    // A glass pill (or the page's [container] fill).
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    // A glass pill (or the page's [container] fill); Material You: Material 3's filled search bar.
     Row(
-        modifier.fillMaxWidth().height(48.dp).clip(CircleShape)
-            .background(if (container != Color.Unspecified) container else glassFill(1.4f)).border(1.dp, glassEdge(), CircleShape)
+        modifier.fillMaxWidth().height(if (material) 52.dp else 48.dp).clip(CircleShape)
+            .background(if (container != Color.Unspecified) container else if (material) scheme.surfaceContainerHigh else glassFill(1.4f))
+            .then(if (material) Modifier else Modifier.border(1.dp, glassEdge(), CircleShape))
             .padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1125,7 +1129,10 @@ fun PlaylistPicker(songs: List<Song>, what: String, onDismiss: () -> Unit) {
                     .testTag("playlistPickerHandle"),
                 contentAlignment = Alignment.Center,
             ) {
-                Box(Modifier.size(36.dp, 4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)))
+                Box(Modifier.size(36.dp, 4.dp).clip(CircleShape).background(
+                    if (com.prism.music.ui.theme.LocalUi.current.material) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                ))
             }
         },
     ) { close ->

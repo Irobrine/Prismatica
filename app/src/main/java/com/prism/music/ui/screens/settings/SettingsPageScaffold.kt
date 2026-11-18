@@ -288,9 +288,10 @@ fun SettingsPageScaffold(
         // (Drawn, not composed: the bar's fade runs while a fling starts, and reading it here recomposed the page on
         // every one of its frames.)
         val barColor = scheme.surface
+        val materialBar = com.prism.music.ui.theme.LocalUi.current.material
         Box(
             Modifier.fillMaxWidth()
-                .drawBehind { if (pinned) drawRect(barColor) else if (!melts) drawRect(barColor.copy(alpha = 0.92f * bar)) }
+                .drawBehind { if (pinned || (materialBar && bar > 0.01f)) drawRect(barColor) else if (!melts) drawRect(barColor.copy(alpha = 0.92f * bar)) }
                 .statusBarsPadding().height(BAR),
         ) {
             if (showBack) RoundAction(PrismIcons.ArrowBack, tr(R.string.back), Modifier.align(Alignment.CenterStart).padding(start = 12.dp), glass = true) {
@@ -430,7 +431,7 @@ private fun PinnedPreview(
                     val p = measurable.measure(Constraints.fixed(constraints.maxWidth, h))
                     layout(p.width, h) { p.place(0, 0) }
                 }
-                .settingsCard(ui.shape(22.dp), SettingsTags.PREVIEW)
+                .settingsCard(if (ui.material) ui.card else ui.shape(22.dp), SettingsTags.PREVIEW)
                 .clickable(enabled = strip && !expanded, onClickLabel = tr(R.string.settings_show_preview)) { expanded = true },
         ) { content(strip && !expanded) }
     }

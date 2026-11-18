@@ -69,7 +69,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         assertEquals(defaultGroups, groups.map { it.first })
         assertEquals(
             listOf(
-                listOf("Theme", "Changing screens", "Reduce motion"),
+                listOf("Theme", "Changing screens", "Design language", "Reduce motion"),
                 listOf("Preset", "Smooth or bands"),
                 listOf("Accent from", "Accent color", "How it's used", "Light mode accent"),
                 listOf("Page background", "Text contrast", "Page colors", "Playing song in the page's color", "Screen backgrounds"),
@@ -80,7 +80,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         assertBudgets()
         // Each row is one of the five types, and says where it stands.
         assertEquals(
-            listOf(SettingsTags.ROW_CHOICE, SettingsTags.ROW_CHOICE, SettingsTags.ROW_SWITCH),
+            listOf(SettingsTags.ROW_CHOICE, SettingsTags.ROW_CHOICE, SettingsTags.ROW_CHOICE, SettingsTags.ROW_SWITCH),
             groups[0].second.map { tagOf(it) },
         )
         assertEquals("System", valueOf("Theme"))
@@ -127,7 +127,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         await { stored.themeMode == ThemeMode.DARK }
         page()
         assertEquals(defaultGroups, groups().map { it.first })
-        assertEquals(18, rows().size)
+        assertEquals(19, rows().size)
         assertEquals("Dark", valueOf("Theme"))
         assertBudgets()
     }
@@ -137,7 +137,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         await { stored.themeMode == ThemeMode.LIGHT }
         page()
         assertEquals(defaultGroups, groups().map { it.first })
-        assertEquals(18, rows().size)
+        assertEquals(19, rows().size)
         assertEquals("Light", valueOf("Theme"))
         assertBudgets()
     }
@@ -150,7 +150,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         assertEquals("Frosted Glass", valueOf("Glass"))
         assertEquals(listOf("") + defaultGroups, groups().map { it.first })
         assertEquals("Some of these effects are paused for now", valueOf("Performance mode is on"))
-        assertEquals(19, rows().size)
+        assertEquals(20, rows().size)
         tap("Performance mode is on")
         await { !stored.performanceMode }
         assertFalse(hasRow("Performance mode is on"))
@@ -158,7 +158,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
 
     @Test fun atLargeTextNothingIsCutOff() {
         show(fontScale = 1.5f) { ThemeColorsPage(0.dp, onSearch = {}) }
-        assertEquals(18, rows().size)
+        assertEquals(19, rows().size)
         assertNoRowTextIsCutOff()
     }
 
@@ -329,14 +329,14 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
     /** The ledger's rows for the page: each key is written by one of the tests above, and is in the page's reset or its own. */
     @Test fun everyLedgerKeyIsThePages() {
         val ledger = listOf(
-            "theme_mode", "pure_black", "reduce_motion", "page_slide", "screen_fades",
+            "theme_mode", "pure_black", "reduce_motion", "design_language", "material_palette", "page_slide", "screen_fades",
             "light_style", "spectrum_preset", "spectrum_stops", "spectrum_bands",
             "color_source", "accent", "accent_exact", "accent_light", "artwork_swatch", "artwork_vivid", "artwork_change",
             "surface_tint", "surface_color", "surface_tint_strength", "contrast_level", "page_picture_accent", "playing_page_color",
             "backdrops", "backdrop_dim", "backdrop_motion", "backdrop_fade",
             "liquid_glass", "glass_kind", "frosted_glass", "glass_blur", "glass_frost", "glass_more", "frosted_pages",
         )
-        assertEquals(33, ledger.size)
+        assertEquals(35, ledger.size)
         // All but the two that aren't look settings (how screens change), which the page's reset puts back by their setter.
         assertEquals((ledger - setOf("page_slide", "screen_fades")).toSet(), themeColorsLookKeys.toSet())
         assertTrue(ledger.all { it in prefs.allKeyNames })
@@ -397,6 +397,8 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         assertEquals(emptyList<String>(), titles(d))
         assertEquals(listOf("Theme"), titles(d.copy(pureBlack = true)))
         assertEquals(listOf("Reduce motion"), titles(d.copy(reduceMotion = true)))
+        assertEquals(listOf("Design language"), titles(d.copy(shapes = d.shapes.copy(design = com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU))))
+        assertEquals(listOf("Palette"), titles(d.copy(shapes = d.shapes.copy(palette = com.prism.music.data.prefs.MaterialPalette.VIBRANT))))
         assertEquals(listOf("Preset"), titles(d.copy(lightStyle = LightStyle.WHITE)))
         assertEquals(listOf("Preset"), titles(d.copy(spectrumStops = listOf(1, 2))))
         assertEquals(listOf("Smooth or bands"), titles(d.copy(spectrumBands = true)))
@@ -418,6 +420,9 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         assertEquals("Frosted Glass · System", themeColorsValue(AppSettings(), true))
         assertEquals("Liquid Glass · Black", themeColorsValue(AppSettings(liquidGlass = true, themeMode = ThemeMode.DARK, pureBlack = true), true))
         assertEquals("Solid bars · Light", themeColorsValue(AppSettings(frostedGlass = false, themeMode = ThemeMode.LIGHT, pureBlack = true), true))
+        // Material You names itself rather than Prism's glass (which it doesn't use).
+        val m3 = AppSettings(shapes = AppSettings().shapes.copy(design = com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU))
+        assertEquals("Material You · System", themeColorsValue(m3, true))
     }
 
     @Test fun oldLinksLandOnTheGroupsThatHoldThemNow() {

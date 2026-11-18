@@ -501,7 +501,8 @@ internal fun ReplayContent(
                                 placeholderIcon = PrismIcons.Person,
                             )
                             Text(
-                                "${i + 1}", color = Color.White, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium,
+                                "${i + 1}", color = if (com.prism.music.ui.theme.LocalUi.current.material) MaterialTheme.colorScheme.onPrimary else Color.White,
+                                fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.align(Alignment.BottomStart).clip(CircleShape).background(com.prism.music.ui.theme.PrismTokens.spectrumRing()).padding(horizontal = 9.dp, vertical = 2.dp),
                             )
                         }

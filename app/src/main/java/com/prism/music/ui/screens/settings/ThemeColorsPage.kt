@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,9 +44,11 @@ import com.prism.music.data.prefs.ArtworkChange
 import com.prism.music.data.prefs.ArtworkSwatch
 import com.prism.music.data.prefs.ColorSource
 import com.prism.music.data.prefs.ContrastLevel
+import com.prism.music.data.prefs.DesignLanguage
 import com.prism.music.data.prefs.GlassKind
 import com.prism.music.data.prefs.GlassLook
 import com.prism.music.data.prefs.LightStyle
+import com.prism.music.data.prefs.MaterialPalette
 import com.prism.music.data.prefs.SurfaceTint
 import com.prism.music.data.prefs.ThemeMode
 import com.prism.music.tr
@@ -182,6 +187,8 @@ fun themeColorsChanges(s: AppSettings, dark: Boolean): List<String> {
     val out = ArrayList<String>()
     fun line(changed: Boolean, title: Int, now: String, default: String) { if (changed) out += resetLine(tr(title), now, default) }
     line(s.themeMode != d.themeMode || s.pureBlack != d.pureBlack, R.string.theme, themeToMerged(s.themeMode, s.pureBlack).label, themeToMerged(d.themeMode, d.pureBlack).label)
+    line(s.shapes.design != d.shapes.design, R.string.design_language, s.shapes.design.label, d.shapes.design.label)
+    line(s.shapes.palette != d.shapes.palette, R.string.palette, s.shapes.palette.label, d.shapes.palette.label)
     line(LookChoices.screenChange(s) != LookChoices.screenChange(d), R.string.changing_screens, LookChoices.screenChange(s).label, LookChoices.screenChange(d).label)
     line(s.reduceMotion != d.reduceMotion, R.string.reduce_motion, onOff(s.reduceMotion), onOff(d.reduceMotion))
     line(lightKey(s) != lightKey(d) || s.spectrumStops != d.spectrumStops, R.string.tl_preset, lightLabel(lightKey(s), dark), lightLabel(lightKey(d), dark))
@@ -243,6 +250,7 @@ fun ThemeColorsPage(bottomPadding: Dp, find: String? = null, showBack: Boolean =
     val dark = LocalIsDark.current
     val d = remember { AppSettings() }
     val white = s.lightStyle == LightStyle.WHITE
+    val prism = s.shapes.design == DesignLanguage.PRISM
     val widgets = placedWidgets()
     var picking by remember { mutableStateOf<ThemePicking?>(null) }
 
@@ -275,13 +283,25 @@ fun ThemeColorsPage(bottomPadding: Dp, find: String? = null, showBack: Boolean =
                 tr(R.string.changing_screens), ScreenChange.entries, change, { it.label }, info = tr(R.string.changing_screens_info),
                 changed = change != LookChoices.screenChange(d),
             ) { LookChoices.setScreenChange(prefs, it) }
+            // 1.9: Prism's own design or Material You's (the rest of the page follows the pick below).
+            ChoiceRow(
+                tr(R.string.design_language), DesignLanguage.entries, s.shapes.design, { it.label },
+                info = tr(R.string.material_you_info), changed = s.shapes.design != d.shapes.design,
+            ) { prefs.setDesignLanguage(it) }
+            // Material You's palette variant (the seed and contrast are the Accent and Pages rows below).
+            if (s.shapes.design == DesignLanguage.MATERIAL_YOU) PickCardsRow(
+                tr(R.string.palette), MaterialPalette.entries, s.shapes.palette, { it.label },
+                changed = s.shapes.palette != d.shapes.palette, exampleScale = 1f,
+                onPick = { prefs.setMaterialPalette(it) },
+            ) { palette -> MaterialPaletteSample(s, palette, dark) }
             SwitchRow(
                 tr(R.string.reduce_motion), s.reduceMotion, value = tr(R.string.calmer_quicker_animations),
                 info = tr(R.string.no_drifting_backgrounds_no_artwork_bounce), changed = s.reduceMotion != d.reduceMotion,
             ) { prefs.setReduceMotion(it) }
         }
 
-        group(
+        // Prism's split light and glass are its own design: Material You draws a tonal palette and flat surfaces instead.
+        if (s.shapes.design == DesignLanguage.PRISM) group(
             tr(R.string.the_light),
             info = listOfNotNull(
                 tr(R.string.tl_colors_intro),
@@ -396,26 +416,29 @@ fun ThemeColorsPage(bottomPadding: Dp, find: String? = null, showBack: Boolean =
             tr(R.string.pages),
             info = changesInfo(tr(R.string.the_background_what_prism_s_own), tr(R.string.the_ambient_frost_behind_home_search_all)),
         ) {
-            // In White light, Automatic is already plain grey: Plain would be the same choice twice.
-            val tints = SurfaceTint.entries.filter { !(white && it == SurfaceTint.NEUTRAL && s.surfaceTint != SurfaceTint.NEUTRAL) }
-            val home = Backdrop.parse(s.backdrops[BackdropScreen.HOME.name]).first
-            ChoiceRow(
-                tr(R.string.page_background), tints, s.surfaceTint, ::tintLabel,
-                // What hides or changes the choice, said where it's missed.
-                info = listOfNotNull(
-                    if (home != Backdrop.DEFAULT) tr(R.string.tl_home_has_background, home.label) else null,
-                    if (s.pureBlack) tr(R.string.tl_black_keeps_dark) else null,
-                ).joinToString("\n\n").ifBlank { null },
-                changed = s.surfaceTint != d.surfaceTint,
-            ) { prefs.setSurfaceTint(it) }
-            if (s.surfaceTint == SurfaceTint.CUSTOM) PickRow(
-                tr(R.string.background_color), ColorMath.toHex(s.surfaceColor), changed = s.surfaceColor != d.surfaceColor,
-                thumbnail = { Box(Modifier.fillMaxSize().background(Color(s.surfaceColor))) },
-            ) { picking = ThemePicking.Surface }
-            if (s.surfaceTint == SurfaceTint.ACCENT || s.surfaceTint == SurfaceTint.CUSTOM) SliderRow(
-                tr(R.string.tint_strength), s.surfaceTintStrength, 0.2f..3f, ::strengthText,
-                changed = s.surfaceTintStrength != d.surfaceTintStrength,
-            ) { prefs.setSurfaceTintStrength(it) }
+            // Material You's surfaces are its tonal palette: Prism's tint rows don't apply (Contrast does).
+            if (prism) {
+                // In White light, Automatic is already plain grey: Plain would be the same choice twice.
+                val tints = SurfaceTint.entries.filter { !(white && it == SurfaceTint.NEUTRAL && s.surfaceTint != SurfaceTint.NEUTRAL) }
+                val home = Backdrop.parse(s.backdrops[BackdropScreen.HOME.name]).first
+                ChoiceRow(
+                    tr(R.string.page_background), tints, s.surfaceTint, ::tintLabel,
+                    // What hides or changes the choice, said where it's missed.
+                    info = listOfNotNull(
+                        if (home != Backdrop.DEFAULT) tr(R.string.tl_home_has_background, home.label) else null,
+                        if (s.pureBlack) tr(R.string.tl_black_keeps_dark) else null,
+                    ).joinToString("\n\n").ifBlank { null },
+                    changed = s.surfaceTint != d.surfaceTint,
+                ) { prefs.setSurfaceTint(it) }
+                if (s.surfaceTint == SurfaceTint.CUSTOM) PickRow(
+                    tr(R.string.background_color), ColorMath.toHex(s.surfaceColor), changed = s.surfaceColor != d.surfaceColor,
+                    thumbnail = { Box(Modifier.fillMaxSize().background(Color(s.surfaceColor))) },
+                ) { picking = ThemePicking.Surface }
+                if (s.surfaceTint == SurfaceTint.ACCENT || s.surfaceTint == SurfaceTint.CUSTOM) SliderRow(
+                    tr(R.string.tint_strength), s.surfaceTintStrength, 0.2f..3f, ::strengthText,
+                    changed = s.surfaceTintStrength != d.surfaceTintStrength,
+                ) { prefs.setSurfaceTintStrength(it) }
+            }
             ChoiceRow(
                 tr(R.string.text_contrast), ContrastLevel.entries, s.contrast, { it.label },
                 info = changesInfo(tr(R.string.how_strong_grey_text_and_lines), tr(R.string.secondary_text_artists_times_notes_dividers_all)),
@@ -438,7 +461,7 @@ fun ThemeColorsPage(bottomPadding: Dp, find: String? = null, showBack: Boolean =
             ) { nav.go(Routes.BACKGROUNDS) }
         }
 
-        group(tr(R.string.glass)) {
+        if (s.shapes.design == DesignLanguage.PRISM) group(tr(R.string.glass)) {
             val choice = LookChoices.glass(s)
             val look = s.view.glass
             // The sliders need Android 12's blur: below it the bars are solid, and the row's ⓘ says so.
@@ -553,6 +576,38 @@ private fun ThemePreview(strip: Boolean) {
 }
 
 /**
+ * A palette in the pick sheet: the five roles that show at a glance (primary, secondary, tertiary, and two containers)
+ * over its real surface, as Material 3 would draw them. Uses the same tonal generator as [PrismTheme].
+ */
+@Composable
+private fun MaterialPaletteSample(s: AppSettings, palette: MaterialPalette, dark: Boolean) {
+    val seed = Color(if (!dark && s.accentLight != 0) s.accentLight else s.accent)
+    val scheme = remember(seed, palette, dark) { com.prism.music.ui.theme.MaterialYou.tonalScheme(seed, dark, palette) }
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(scheme.surfaceContainerLow).padding(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(
+                scheme.primary to scheme.onPrimary,
+                scheme.secondary to scheme.onSecondary,
+                scheme.tertiary to scheme.onTertiary,
+                scheme.primaryContainer to scheme.onPrimaryContainer,
+                scheme.secondaryContainer to scheme.onSecondaryContainer,
+            ).forEach { (fill, ink) ->
+                Box(Modifier.size(34.dp).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
+                    Text("A", color = ink, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(scheme.primary))
+            Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(scheme.secondary))
+            Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(scheme.tertiary))
+            Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(scheme.outlineVariant))
+        }
+    }
+}
+
+/**
  * A light in the pick sheet: a large ring and strip of it on the page's real background, so lights that look alike
  * as small swatches (Sunset, Ember, Gold; Ocean, Ice, Aurora) can be told apart. [empty]: your own, with no colors yet.
  */
@@ -612,7 +667,8 @@ private fun placedWidgets(): List<PlacedWidget> {
 
 /** The root's line for Theme & colors: the glass and the theme ("Frosted Glass · Black"). */
 fun themeColorsValue(s: AppSettings, dark: Boolean): String = listOf(
-    when { s.liquidGlass -> tr(R.string.liquid_glass); s.frostedGlass -> tr(R.string.frosted_glass); else -> tr(R.string.solid_bars) },
+    if (s.shapes.design == DesignLanguage.MATERIAL_YOU) tr(R.string.material_you)
+    else when { s.liquidGlass -> tr(R.string.liquid_glass); s.frostedGlass -> tr(R.string.frosted_glass); else -> tr(R.string.solid_bars) },
     themeToMerged(s.themeMode, s.pureBlack).label,
 ).joinToString(" · ")
 
@@ -621,7 +677,7 @@ fun themeColorsValue(s: AppSettings, dark: Boolean): String = listOf(
  * Screen backgrounds row leads to. (How screens change isn't a look setting: the page's reset puts it back itself.)
  */
 val themeColorsLookKeys: List<String> = listOf(
-    "theme_mode", "pure_black", "reduce_motion",
+    "theme_mode", "pure_black", "reduce_motion", "design_language", "material_palette",
     "light_style", "spectrum_preset", "spectrum_stops", "spectrum_bands",
     "color_source", "accent", "accent_exact", "accent_light", "artwork_swatch", "artwork_vivid", "artwork_change",
     "surface_tint", "surface_color", "surface_tint_strength", "contrast_level", "page_picture_accent", "playing_page_color",
@@ -654,6 +710,14 @@ val themeColorsIndex: List<SettingEntry> by lazy {
     with(SettingNeeds) {
         listOf(
             SettingEntry(page, motion, tr(R.string.theme), tr(R.string.dark_light_system_mode_night) + " " + tr(R.string.pure_black) + " " + tr(R.string.black) + " " + tr(R.string.amoled_oled)),
+            SettingEntry(
+                page, motion, tr(R.string.design_language), tr(R.string.material_you) + " " + tr(R.string.palette) + " " + tr(R.string.theme),
+            ),
+            SettingEntry(
+                page, motion, tr(R.string.palette),
+                tr(R.string.material_you) + " " + tr(R.string.vibrant) + " " + tr(R.string.neutral) + " " + tr(R.string.default_text),
+                needs = Needs(tr(R.string.material_you)) { it.shapes.design == DesignLanguage.MATERIAL_YOU },
+            ),
             SettingEntry(page, motion, tr(R.string.changing_screens), listOf(R.string.motion, R.string.fades_between_screens_keywords, R.string.slide_between_screens_keywords, R.string.fades_between_screens, R.string.slide_between_screens).joinToString(" ") { tr(it) }),
             SettingEntry(page, motion, tr(R.string.reduce_motion), tr(R.string.animations_accessibility) + " " + tr(R.string.motion)),
             SettingEntry(page, light, tr(R.string.tl_preset), listOf(R.string.spectrum, R.string.split_light_gradient_rainbow_preset_sunset, R.string.white, R.string.white_light_black_monochrome_neutral_grey).joinToString(" ") { tr(it) }),

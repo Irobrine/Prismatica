@@ -71,6 +71,16 @@ val PlayerWhiteBackdrop = Color(0xFFF7F7F9)
 object PlayerInk {
     var light by androidx.compose.runtime.mutableStateOf(false)
 
+    /**
+     * Material You's light player sits on a light tonal surface too, but its progress and its ring are the scheme's
+     * primary: those are made ready for [over] so that, drawn through it, they come out primary. False for Prism's
+     * White player, where the split light is white and must stay so.
+     */
+    var accentAdapted by androidx.compose.runtime.mutableStateOf(false)
+
+    /** [c] as the linear content of a light player needs it: through [over] when the accent has to survive it. */
+    fun accent(c: Color): Color = if (accentAdapted) over(c) else c
+
     /** Inverts lightness (255 − c), then turns hue round 180° (W3C's hue matrix at 180°), so hues stay. */
     internal val matrix = floatArrayOf(
         0.574f, -1.43f, -0.144f, 0f, 255f,

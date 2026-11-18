@@ -75,7 +75,7 @@ fun ActionSheet(
 ) {
     val settings = LocalAppSettings.current
     val dark = LocalIsDark.current
-    val frosted = settings.frostedPages
+    val frosted = settings.frostedPages && !com.prism.music.ui.theme.LocalUi.current.material
     val palette = rememberArtPalette(art)
     val frost = rememberFrost(art)
     val scheme = MaterialTheme.colorScheme
@@ -94,7 +94,10 @@ fun ActionSheet(
                     val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.86f
                     Column(Modifier.fillMaxWidth().heightIn(max = maxHeight).nestedScroll(KeepUpwardScroll).verticalScroll(rememberScrollState())) {
                         Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 14.dp), contentAlignment = Alignment.Center) {
-                            Box(Modifier.size(36.dp, 4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)))
+                            Box(Modifier.size(36.dp, 4.dp).clip(CircleShape).background(
+                                if (com.prism.music.ui.theme.LocalUi.current.material) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            ))
                         }
                         content(close)
                         Spacer(Modifier.height(22.dp))
@@ -176,10 +179,15 @@ fun QuickActions(items: List<ActionItem>, onPick: (ActionItem) -> Unit) {
                 verticalArrangement = Arrangement.Center,
             ) {
                 Box(
-                    Modifier.size(46.dp).clip(CircleShape).background(hue.copy(alpha = if (a.active) 0.42f else 0.22f))
-                        .then(if (a.active) Modifier.spectrumRing(CircleShape) else Modifier),
+                    Modifier.size(46.dp).clip(CircleShape)
+                        .background(hue.copy(alpha = if (com.prism.music.ui.theme.LocalUi.current.material) 1f else if (a.active) 0.42f else 0.22f))
+                        .then(if (a.active && !com.prism.music.ui.theme.LocalUi.current.material) Modifier.spectrumRing(CircleShape) else Modifier),
                     contentAlignment = Alignment.Center,
-                ) { Icon(a.icon, null, Modifier.size(23.dp), tint = if (com.prism.music.ui.theme.LocalIsDark.current) hue else hue.copy(red = hue.red * 0.75f, green = hue.green * 0.75f, blue = hue.blue * 0.75f)) }
+                ) { Icon(
+                    a.icon, null, Modifier.size(23.dp),
+                    tint = if (com.prism.music.ui.theme.LocalUi.current.material) com.prism.music.ui.theme.PrismTokens.onHue(i * step)
+                    else if (com.prism.music.ui.theme.LocalIsDark.current) hue else hue.copy(red = hue.red * 0.75f, green = hue.green * 0.75f, blue = hue.blue * 0.75f),
+                ) }
                 Spacer(Modifier.height(7.dp))
                 Text(
                     a.value ?: a.label, style = MaterialTheme.typography.labelMedium, color = if (a.active) scheme.onSurface else scheme.onSurfaceVariant,
@@ -200,7 +208,7 @@ fun ActionGroup(title: String?, items: List<ActionItem>, onPick: (ActionItem) ->
         if (title != null) Eyebrow(title, Modifier.padding(start = 8.dp, bottom = 8.dp))
         Column(Modifier.fillMaxWidth().pane(ui.card)) {
             items.forEachIndexed { i, a ->
-                if (i > 0) HorizontalDivider(Modifier.padding(start = 54.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
+                if (i > 0) HorizontalDivider(Modifier.padding(start = 54.dp), color = MaterialTheme.colorScheme.hairline)
                 ActionRow(a) { onPick(a) }
             }
         }
@@ -230,6 +238,6 @@ private fun ActionRow(a: ActionItem, onClick: () -> Unit) {
         if (a.value != null) Text(
             a.value, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
             color = if (a.active) scheme.onSurface else scheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp),
-        ) else if (a.active) Icon(PrismIcons.Check, null, Modifier.size(20.dp), tint = scheme.onSurface)
+        ) else if (a.active) Icon(PrismIcons.Check, null, Modifier.size(20.dp), tint = if (com.prism.music.ui.theme.LocalUi.current.material) scheme.primary else scheme.onSurface)
     }
 }

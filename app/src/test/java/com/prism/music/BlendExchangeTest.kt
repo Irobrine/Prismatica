@@ -22,6 +22,9 @@ class BlendExchangeTest {
         val a = BlendExchange({ code, mine -> got += code to mine; Blends.Import.Added("whoB", "Bee", false) }, { "Ay" })
         val b = BlendExchange({ _, _ -> Blends.Import.NotACode }, { "Bee" })
         a.open(codeA)
+        // A computer with no private network address (only loopback, or none at all) can't open the local listener the
+        // scanning phone sends back to; the test needs a LAN (on CI, or a phone's Wi-Fi).
+        org.junit.Assume.assumeTrue("no private network address on this machine", a.listeningPort != null)
         val port = a.listeningPort!!
         val key = a.currentKey!!
         // As the scanning phone reads it off the screen (loopback here, a Wi-Fi address on phones).

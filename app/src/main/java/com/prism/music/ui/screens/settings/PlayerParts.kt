@@ -491,7 +491,10 @@ internal fun PlayerPagePreview(strip: Boolean) {
     ) {
         // Performance mode (1.8.5): a still phone, cheap to open (no live player, blur or motion); the same words beside it.
         if (s.performanceMode) PlainPlayerPhone(if (strip) 28.dp else 86.dp)
-        else PreviewPhone(if (strip) 28.dp else 86.dp, Modifier.testTag(PlayerPreviewTags.LIVE)) { LookTheme(s, true) { colors -> MiniPlayerScreen(colors, song) } }
+        else {
+            val playerDark = if (s.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU) com.prism.music.ui.theme.isAppDark(s) else true
+            PreviewPhone(if (strip) 28.dp else 86.dp, Modifier.testTag(PlayerPreviewTags.LIVE)) { LookTheme(s, playerDark) { colors -> MiniPlayerScreen(colors, song) } }
+        }
         Column(Modifier.weight(1f, fill = false)) {
             Text(song?.title ?: tr(R.string.northern_lights), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(

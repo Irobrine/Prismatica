@@ -521,22 +521,27 @@ private fun Hero(
 /** Round frosted button for the hero row. */
 @Composable
 private fun HeroButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, tint: Color = MaterialTheme.colorScheme.onSurface, onClick: () -> Unit) {
+    val material = com.prism.music.ui.theme.LocalUi.current.material
     Box(
         Modifier.size(50.dp).clip(CircleShape).background(frostFill(1.5f))
-            .border(0.7.dp, Color.White.copy(alpha = if (LocalIsDark.current) 0.14f else 0.6f), CircleShape)
+            .then(
+                if (material) Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                else Modifier.border(0.7.dp, Color.White.copy(alpha = if (LocalIsDark.current) 0.14f else 0.6f), CircleShape),
+            )
             .clickable(onClickLabel = description, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Icon(icon, description, Modifier.size(24.dp), tint = tint) }
 }
 
-/** The big Play: white on dark pages, ink on light ones, like Apple's. */
+/** The big Play: white on dark pages, ink on light ones, like Apple's. Material You: the scheme's primary. */
 @Composable
 private fun PlayCapsule(onClick: () -> Unit) {
+    val material = com.prism.music.ui.theme.LocalUi.current.material
     val dark = LocalIsDark.current
-    val bg = if (dark) Color.White else MaterialTheme.colorScheme.onSurface
-    val fg = if (dark) Color.Black else MaterialTheme.colorScheme.surface
+    val bg = if (material) MaterialTheme.colorScheme.primary else if (dark) Color.White else MaterialTheme.colorScheme.onSurface
+    val fg = if (material) MaterialTheme.colorScheme.onPrimary else if (dark) Color.Black else MaterialTheme.colorScheme.surface
     Row(
-        Modifier.height(50.dp).width(146.dp).clip(RoundedCornerShape(25.dp)).background(bg).clickable(onClick = onClick),
+        Modifier.height(50.dp).width(146.dp).clip(if (material) com.prism.music.ui.theme.LocalUi.current.button else RoundedCornerShape(25.dp)).background(bg).clickable(onClick = onClick),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(PrismIcons.Play, null, Modifier.size(26.dp), tint = fg)

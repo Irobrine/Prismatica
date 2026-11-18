@@ -544,10 +544,19 @@ fun PickArtistsScreen(onboarding: Boolean, bottomPadding: Dp, onDone: () -> Unit
                 ) {
                     Box {
                         Artwork(photo, Modifier.size(92.dp), CircleShape, placeholderIcon = PrismIcons.Person)
-                        if (on) Box(
-                            Modifier.size(92.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.45f)).border(3.dp, com.prism.music.ui.theme.PrismTokens.spectrumRing(), CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) { Icon(PrismIcons.Check, tr(R.string.picked), tint = Color.White, modifier = Modifier.size(36.dp)) }
+                        if (on) {
+                            val material = com.prism.music.ui.theme.LocalUi.current.material
+                            Box(
+                                Modifier.size(92.dp).clip(CircleShape)
+                                    .background(if (material) MaterialTheme.colorScheme.primary.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.45f))
+                                    .then(if (material) Modifier else Modifier.border(3.dp, com.prism.music.ui.theme.PrismTokens.spectrumRing(), CircleShape)),
+                                contentAlignment = Alignment.Center,
+                            ) { Icon(
+                                PrismIcons.Check, tr(R.string.picked),
+                                tint = if (material) MaterialTheme.colorScheme.onPrimary else Color.White,
+                                modifier = Modifier.size(36.dp),
+                            ) }
+                        }
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(a.name, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)

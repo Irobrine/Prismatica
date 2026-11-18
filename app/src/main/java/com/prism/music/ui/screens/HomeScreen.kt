@@ -956,7 +956,10 @@ private fun GreetingSection(cfg: HomeSectionConfig, recent: List<Song>) {
                                 else androidx.compose.ui.graphics.SolidColor(com.prism.music.ui.components.glassFill(2f)),
                             ),
                             contentAlignment = Alignment.Center,
-                        ) { Icon(t.icon, null, Modifier.size(22.dp), tint = if (t.playable == Playable.Liked) Color.White else scheme.onSurface) }
+                        ) { Icon(
+                            t.icon, null, Modifier.size(22.dp),
+                            tint = if (t.playable == Playable.Liked) (if (com.prism.music.ui.theme.LocalUi.current.material) scheme.onPrimary else Color.White) else scheme.onSurface,
+                        ) }
                         else Artwork(t.image, Modifier.size(58.dp), androidx.compose.ui.graphics.RectangleShape, size = 226)
                         Text(
                             t.title, Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.labelLarge,
@@ -1146,9 +1149,13 @@ internal fun SpeedDialPages(items: List<BrowseItem>, open: (BrowseItem) -> Unit,
             horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
         ) {
             repeat(pages.size) { i ->
+                val material = com.prism.music.ui.theme.LocalUi.current.material
                 Box(
                     Modifier.size(if (i == pager.currentPage) 7.dp else 6.dp).clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = if (i == pager.currentPage) 0.8f else 0.25f)),
+                        .background(
+                            if (material) (if (i == pager.currentPage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = if (i == pager.currentPage) 0.8f else 0.25f),
+                        ),
                 )
             }
         }
@@ -1390,12 +1397,16 @@ private fun TopGenresSection(cfg: HomeSectionConfig) {
     SectionHeader(tr(R.string.your_top_genres), strapline = tr(R.string.from_your_liked_songs))
     val palette = listOf(0xFF7C5CFF, 0xFFFF3B5C, 0xFF00B4D8, 0xFF2EC27E, 0xFFFF6B35, 0xFFE056FD, 0xFFFFB627, 0xFF3A86FF)
     val ui = com.prism.music.ui.theme.LocalUi.current
-    // Grid (the default) is the colored tiles below; the other styles show the same genres their way.
+    val material = ui.material
+    // Material You: the scheme's tonal roles (with their own on-colors), not a fixed rainbow beside them.
     if (cfg.style != SectionStyle.GRID) {
         StyledEntries(cfg.style, genres.mapIndexed { i, (g, n) ->
-            val col = Color(palette[i % palette.size]).lit()
-            HomeEntry("genre:$g", g, com.prism.music.data.model.songCount(n), icon = PrismIcons.Category,
-                fill = Brush.linearGradient(listOf(col, col.copy(alpha = 0.6f).compositeOver(Color.Black))), onFill = true) { nav.go(Routes.liked(g)) }
+            val col = if (material) com.prism.music.ui.theme.PrismTokens.hue(i) else Color(palette[i % palette.size]).lit()
+            HomeEntry(
+                "genre:$g", g, com.prism.music.data.model.songCount(n), icon = PrismIcons.Category,
+                fill = if (material) androidx.compose.ui.graphics.SolidColor(col) else Brush.linearGradient(listOf(col, col.copy(alpha = 0.6f).compositeOver(Color.Black))), onFill = true,
+                ink = if (material) com.prism.music.ui.theme.PrismTokens.onHue(i) else null,
+            ) { nav.go(Routes.liked(g)) }
         })
         return
     }
@@ -1405,14 +1416,15 @@ private fun TopGenresSection(cfg: HomeSectionConfig) {
     ) {
         items(genres.size) { i ->
             val (g, n) = genres[i]
-            val col = Color(palette[i % palette.size]).lit()
+            val col = if (material) com.prism.music.ui.theme.PrismTokens.hue(i) else Color(palette[i % palette.size]).lit()
+            val ink = if (material) com.prism.music.ui.theme.PrismTokens.onHue(i) else Color.White
             Box(
                 Modifier.width(160.dp).height(64.dp).clip(ui.tile)
                     .background(Brush.linearGradient(listOf(col, col.copy(alpha = 0.6f))))
                     .clickable { nav.go(Routes.liked(g)) }.padding(12.dp),
             ) {
-                Text(g, color = Color.White, style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.TopStart))
-                Text(com.prism.music.data.model.songCount(n), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.BottomStart))
+                Text(g, color = ink, style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.TopStart))
+                Text(com.prism.music.data.model.songCount(n), color = ink.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.BottomStart))
             }
         }
     }

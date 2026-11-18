@@ -24,6 +24,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
@@ -190,6 +191,8 @@ class SettingsKitAdoptionTest {
     /** Opens [row]'s sheet on [page] (dark, a 360 dp phone) and saves it to `build/settings-pages/kit-adopt/<name>.png`. */
     private fun drawSheet(page: SettingsPageId, row: String, name: String) {
         show(page) { it.copy(themeMode = ThemeMode.DARK) }
+        // The page is taller than a phone: bring the row it opens into view first (View sits below the first screen).
+        compose.onNodeWithTag(SettingsTags.PAGE_LIST).performScrollToNode(rowIs(row))
         compose.onNode(rowIs(row)).performSemanticsAction(SemanticsActions.OnClick)
         compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag(SettingsTags.SHEET)).fetchSemanticsNodes().size == 1 }
         compose.waitForIdle()

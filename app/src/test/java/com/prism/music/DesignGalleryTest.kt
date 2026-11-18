@@ -60,6 +60,20 @@ class DesignGalleryTest {
     @Test fun lightPaleAccent() = shoot("gallery-light-yellow", AppSettings(themeMode = ThemeMode.LIGHT, accent = 0xFFFFE066.toInt()))
     @Test fun darkPlainPage() = shoot("gallery-dark-plain", AppSettings(themeMode = ThemeMode.DARK), glass = false)
 
+    // 1.9 Material You: every shared component in Material 3's colors, type and shapes, light and dark.
+    private fun material(dark: Boolean, palette: com.prism.music.data.prefs.MaterialPalette = com.prism.music.data.prefs.MaterialPalette.TONAL_SPOT) =
+        AppSettings(
+            themeMode = if (dark) ThemeMode.DARK else ThemeMode.LIGHT,
+            colorSource = com.prism.music.data.prefs.ColorSource.CUSTOM,
+            accent = 0xFF6750A4.toInt(), frostedPages = false,
+            shapes = AppSettings().shapes.copy(design = com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU, palette = palette),
+        )
+
+    @Test fun materialYouLight() = shoot("material-you-light", material(false), glass = false)
+    @Test fun materialYouDark() = shoot("material-you-dark", material(true), glass = false)
+    @Test fun materialYouVibrantLight() = shoot("material-you-vibrant", material(false, com.prism.music.data.prefs.MaterialPalette.VIBRANT), glass = false)
+    @Test fun materialYouExpressiveDark() = shoot("material-you-expressive", material(true, com.prism.music.data.prefs.MaterialPalette.EXPRESSIVE), glass = false)
+
     // 1.7.2 color settings.
     @Test fun neonLightDark() = shoot("gallery-dark-neon", AppSettings(themeMode = ThemeMode.DARK, spectrumPreset = "NEON"), glass = false)
     @Test fun sunsetBandsLight() = shoot("gallery-light-sunset-bands", AppSettings(themeMode = ThemeMode.LIGHT, spectrumPreset = "SUNSET", spectrumBands = true), glass = false)
@@ -76,6 +90,46 @@ class DesignGalleryTest {
         AppSettings(themeMode = ThemeMode.LIGHT, accent = 0xFFFF6B35.toInt(), accentExact = true, contrast = com.prism.music.data.prefs.ContrastLevel.HIGH),
         glass = false,
     )
+
+    @Test fun materialYouLooks() {
+        val repo = com.prism.music.data.prefs.SettingsRepository(
+            org.robolectric.RuntimeEnvironment.getApplication(),
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default),
+        )
+        val look = com.prism.music.data.looks.BuiltInLooks.of("material-you")!!
+        val base = repo.previewLook(look.values).copy(frostedPages = false)
+        fun variant(dark: Boolean, palette: com.prism.music.data.prefs.MaterialPalette) = base.copy(
+            themeMode = if (dark) ThemeMode.DARK else ThemeMode.LIGHT,
+            shapes = base.shapes.copy(palette = palette),
+        )
+        compose.setContent {
+            PrismTheme(AppSettings(themeMode = ThemeMode.DARK), artworkColor = null) {
+                androidx.compose.foundation.layout.Column(
+                    Modifier.width(412.dp).background(MaterialTheme.colorScheme.background).padding(8.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+                ) {
+                    listOf(
+                        "Material You · light" to variant(false, com.prism.music.data.prefs.MaterialPalette.TONAL_SPOT),
+                        "Material You · dark" to variant(true, com.prism.music.data.prefs.MaterialPalette.TONAL_SPOT),
+                        "Material You · light, vibrant" to variant(false, com.prism.music.data.prefs.MaterialPalette.VIBRANT),
+                        "Material You · dark, expressive" to variant(true, com.prism.music.data.prefs.MaterialPalette.EXPRESSIVE),
+                    ).forEach { (name, s) ->
+                        androidx.compose.material3.Text(name, style = MaterialTheme.typography.labelMedium)
+                        val dark = com.prism.music.ui.theme.isAppDark(s)
+                        androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+                            com.prism.music.ui.screens.PreviewPhone(108.dp) { com.prism.music.ui.screens.LookTheme(s, dark) { c -> com.prism.music.ui.screens.MiniHome(c, null) } }
+                            com.prism.music.ui.screens.PreviewPhone(108.dp) { com.prism.music.ui.screens.LookTheme(s, dark) { c -> com.prism.music.ui.screens.MiniPlayerScreen(c, null) } }
+                            com.prism.music.ui.screens.PreviewPhone(108.dp) { com.prism.music.ui.screens.LookTheme(s, dark) { c -> com.prism.music.ui.screens.MiniLyrics(c, null) } }
+                        }
+                    }
+                }
+            }
+        }
+        compose.waitForIdle()
+        val bmp = compose.onRoot().captureToImage().asAndroidBitmap()
+        val dir = File("build/design-previews").apply { mkdirs() }
+        File(dir, "material-you-looks.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
 
     /**
      * Looks (1.7.3): each of Prism's own Looks on its three preview phones (Home, the player, the lyrics), as the Looks

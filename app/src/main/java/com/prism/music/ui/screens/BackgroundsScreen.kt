@@ -197,7 +197,7 @@ fun BackgroundsScreen(bottomPadding: Dp, forPlayer: Boolean = false) {
                             // The picked one is ringed in split light.
                             .then(
                                 if (selected) Modifier.border(2.5.dp, com.prism.music.ui.theme.PrismTokens.spectrum, ui.card)
-                                else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), ui.card)
+                                else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (com.prism.music.ui.theme.LocalUi.current.material) 1f else 0.6f), ui.card)
                             )
                             .clickable {
                                 when (style) {

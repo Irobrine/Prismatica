@@ -1215,19 +1215,35 @@ private fun PlayShufflePills(enabled: Boolean, onPlay: () -> Unit, onShuffle: ()
 @Composable
 private fun Pill(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, primary: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
+    val material = com.prism.music.ui.theme.LocalUi.current.material
     // Play: a solid pill in the text color, glowing in the spectrum's colors (or, picked in Icons & shapes, just its
-    // outline); Shuffle: a pill of glass. Both in the buttons' shape.
+    // outline); Shuffle: a pill of glass. Both in the buttons' shape. Material You: primary and secondary containers.
     val outlined = primary && LocalAppSettings.current.shapes.playOutlined
     val filled = primary && !outlined
-    val bg = if (filled) scheme.onSurface else if (outlined) Color.Transparent else frostFill(1.6f)
-    val fg = if (filled) scheme.surface else scheme.onSurface
+    val bg = when {
+        material && filled -> scheme.primary
+        material && outlined -> Color.Transparent
+        material -> scheme.secondaryContainer
+        filled -> scheme.onSurface
+        outlined -> Color.Transparent
+        else -> frostFill(1.6f)
+    }
+    val fg = when {
+        material && filled -> scheme.onPrimary
+        material && outlined -> scheme.primary
+        material -> scheme.onSecondaryContainer
+        filled -> scheme.surface
+        else -> scheme.onSurface
+    }
     val pill = com.prism.music.ui.theme.LocalUi.current.button
     Row(
         modifier.height(48.dp)
-            .then(if (filled && enabled) Modifier.shadow(14.dp, pill, ambientColor = Color(0xFFFF4D5E).lit(), spotColor = Color(0xFF7C5CFF).lit()) else Modifier)
+            .then(if (filled && enabled && !material) Modifier.shadow(14.dp, pill, ambientColor = Color(0xFFFF4D5E).lit(), spotColor = Color(0xFF7C5CFF).lit()) else Modifier)
             .clip(pill).background(bg)
             .then(
                 when {
+                    material && outlined -> Modifier.border(1.dp, scheme.outline, pill)
+                    material -> Modifier
                     outlined -> Modifier.border(1.5.dp, scheme.onSurface, pill)
                     !primary -> Modifier.border(1.dp, com.prism.music.ui.components.glassEdge(), pill)
                     else -> Modifier

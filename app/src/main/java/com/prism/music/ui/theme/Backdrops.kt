@@ -332,7 +332,7 @@ fun ScreenBackdrop(screen: BackdropScreen, content: @Composable BoxScope.() -> U
         // The background reaches under the navigation rail (wide windows); the page itself starts beside it.
         Box(Modifier.fillMaxSize().padding(start = LocalChromeStart.current)) {
             // Over any background (the ambient frost or a picked one), the page's panels and buttons are glass.
-            CompositionLocalProvider(LocalFrosted provides (frosted || style != Backdrop.DEFAULT), LocalPageBackdrop provides page, LocalChromeStart provides 0.dp) {
+            CompositionLocalProvider(LocalFrosted provides (!com.prism.music.ui.theme.LocalUi.current.material && (frosted || style != Backdrop.DEFAULT)), LocalPageBackdrop provides page, LocalChromeStart provides 0.dp) {
                 // On a solid color the page's text, icons and glass are made to read on that color, whatever the theme.
                 if (solid != null) SolidInk(solid, bars = true) { content() } else content()
             }
@@ -344,7 +344,8 @@ fun ScreenBackdrop(screen: BackdropScreen, content: @Composable BoxScope.() -> U
  * Whether the Default background is the frost from what's playing. Pure black in dark mode means black pages (Reddit,
  * Pixel 9 Pro: "AMOLED mode stays grey"), so the frost steps aside for it.
  */
-fun ambientFrostShown(s: com.prism.music.data.prefs.AppSettings, dark: Boolean): Boolean = s.frostedPages && !(dark && s.pureBlack)
+fun ambientFrostShown(s: com.prism.music.data.prefs.AppSettings, dark: Boolean): Boolean =
+    s.frostedPages && !(dark && s.pureBlack) && s.shapes.design != com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU
 
 /** One background, at any size (the settings previews use it too). */
 @Composable

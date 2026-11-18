@@ -38,36 +38,48 @@ data class PrismUi(
     val buttonShape: com.prism.music.data.prefs.ButtonShape = com.prism.music.data.prefs.ButtonShape.PILL,
     /** Prism 1.6's switches, sliders and buttons: Material's, in the accent (1.7.8, Classic controls). */
     val classicControls: Boolean = false,
+    /** Material You: Material 3's shape scale (4, 8, 12, 16, 28) and flat tonal components. */
+    val material: Boolean = false,
 ) {
     /** A corner radius designed at [base] for the default "Round" setting. */
     fun r(base: Dp): Dp = base * corner
     fun shape(base: Dp): RoundedCornerShape = RoundedCornerShape(r(base))
 
+    /** A Material 3 shape token at [base], moved gently by the Corners setting (no effect at Round). */
+    fun m(base: Dp): Dp = base * (0.6f + 0.4f * corner)
+
     /** Vertical room designed at [base] for "Comfortable". */
     fun gap(base: Dp): Dp = base * density
 
-    // Aura × Spectrum (1.7): soft corners. The Corners setting still scales them.
-    val tile: RoundedCornerShape get() = shape(16.dp)
-    val card: RoundedCornerShape get() = shape(22.dp)
-    val art: RoundedCornerShape get() = shape(14.dp)
-    val smallArt: RoundedCornerShape get() = shape(10.dp)
+    // Aura × Spectrum (1.7): soft corners. The Corners setting still scales them. Material You takes Material's scale.
+    val tile: RoundedCornerShape get() = if (material) RoundedCornerShape(m(16.dp)) else shape(16.dp)
+    val card: RoundedCornerShape get() = if (material) RoundedCornerShape(m(16.dp)) else shape(22.dp)
+    val art: RoundedCornerShape get() = if (material) RoundedCornerShape(m(12.dp)) else shape(14.dp)
+    val smallArt: RoundedCornerShape get() = if (material) RoundedCornerShape(m(8.dp)) else shape(10.dp)
 
     /** A song's cover in a list (was [smallArt]). */
-    val songArt: androidx.compose.ui.graphics.Shape get() = CoverShapes.of(songShape, r(10.dp))
+    val songArt: androidx.compose.ui.graphics.Shape
+        get() = if (material) RoundedCornerShape(m(4.dp)) else CoverShapes.of(songShape, r(10.dp))
     /** An album's or playlist's cover (was [art]). */
-    val albumArt: androidx.compose.ui.graphics.Shape get() = CoverShapes.of(albumShape, r(14.dp))
+    val albumArt: androidx.compose.ui.graphics.Shape
+        get() = if (material) RoundedCornerShape(m(8.dp)) else CoverShapes.of(albumShape, r(14.dp))
     /** An artist's picture (was always a circle). */
-    val artistArt: androidx.compose.ui.graphics.Shape get() = CoverShapes.of(artistShape, r(14.dp))
-    /** Prism's buttons: a pill, rounded, or square-cornered. */
-    val button: androidx.compose.ui.graphics.Shape get() = when (buttonShape) {
-        com.prism.music.data.prefs.ButtonShape.PILL -> androidx.compose.foundation.shape.CircleShape
-        com.prism.music.data.prefs.ButtonShape.ROUNDED -> shape(12.dp)
-        com.prism.music.data.prefs.ButtonShape.SQUARE -> RoundedCornerShape(3.dp)
+    val artistArt: androidx.compose.ui.graphics.Shape
+        get() = if (material) androidx.compose.foundation.shape.CircleShape else CoverShapes.of(artistShape, r(14.dp))
+    /** Prism's buttons: a pill, rounded, or square-cornered. Material 3's buttons are full pills. */
+    val button: androidx.compose.ui.graphics.Shape get() = when {
+        material -> androidx.compose.foundation.shape.CircleShape
+        buttonShape == com.prism.music.data.prefs.ButtonShape.PILL -> androidx.compose.foundation.shape.CircleShape
+        buttonShape == com.prism.music.data.prefs.ButtonShape.ROUNDED -> shape(12.dp)
+        else -> RoundedCornerShape(3.dp)
     }
 
     /** Material's components (dialogs, sheets, menus, text fields) take these. */
     val materialShapes: Shapes
-        get() = Shapes(
+        get() = if (material) Shapes(
+            extraSmall = RoundedCornerShape(m(4.dp)), small = RoundedCornerShape(m(8.dp)), medium = RoundedCornerShape(m(12.dp)),
+            large = RoundedCornerShape(m(16.dp)), extraLarge = RoundedCornerShape(m(28.dp)),
+        ) else Shapes(
             extraSmall = shape(8.dp), small = shape(12.dp), medium = shape(16.dp),
             large = shape(22.dp), extraLarge = shape(28.dp),
         )
@@ -84,6 +96,7 @@ data class PrismUi(
             artistShape = s.shapes.artists,
             buttonShape = s.shapes.button,
             classicControls = s.shapes.classicControls,
+            material = s.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU,
         )
     }
 }

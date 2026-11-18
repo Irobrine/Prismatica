@@ -184,11 +184,14 @@ internal fun SettingsRootContent(
         // Not `group(...)`: five titled groups would give the root jump chips, and it has its search for that.
         SettingsMap.groups.forEachIndexed { i, (group, pages) ->
             item("group:" + group.name) {
-                // Each group's tiles are one stop of the listener's light, red at the top to violet at the foot.
-                val tile = PrismTokens.spectrumAt(i / (groupCount - 1).coerceAtLeast(1).toFloat())
+                // Each group's tiles are one stop of the listener's light, red at the top to violet at the foot. Material
+                // You: the scheme's tonal roles, each with its own on-color.
+                val material = com.prism.music.ui.theme.LocalUi.current.material
+                val tile = if (material) PrismTokens.hue(i) else PrismTokens.spectrumAt(i / (groupCount - 1).coerceAtLeast(1).toFloat())
+                val tileInk = if (material) PrismTokens.onHue(i) else Color.White
                 SettingsGroup(group.title) {
                     pages.forEach { p ->
-                        RootRow(p.key, p.icon, tile, p.title, p.value(settings, dark), selected = p == selected) { onOpen(p, null) }
+                        RootRow(p.key, p.icon, tile, p.title, p.value(settings, dark), selected = p == selected, tileInk = tileInk) { onOpen(p, null) }
                     }
                 }
             }
@@ -207,28 +210,33 @@ private val TILE_GAP = 14.dp
  * an ellipsis, as on the mockup); at large text it wraps and the row grows.
  */
 @Composable
-internal fun RootRow(pageKey: String, icon: ImageVector, tile: Color, title: String, value: String, selected: Boolean = false, onClick: () -> Unit) {
+internal fun RootRow(pageKey: String, icon: ImageVector, tile: Color, title: String, value: String, selected: Boolean = false, tileInk: Color = Color.White, onClick: () -> Unit) {
     val ui = LocalUi.current
     val scheme = MaterialTheme.colorScheme
+    val material = ui.material
     val large = LocalDensity.current.fontScale >= 1.3f
     Row(
         Modifier.fillMaxWidth().then(HairlineInset(16.dp + TILE + TILE_GAP))
             .testTag(SettingsTags.ROW_LINK)
             .semantics { settingsRowValue = value; settingsRowChanged = false; settingsRootEntry = pageKey; this.selected = selected }
             // The page open beside the root (wide windows) is marked.
-            .then(if (selected) Modifier.background(scheme.onSurface.copy(alpha = 0.08f)) else Modifier)
+            .then(if (selected) Modifier.background(if (material) scheme.secondaryContainer else scheme.onSurface.copy(alpha = 0.08f)) else Modifier)
             .clickable(role = Role.Button, onClick = onClick)
             .heightIn(min = ui.gap(64.dp).coerceAtLeast(48.dp)).padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(TILE).clip(RoundedCornerShape(10.dp)).background(tile), contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(20.dp), tint = Color.White)
+        Box(
+            Modifier.size(TILE).clip(if (material) RoundedCornerShape(ui.m(8.dp)) else RoundedCornerShape(10.dp)).background(tile),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, null, Modifier.size(20.dp), tint = tileInk)
         }
         Spacer(Modifier.width(TILE_GAP))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = scheme.onSurface)
             if (value.isNotBlank()) Text(
-                value, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurface.copy(alpha = 0.7f),
+                value, style = MaterialTheme.typography.bodyMedium,
+                color = if (material) scheme.onSurfaceVariant else scheme.onSurface.copy(alpha = 0.7f),
                 maxLines = if (large) Int.MAX_VALUE else 1, overflow = TextOverflow.Ellipsis,
             )
         }

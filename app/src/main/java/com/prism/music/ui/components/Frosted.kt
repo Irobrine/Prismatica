@@ -255,8 +255,8 @@ fun FrostedBackdrop(
     val settings = LocalAppSettings.current
     val pureBlack = settings.pureBlack
     val bg = MaterialTheme.colorScheme.background
-    // Turned off in Appearance: the page's own background, as before.
-    if (!settings.frostedPages) { Box(modifier.fillMaxSize().background(bg)); return }
+    // Turned off in Appearance: the page's own background, as before. Material You's pages are flat tonal surfaces.
+    if (!settings.frostedPages || com.prism.music.ui.theme.LocalUi.current.material) { Box(modifier.fillMaxSize().background(bg)); return }
     val shown by animateFloatAsState(if (frost != null) 1f else 0f, tween(500), label = "frost")
     val grainBrush = remember { ShaderBrush(ImageShader(grain, TileMode.Repeated, TileMode.Repeated)) }
     // Appearance → Color → Page background reaches the Ambient frost (1.7.2): Plain greys it, a tint colors it in that
@@ -489,6 +489,11 @@ val LocalPageBackdrop = compositionLocalOf<PageBackdrop?> { null }
  */
 @Composable
 fun Modifier.pane(shape: Shape, fallback: Color = Color.Unspecified): Modifier {
+    if (com.prism.music.ui.theme.LocalUi.current.material) {
+        val scheme = MaterialTheme.colorScheme
+        return clip(shape).background(if (fallback != Color.Unspecified) fallback else scheme.surfaceContainer)
+            .border(1.dp, scheme.outlineVariant, shape)
+    }
     if (LocalFrosted.current) {
         val dark = LocalIsDark.current
         // #326, "Glass on more of the screen": a light falling on it from above and a brighter edge, no blur. Only the
@@ -517,7 +522,8 @@ fun featureInk(): Color = MaterialTheme.colorScheme.onSurface
 /** A quiet fill for small controls: frosted on a frosted page, a faint ink tint (or [fallback]) elsewhere. */
 @Composable
 fun quietFill(fallback: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)): Color =
-    if (LocalFrosted.current) frostFill(1.4f) else fallback
+    if (com.prism.music.ui.theme.LocalUi.current.material) MaterialTheme.colorScheme.surfaceContainerHigh
+    else if (LocalFrosted.current) frostFill(1.4f) else fallback
 
 /**
  * A scroll edge under the status bar (and a [bar] below it) for pages on the app's own
@@ -541,6 +547,7 @@ fun Modifier.dissolveBottom(start: Float = 0.5f): Modifier = graphicsLayer { com
 /** The see-through fill of frosted panels and buttons on a frosted page. */
 @Composable
 fun frostFill(strength: Float = 1f): Color {
+    if (com.prism.music.ui.theme.LocalUi.current.material) return MaterialTheme.colorScheme.surfaceContainerHigh
     // #326: with "Glass on more of the screen" on, the Frost slider reaches the page's glass too; where the slider can't
     // be reached (Glass off, below Android 12) a value set earlier doesn't quietly thin the panels.
     val s = com.prism.music.ui.theme.LocalAppSettings.current
@@ -558,9 +565,15 @@ fun FrostedPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val dark = LocalIsDark.current
+    val material = com.prism.music.ui.theme.LocalUi.current.material
     Column(
         modifier.clip(shape).background(frostFill())
-            .border(0.7.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = if (dark) 0.16f else 0.7f), Color.White.copy(alpha = 0.02f))), shape)
+            .border(
+                if (material) 1.dp else 0.7.dp,
+                if (material) androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.outlineVariant)
+                else Brush.verticalGradient(listOf(Color.White.copy(alpha = if (dark) 0.16f else 0.7f), Color.White.copy(alpha = 0.02f))),
+                shape,
+            )
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         content = content,
     )

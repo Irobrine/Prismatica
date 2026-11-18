@@ -136,11 +136,11 @@ fun MiniPlayer(
     val artShape = if (style == MiniPlayerStyle.PILL) CircleShape else if (bar) ui.smallArt else ui.shape(9.dp)
     fun fraction() = (position.value.toFloat() / pc.duration.coerceAtLeast(1)).coerceIn(0f, 1f)
     val dark = com.prism.music.ui.theme.LocalIsDark.current
+    val material = ui.material
     // #231 (1.7.9.2): the progress in your accent, plain ink or the cover's color instead of the split light.
     val progressBrush = miniProgressBrush(settings.view.miniProgressColor, com.prism.music.data.PlaylistCovers.artOf(s))
-    // The same piece of glass as the tab bar under it, with the tab bar's own Background (see-through, solid…): Card used
-    // to turn into a solid bar with the progress along its top whenever Frosted Glass was off (owner, 1.7.6).
-    val tint = com.prism.music.navFill(settings.navBarFill)
+    // Material You: the mini player is a tonal surface one step above the page, with the primary as its progress.
+    val tint = if (material) scheme.surfaceContainerHigh else com.prism.music.navFill(settings.navBarFill)
     val surface: @Composable (Modifier, @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) -> Unit = { m, content ->
         if (bare) Box(m, content = content)
         else GlassSurface(m, shape = shape, tint = tint, content = content)
@@ -360,7 +360,7 @@ fun MiniPlayer(
             Modifier.matchParentSize().drawBehind {
                 val f = fraction()
                 if (f > 0f) drawRect(
-                    progressBrush ?: com.prism.music.ui.theme.PrismTokens.spectrum(dark, 0f, size.width),
+                    progressBrush ?: if (material) androidx.compose.ui.graphics.SolidColor(scheme.primary) else com.prism.music.ui.theme.PrismTokens.spectrum(dark, 0f, size.width),
                     size = androidx.compose.ui.geometry.Size(size.width * f, size.height),
                     alpha = settings.view.miniFillStrength * (if (dark) 1f else 0.82f),
                 )
@@ -427,11 +427,11 @@ fun MiniPlayer(
                 if (!settings.miniSkipButtons) Spacer(Modifier.width(8.dp))
             } else if (style == MiniPlayerStyle.PILL) {
                 Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(scheme.onSurface)
+                    Modifier.size(40.dp).clip(CircleShape).background(if (material) scheme.primary else scheme.onSurface)
                         .miniPlayAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesPlay) 0f else 1f }
                         .clickable { haptics.click(); pc.togglePlay() },
                     contentAlignment = Alignment.Center,
-                ) { MiniPlayPause(playing, 24.dp, tint = scheme.surface) }
+                ) { MiniPlayPause(playing, 24.dp, tint = if (material) scheme.onPrimary else scheme.surface) }
             } else {
                 IconButton(
                     onClick = { haptics.click(); pc.togglePlay() },
@@ -449,11 +449,11 @@ fun MiniPlayer(
         }
         if (settings.miniProgress == MiniProgress.LINE) {
             Canvas(Modifier.fillMaxWidth().height(2.dp).align(Alignment.BottomCenter).padding(horizontal = if (style == MiniPlayerStyle.PILL) 28.dp else 18.dp)) {
-                drawLine(scheme.onSurface.copy(alpha = 0.12f), Offset(0f, 0f), Offset(size.width, 0f), 2.5.dp.toPx(), StrokeCap.Round)
+                drawLine(if (material) scheme.secondaryContainer else scheme.onSurface.copy(alpha = 0.12f), Offset(0f, 0f), Offset(size.width, 0f), 2.5.dp.toPx(), StrokeCap.Round)
                 // Progress in split light (deeper on light glass).
                 val f = fraction()
                 if (f > 0f) drawLine(
-                    progressBrush ?: com.prism.music.ui.theme.PrismTokens.spectrum(dark, 0f, size.width), Offset(0f, 0f), Offset(size.width * f, 0f), 2.5.dp.toPx(), StrokeCap.Round,
+                    progressBrush ?: if (material) androidx.compose.ui.graphics.SolidColor(scheme.primary) else com.prism.music.ui.theme.PrismTokens.spectrum(dark, 0f, size.width), Offset(0f, 0f), Offset(size.width * f, 0f), 2.5.dp.toPx(), StrokeCap.Round,
                 )
             }
         }

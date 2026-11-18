@@ -319,7 +319,7 @@ private fun LookNow(now: Look?, edited: Look?, onSave: () -> Unit, onShare: (Loo
         else -> tr(R.string.you_re_on_your_own_mix)
     }
     var open by rememberSaveable { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().settingsCard(LocalUi.current.shape(20.dp), LOOKS_NOW_TAG).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().settingsCard(LocalUi.current.let { if (it.material) it.card else it.shape(20.dp) }, LOOKS_NOW_TAG).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, Modifier.weight(1f, fill = false), style = MaterialTheme.typography.titleMedium)
             InfoMark(open, title) { open = !open }
@@ -328,7 +328,10 @@ private fun LookNow(now: Look?, edited: Look?, onSave: () -> Unit, onShare: (Loo
         // State, not an explanation: what has changed since this Look was saved.
         edited?.let { e ->
             remember(e, app) { c.looks.edits(e) }?.let {
-                Text(tr(R.string.since_you_saved_it_update_it, it, e.name), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Text(
+                    tr(R.string.since_you_saved_it_update_it, it, e.name), style = MaterialTheme.typography.bodyMedium,
+                    color = if (app.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
             }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -364,9 +367,11 @@ private fun LookExample(look: Look?) {
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         if (look == null) { Spacer(Modifier.size(64.dp, 131.dp)); return@Box }
         val s = remember(look, app) { c.looks.preview(look) }
+        val material = s.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU
+        val playerDark = if (material) com.prism.music.ui.theme.isAppDark(s) else true
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PreviewPhone(64.dp) { LookTheme(s, isAppDark(s)) { colors -> MiniHome(colors, song) } }
-            PreviewPhone(64.dp) { LookTheme(s, true) { colors -> MiniPlayerScreen(colors, song) } }
+            PreviewPhone(64.dp) { LookTheme(s, playerDark) { colors -> MiniPlayerScreen(colors, song) } }
         }
     }
 }
@@ -379,7 +384,8 @@ private fun LookExample(look: Look?) {
 private fun StateLine(text: String) {
     Text(
         text, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp).testTag(LOOKS_STATE_TAG),
-        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (com.prism.music.ui.theme.LocalUi.current.material) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
     )
 }
 

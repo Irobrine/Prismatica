@@ -641,10 +641,14 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     val fullBlur by animateFloatAsState(if (lyricsOpen || queueOpen || statsOpen) 1f else 0f, tween(360, easing = FastOutSlowInEasing), label = "fullBlur")
     // #320: over the White background the type and controls are dark ([PlayerInk]); over the lyrics and the queue (their
     // dark blurred cover), a canvas or a video behind, a wide player or immersive mode they're white as ever.
-    val inkLight = settings.playerBackground == com.prism.music.data.prefs.PlayerBackground.WHITE && !wide && !canvasBehind && !videoBehind &&
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    val inkLight = (settings.playerBackground == com.prism.music.data.prefs.PlayerBackground.WHITE ||
+        (material && !com.prism.music.ui.theme.LocalIsDark.current && settings.playerBackground == com.prism.music.data.prefs.PlayerBackground.THEME)) &&
+        !wide && !canvasBehind && !videoBehind &&
         fullBlur < 0.5f && !(settings.immersivePlayer && (!videoMode || settings.view.immersiveVideo))
     PlayerInk.light = inkLight
-    DisposableEffect(Unit) { onDispose { PlayerInk.light = false } }
+    PlayerInk.accentAdapted = inkLight && material
+    DisposableEffect(Unit) { onDispose { PlayerInk.light = false; PlayerInk.accentAdapted = false } }
     // The status bar's and the navigation bar's icons dark over it too.
     DisposableEffect(inkLight, settings.playerNavBand) {
         if (!inkLight) return@DisposableEffect onDispose {}
@@ -669,6 +673,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     val artCorners = if (settings.coverSize == com.prism.music.data.prefs.CoverSize.FULL) 0.dp else settings.playerArtCorners.dp
     // Another shape picked for the player's cover (1.7.7) keeps it all the way into the header.
     val artShape = when {
+        material -> RoundedCornerShape(lerp(artCorners, 8.dp, panelShift.value))
         vinyl -> CircleShape
         settings.shapes.player != com.prism.music.data.prefs.CoverShape.ROUNDED && !cassette ->
             com.prism.music.ui.theme.CoverShapes.of(settings.shapes.player, artCorners)
@@ -684,7 +689,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         vizStyle != com.prism.music.data.prefs.VisualizerStyle.OFF && !settings.reduceMotion && !covered && !videoMode && isPlaying,
     )
     val vizBrush: Brush = if (viz == null) androidx.compose.ui.graphics.SolidColor(Color.White) else
-        scrubberFill(settings.visualizerColor, songArt)
+        scrubberFill(settings.visualizerColor, songArt, adapt = PlayerInk.accentAdapted, onLight = PlayerInk.light && material)
             ?: Brush.horizontalGradient(*com.prism.music.ui.theme.PrismTokens.spectrumColors(true).toTypedArray())
     val vizColor: Color = (vizBrush as? androidx.compose.ui.graphics.SolidColor)?.value
         ?: com.prism.music.ui.theme.PrismTokens.spectrumColors(true).let { it[it.size / 2].second }
@@ -797,7 +802,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                 backdropBlackout(settings.playerBackdropShow).takeIf { it > 0f }?.let { Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = it))) }
                 if (fullBlur > 0f) FullArtworkBlurBackdrop(blurImage, Modifier.graphicsLayer { alpha = fullBlur })
             }
-            com.prism.music.data.prefs.PlayerBackground.THEME -> ThemeBackdrop()
+            com.prism.music.data.prefs.PlayerBackground.THEME -> ThemeBackdrop(darkGround = wide)
             com.prism.music.data.prefs.PlayerBackground.BLACK -> Box(Modifier.fillMaxSize().background(Color.Black))
             // #320: white, the type dark ([PlayerInk]); the lyrics and the queue fade to the dark blurred cover as the
             // mesh does. A wide player keeps the mesh (its two panes are drawn for a dark ground).
@@ -1746,10 +1751,20 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     playerSheets()
 }
 
-/** The "Theme" player background: a deep wash of the accent color, lighter at the top. */
+/** The "Theme" player background. Material You: a tonal surface (light or dark, from the scheme). Prism: a deep wash of the accent color, lighter at the top. */
 @Composable
-internal fun ThemeBackdrop() {
-    val scheme = MaterialTheme.colorScheme
+internal fun ThemeBackdrop(darkGround: Boolean = false) {
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    val scheme = if (material && darkGround) {
+        val s = com.prism.music.ui.theme.LocalAppSettings.current
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val seed = com.prism.music.ui.theme.MaterialYou.seed(s, dark = true, artwork = null)
+        remember(s, seed) { com.prism.music.ui.theme.MaterialYou.scheme(s, dark = true, seed, com.prism.music.ui.theme.MaterialYou.dynamic(s, context)) }
+    } else MaterialTheme.colorScheme
+    if (material) {
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(scheme.surfaceContainerHigh, scheme.surfaceContainerLow, scheme.surface))))
+        return
+    }
     fun Color.deep(f: Float) = Color(red * f, green * f, blue * f, 1f)
     Box(
         Modifier.fillMaxSize().background(

@@ -119,7 +119,7 @@ internal fun ReplayTimeline.heading(): String = when (unit) {
 internal fun TimelineChart(t: ReplayTimeline, modifier: Modifier) {
     val primary = MaterialTheme.colorScheme.primary
     val tertiary = MaterialTheme.colorScheme.tertiary
-    val faint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+    val faint = if (com.prism.music.ui.theme.LocalUi.current.material) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
     val ink = MaterialTheme.colorScheme.onSurfaceVariant
     val anim = remember(t) { Animatable(0f) }
     LaunchedEffect(t) { anim.animateTo(1f, tween(900)) }

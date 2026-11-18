@@ -213,7 +213,11 @@ fun NavRow(icon: ImageVector, title: String, subtitle: String?, selected: Boolea
     Row(
         Modifier.fillMaxWidth()
             // The page open beside the list (wide windows) is marked.
-            .then(if (selected) Modifier.background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)) else Modifier)
+            .then(
+                if (selected) Modifier.background(
+                    if (ui.material) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                ) else Modifier,
+            )
             .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = ui.gap(11.dp)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -283,6 +287,7 @@ fun worded(word: String, v: Float) = "$word · ${kotlin.math.round(v * 100).toIn
 @Composable
 fun PrismCheck(checked: Boolean, enabled: Boolean = true, label: String, onChange: (Boolean) -> Unit) {
     val scheme = MaterialTheme.colorScheme
+    val material = com.prism.music.ui.theme.LocalUi.current.material
     androidx.compose.foundation.layout.Box(
         // Named on and off alike (off, it used to have no name for a screen reader).
         Modifier.size(48.dp).toggleable(checked, enabled = enabled, role = androidx.compose.ui.semantics.Role.Checkbox, onValueChange = onChange)
@@ -290,14 +295,19 @@ fun PrismCheck(checked: Boolean, enabled: Boolean = true, label: String, onChang
         contentAlignment = Alignment.Center,
     ) {
         androidx.compose.foundation.layout.Box(
-            Modifier.size(22.dp).clip(androidx.compose.foundation.shape.CircleShape)
+            Modifier.size(if (material) 18.dp else 22.dp)
+                .clip(if (material) androidx.compose.foundation.shape.RoundedCornerShape(2.dp) else androidx.compose.foundation.shape.CircleShape)
                 .then(
-                    if (checked) Modifier.background(scheme.onSurface.copy(alpha = if (enabled) 1f else 0.4f))
-                    else Modifier.border(1.5.dp, scheme.onSurface.copy(alpha = if (enabled) 0.35f else 0.15f), androidx.compose.foundation.shape.CircleShape)
+                    when {
+                        material && checked -> Modifier.background(scheme.primary.copy(alpha = if (enabled) 1f else 0.38f))
+                        material -> Modifier.border(2.dp, scheme.outline.copy(alpha = if (enabled) 1f else 0.38f), androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                        checked -> Modifier.background(scheme.onSurface.copy(alpha = if (enabled) 1f else 0.4f))
+                        else -> Modifier.border(1.5.dp, scheme.onSurface.copy(alpha = if (enabled) 0.35f else 0.15f), androidx.compose.foundation.shape.CircleShape)
+                    },
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            if (checked) Icon(PrismIcons.Check, null, Modifier.size(14.dp), tint = scheme.surface)
+            if (checked) Icon(PrismIcons.Check, null, Modifier.size(if (material) 12.dp else 14.dp), tint = if (material) scheme.onPrimary else scheme.surface)
         }
     }
 }

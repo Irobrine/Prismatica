@@ -102,9 +102,14 @@ fun LookCard(look: Look, selected: Boolean, modifier: Modifier = Modifier, onCli
     val scheme = MaterialTheme.colorScheme
     val s = remember(look, app) { c.looks.preview(look) }
     val song by c.player.currentSong.collectAsState()
+    val material = s.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU
+    val playerDark = if (material) com.prism.music.ui.theme.isAppDark(s) else true
     Column(
         modifier.clip(ui.tile).background(frostFill(if (selected) 2.6f else 1f))
-            .then(if (selected) Modifier.border(2.dp, PrismTokens.spectrum, ui.tile) else Modifier.border(1.dp, scheme.onSurface.copy(alpha = 0.08f), ui.tile))
+            .then(
+                if (selected) Modifier.border(2.dp, PrismTokens.spectrum, ui.tile)
+                else Modifier.border(1.dp, if (ui.material) scheme.outlineVariant else scheme.onSurface.copy(alpha = 0.08f), ui.tile),
+            )
             .semantics { role = Role.RadioButton; this.selected = selected }
             // A long press opens the card's ⋯ too, as every other card in Prism does.
             .combinedClickable(onClickLabel = tr(R.string.use, look.name), onLongClickLabel = onMore?.let { tr(R.string.more_for, look.name) }, onLongClick = onMore, onClick = onClick)
@@ -115,7 +120,7 @@ fun LookCard(look: Look, selected: Boolean, modifier: Modifier = Modifier, onCli
             val dark = com.prism.music.ui.theme.isAppDark(s)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PreviewPhone(w) { LookTheme(s, dark) { colors -> MiniHome(colors, song) } }
-                PreviewPhone(w) { LookTheme(s, true) { colors -> MiniPlayerScreen(colors, song) } }
+                PreviewPhone(w) { LookTheme(s, playerDark) { colors -> MiniPlayerScreen(colors, song) } }
             }
         }
         Spacer(Modifier.height(8.dp))

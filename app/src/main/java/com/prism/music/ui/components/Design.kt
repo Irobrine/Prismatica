@@ -109,13 +109,17 @@ fun ScreenHeader(
 @Composable
 fun FloatingDisc(modifier: Modifier = Modifier, content: @Composable androidx.compose.foundation.layout.BoxScope.(ink: Color) -> Unit) {
     val dark = LocalIsDark.current
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    val scheme = MaterialTheme.colorScheme
     // A disc of glass that reads over any photo: dark glass with white ink, or milky white with near-black ink.
-    val fill = if (dark) Color(0xFF140E16).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.78f)
-    val ink = if (dark) Color.White else Color(0xFF1C1418)
+    // Material You: a tonal container with its on-color (the icon-button language), not glass.
+    val fill = if (material) scheme.surfaceContainer.copy(alpha = 0.94f) else if (dark) Color(0xFF140E16).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.78f)
+    val ink = if (material) scheme.onSurface else if (dark) Color.White else Color(0xFF1C1418)
     Box(
         modifier.size(42.dp)
-            .shadow(8.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.25f), spotColor = Color.Black.copy(alpha = 0.25f))
-            .clip(CircleShape).background(fill).border(1.dp, glassEdge(), CircleShape),
+            .shadow(if (material) 1.dp else 8.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.25f), spotColor = Color.Black.copy(alpha = 0.25f))
+            .clip(CircleShape).background(fill)
+            .then(if (material) Modifier else Modifier.border(1.dp, glassEdge(), CircleShape)),
         contentAlignment = Alignment.Center,
     ) { content(ink) }
 }
@@ -131,8 +135,10 @@ fun RoundAction(icon: ImageVector, description: String, modifier: Modifier = Mod
             }
         }
     } else {
+        val material = com.prism.music.ui.theme.LocalUi.current.material
         Box(
-            modifier.size(42.dp).clip(CircleShape).background(glassFill(1.4f)).border(1.dp, glassEdge(), CircleShape)
+            modifier.size(42.dp).clip(CircleShape)
+                .then(if (material) Modifier else Modifier.background(glassFill(1.4f)).border(1.dp, glassEdge(), CircleShape))
                 .clickable(enabled = enabled, onClickLabel = description, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) { Icon(icon, description, Modifier.size(22.dp), tint = tint) }
@@ -172,6 +178,7 @@ fun SubPage(
 ) {
     val nav = LocalNavigator.current
     val scheme = MaterialTheme.colorScheme
+    val material = com.prism.music.ui.theme.LocalUi.current.material
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val showPinned by remember(state, pinnedKey) {
         derivedStateOf {
@@ -187,7 +194,7 @@ fun SubPage(
     val bar by animateFloatAsState(if (scrolled) 1f else 0f, tween(220), label = "bar")
     // On a frosted page the content melts away under the bar into the page's own backdrop, as
     // on the artist and album pages; elsewhere the bar turns solid.
-    val melts = LocalFrosted.current && LocalPageBackdrop.current != null
+    val melts = LocalFrosted.current && LocalPageBackdrop.current != null && !material
     BoxWithConstraints(modifier.fillMaxSize()) {
         // On a wide window the page keeps a readable width in the middle (it still scrolls from anywhere).
         val gutter = ((maxWidth - SUBPAGE_MAX_WIDTH) / 2).coerceAtLeast(0.dp)
@@ -223,7 +230,7 @@ fun SubPage(
         // (fully, while a preview is pinned under it).
         Box(
             Modifier.fillMaxWidth()
-                .background(if (showPinned) scheme.surface else if (melts) Color.Transparent else scheme.surface.copy(alpha = 0.92f * bar))
+                .background(if (material) scheme.surface else if (showPinned) scheme.surface else if (melts) Color.Transparent else scheme.surface.copy(alpha = 0.92f * bar))
                 .statusBarsPadding()
                 .height(60.dp),
         ) {
@@ -247,13 +254,24 @@ fun PrismChip(
     idle: Color = Color.Unspecified, onLongClick: (() -> Unit)? = null, onLongClickLabel: String? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val quiet = glassFill(1.2f)
-    val lifted = glassFill(2.6f)
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    val quiet = if (material) Color.Transparent else glassFill(1.2f)
+    val lifted = if (material) scheme.secondaryContainer else glassFill(2.6f)
     val bg by animateColorAsState(if (selected) lifted else if (idle != Color.Unspecified) idle else quiet, tween(180), label = "chipBg")
-    val fg by animateColorAsState(if (selected) scheme.onSurface else scheme.onSurfaceVariant, tween(180), label = "chipFg")
+    val fg by animateColorAsState(
+        if (selected) (if (material) scheme.onSecondaryContainer else scheme.onSurface) else scheme.onSurfaceVariant,
+        tween(180), label = "chipFg",
+    )
     Row(
-        modifier.height(36.dp).clip(CircleShape).background(bg)
-            .then(if (selected) Modifier.spectrumRing(CircleShape) else Modifier.border(1.dp, glassEdge(), CircleShape))
+        modifier.height(if (material) 32.dp else 36.dp).clip(if (material) androidx.compose.foundation.shape.RoundedCornerShape(8.dp) else CircleShape).background(bg)
+            .then(
+                when {
+                    material && selected -> Modifier
+                    material -> Modifier.border(1.dp, scheme.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                    selected -> Modifier.spectrumRing(CircleShape)
+                    else -> Modifier.border(1.dp, glassEdge(), CircleShape)
+                },
+            )
             .semantics { this.selected = selected }
             .then(
                 if (onLongClick == null) Modifier.clickable(onClick = onClick)
@@ -285,18 +303,25 @@ fun <T> ChipRow(
 @Composable
 fun <T> Segmented(options: List<T>, selected: T, label: (T) -> String, modifier: Modifier = Modifier, onSelect: (T) -> Unit) {
     val scheme = MaterialTheme.colorScheme
-    val lifted = glassFill(3f)
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    val lifted = if (material) scheme.secondaryContainer else glassFill(3f)
     Row(
-        modifier.fillMaxWidth().height(44.dp).clip(CircleShape).background(glassFill(1.2f)).border(1.dp, glassEdge(), CircleShape).padding(3.dp),
+        modifier.fillMaxWidth().height(44.dp).clip(CircleShape)
+            .background(if (material) scheme.surfaceContainerHigh else glassFill(1.2f))
+            .then(if (material) Modifier.border(1.dp, scheme.outlineVariant, CircleShape) else Modifier.border(1.dp, glassEdge(), CircleShape))
+            .padding(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         options.forEach { o ->
             val on = o == selected
             val bg by animateColorAsState(if (on) lifted else Color.Transparent, tween(180), label = "seg")
-            val fg by animateColorAsState(if (on) scheme.onSurface else scheme.onSurfaceVariant, tween(180), label = "segInk")
+            val fg by animateColorAsState(
+                if (on) (if (material) scheme.onSecondaryContainer else scheme.onSurface) else scheme.onSurfaceVariant,
+                tween(180), label = "segInk",
+            )
             Box(
                 Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(bg)
-                    .then(if (on) Modifier.spectrumRing(CircleShape, 1.2.dp) else Modifier)
+                    .then(if (on && !material) Modifier.spectrumRing(CircleShape, 1.2.dp) else Modifier)
                     .semantics { this.selected = on }.clickable { onSelect(o) },
                 contentAlignment = Alignment.Center,
             ) {
