@@ -184,6 +184,26 @@ class SongsFromTest {
         assertNull("not invented from the list's own size", read.count)
     }
 
+    @Test fun aWholeReadIsHandedOnSoItsNewSongsDownload() = runBlocking {
+        val seen = mutableListOf<Pair<String, List<String>>>()
+        val lists = PlaylistSongs(
+            load = { id, _ -> PlaylistRead(listOf(s("$id-1"), s("$id-2")), complete = true) },
+            onRead = { id, songs -> seen += id to songs.map { it.id } },
+        )
+        lists.songs("PLx")
+        assertEquals("a read is a read: the kept check fetches from it too", listOf("PLx" to listOf("PLx-1", "PLx-2")), seen)
+    }
+
+    @Test fun aReadThatStoppedShortIsNotHandedOn() = runBlocking {
+        val seen = mutableListOf<String>()
+        val lists = PlaylistSongs(
+            load = { id, _ -> PlaylistRead(listOf(s("$id-1")), complete = false) },
+            onRead = { id, _ -> seen += id },
+        )
+        lists.songs("PLx")
+        assertTrue("a short read isn't the playlist: nothing is fetched from it", seen.isEmpty())
+    }
+
     private fun page(songs: List<String>, continuation: String?, count: Int? = null, newest: String? = null) = CollectionPage(
         id = "playlist", kind = CollectionKind.PLAYLIST, title = "Playlist", subtitle = "", thumbnail = null,
         songs = songs.map(::s), continuation = continuation, newestContinuation = newest, trackCount = count,

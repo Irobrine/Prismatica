@@ -593,6 +593,8 @@ class AppContainer(val app: Application) {
             },
             cache = playlistSongsCache,
             scope = scope,
+            // A playlist read for Library → Songs is a read as good as the kept check's own: its new songs download.
+            onRead = { id, songs -> keptPlaylists.fromPage(id, songs) },
         )
     }
     /** "Measure now" on a smart playlist: the songs its Sound rules can't see yet, scanned one by one (Wi-Fi for streams). */

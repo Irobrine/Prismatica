@@ -198,7 +198,7 @@ class KeptPlaylists(private val c: AppContainer) {
         }
     }
 
-    /** The songs an open page has loaded already: no request for the playlist, just what's on it. */
+    /** The songs an open page (or Library → Songs) has loaded already: no request for the playlist, just what's on it. */
     fun fromPage(id: String, songs: List<Song>) {
         val key = PlaylistDownloads.keepKey(id)
         if (key !in kept() || !mayFetch()) return

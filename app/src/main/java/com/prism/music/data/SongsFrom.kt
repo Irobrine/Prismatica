@@ -61,12 +61,14 @@ data class PlaylistRead(val songs: List<Song>, val complete: Boolean, val count:
  * copy when it's picked again, so the kept one is refreshed rather than read whole.
  *
  * A copy already on the phone is shown at once and read again behind it ([scope]), so opening the view never waits on
- * the network; [version] goes up as the read lands, for the screen to take the newer songs.
+ * the network; [version] goes up as the read lands, for the screen to take the newer songs, and a whole read is passed
+ * to [onRead] — where a kept playlist's downloads are started from it, as opening its page does.
  */
 class PlaylistSongs(
     private val load: suspend (id: String, cached: KeptPlaylist?) -> PlaylistRead,
     private val cache: PlaylistSongsCache? = null,
     private val scope: CoroutineScope? = null,
+    private val onRead: (String, List<Song>) -> Unit = { _, _ -> },
 ) {
     private val kept = ConcurrentHashMap<String, List<Song>>()
     /** When each kept copy was read: a copy older than [SESSION_TTL_MS] is read again (a process may live for days). */
@@ -107,6 +109,8 @@ class PlaylistSongs(
                 at[id] = System.currentTimeMillis()
                 disk?.write(id, read)
                 _version.update { it + 1 }
+                // A kept playlist's new songs start downloading from this read too, not only from its own check.
+                runCatching { onRead(id, read.songs) }
             }
             read.songs
         }
