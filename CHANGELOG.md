@@ -2,6 +2,17 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.8.5
+
+### New
+
+- **Previous goes back a song, if you want it to.** Settings → Playback → What plays next has a new switch. On, Previous always goes to the song before, even partway through this one (in a shuffled queue, the one that played before). Off, it keeps Prism's way: the song starts over after a few seconds. The notification's, lock screen's, headset's and Android Auto's Previous follow it too.
+
+### Fixes
+
+- **Swiping the mini player works on its buttons and cover.** A swipe that began on Next, Previous, Play or the cover could be taken for a tap instead, so the button acted or the player opened instead of the swipe. Now a swipe takes the touch once the finger has moved, and taps are still taps.
+- **Measure now is much faster, and reads songs already on the phone.** It looks at three short stretches of each song rather than the whole file (the same figures a smart playlist's Sound rules use), and it no longer streams a song that is downloaded, saved as lossless, one of your own files, or a music video downloaded as its song. Busy work on songs that can't be measured is gone too.
+
 ## 1.8.4.1
 
 ### Fixes

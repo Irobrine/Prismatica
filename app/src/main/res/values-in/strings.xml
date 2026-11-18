@@ -5075,6 +5075,9 @@
     <string name="playback_shuffle_button_info">Acak dan Acak Pintar: setiap ketukan berpindah dari nonaktif ke Acak, ke Acak Pintar, lalu kembali nonaktif. Hanya Acak: tombol hanya mengaktifkan dan menonaktifkan Acak.</string>
     <string name="playback_keep_shuffle">Tetap acak untuk daftar berikutnya</string>
     <string name="playback_keep_shuffle_info">Jika antrean terakhir diacak, lagu yang kamu ketuk di daftar diputar lebih dulu dan sisa daftar itu diacak. Radio, lagu tunggal, dan video dibiarkan.</string>
+    <string name="previous_goes_back_a_song">Sebelumnya mundur satu lagu</string>
+    <string name="previous_goes_back_a_song_info">Sekali tekan pindah ke lagu sebelumnya, bahkan di tengah lagu ini. Saat mati, setelah beberapa detik lagu ini dimulai dari awal.</string>
+    <string name="previous_goes_back_a_song_keywords">sebelumnya mundur ulang mulai dari awal lagu awal</string>
     <string name="playback_shuffle_keywords">acak pintar urutan acak random campur tetap diacak smart shuffle random order</string>
     <string name="playback_song_to_song">Dari satu lagu ke lagu berikutnya</string>
     <string name="playback_speed_and_pitch">Kecepatan dan nada</string>

@@ -47,6 +47,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
     private val videos = t(R.string.music_videos_label)
     private val keepVideos = t(R.string.keep_playing_videos)
     private val explicit = t(R.string.explicit_songs)
+    private val previousBack = t(R.string.previous_goes_back_a_song)
     private val shuffleButton = t(R.string.playback_shuffle_button)
     private val keepShuffle = t(R.string.playback_keep_shuffle)
     private val crossfade = t(R.string.crossfade)
@@ -72,7 +73,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
             listOf(t(R.string.what_plays_next), t(R.string.shuffle), t(R.string.playback_song_to_song), t(R.string.playback_speed_and_pitch), t(R.string.stopping_and_pausing)),
             groupTitles(),
         )
-        assertEquals(listOf(6, 2, 2, 2, 4), groupSizes())
+        assertEquals(listOf(7, 2, 2, 2, 4), groupSizes())
         assertEquals("nothing differs from how Prism comes", 0, changedRows())
         // No group is named as the page, and none as one of its own rows (§2.7: "Crossfade" was both).
         assertTrue(groupTitles().none { it == SettingsPageId.PLAYBACK.title })
@@ -83,6 +84,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         assertEquals(SettingsTags.ROW_PICK, typeOf(queueEnds))
         assertEquals(QueueEnd.MIXED.label, valueOf(queueEnds))
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(noRepeats))
+        assertEquals(SettingsTags.ROW_SWITCH, typeOf(previousBack))
         assertEquals(SettingsTags.ROW_SLIDER, typeOf(longest))
         assertEquals(SettingsTags.ROW_CHOICE, typeOf(crossfade))
         assertEquals(SettingsTags.ROW_PICK, typeOf(curve))
@@ -99,7 +101,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         until("crossfade on") { it.mix && !it.mixAuto }
         show()
         assertBudgets("crossfade on, fixed length")
-        assertEquals(listOf(6, 2, 5, 2, 4), groupSizes())
+        assertEquals(listOf(7, 2, 5, 2, 4), groupSizes())
         assertEquals("6 s", valueOf(length))
     }
 
@@ -132,6 +134,9 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         // explicit_content
         choose(explicit, ExplicitContent.SKIP.label)
         until("explicit_content") { it.behavior.explicitContent == ExplicitContent.SKIP }
+        // previous_goes_back
+        tap(previousBack)
+        until("previous_goes_back") { it.behavior.previousGoesBack }
 
         // shuffle_button, keep_shuffle (new in 1.8.4).
         choose(shuffleButton, ShuffleButton.SHUFFLE_ONLY.label)
@@ -182,15 +187,15 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
 
         // Every row now differs from how Prism comes, says so, and the page still fits.
         assertBudgets("everything changed")
-        assertEquals(listOf(6, 2, 5, 2, 4), groupSizes())
-        assertEquals(19, changedRows())
+        assertEquals(listOf(7, 2, 5, 2, 4), groupSizes())
+        assertEquals(20, changedRows())
         // The root's line is live.
         val line = SettingsPageId.PLAYBACK.value(stored)
         assertTrue(line, tr(R.string.root_crossfade_seconds, 9) in line && noRepeats in line)
 
         // Reset this page lists each of them and puts them all back.
         val lines = resetLines(confirm = true)
-        assertEquals(lines.joinToString("\n"), 19, lines.size)
+        assertEquals(lines.joinToString("\n"), 20, lines.size)
         assertTrue(lines.toString(), lines.any { it.startsWith("$shuffleButton: ${ShuffleButton.SHUFFLE_ONLY.label} → ${ShuffleButton.SHUFFLE_AND_SMART.label}") })
         until("the reset") { it.behavior == d.behavior && it.sound == d.sound }
         until("the reset") {
@@ -199,7 +204,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
                 it.mixBeatMatch == d.mixBeatMatch && it.mixKeepAlbums == d.mixKeepAlbums && it.stopOnSwipeAway == d.stopOnSwipeAway
         }
         assertEquals(0, changedRows())
-        assertEquals(listOf(6, 2, 2, 2, 4), groupSizes())
+        assertEquals(listOf(7, 2, 2, 2, 4), groupSizes())
     }
 
     /** D57 and #416: the two new rows, off (as Prism was) until picked. */

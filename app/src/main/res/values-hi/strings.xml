@@ -5147,6 +5147,9 @@
     <string name="playback_shuffle_button_info">शफ़ल और स्मार्ट शफ़ल: हर टैप बंद से शफ़ल, फिर स्मार्ट शफ़ल और फिर वापस बंद पर ले जाता है। सिर्फ़ शफ़ल: बटन बस शफ़ल को चालू और बंद करता है।</string>
     <string name="playback_keep_shuffle">अगली सूची के लिए शफ़ल चालू रखें</string>
     <string name="playback_keep_shuffle_info">जब पिछली कतार शफ़ल थी, तो सूची में टैप किया गया गाना पहले चलता है और उस सूची का बाकी हिस्सा शफ़ल होता है। रेडियो, अकेले गाने और वीडियो जैसे हैं वैसे रहते हैं।</string>
+    <string name="previous_goes_back_a_song">पिछला एक गाना पीछे जाता है</string>
+    <string name="previous_goes_back_a_song_info">एक बार दबाने पर पिछले गाने पर चला जाता है, इस गाने के बीच में होने पर भी। बंद होने पर कुछ सेकंड बाद यह गाना फिर से शुरू होता है।</string>
+    <string name="previous_goes_back_a_song_keywords">पिछला पीछे फिर से शुरू दोबारा शुरू गाना शुरुआत</string>
     <string name="playback_shuffle_keywords">स्मार्ट शफ़ल रैंडम क्रम मिला-जुला शफ़ल रहे smart shuffle random order mixed stay shuffled</string>
     <string name="playback_song_to_song">एक गाने से अगले तक</string>
     <string name="playback_speed_and_pitch">स्पीड और पिच</string>

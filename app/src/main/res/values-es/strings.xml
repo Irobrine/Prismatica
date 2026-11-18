@@ -5219,6 +5219,9 @@
     <string name="playback_shuffle_button_info">Aleatorio y Aleatorio inteligente: cada toque pasa de desactivado a Aleatorio, a Aleatorio inteligente y de vuelta a desactivado. Solo Aleatorio: el botón solo activa y desactiva Aleatorio.</string>
     <string name="playback_keep_shuffle">Mantener el aleatorio en la siguiente lista</string>
     <string name="playback_keep_shuffle_info">Si la última cola estaba en aleatorio, la canción que tocas en una lista suena primero y el resto de esa lista se mezcla. Las radios, las canciones sueltas y los videos no cambian.</string>
+    <string name="previous_goes_back_a_song">Anterior vuelve a la canción anterior</string>
+    <string name="previous_goes_back_a_song_info">Una pulsación va a la canción anterior, aunque esta vaya por la mitad. Desactivado, tras unos segundos esta vuelve a empezar.</string>
+    <string name="previous_goes_back_a_song_keywords">anterior atrás reiniciar empezar de nuevo canción principio</string>
     <string name="playback_shuffle_keywords">aleatorio inteligente orden aleatorio mezclado seguir en aleatorio smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">De una canción a la siguiente</string>
     <string name="playback_speed_and_pitch">Velocidad y tono</string>

@@ -390,27 +390,29 @@ class MixTempo(
 
     /**
      * DJ mode's look at a song: its key, tempo and loudness from three stretches of it ([QuickScan]), fetched by range
-     * when it isn't on the phone ([network] allowing). A song already scanned for its key is [QuickResult.KEYED] at once.
+     * when it isn't on the phone ([network] allowing). A song already scanned for its key is [QuickResult.KEYED] at once
+     * unless [force] is set (Measure now, whose songs are missing a measurement even when a key is kept).
      */
     suspend fun quickScan(
         id: String, network: Boolean, priority: Int = android.os.Process.THREAD_PRIORITY_BACKGROUND,
         /** A job Android scheduled (charging, screen off), which has limits of its own rather than [BackgroundBudget]'s. */
         scheduled: Boolean = false,
+        force: Boolean = false,
     ): QuickResult {
-        if (keyed(id)) return QuickResult.KEYED
+        if (!force && keyed(id)) return QuickResult.KEYED
         if (id in failed) return QuickResult.FAILED
         // While music plays, one at a time (Reddit 1.7: "DJ mode is so laggy": three decodes beside playback were too
         // much for mid-range phones); while paused, a few at once.
         // A scheduled job does one at a time, with music off, and doesn't wait behind scans held while the listener's away.
-        if (scheduled) return quickScanNow(id, network, priority, scheduled = true)
-        return quickGate.withPermit { if (playing()) playingGate.withLock { quickScanNow(id, network, priority, scheduled) } else quickScanNow(id, network, priority, scheduled) }
+        if (scheduled) return quickScanNow(id, network, priority, scheduled = true, force = force)
+        return quickGate.withPermit { if (playing()) playingGate.withLock { quickScanNow(id, network, priority, scheduled, force) } else quickScanNow(id, network, priority, scheduled, force) }
     }
 
     /** One quick scan at a time while music plays ([quickScan]). */
     private val playingGate = kotlinx.coroutines.sync.Mutex()
 
-    private suspend fun quickScanNow(id: String, network: Boolean, priority: Int, scheduled: Boolean): QuickResult {
-        if (keyed(id)) return QuickResult.KEYED
+    private suspend fun quickScanNow(id: String, network: Boolean, priority: Int, scheduled: Boolean, force: Boolean): QuickResult {
+        if (!force && keyed(id)) return QuickResult.KEYED
         return run {
             withContext(Dispatchers.IO) {
                 val started = System.nanoTime()

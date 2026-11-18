@@ -5,6 +5,7 @@ import com.prism.music.tr
 import com.prism.music.ui.theme.PrismIcons
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -14,8 +15,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,7 +53,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.MiniPlayerStyle
 import com.prism.music.data.prefs.MiniProgress
 import com.prism.music.data.prefs.PlayerGesture
@@ -63,8 +66,133 @@ import com.prism.music.ui.theme.LocalContainer
 import com.prism.music.ui.theme.LocalUi
 import com.prism.music.ui.theme.hairline
 import androidx.compose.ui.draw.drawBehind
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+
+/**
+ * The mini player's swipes (Settings → Player → Gestures). One gesture at a time, watched before the buttons and the
+ * card's own tap see it (the Initial pass): once the finger has gone past the touch slop in a direction, the swipe takes
+ * the touch and the button or card under it no longer gets a tap (a swipe on Next used to play the next song *and* open
+ * the player). What the finger did is kept here too, rather than read back from the animating card, so a quick swipe
+ * can't end before the card's animation has caught up and be taken for a tap.
+ *
+ * The numbers are the card's own: [pull] is the vertical lift (negative up), [drag] the sideways one.
+ */
+internal fun Modifier.miniPlayerSwipes(
+    height: Dp,
+    pull: Animatable<Float, AnimationVector1D>,
+    drag: Animatable<Float, AnimationVector1D>,
+    settings: () -> AppSettings,
+    scope: CoroutineScope,
+    threshold: () -> Unit,
+    gestureEnd: () -> Unit,
+    onStop: () -> Unit,
+    onGesture: (PlayerGesture) -> Unit,
+): Modifier = pointerInput(Unit) {
+    val stopAt = height.toPx() * 0.9f
+    // Up (#149, 1.7.7): the card lifts a little against the finger (a third of the drag, at most a third of its height)
+    // and opens the player, or does what's set, once lifted past [upAt].
+    val upAt = -height.toPx() * 0.22f
+    val upMost = -height.toPx() * 0.34f
+    val far = 140f
+    val slop = viewConfiguration.touchSlop
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+        var dx = 0f
+        var dy = 0f
+        // null until the slop is passed; then true for a vertical swipe, false for a sideways one.
+        var vertical: Boolean? = null
+        // The finger's own totals, starting from wherever the card was (normally at rest).
+        var raw = pull.value
+        var rawX = drag.value
+        var y = pull.value
+        var x = drag.value
+        var lost = false
+        // The event that crossed the slop is already in [raw]/[rawX] (from the down); its delta isn't added again.
+        var justClaimed = false
+        while (true) {
+            val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+            val change = event.changes.firstOrNull { it.id == down.id }
+            if (change == null) { lost = true; break }
+            val ddx = change.position.x - change.previousPosition.x
+            val ddy = change.position.y - change.previousPosition.y
+            if (vertical == null) {
+                dx += ddx
+                dy += ddy
+                if (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop) {
+                    vertical = kotlin.math.abs(dy) >= kotlin.math.abs(dx)
+                    // The movement that crossed the slop counts too, so a short flick still moves the card.
+                    raw += dy
+                    rawX += dx
+                    justClaimed = true
+                } else if (event.changes.any { it.id != down.id && it.pressed }) { lost = true; break }
+            }
+            if (vertical != null) {
+                // Taken before the button or the card's tap can read the up (or any more movement).
+                change.consume()
+                val now = settings()
+                if (vertical == true) {
+                    if (justClaimed) justClaimed = false else raw += ddy
+                    // #222: a way with no gesture set (Settings → Player → Gestures: Nothing) doesn't move the card at
+                    // all.
+                    val after = when {
+                        raw >= 0f -> if (now.miniSwipeDown == PlayerGesture.NONE) 0f else raw
+                        now.miniSwipeUp == PlayerGesture.NONE -> 0f
+                        else -> (raw / 3f).coerceAtLeast(upMost)
+                    }
+                    if ((y < stopAt) != (after < stopAt) || (y > upAt) != (after > upAt)) threshold()
+                    y = after
+                    scope.launch { pull.snapTo(after) }
+                } else {
+                    if (justClaimed) justClaimed = false else rawX += ddx
+                    // #222: nor sideways, toward a swipe set to Nothing.
+                    val after = if ((if (rawX < 0f) now.miniSwipeLeft else now.miniSwipeRight) == PlayerGesture.NONE) 0f else rawX
+                    if ((kotlin.math.abs(x) < far) != (kotlin.math.abs(after) < far)) threshold()
+                    x = after
+                    scope.launch { drag.snapTo(after) }
+                }
+            }
+            if (!change.pressed) break
+        }
+        if (lost || vertical == null) {
+            // A tap (or a hold, for the song's menu) is the card's and its buttons' to take.
+            if (vertical != null) scope.launch { pull.animateTo(0f); drag.animateTo(0f) }
+            return@awaitEachGesture
+        }
+        if (vertical == true) scope.launch {
+            val up = settings().miniSwipeUp
+            if (y <= upAt && up != PlayerGesture.NONE) {
+                gestureEnd()
+                onGesture(up)
+                pull.animateTo(0f)
+                return@launch
+            }
+            // Pulled down: stop (#59) or whatever's set in Settings → Player → Gestures (1.7.4).
+            val down = settings().miniSwipeDown
+            if (y > stopAt && down != PlayerGesture.NONE) {
+                gestureEnd()
+                if (down == PlayerGesture.STOP) {
+                    pull.animateTo(height.toPx() * 1.6f)
+                    onStop()
+                    pull.snapTo(0f)
+                } else {
+                    onGesture(down)
+                    pull.animateTo(0f)
+                }
+            } else pull.animateTo(0f)
+        } else scope.launch {
+            val now = settings()
+            val g = when {
+                x < -far -> now.miniSwipeLeft
+                x > far -> now.miniSwipeRight
+                else -> PlayerGesture.NONE
+            }
+            if (g != PlayerGesture.NONE) { gestureEnd(); onGesture(g) }
+            drag.animateTo(0f)
+        }
+    }
+}
 
 @Composable
 fun MiniPlayer(
@@ -140,80 +268,17 @@ fun MiniPlayer(
             .testTag("miniPlayer")
             .offset { IntOffset(drag.value.roundToInt(), pull.value.roundToInt()) }
             .graphicsLayer { alpha = 1f - (pull.value / (height.toPx() * 1.6f)).coerceIn(0f, 0.85f) }
-            .pointerInput(Unit) {
-                val stopAt = height.toPx() * 0.9f
-                // Up (#149, 1.7.7): the card lifts a little against the finger (a third of the drag, at most a third of its
-                // height) and opens the player, or does what's set, once lifted past [upAt].
-                val upAt = -height.toPx() * 0.22f
-                val upMost = -height.toPx() * 0.34f
-                var raw = 0f
-                detectVerticalDragGestures(
-                    onDragStart = { raw = pull.value },
-                    onDragEnd = {
-                        scope.launch {
-                            val up = container.settings.current.miniSwipeUp
-                            if (pull.value <= upAt && up != PlayerGesture.NONE) {
-                                haptics.gestureEnd()
-                                runMiniGesture(up)
-                                pull.animateTo(0f)
-                                return@launch
-                            }
-                            // Pulled down: stop (#59) or whatever's set in Settings → Player → Gestures (1.7.4).
-                            val down = container.settings.current.miniSwipeDown
-                            if (pull.value > stopAt && down != PlayerGesture.NONE) {
-                                haptics.gestureEnd()
-                                if (down == PlayerGesture.STOP) {
-                                    pull.animateTo(height.toPx() * 1.6f)
-                                    pc.stop()
-                                    pull.snapTo(0f)
-                                } else {
-                                    runMiniGesture(down)
-                                    pull.animateTo(0f)
-                                }
-                            } else pull.animateTo(0f)
-                        }
-                    },
-                    onDragCancel = { scope.launch { pull.animateTo(0f) } },
-                ) { change, d ->
-                    change.consume()
-                    raw += d
-                    // #222: a way with no gesture set (Settings → Player → Gestures: Nothing) doesn't move the card at all.
-                    val now = container.settings.current
-                    val after = when {
-                        raw >= 0f -> if (now.miniSwipeDown == PlayerGesture.NONE) 0f else raw
-                        now.miniSwipeUp == PlayerGesture.NONE -> 0f
-                        else -> (raw / 3f).coerceAtLeast(upMost)
-                    }
-                    if ((pull.value < stopAt) != (after < stopAt) || (pull.value > upAt) != (after > upAt)) haptics.threshold()
-                    scope.launch { pull.snapTo(after) }
-                }
-            }
-            .pointerInput(Unit) {
-                var rawX = 0f
-                detectHorizontalDragGestures(
-                    onDragStart = { rawX = drag.value },
-                    onDragEnd = {
-                        scope.launch {
-                            val now = container.settings.current
-                            val g = when {
-                                drag.value < -140 -> now.miniSwipeLeft
-                                drag.value > 140 -> now.miniSwipeRight
-                                else -> PlayerGesture.NONE
-                            }
-                            if (g != PlayerGesture.NONE) { haptics.gestureEnd(); runMiniGesture(g) }
-                            drag.animateTo(0f)
-                        }
-                    },
-                ) { _, d ->
-                    val before = drag.value
-                    rawX += d
-                    // #222: nor sideways, toward a swipe set to Nothing.
-                    val now = container.settings.current
-                    val after = if ((if (rawX < 0f) now.miniSwipeLeft else now.miniSwipeRight) == PlayerGesture.NONE) 0f else rawX
-                    if ((kotlin.math.abs(before) < 140f) != (kotlin.math.abs(after) < 140f)) haptics.threshold()
-                    scope.launch { drag.snapTo(after) }
-                }
-            },
+            .miniPlayerSwipes(
+                height = height,
+                pull = pull,
+                drag = drag,
+                settings = { container.settings.current },
+                scope = scope,
+                threshold = { haptics.threshold() },
+                gestureEnd = { haptics.gestureEnd() },
+                onStop = { pc.stop() },
+                onGesture = { runMiniGesture(it) },
+            ),
     ) {
         // Fill: the played part of the song tints the whole card, in the split light (red at the start, violet at the
         // end; White light's accent or greys).

@@ -5219,6 +5219,9 @@
     <string name="playback_shuffle_button_info">Amestecă și Amestecare inteligentă: fiecare atingere trece de la dezactivat la Amestecă, la Amestecare inteligentă și înapoi la dezactivat. Doar Amestecă: butonul doar pornește și oprește amestecarea.</string>
     <string name="playback_keep_shuffle">Păstrează amestecarea pentru lista următoare</string>
     <string name="playback_keep_shuffle_info">Când ultima coadă era amestecată, melodia pe care o atingi într-o listă e redată prima, iar restul listei e amestecat. Radiourile, melodiile individuale și videoclipurile rămân cum sunt.</string>
+    <string name="previous_goes_back_a_song">Înapoi trece la melodia anterioară</string>
+    <string name="previous_goes_back_a_song_info">O apăsare trece la melodia de dinainte, chiar și la mijlocul acesteia. Oprit, după câteva secunde aceasta repornește de la început.</string>
+    <string name="previous_goes_back_a_song_keywords">înapoi anterior repornire de la început melodie început</string>
     <string name="playback_shuffle_keywords">amestecare inteligentă ordine aleatorie amestecat rămâne amestecat</string>
     <string name="playback_song_to_song">De la o melodie la următoarea</string>
     <string name="playback_speed_and_pitch">Viteză și ton</string>

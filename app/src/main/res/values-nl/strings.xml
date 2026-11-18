@@ -5147,6 +5147,9 @@
     <string name="playback_shuffle_button_info">Shuffle en Slimme shuffle: elke tik gaat van uit naar Shuffle naar Slimme shuffle en weer terug naar uit. Alleen shuffle: de knop zet Shuffle alleen aan en uit.</string>
     <string name="playback_keep_shuffle">Shuffle aan houden voor de volgende lijst</string>
     <string name="playback_keep_shuffle_info">Als de vorige wachtrij geshuffeld was, speelt een nummer dat je in een lijst aantikt eerst en wordt de rest van die lijst geshuffeld. Radio\'s, losse nummers en video\'s blijven zoals ze zijn.</string>
+    <string name="previous_goes_back_a_song">Vorige gaat een nummer terug</string>
+    <string name="previous_goes_back_a_song_info">Eén keer drukken gaat naar het nummer ervoor, ook midden in dit nummer. Uit: na een paar seconden begint dit nummer opnieuw.</string>
+    <string name="previous_goes_back_a_song_keywords">vorige terug opnieuw beginnen herstarten nummer begin</string>
     <string name="playback_shuffle_keywords">slimme shuffle willekeurige volgorde door elkaar geshuffeld blijven smart shuffle random order</string>
     <string name="playback_song_to_song">Van het ene nummer naar het volgende</string>
     <string name="playback_speed_and_pitch">Snelheid en toonhoogte</string>

@@ -5147,6 +5147,9 @@
     <string name="playback_shuffle_button_info">Shuffle at Smart Shuffle: bawat tap ay mula off papuntang Shuffle, papuntang Smart Shuffle at balik sa off. Shuffle lang: ino-on at ino-off lang ng button ang Shuffle.</string>
     <string name="playback_keep_shuffle">Panatilihing naka-shuffle sa susunod na listahan</string>
     <string name="playback_keep_shuffle_info">Kapag naka-shuffle ang huling queue, ang kantang tina-tap mo sa isang listahan ang unang tutugtog at isa-shuffle ang natitira sa listahang iyon. Hindi ginagalaw ang mga radio, solong kanta at video.</string>
+    <string name="previous_goes_back_a_song">Bumabalik ang Nakaraan ng isang kanta</string>
+    <string name="previous_goes_back_a_song_info">Ang isang pagpindot ay pumupunta sa kantang nauna, kahit sa kalagitnaan ng kantang ito. Kapag naka-off, pagkalipas ng ilang segundo ay nagsisimula muli ang kantang ito.</string>
+    <string name="previous_goes_back_a_song_keywords">nakaraan pabalik ulitin simulan muli kanta simula</string>
     <string name="playback_shuffle_keywords">smart shuffle random ayos halo-halo manatiling naka-shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">Mula sa isang kanta papunta sa susunod</string>
     <string name="playback_speed_and_pitch">Bilis at pitch</string>

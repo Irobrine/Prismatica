@@ -5187,6 +5187,9 @@
     <string name="playback_shuffle_button_info">Shuffle and Smart Shuffle: each tap goes from off to Shuffle to Smart Shuffle and back to off. Shuffle only: the button just turns Shuffle on and off.</string>
     <string name="playback_keep_shuffle">Keep shuffle on for the next list</string>
     <string name="playback_keep_shuffle_info">When the last queue was shuffled, a song you tap in a list plays first and the rest of that list is shuffled. Radios, single songs and videos are left alone.</string>
+    <string name="previous_goes_back_a_song">Previous goes back a song</string>
+    <string name="previous_goes_back_a_song_info">A press goes to the song before, even partway through this one. Off, it starts this one over after a few seconds.</string>
+    <string name="previous_goes_back_a_song_keywords">previous back restart start over song beginning</string>
     <string name="playback_shuffle_keywords">smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">From one song to the next</string>
     <string name="playback_speed_and_pitch">Speed and pitch</string>

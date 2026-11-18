@@ -5219,6 +5219,9 @@
     <string name="playback_shuffle_button_info">Aleatório e Aleatório inteligente: cada toque passa de desligado a Aleatório, a Aleatório inteligente e de volta a desligado. Só Aleatório: o botão apenas liga e desliga o Aleatório.</string>
     <string name="playback_keep_shuffle">Manter o aleatório na lista seguinte</string>
     <string name="playback_keep_shuffle_info">Quando a última fila estava em aleatório, a música em que tocas numa lista toca primeiro e o resto dessa lista é baralhado. Rádios, músicas soltas e vídeos ficam como estão.</string>
+    <string name="previous_goes_back_a_song">Anterior recua uma música</string>
+    <string name="previous_goes_back_a_song_info">Um toque vai para a música anterior, mesmo a meio desta. Desligado, ao fim de alguns segundos esta música recomeça.</string>
+    <string name="previous_goes_back_a_song_keywords">anterior voltar atrás reiniciar recomeçar música início</string>
     <string name="playback_shuffle_keywords">aleatório inteligente ordem aleatória misturado baralhar manter</string>
     <string name="playback_song_to_song">De uma música para a seguinte</string>
     <string name="playback_speed_and_pitch">Velocidade e tom</string>

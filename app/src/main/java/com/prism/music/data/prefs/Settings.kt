@@ -389,6 +389,12 @@ data class BehaviorPrefs(
     val carLyricsLines: CarLyricsLines = CarLyricsLines.ONE_LINE,
     /** D54 (1.8.4): a button above the mini player that scrolls a list to the playing song while it's off screen. */
     val locatePlaying: Boolean = false,
+    /**
+     * 1.8.5: Previous goes to the song before, even partway through this one (as a queue's own previous item, so a
+     * shuffled queue goes back in the order it played). Off, as before: it starts the playing song over after a few
+     * seconds.
+     */
+    val previousGoesBack: Boolean = false,
 ) {
     companion object {
         /** #404: how far [lyricsOffsetMs] goes either way. */
@@ -2206,6 +2212,8 @@ class SettingsRepository(
         val shuffleButton = stringPreferencesKey("shuffle_button")
         val carLyricsLines = stringPreferencesKey("car_lyrics_lines")
         val locatePlaying = booleanPreferencesKey("locate_playing")
+        // 1.8.5: Previous always goes to the song before.
+        val previousGoesBack = booleanPreferencesKey("previous_goes_back")
         val lockScreenPlayerLook = booleanPreferencesKey("lock_screen_player_look")
         val albumHeroCover = booleanPreferencesKey("album_hero_cover")
         // 1.8.0 player editor ([PlayerParts]): the hidden parts are part of a Look, the menu's choices aren't.
@@ -2349,6 +2357,8 @@ class SettingsRepository(
                 "history_paused_until", "play_count_seconds", "play_count_account",
                 // 1.8.4 (#406, #404, #416, D57, PR #400, D54): how Prism behaves, not how it looks.
                 "row_swipes", "lyrics_offset_ms", "keep_shuffle", "shuffle_button", "car_lyrics_lines", "locate_playing",
+                // 1.8.5: what Previous does, not how Prism looks.
+                "previous_goes_back",
             )
         }
     }
@@ -2686,6 +2696,7 @@ class SettingsRepository(
                 shuffleButton = p.enum(K.shuffleButton, d.behavior.shuffleButton),
                 carLyricsLines = p.enum(K.carLyricsLines, d.behavior.carLyricsLines),
                 locatePlaying = p[K.locatePlaying] ?: d.behavior.locatePlaying,
+                previousGoesBack = p[K.previousGoesBack] ?: d.behavior.previousGoesBack,
             ),
             tv = TvPrefs(
                 ambientMinutes = (p[K.tvAmbientMinutes] ?: d.tv.ambientMinutes).coerceIn(0, 60),
@@ -3422,6 +3433,8 @@ class SettingsRepository(
     fun setShuffleButton(v: ShuffleButton) = edit { it[K.shuffleButton] = v.name }
     fun setCarLyricsLines(v: CarLyricsLines) = edit { it[K.carLyricsLines] = v.name }
     fun setLocatePlaying(v: Boolean) = edit { it[K.locatePlaying] = v }
+    /** 1.8.5: Previous always goes to the song before, rather than starting this one over. */
+    fun setPreviousGoesBack(v: Boolean) = edit { it[K.previousGoesBack] = v }
     fun setLockScreenPlayerLook(v: Boolean) = edit { it[K.lockScreenPlayerLook] = v }
     /** D55: both switches in one edit ([FullWidthPictures]). */
     fun setFullWidthPictures(v: FullWidthPictures) = edit {

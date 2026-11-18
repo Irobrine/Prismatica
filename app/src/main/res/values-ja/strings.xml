@@ -5075,6 +5075,9 @@
     <string name="playback_shuffle_button_info">シャッフルとスマートシャッフル：タップするたびに、オフ → シャッフル → スマートシャッフル → オフと切り替わります。シャッフルのみ：ボタンはシャッフルのオンとオフだけを切り替えます。</string>
     <string name="playback_keep_shuffle">次のリストでもシャッフルを続ける</string>
     <string name="playback_keep_shuffle_info">前のキューがシャッフルだった場合、リストでタップした曲を最初に再生し、そのリストの残りをシャッフルします。ラジオ、1 曲だけの再生、動画はそのままです。</string>
+    <string name="previous_goes_back_a_song">前へで 1 曲戻る</string>
+    <string name="previous_goes_back_a_song_info">押すと前の曲に移動します。この曲の途中でも同じです。オフのときは、数秒後にこの曲が最初から再生されます。</string>
+    <string name="previous_goes_back_a_song_keywords">前へ 戻る 再開 最初から 曲 先頭</string>
     <string name="playback_shuffle_keywords">スマートシャッフル ランダム 順番 バラバラ シャッフルを維持 smart shuffle random order</string>
     <string name="playback_song_to_song">曲から次の曲へ</string>
     <string name="playback_speed_and_pitch">速度とピッチ</string>

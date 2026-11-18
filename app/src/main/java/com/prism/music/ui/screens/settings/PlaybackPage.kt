@@ -67,6 +67,7 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
     val videosChanged = reset.add(tr(R.string.music_videos_label), videos, SoundChoices.videoPolicy(d), { it.label }) { SoundChoices.setVideoPolicy(prefs, it) }
     val keepVideosChanged = reset.add(tr(R.string.keep_playing_videos), s.videoContinues, d.videoContinues, onOff) { prefs.setVideoContinues(it) }
     val explicitChanged = reset.add(tr(R.string.explicit_songs), s.behavior.explicitContent, d.behavior.explicitContent, { it.label }) { prefs.setExplicitContent(it) }
+    val previousChanged = reset.add(tr(R.string.previous_goes_back_a_song), s.behavior.previousGoesBack, d.behavior.previousGoesBack, onOff) { prefs.setPreviousGoesBack(it) }
     val shuffleButtonChanged = reset.add(tr(R.string.playback_shuffle_button), s.behavior.shuffleButton, d.behavior.shuffleButton, { it.label }) { prefs.setShuffleButton(it) }
     val keepShuffleChanged = reset.add(tr(R.string.playback_keep_shuffle), s.behavior.keepShuffle, d.behavior.keepShuffle, onOff) { prefs.setKeepShuffle(it) }
     val crossfadeChanged = reset.add(tr(R.string.crossfade), crossfade, SoundChoices.crossfade(d), { it.label }) {
@@ -117,6 +118,7 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
                 tr(R.string.explicit_songs), ExplicitContent.entries, s.behavior.explicitContent, { it.label },
                 info = tr(R.string.explicit_songs_info), changed = explicitChanged,
             ) { prefs.setExplicitContent(it) }
+            SwitchRow(tr(R.string.previous_goes_back_a_song), s.behavior.previousGoesBack, info = tr(R.string.previous_goes_back_a_song_info), changed = previousChanged) { prefs.setPreviousGoesBack(it) }
         }
         // D57, #416 (1.8.4).
         group(tr(R.string.shuffle)) {
@@ -252,6 +254,7 @@ val playbackIndex: List<SettingEntry> by lazy {
             SettingEntry(page, next, tr(R.string.music_videos_label), tr(R.string.music_videos_audio) + " " + tr(R.string.songs_not_videos) + " " + tr(R.string.songs_not_videos_everywhere)),
             SettingEntry(page, next, tr(R.string.keep_playing_videos), tr(R.string.music_video_2)),
             SettingEntry(page, next, tr(R.string.explicit_songs), tr(R.string.explicit_songs_keywords)),
+            SettingEntry(page, next, tr(R.string.previous_goes_back_a_song), tr(R.string.previous_goes_back_a_song_keywords)),
             // 1.8.4: D57, #416.
             SettingEntry(page, shuffle, tr(R.string.playback_shuffle_button), tr(R.string.playback_shuffle_keywords) + " " + tr(R.string.shuffle_button_both) + " " + tr(R.string.shuffle_button_only)),
             SettingEntry(page, shuffle, tr(R.string.playback_keep_shuffle), tr(R.string.playback_shuffle_keywords)),

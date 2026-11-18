@@ -5075,6 +5075,9 @@
     <string name="playback_shuffle_button_info">สุ่มเพลงและสุ่มเพลงอัจฉริยะ: แตะแต่ละครั้งจะเปลี่ยนจากปิด เป็นสุ่มเพลง เป็นสุ่มเพลงอัจฉริยะ แล้วกลับเป็นปิด สุ่มเพลงอย่างเดียว: ปุ่มจะแค่เปิดและปิดสุ่มเพลง</string>
     <string name="playback_keep_shuffle">สุ่มเพลงต่อในรายการถัดไป</string>
     <string name="playback_keep_shuffle_info">ถ้าคิวล่าสุดสุ่มอยู่ เพลงที่คุณแตะในรายการจะเล่นก่อน และเพลงที่เหลือในรายการนั้นจะถูกสุ่ม วิทยุ เพลงเดี่ยว และวิดีโอจะไม่เปลี่ยน</string>
+    <string name="previous_goes_back_a_song">ก่อนหน้าย้อนกลับไปหนึ่งเพลง</string>
+    <string name="previous_goes_back_a_song_info">การกดหนึ่งครั้งจะไปยังเพลงก่อนหน้า แม้จะเล่นเพลงนี้อยู่กลางเพลงก็ตาม เมื่อปิด หลังจากผ่านไปสองสามวินาที เพลงนี้จะเริ่มใหม่ตั้งแต่ต้น</string>
+    <string name="previous_goes_back_a_song_keywords">ก่อนหน้า ย้อนกลับ เริ่มใหม่ เล่นซ้ำ เพลง ต้นเพลง</string>
     <string name="playback_shuffle_keywords">สุ่มเพลงอัจฉริยะ ลำดับสุ่ม คละ สุ่มต่อ</string>
     <string name="playback_song_to_song">จากเพลงหนึ่งไปอีกเพลง</string>
     <string name="playback_speed_and_pitch">ความเร็วและคีย์</string>

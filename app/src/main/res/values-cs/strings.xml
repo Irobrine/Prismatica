@@ -5291,6 +5291,9 @@
     <string name="playback_shuffle_button_info">Náhodně a Chytré náhodné přehrávání: každé klepnutí přepne z vypnuto na Náhodně, pak na Chytré náhodné přehrávání a zpět na vypnuto. Jen Náhodně: tlačítko jen zapíná a vypíná Náhodně.</string>
     <string name="playback_keep_shuffle">Nechat náhodné přehrávání i pro další seznam</string>
     <string name="playback_keep_shuffle_info">Když byla poslední fronta zamíchaná, skladba, na kterou klepneš v seznamu, hraje první a zbytek seznamu se zamíchá. Rádia, jednotlivé skladby a videa zůstávají beze změny.</string>
+    <string name="previous_goes_back_a_song">Předchozí přejde o skladbu zpět</string>
+    <string name="previous_goes_back_a_song_info">Stisknutí přejde na skladbu před touto, i když tato právě hraje. Vypnuto: po několika sekundách tato skladba začne znovu.</string>
+    <string name="previous_goes_back_a_song_keywords">předchozí zpět restart znovu od začátku skladba začátek</string>
     <string name="playback_shuffle_keywords">chytré náhodné přehrávání náhodné pořadí zamíchat zůstat zamíchané smart shuffle random order mixed up</string>
     <string name="playback_song_to_song">Z jedné skladby do další</string>
     <string name="playback_speed_and_pitch">Rychlost a výška tónu</string>

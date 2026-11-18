@@ -5147,6 +5147,9 @@
     <string name="playback_shuffle_button_info">پخش تصادفی و پخش تصادفی هوشمند: هر ضربه از خاموش به پخش تصادفی، سپس به پخش تصادفی هوشمند و دوباره به خاموش می‌رود. فقط پخش تصادفی: دکمه فقط پخش تصادفی را روشن و خاموش می‌کند.</string>
     <string name="playback_keep_shuffle">پخش تصادفی برای فهرست بعدی روشن بماند</string>
     <string name="playback_keep_shuffle_info">اگر صف قبلی تصادفی بود، آهنگی که در یک فهرست لمس می‌کنید اول پخش می‌شود و بقیه آن فهرست تصادفی می‌شود. رادیوها، تک‌آهنگ‌ها و ویدیوها دست‌نخورده می‌مانند.</string>
+    <string name="previous_goes_back_a_song">قبلی یک آهنگ عقب می‌رود</string>
+    <string name="previous_goes_back_a_song_info">یک فشار به آهنگ قبلی می‌رود، حتی در میانه این آهنگ. وقتی خاموش است، پس از چند ثانیه این آهنگ از ابتدا پخش می‌شود.</string>
+    <string name="previous_goes_back_a_song_keywords">قبلی عقب شروع دوباره از ابتدا آهنگ ابتدا</string>
     <string name="playback_shuffle_keywords">پخش تصادفی هوشمند ترتیب تصادفی درهم تصادفی بماند smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">از یک آهنگ به آهنگ بعدی</string>
     <string name="playback_speed_and_pitch">سرعت و زیر و بمی</string>

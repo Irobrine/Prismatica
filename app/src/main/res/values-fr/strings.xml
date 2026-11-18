@@ -5219,6 +5219,9 @@
     <string name="playback_shuffle_button_info">Aléatoire et Aléatoire intelligent : chaque appui passe de désactivé à Lecture aléatoire, puis à Lecture aléatoire intelligente, puis à nouveau à désactivé. Aléatoire uniquement : le bouton ne fait qu’activer et désactiver la Lecture aléatoire.</string>
     <string name="playback_keep_shuffle">Garder l’aléatoire pour la liste suivante</string>
     <string name="playback_keep_shuffle_info">Quand la dernière file d’attente était en aléatoire, le titre sur lequel vous appuyez dans une liste est lu en premier et le reste de la liste est mélangé. Les radios, les titres seuls et les vidéos ne changent pas.</string>
+    <string name="previous_goes_back_a_song">Précédent revient au titre d’avant</string>
+    <string name="previous_goes_back_a_song_info">Une pression passe au titre d’avant, même au milieu de celui-ci. Désactivé, après quelques secondes, celui-ci repart du début.</string>
+    <string name="previous_goes_back_a_song_keywords">précédent retour redémarrer recommencer titre début</string>
     <string name="playback_shuffle_keywords">lecture aléatoire intelligente ordre aléatoire mélangé rester en aléatoire smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">D’un titre au suivant</string>
     <string name="playback_speed_and_pitch">Vitesse et tonalité</string>

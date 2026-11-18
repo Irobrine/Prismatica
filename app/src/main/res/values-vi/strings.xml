@@ -5075,6 +5075,9 @@
     <string name="playback_shuffle_button_info">Phát ngẫu nhiên và Trộn bài thông minh: mỗi lần nhấn chuyển từ tắt sang Phát ngẫu nhiên, sang Trộn bài thông minh rồi trở về tắt. Chỉ Phát ngẫu nhiên: nút chỉ bật và tắt Phát ngẫu nhiên.</string>
     <string name="playback_keep_shuffle">Giữ phát ngẫu nhiên cho danh sách tiếp theo</string>
     <string name="playback_keep_shuffle_info">Khi danh sách chờ trước đang phát ngẫu nhiên, bài bạn nhấn trong một danh sách sẽ phát trước và phần còn lại của danh sách đó được trộn. Radio, bài lẻ và video giữ nguyên.</string>
+    <string name="previous_goes_back_a_song">Nút trước lùi một bài</string>
+    <string name="previous_goes_back_a_song_info">Một lần nhấn sẽ sang bài trước, kể cả khi đang ở giữa bài này. Khi tắt, sau vài giây bài này sẽ phát lại từ đầu.</string>
+    <string name="previous_goes_back_a_song_keywords">trước lùi khởi động lại từ đầu bài bắt đầu</string>
     <string name="playback_shuffle_keywords">trộn bài thông minh thứ tự ngẫu nhiên xáo trộn giữ ngẫu nhiên</string>
     <string name="playback_song_to_song">Từ bài này sang bài tiếp theo</string>
     <string name="playback_speed_and_pitch">Tốc độ và cao độ</string>

@@ -5147,6 +5147,9 @@
     <string name="playback_shuffle_button_info">Τυχαία και Έξυπνη τυχαία αναπαραγωγή: κάθε πάτημα πηγαίνει από ανενεργό σε Τυχαία αναπαραγωγή, μετά σε Έξυπνη τυχαία αναπαραγωγή και πάλι σε ανενεργό. Μόνο τυχαία αναπαραγωγή: το κουμπί απλώς ενεργοποιεί και απενεργοποιεί την Τυχαία αναπαραγωγή.</string>
     <string name="playback_keep_shuffle">Τυχαία αναπαραγωγή και στην επόμενη λίστα</string>
     <string name="playback_keep_shuffle_info">Όταν η προηγούμενη ουρά ήταν ανακατεμένη, ένα τραγούδι που πατάς σε μια λίστα παίζει πρώτο και η υπόλοιπη λίστα ανακατεύεται. Τα ραδιόφωνα, τα μεμονωμένα τραγούδια και τα βίντεο μένουν ως έχουν.</string>
+    <string name="previous_goes_back_a_song">Το Προηγούμενο πηγαίνει ένα τραγούδι πίσω</string>
+    <string name="previous_goes_back_a_song_info">Ένα πάτημα πηγαίνει στο προηγούμενο τραγούδι, ακόμα και στη μέση αυτού. Αν είναι κλειστό, μετά από λίγα δευτερόλεπτα αυτό ξεκινά από την αρχή.</string>
+    <string name="previous_goes_back_a_song_keywords">προηγούμενο πίσω επανεκκίνηση από την αρχή τραγούδι αρχή</string>
     <string name="playback_shuffle_keywords">έξυπνη τυχαία αναπαραγωγή τυχαία σειρά ανακάτεμα μένει ανακατεμένο smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">Από το ένα τραγούδι στο επόμενο</string>
     <string name="playback_speed_and_pitch">Ταχύτητα και τονικότητα</string>

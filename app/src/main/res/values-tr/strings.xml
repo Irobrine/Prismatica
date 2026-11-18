@@ -5147,6 +5147,9 @@
     <string name="playback_shuffle_button_info">Karıştır ve Akıllı Karıştırma: her dokunuş kapalıdan Karıştır\'a, oradan Akıllı Karıştırma\'ya ve tekrar kapalıya geçer. Yalnızca Karıştır: düğme yalnızca Karıştır\'ı açıp kapatır.</string>
     <string name="playback_keep_shuffle">Sonraki liste için karıştırmayı açık tut</string>
     <string name="playback_keep_shuffle_info">Son sıra karıştırılmışsa, bir listede dokunduğun şarkı önce çalar ve listenin geri kalanı karıştırılır. Radyolar, tekli şarkılar ve videolar olduğu gibi kalır.</string>
+    <string name="previous_goes_back_a_song">Önceki bir şarkı geri gider</string>
+    <string name="previous_goes_back_a_song_info">Bir basış, bu şarkının ortasında olsa bile önceki şarkıya gider. Kapalıyken birkaç saniye sonra bu şarkı baştan başlar.</string>
+    <string name="previous_goes_back_a_song_keywords">önceki geri yeniden başlat baştan şarkı başlangıç</string>
     <string name="playback_shuffle_keywords">akıllı karıştırma rastgele sıra karışık karışık kalsın</string>
     <string name="playback_song_to_song">Bir şarkıdan diğerine</string>
     <string name="playback_speed_and_pitch">Hız ve perde</string>

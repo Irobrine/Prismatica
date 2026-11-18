@@ -2527,6 +2527,12 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     )
                 }
             }
+            // 1.8.5: the notification's, the lock screen's, a watch's or a headset's Previous obeys the same choice as
+            // Prism's own buttons: always the song before, rather than the playing one's start.
+            if (playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS && c.settings.current.behavior.previousGoesBack) {
+                session.player.seekToPreviousAsChosen(previousGoesBack = true)
+                return SessionResult.RESULT_INFO_SKIPPED
+            }
             return super.onPlayerCommandRequest(session, controller, playerCommand)
         }
 

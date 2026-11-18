@@ -5147,6 +5147,9 @@
     <string name="playback_shuffle_button_info">شفل اور سمارٹ شفل: ہر ٹیپ بند سے شفل، پھر سمارٹ شفل اور واپس بند پر جاتا ہے۔ صرف شفل: بٹن بس شفل آن اور آف کرتا ہے۔</string>
     <string name="playback_keep_shuffle">اگلی فہرست کے لیے شفل آن رکھیں</string>
     <string name="playback_keep_shuffle_info">جب پچھلی قطار شفل تھی، تو فہرست میں جس گانے پر آپ ٹیپ کریں وہ پہلے چلتا ہے اور باقی فہرست شفل ہو جاتی ہے۔ ریڈیوز، اکیلے گانے اور ویڈیوز ویسے ہی رہتے ہیں۔</string>
+    <string name="previous_goes_back_a_song">پچھلا ایک گانا پیچھے جاتا ہے</string>
+    <string name="previous_goes_back_a_song_info">ایک دفعہ دبانے پر پچھلے گانے پر چلا جاتا ہے، چاہے یہ گانا آدھا ہی چلا ہو۔ بند ہونے پر چند سیکنڈ بعد یہ گانا دوبارہ شروع ہوتا ہے۔</string>
+    <string name="previous_goes_back_a_song_keywords">پچھلا پیچھے دوبارہ شروع از سر نو گانا آغاز</string>
     <string name="playback_shuffle_keywords">سمارٹ شفل بے ترتیب ترتیب ملا جلا شفل رہے</string>
     <string name="playback_song_to_song">ایک گانے سے اگلے تک</string>
     <string name="playback_speed_and_pitch">رفتار اور پچ</string>

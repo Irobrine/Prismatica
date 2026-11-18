@@ -5291,6 +5291,9 @@
     <string name="playback_shuffle_button_info">Перемішати й розумне перемішування: кожне торкання перемикає з вимк. на «Перемішати», далі на «Розумне перемішування» й знову на вимк. Лише перемішати: кнопка просто вмикає й вимикає перемішування.</string>
     <string name="playback_keep_shuffle">Зберігати перемішування для наступного списку</string>
     <string name="playback_keep_shuffle_info">Якщо минула черга була перемішана, пісня, яку ти торкаєш у списку, грає першою, а решта списку перемішується. Радіо, окремі пісні й відео лишаються як є.</string>
+    <string name="previous_goes_back_a_song">«Назад» переходить до попередньої пісні</string>
+    <string name="previous_goes_back_a_song_info">Натискання переходить до пісні перед цією, навіть посеред неї. Вимкнено: за кілька секунд ця пісня починається спочатку.</string>
+    <string name="previous_goes_back_a_song_keywords">назад попередня перезапуск спочатку пісня початок</string>
     <string name="playback_shuffle_keywords">розумне перемішування випадковий порядок упереміш лишатися перемішаним</string>
     <string name="playback_song_to_song">Від пісні до пісні</string>
     <string name="playback_speed_and_pitch">Швидкість і тональність</string>

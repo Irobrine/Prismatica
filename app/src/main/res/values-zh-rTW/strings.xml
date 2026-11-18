@@ -5075,6 +5075,9 @@
     <string name="playback_shuffle_button_info">隨機播放和智慧隨機播放：每次輕觸會從關閉切換到隨機播放、智慧隨機播放，再回到關閉。僅隨機播放：按鈕只會開啟和關閉隨機播放。</string>
     <string name="playback_keep_shuffle">下一個清單繼續隨機播放</string>
     <string name="playback_keep_shuffle_info">如果上一個待播清單是隨機播放的，你在清單中輕觸的歌曲會先播放，清單其餘部分則隨機排列。電台、單曲和影片維持不變。</string>
+    <string name="previous_goes_back_a_song">上一首會回到上一首歌</string>
+    <string name="previous_goes_back_a_song_info">按下後會前往前一首歌，即使這首才播到一半也一樣。關閉時，播放幾秒後按下會讓這首重新開始。</string>
+    <string name="previous_goes_back_a_song_keywords">上一首 返回 重新開始 從頭播放 歌曲 開頭</string>
     <string name="playback_shuffle_keywords">智慧隨機播放 隨機順序 打亂 保持隨機</string>
     <string name="playback_song_to_song">從一首歌到下一首</string>
     <string name="playback_speed_and_pitch">速度和音調</string>

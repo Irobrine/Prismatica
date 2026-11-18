@@ -43,6 +43,16 @@ fun nextRepeatMode(mode: Int): Int = when (mode) {
 enum class ShuffleMode { OFF, SHUFFLE, SMART }
 
 /**
+ * Previous, as the listener chose it (1.8.5): always the song before ([previousGoesBack]), which is the player's own
+ * previous item so a shuffled queue goes back in the order it played; or, as before, this song's start first and the
+ * song before only once near it.
+ */
+internal fun Player.seekToPreviousAsChosen(previousGoesBack: Boolean) {
+    // At the first song (repeat off) there's nothing before: it starts this one over, rather than doing nothing.
+    if (previousGoesBack && previousMediaItemIndex != C.INDEX_UNSET) seekToPreviousMediaItem() else seekToPrevious()
+}
+
+/**
  * Shuffle's button (the player's, the TV's, the browser remote's): off → shuffle → Smart Shuffle (where the queue
  * allows it) → off. With Settings → Playback → Shuffle button set to "Shuffle only" (1.8.4, D57) it's off → on → off,
  * and someone still in Smart Shuffle goes to off with the next tap.
@@ -845,7 +855,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     fun next() = withPlayer { it.seekToNext() }
-    fun previous() = withPlayer { it.seekToPrevious() }
+    /** Previous, as the listener set it: the song before always (1.8.5), or its start first after a few seconds. */
+    fun previous() = withPlayer { it.seekToPreviousAsChosen(c.settings.current.behavior.previousGoesBack) }
 
     /** Calls [done] once the player is reached (after commands asked for before it, such as a widget's), at once if it is. */
     fun afterPending(done: () -> Unit) = withPlayer { done() }

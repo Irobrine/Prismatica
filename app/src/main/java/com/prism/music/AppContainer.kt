@@ -388,13 +388,26 @@ class AppContainer(val app: Application) {
     val waves by lazy { com.prism.music.data.SongWaves(app) }
 
     /**
-     * Where a song's audio is on the phone, for scanning it without the network: a local file as it is; a download or
-     * a song cached whole, copied out of its cache into [scratch]. Null when it isn't all here.
+     * Where a song's audio is on the phone, for scanning it without the network: a local file as it is; a lossless
+     * file or one of the listener's own files Downloads plays from; a download or a song cached whole, copied out of
+     * its cache into [scratch]. Null when it isn't all here.
      */
     internal fun audioOnPhone(id: String, scratch: File): android.net.Uri? {
         if (id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX)) return localMusic.uriFor(id)
-        for ((cache, key) in listOf(downloadCache to id, playerCache to songCacheKey(id))) {
-            if (!cache.fullyCached(key, 0, C.LENGTH_UNSET.toLong())) continue
+        // 1.8.5: a lossless file (or one of the listener's own) shows in Downloads as the song but lives outside both
+        // caches; Measure now and Sing used to stream it again.
+        localLossless.linked[id]?.let { return it }
+        // 1.8.5: a music video downloaded as its song is kept under the song's own id.
+        val keptAs = downloadStandIns.value[id] ?: id
+        for ((cache, key) in listOf(
+            downloadCache to keptAs, playerCache to songCacheKey(keptAs),
+            downloadCache to id, playerCache to songCacheKey(id),
+        ).distinct()) {
+            // A finished download is read even when its content length wasn't recorded (fullyCached is then false);
+            // there's no upstream here, so nothing can be fetched.
+            val complete = cache.fullyCached(key, 0, C.LENGTH_UNSET.toLong()) ||
+                (cache === downloadCache && downloads.isDownloaded(key))
+            if (!complete) continue
             val ok = runCatching {
                 val source = CacheDataSource(cache, null)
                 source.open(DataSpec.Builder().setUri("prism://audio/$id").setKey(key).build())
@@ -507,9 +520,14 @@ class AppContainer(val app: Application) {
             }
         }
     }
-    /** "Measure now" on a smart playlist: the songs its Sound rules can't see yet, scanned one by one (Wi-Fi for streams). */
+    /**
+     * "Measure now" on a smart playlist: the songs its Sound rules can't see yet, looked at three stretches at a time
+     * ([com.prism.music.playback.MixTempo.quickScan], which fills the same traits a smart playlist filters on), rather
+     * than whole songs with everything Normalize and Crossfade need. Downloaded, lossless and own-file songs are read
+     * from the phone; streams are fetched only on an unmetered network.
+     */
     val smartMeasure by lazy {
-        com.prism.music.data.SmartMeasure(scope, { id, network -> mixTempo.measure(id, network = network, key = true) }) {
+        com.prism.music.data.SmartMeasure(scope, { id, network -> mixTempo.quickScan(id, network = network, force = true) }) {
             app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
         }
     }

@@ -203,8 +203,9 @@ object SmartQuery {
 }
 
 /**
- * "Measure now" (1.8.3): songs a smart playlist's Sound rules can't see yet, scanned one after another in the background
- * with the scan Normalize and DJ mode use. Songs not on the phone are fetched only on an unmetered network ([unmetered]).
+ * "Measure now" (1.8.3): songs a smart playlist's Sound rules can't see yet. 1.8.5 looks at three stretches of each
+ * ([MixTempo.quickScan]) instead of the whole song, which is all the Sound rules read and several times faster (and a
+ * fraction of the data for a stream). Songs not on the phone are fetched only on an unmetered network ([unmetered]).
  * [progress]: done of all, while it runs.
  */
 class SmartMeasure(
@@ -215,7 +216,7 @@ class SmartMeasure(
     val progress = kotlinx.coroutines.flow.MutableStateFlow<Pair<Int, Int>?>(null)
     private var job: kotlinx.coroutines.Job? = null
 
-    /** Starts on [ids] unless it's already measuring; whether songs not on the phone will be fetched. */
+    /** Starts on [ids] unless it's already measuring; whether songs not on the phone will be fetched now. */
     fun start(ids: List<String>): Boolean {
         val network = unmetered()
         if (job?.isActive == true || ids.isEmpty()) return network
@@ -223,7 +224,9 @@ class SmartMeasure(
             progress.value = 0 to ids.size
             try {
                 ids.forEachIndexed { i, id ->
-                    runCatching { measure(id, network) }
+                    // On the phone, no network is needed; a stream is fetched only while the network really is
+                    // unmetered (the listener may have left Wi-Fi part way through).
+                    runCatching { measure(id, unmetered()) }
                     progress.value = i + 1 to ids.size
                 }
             } finally { progress.value = null }
@@ -262,6 +265,38 @@ class SmartPlaylists(
     private data class Have(val down: Boolean = false, val local: Boolean = false, val genre: String? = null)
 
     suspend fun run(rules: SmartRules, now: Long = System.currentTimeMillis()): SmartResult = withContext(Dispatchers.IO) {
+        val flags = flagsFor(rules)
+        db.runInTransaction<SmartResult> {
+            val sql = db.openHelper.writableDatabase
+            fillHave(sql, flags)
+            val q = SmartQuery.songs(rules, now)
+            val found = rows(sql, androidx.sqlite.db.SimpleSQLiteQuery(q.sql, q.args.toTypedArray())).map { it.toSong() }
+            // Random: the same order all day (a list that reshuffles itself each time it's opened would be no list).
+            val songs = if (rules.sort != SmartSort.RANDOM) found
+                else found.shuffled(kotlin.random.Random(now / 86_400_000L)).let { s -> rules.limit?.let { s.take(it) } ?: s }
+            val unmeasured = SmartQuery.unmeasured(rules, now)?.let { u ->
+                sql.query(androidx.sqlite.db.SimpleSQLiteQuery(u.sql, u.args.toTypedArray())).use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
+            } ?: 0
+            SmartResult(songs, unmeasured)
+        }
+    }
+
+    /** Ids of up to [limit] songs the rules' Sound part can't see yet (for "Measure now"). */
+    suspend fun unmeasuredIds(rules: SmartRules, limit: Int, now: Long = System.currentTimeMillis()): List<String> = withContext(Dispatchers.IO) {
+        val q = SmartQuery.unmeasuredIds(rules, now, limit) ?: return@withContext emptyList()
+        // The flags the query joins on (downloaded, a file on the phone, a genre) are filled here too: this used to run
+        // against an empty table unless the page had drawn the playlist first, so with "all" and a library rule it found
+        // nothing, and "measuring" counted songs it had not looked at.
+        val flags = flagsFor(rules)
+        db.runInTransaction<List<String>> {
+            val sql = db.openHelper.writableDatabase
+            fillHave(sql, flags)
+            sql.query(androidx.sqlite.db.SimpleSQLiteQuery(q.sql, q.args.toTypedArray())).use { c -> buildList { while (c.moveToNext()) add(c.getString(0)) } }
+        }
+    }
+
+    /** Every song's row in the flags table: downloaded, a file on the phone, its genre when a rule asks for it. */
+    private suspend fun flagsFor(rules: SmartRules): Map<String, Have> {
         val down = downloaded()
         val files = phoneFiles()
         // Downloads and files the database doesn't have a row for yet get one (only what's missing; songs rows are never
@@ -279,47 +314,31 @@ class SmartPlaylists(
             val wanted = genreRules.mapNotNull { it.text?.trim()?.lowercase() }.toSet()
             genres((known + down + files).distinctBy { it.id }).mapValues { it.value.trim().lowercase() }.filterValues { it in wanted }
         }
-        db.runInTransaction<SmartResult> {
-            val sql = db.openHelper.writableDatabase
-            sql.execSQL("CREATE TEMP TABLE IF NOT EXISTS ${SmartQuery.HAVE} (id TEXT PRIMARY KEY, down INTEGER NOT NULL DEFAULT 0, local INTEGER NOT NULL DEFAULT 0, genre TEXT)")
-            // Each song's row worked out here. The table (on the one writer connection) is refilled only when they
-            // changed or it lost its rows; in rows of 200 per statement (4 arguments each, under old SQLite's 999).
-            val flags = HashMap<String, Have>()
-            down.forEach { flags[it.id] = Have(down = true) }
-            files.forEach { flags[it.id] = (flags[it.id] ?: Have()).copy(local = true) }
-            genreOf.forEach { (id, g) -> flags[id] = (flags[id] ?: Have()).copy(genre = g) }
-            val rowsNow = sql.query("SELECT COUNT(*) FROM ${SmartQuery.HAVE}").use { c -> if (c.moveToFirst()) c.getInt(0) else -1 }
-            if (flags != filled || rowsNow != flags.size) {
-                sql.execSQL("DELETE FROM ${SmartQuery.HAVE}")
-                flags.entries.chunked(200).forEach { part ->
-                    val args = ArrayList<Any?>(part.size * 4)
-                    part.forEach { (id, h) -> args += id; args += if (h.down) 1 else 0; args += if (h.local) 1 else 0; args += h.genre }
-                    sql.execSQL(
-                        "INSERT INTO ${SmartQuery.HAVE} (id, down, local, genre) VALUES " + part.joinToString(",") { "(?,?,?,?)" },
-                        args.toTypedArray(),
-                    )
-                }
-                filled = HashMap(flags)
-            }
-            val q = SmartQuery.songs(rules, now)
-            val found = rows(sql, androidx.sqlite.db.SimpleSQLiteQuery(q.sql, q.args.toTypedArray())).map { it.toSong() }
-            // Random: the same order all day (a list that reshuffles itself each time it's opened would be no list).
-            val songs = if (rules.sort != SmartSort.RANDOM) found
-                else found.shuffled(kotlin.random.Random(now / 86_400_000L)).let { s -> rules.limit?.let { s.take(it) } ?: s }
-            val unmeasured = SmartQuery.unmeasured(rules, now)?.let { u ->
-                sql.query(androidx.sqlite.db.SimpleSQLiteQuery(u.sql, u.args.toTypedArray())).use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
-            } ?: 0
-            SmartResult(songs, unmeasured)
-        }
+        val flags = HashMap<String, Have>()
+        down.forEach { flags[it.id] = Have(down = true) }
+        files.forEach { flags[it.id] = (flags[it.id] ?: Have()).copy(local = true) }
+        genreOf.forEach { (id, g) -> flags[id] = (flags[id] ?: Have()).copy(genre = g) }
+        return flags
     }
 
-    /** Ids of up to [limit] songs the rules' Sound part can't see yet (for "Measure now"). */
-    suspend fun unmeasuredIds(rules: SmartRules, limit: Int, now: Long = System.currentTimeMillis()): List<String> = withContext(Dispatchers.IO) {
-        val q = SmartQuery.unmeasuredIds(rules, now, limit) ?: return@withContext emptyList()
-        db.runInTransaction<List<String>> {
-            val sql = db.openHelper.writableDatabase
-            sql.execSQL("CREATE TEMP TABLE IF NOT EXISTS ${SmartQuery.HAVE} (id TEXT PRIMARY KEY, down INTEGER NOT NULL DEFAULT 0, local INTEGER NOT NULL DEFAULT 0, genre INTEGER NOT NULL DEFAULT 0)")
-            sql.query(androidx.sqlite.db.SimpleSQLiteQuery(q.sql, q.args.toTypedArray())).use { c -> buildList { while (c.moveToNext()) add(c.getString(0)) } }
+    /**
+     * Refills the temporary flags table when the songs changed or it lost its rows, in rows of 200 per statement (4
+     * arguments each, under old SQLite's 999).
+     */
+    private fun fillHave(sql: androidx.sqlite.db.SupportSQLiteDatabase, flags: Map<String, Have>) {
+        sql.execSQL("CREATE TEMP TABLE IF NOT EXISTS ${SmartQuery.HAVE} (id TEXT PRIMARY KEY, down INTEGER NOT NULL DEFAULT 0, local INTEGER NOT NULL DEFAULT 0, genre TEXT)")
+        val rowsNow = sql.query("SELECT COUNT(*) FROM ${SmartQuery.HAVE}").use { c -> if (c.moveToFirst()) c.getInt(0) else -1 }
+        if (flags != filled || rowsNow != flags.size) {
+            sql.execSQL("DELETE FROM ${SmartQuery.HAVE}")
+            flags.entries.chunked(200).forEach { part ->
+                val args = ArrayList<Any?>(part.size * 4)
+                part.forEach { (id, h) -> args += id; args += if (h.down) 1 else 0; args += if (h.local) 1 else 0; args += h.genre }
+                sql.execSQL(
+                    "INSERT INTO ${SmartQuery.HAVE} (id, down, local, genre) VALUES " + part.joinToString(",") { "(?,?,?,?)" },
+                    args.toTypedArray(),
+                )
+            }
+            filled = HashMap(flags)
         }
     }
 

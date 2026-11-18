@@ -164,6 +164,13 @@ class SmartPlaylistsTest {
         assertEquals("no Sound rule, nothing to measure", 0, smart.run(SmartRules(listOf(SmartRule(SmartField.LIKED))), now).unmeasured)
     }
 
+    @Test fun measureNowWorksWithoutDrawingThePlaylistFirst() = runBlocking {
+        // 1.8.5: the buttons ask which songs to measure before the page has run the playlist's query. The flags table
+        // used to be empty then, so "all" with a library rule found nothing at all.
+        val rules = SmartRules(listOf(SmartRule(SmartField.BPM, min = 120.0), SmartRule(SmartField.DOWNLOADED)))
+        assertEquals(listOf("f"), smart.unmeasuredIds(rules, 10, now))
+    }
+
     @Test fun followsWhatThePhoneHas() {
         // The temporary table is kept between runs: it must follow downloads and files that come and go.
         assertEquals(listOf("f"), ids(SmartRule(SmartField.DOWNLOADED)))

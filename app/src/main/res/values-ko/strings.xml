@@ -5075,6 +5075,9 @@
     <string name="playback_shuffle_button_info">셔플 및 스마트 셔플: 탭할 때마다 끄기에서 셔플, 스마트 셔플을 거쳐 다시 끄기로 바뀌어요. 셔플만: 버튼이 셔플을 켜고 끄기만 해요.</string>
     <string name="playback_keep_shuffle">다음 목록에서도 셔플 유지</string>
     <string name="playback_keep_shuffle_info">마지막 대기열이 셔플 상태였다면, 목록에서 탭한 곡이 먼저 재생되고 그 목록의 나머지는 섞여요. 라디오, 한 곡 재생, 동영상은 그대로 둬요.</string>
+    <string name="previous_goes_back_a_song">이전을 누르면 한 곡 뒤로 가요</string>
+    <string name="previous_goes_back_a_song_info">한 번 누르면 이 곡의 중간이어도 전 곡으로 가요. 끄면 몇 초 뒤에 이 곡이 처음부터 다시 재생돼요.</string>
+    <string name="previous_goes_back_a_song_keywords">이전 뒤로 다시 시작 처음부터 곡 시작</string>
     <string name="playback_shuffle_keywords">스마트 셔플 무작위 순서 섞기 셔플 유지 smart shuffle random order</string>
     <string name="playback_song_to_song">한 곡에서 다음 곡으로</string>
     <string name="playback_speed_and_pitch">속도 및 음높이</string>
