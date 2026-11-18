@@ -2,6 +2,15 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.1.3
+
+Shuffle starts anywhere in the list again.
+
+### Shuffle
+
+- **A shuffle no longer tends to start near the top.** A shuffled start whose random song was snoozed gave way to the first song left in the list, so with tracks snoozed a library's shuffles kept starting at the top of Library → Songs — once for every pick that hit one (with a fifth of a list snoozed, a fifth of its shuffles started at the very top). The pick now gives way to another random song, and a shuffle's start is as likely anywhere in what's left (6 of 400 at the top after the fix, where chance says ~5). A tap, Play next and Add to queue still keep a snoozed song, as they did.
+- `ShuffleStartTest` gains a snoozed-pick case: with 20 of 100 songs snoozed, 200 shuffles never start on a snoozed one and the first allowed song starts no more often than chance allows.
+
 ## 1.1.2
 
 Search in other scripts reaches the rest of the Library, fast swipes finish without the distance, Shuffle starts without waiting on a video lookup, tab changes follow the bar, and a music video plays at the same level as its song.

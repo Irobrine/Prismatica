@@ -168,6 +168,30 @@ class ShuffleStartTest {
     }
 
     /**
+     * A shuffled start whose random pick lands on a snoozed track starts on another random song, not the top of the
+     * list (1.8.5's "a shuffle's start gives way" fell back to the first song of what was left, so with tracks snoozed
+     * a library's shuffles kept starting near the top, once per snoozed pick).
+     */
+    @Test fun aSnoozedPickStartsSomewhereRandomNotAtTheTop() {
+        start()
+        val p = player!!
+        val c = container!!
+        val songs = (0 until 100).map { Song("z$it", "Zed $it", durationSec = 200) }
+        // Twenty snoozed, from the middle: a pick landing there must give way to a random song, not to index 0.
+        c.snoozes.snooze(songs.slice(20 until 40))
+        val allowed = songs.filterIndexed { i, _ -> i < 20 || i >= 40 }.map { it.id }.toSet()
+        var atTop = 0
+        repeat(200) {
+            c.player.playQueue(songs, 0, source("Songs"), shuffle = true)
+            val id = p.currentMediaItem?.mediaId
+            assertTrue("a snoozed song never starts the queue: $id", id in allowed)
+            if (id == songs.first().id) atTop++
+        }
+        // Fair odds put the first allowed song at the top of ~2.5 of 200 starts; the fallback made it ~40.
+        assertTrue("the first song started $atTop of 200 shuffles", atTop <= 15)
+    }
+
+    /**
      * What the tap used to wait on: making every song's media item on the calling thread. The same list, measured, so
      * the difference is reproducible here and in future versions (the shuffle start must stay far below it).
      */

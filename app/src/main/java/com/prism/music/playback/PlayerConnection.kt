@@ -874,11 +874,20 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             )
             // 1.8.5: what Prism picks by itself leaves snoozed tracks out. The song a queue starts on is the listener's
             // (a tap, a song just played), so it stays even when snoozed; a shuffle's start wasn't picked, so it gives
-            // way too. A list with nothing left plays as it is rather than not at all.
+            // way too — to another random song: its fallback was the top of the queue, so with tracks snoozed a
+            // library's shuffles kept starting near the top, once per snoozed pick. A list with nothing left plays as
+            // it is rather than not at all.
             val starting = songs[start]
             val kept = c.snoozes.allowed(songs, keep = starting.takeUnless { shuffle })
             val queue = kept.ifEmpty { songs }
-            val first = queue.indexOfFirst { it.id == starting.id }.coerceAtLeast(0)
+            val first = queue.indexOfFirst { it.id == starting.id }.let { at ->
+                when {
+                    at >= 0 -> at
+                    // The shuffle's pick was a snoozed track: another random song, never the first one there.
+                    shuffle -> queue.indices.random()
+                    else -> 0
+                }
+            }
             val shuffled = mode != ShuffleMode.OFF
             // A long list (Downloads can hold thousands, the library hundreds) isn't made into media items on the main
             // thread before the first sound: the picked song and a few after it start, and the rest joins once it's
