@@ -47,9 +47,13 @@ class Loudness(
      *
      * A video wins over a pick: watching a song's video plays the video's own sound (its audio leg is the video's), not
      * the version picked for the song.
+     *
+     * A song that is itself one of the phone's files ([isLocal]) ignores a pick (1.2.1): the player plays that file
+     * whatever a version was picked for it ([PlaybackService.losslessFileFor]), so the file's own figure is the one that
+     * describes what's heard. Following the pick made the file play at the picked stream's level.
      */
     fun formId(songId: String, videoId: String? = null): String =
-        videoId ?: soundFrom[songId] ?: pickedOf(songId) ?: songId
+        videoId ?: soundFrom[songId] ?: (if (isLocal(songId)) songId else pickedOf(songId)) ?: songId
 
     /** Whether [id] names one of the phone's own files ([Song.LOCAL_PREFIX]): measured from the file, never asked of YouTube. */
     fun isLocal(id: String): Boolean = id.startsWith(Song.LOCAL_PREFIX)

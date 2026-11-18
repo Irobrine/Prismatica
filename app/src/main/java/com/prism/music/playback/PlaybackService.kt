@@ -389,7 +389,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 }
         }
         scope.launch { c.settings.flow.map { it.spatial to it.spatialAmount }.distinctUntilChanged().collect { (on, amount) -> spatial.configure(on, amount) } }
-        scope.launch { c.settings.flow.map { it.normalize }.distinctUntilChanged().collect { applyNormalization(GainReason.SETTINGS) } }
+        scope.launch { c.settings.flow.map { it.normalize }.distinctUntilChanged().collect { applyNormalization(GainReason.SETTINGS); scanAhead() } }
         // Prism's own volume (#116), when the player's slider is set to it; full otherwise (the phone's volume rules).
         scope.launch {
             c.settings.flow.map { if (it.volumeControl == com.prism.music.data.prefs.VolumeControl.PRISM) it.appVolume else 1f }.distinctUntilChanged()
@@ -749,7 +749,17 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         // Next pressed (or a song picked) before this one had its say: a skip, for recommendations' sake.
         flushPlayTime(skipped = reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK)
         applyLiveVideo()
-        val song = mediaItem?.toSong() ?: return
+        val song = mediaItem?.toSong()
+        if (song == null) {
+            // A file opened with Prism (1.8.5) has no Song that can round-trip ([Song.trusted] refuses its address, as
+            // another app could set one): it still plays, and Normalize gives it the file's own level and measures it
+            // like any other local one, rather than leaving it at 0 dB for good (1.2.1).
+            if (mediaItem != null && mediaItem.mediaId.startsWith(Song.LOCAL_PREFIX)) {
+                applyNormalization(GainReason.FORM)
+                scanAhead()
+            }
+            return
+        }
         // Disliked songs are passed over when the queue reaches them on its own (tapping one still plays it), and so are
         // artists the listener doesn't want played when a radio or autoplay brought them (a playlist they picked plays as it is).
         val picked = c.queue.source.value.kind == QueueKind.RADIO || player.currentMediaItemIndex >= c.queue.autoplayStart.value.let { if (it < 0) Int.MAX_VALUE else it }
@@ -1515,10 +1525,20 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     private fun albumLoudness(): Pair<Float, Float?>? =
         albumLoudness(trackedSong, (0 until player.mediaItemCount).map { player.getMediaItemAt(it) })
 
+    /**
+     * What "Albums as they are" groups songs by: the album's id, or — for a song from the phone, whose album is a title
+     * and artists and has no id ([com.prism.music.data.model.AlbumRef]) — its title and artist (1.2.1). Before, a file on
+     * the phone was never part of its album's level: with the rest of an album streamed or downloaded, the file played at
+     * its own figure while the others shared the album's, so it was louder or quieter than the same album.
+     */
+    private fun albumKey(song: Song): String? = song.album?.let { a ->
+        a.id?.takeIf { it.isNotBlank() } ?: "${song.primaryArtist}\u0000${a.title}".lowercase()
+    }
+
     /** [albumLoudness] for [song] among [queue] (the player's items, or its timeline's on the audio thread). Any thread. */
     private fun albumLoudness(song: Song?, queue: List<MediaItem>): Pair<Float, Float?>? {
         if (!c.settings.current.sound.normalizeAlbums || c.queue.source.value.kind != QueueKind.ALBUM) return null
-        val album = song?.album?.id ?: return null
+        val album = song?.let(::albumKey) ?: return null
         fun current(id: String) = c.loudnessIndex.measured(id)?.takeIf { c.loudnessIndex.measuredCurrent(id) }
         // What each song is heard as ([Loudness.formId]): an item armed as its video is heard as the video, so that form's
         // figure is used once measured (its song's stands in until then, as in [Loudness.figure]); a picked version is
@@ -1529,7 +1549,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             if (current(form) != null) return form
             return if (item.videoModeId != null) s.id.takeIf { current(it) != null } else null
         }
-        val songs = queue.filter { it.toSong()?.album?.id == album }.mapNotNull(::heardAs)
+        val songs = queue.filter { it.toSong()?.let(::albumKey) == album }.mapNotNull(::heardAs)
         val loudest = songs.maxOfOrNull { current(it)!! } ?: return null
         // The album's highest peak bounds how far all of it can be lifted (unknown while any song's is).
         val peaks = songs.map { c.loudnessIndex.peak(it) }
@@ -1542,12 +1562,17 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * song), and the gain set stays.
      */
     private fun startingGain(item: MediaItem, timeline: androidx.media3.common.Timeline): Float? {
-        val song = item.toSong() ?: return null
         val settings = c.settings.current
         if (!settings.normalize) return 0f
+        val target = settings.sound.normalizeTarget.toFloat()
+        val song = item.toSong()
+        // A file opened with Prism (1.8.5): its id is the form heard, though its Song can't round-trip with it
+        // ([Song.trusted] refuses an address with slashes, as another app could set one), so it's measured and
+        // normalized as the file it is rather than playing at 0 dB.
+        if (song == null) return if (item.mediaId.startsWith(Song.LOCAL_PREFIX))
+            c.loudnessIndex.figure(item.mediaId, item.videoModeId, target).gainDb else null
         val queue = if (!settings.sound.normalizeAlbums) emptyList()
             else (0 until timeline.windowCount).map { timeline.getWindow(it, androidx.media3.common.Timeline.Window()).mediaItem }
-        val target = settings.sound.normalizeTarget.toFloat()
         albumLoudness(song, queue)?.let { return NormalizerProcessor.gainFor(target, it.first, it.second) }
         return c.loudnessIndex.figure(song.id, item.videoModeId, target).gainDb
     }
@@ -1595,6 +1620,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val item = player.currentMediaItem
         // An item from another app has no song of ours to take a figure from: it plays as it is (a moment without an
         // item at all still has the tracked song). The same guard keeps a foreign item off the tracked song's level.
+        // A file opened with Prism has no Song that round-trips ([Song.trusted]) but is still one of the phone's files:
+        // its id is the form heard, so it's normalized like any other local file rather than passed through at 0 dB.
         val song = if (item != null) item.toSong() else trackedSong
         val form = currentFormId()
         val now = SystemClock.elapsedRealtime()
@@ -1607,8 +1634,14 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         }
         val settings = c.settings.current
         val target = settings.sound.normalizeTarget.toFloat()
-        val figure = song?.let { c.loudnessIndex.figure(it.id, item?.videoModeId, target) }
-            ?: Loudness.Figure(0f, Loudness.Source.NONE)
+        val figure = when {
+            song != null -> c.loudnessIndex.figure(song.id, item?.videoModeId, target)
+            // A file opened with Prism has no Song that round-trips ([Song.trusted]) but is still one of the phone's
+            // files: its id is the form heard, so it's normalized like any other local file rather than passed at 0 dB.
+            item != null && item.mediaId.startsWith(Song.LOCAL_PREFIX) ->
+                c.loudnessIndex.figure(item.mediaId, item.videoModeId, target)
+            else -> Loudness.Figure(0f, Loudness.Source.NONE)
+        }
         val album = albumLoudness()
         val gain = when {
             !settings.normalize -> 0f
@@ -1691,10 +1724,16 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * Scans the playing and next songs ([MixTempo]): how their music starts and ends and their beat, for Crossfade, and
      * their loudness, for normalization. From the phone when the song's there (downloaded, cached, a local file),
      * else a small download, on Wi-Fi unless mobile data is allowed. Each song is scanned once. A playing song with no
-     * figure yet is scanned too, even out of sight, so its next play starts at its own level.
+     * figure yet is scanned too, even out of sight, so its next play starts at its own level — and first, when that
+     * figure is what the listen now is waiting for (1.2.1, [MixTempo.scanOrder]): a file on the phone has no YouTube
+     * figure to stand in, so a scan that queued behind other songs left it playing at 0 dB for the whole listen.
+     *
+     * Called with nothing, it scans what's playing and what's next: the calls that only say "the sound under this song
+     * changed" (a picked version, a video's sound in its place) used to scan nothing at all, the list being empty.
      *
      * Not until the playing song is under way: a scan fetches a whole song (and asks YouTube for its streams) and
-     * decodes it, and run as a song changed it held up that song's own start, which buffered for longer.
+     * decodes it, and run as a song changed it held up that song's own start, which buffered for longer. A form already
+     * on the phone (a local file) needs no fetch, so its scan starts almost at once instead.
      */
     private fun scanAhead(vararg items: MediaItem?) {
         val s = c.settings.current
@@ -1707,29 +1746,37 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val playingMedia = playingItem?.mediaId
         // The audio actually heard is the form scanned ([Loudness.formId]): a queued item armed as its video is scanned
         // as that video, one that will play a picked version as the version, so the figure of what plays is known when
-        // it starts (and not only its song's).
-        fun formOf(item: MediaItem?): Pair<Song, String>? {
-            val song = item?.toSong() ?: return null
-            if (song.isLive || song.isEpisode) return null
+        // it starts (and not only its song's). A file opened with Prism has no Song that round-trips ([Song.trusted]):
+        // its id is the form, and it's measured from the file like any other local one.
+        fun formOf(item: MediaItem?): Pair<Song?, String>? {
+            val item = item ?: return null
+            val song = item.toSong()
+            if (song?.isLive == true || song?.isEpisode == true) return null
+            // A file opened with Prism: its id is the form, and there's no Song to carry it.
+            if (song == null) return if (item.mediaId.startsWith(Song.LOCAL_PREFIX)) null to item.mediaId else null
             return song to c.loudnessIndex.formId(song.id, item.videoModeId)
         }
+        // With nothing named, the playing song and what's next: the player's own item is always one of them.
+        val targets = if (items.isNotEmpty()) items.toList()
+            else listOf(playingItem) + upcoming(QUEUE_AHEAD)
         val playing = formOf(playingItem)?.second
+        // Whether the form heard now still has no figure of its own: its scan is the one this listen is waiting for, so
+        // it's scanned first and outranks a walk of songs the listener set going ([MixTempo.measure]'s priority).
+        val playingNeedsFigure = playing != null && s.normalize &&
+            (c.loudnessIndex.measured(playing) == null || !c.loudnessIndex.measuredCurrent(playing))
         // With "Albums as they are", the loudest of the album's measured songs sets every song's level (A2): all of the
         // album is scanned, not only the few ahead, so that figure is known early rather than settling as it plays.
+        // A file on the phone's album is its title and artist, not an id ([albumKey]).
         val album = if (s.normalize && s.sound.normalizeAlbums && c.queue.source.value.kind == QueueKind.ALBUM) {
-            val albumId = (playingItem?.toSong() ?: trackedSong)?.album?.id
-            if (albumId == null) emptyList()
-            else (0 until player.mediaItemCount).map { player.getMediaItemAt(it) }.filter { it.toSong()?.album?.id == albumId }
+            val albumOf = (playingItem?.toSong() ?: trackedSong)?.let(::albumKey)
+            if (albumOf == null) emptyList()
+            else (0 until player.mediaItemCount).map { player.getMediaItemAt(it) }.filter { it.toSong()?.let(::albumKey) == albumOf }
         } else emptyList()
-        val all = (items.toList() + album).mapNotNull(::formOf).distinctBy { it.second }
-        // A playing form with no figure yet (or one measured another way) is scanned too (Normalize): a first play's
-        // figure usually lands too late to use, but its next play then starts at its own level instead of YouTube's
-        // near-flat one.
+        val all = (targets + album).mapNotNull(::formOf).distinctBy { it.second }
         fun worth(): List<String> {
             val usual = MixTempo.worthScanning(
                 all.map { it.second }, playing, c.visible.value, s.mix || wave, QUEUE_AHEAD,
-                playingUnmeasured = playing != null && s.normalize &&
-                    (c.loudnessIndex.measured(playing) == null || !c.loudnessIndex.measuredCurrent(playing)),
+                playingUnmeasured = playingNeedsFigure,
             )
             if (album.isEmpty()) return usual
             return (usual + album.mapNotNull(::formOf).map { it.second }).distinct()
@@ -1739,23 +1786,31 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         if (scans.isEmpty()) return
         // Songs scanned before fade-outs and intros were measured are scanned again only for Crossfade's automatic length.
         val edges = s.mix && s.mixAuto
+        // A form on the phone is ready to scan as soon as its sound is: no fetch or resolution to wait for.
+        val onPhone = playing != null && c.loudnessIndex.isLocal(playing)
+        val order = MixTempo.scanOrder(scans.map { it.second }, playing, playingNeedsFigure, wave)
         scanJob?.cancel()
         scanJob = scope.launch {
-            if (playingMedia != null) untilUnderWay(playingMedia, UNDER_WAY_MS)
+            if (playingMedia != null) untilUnderWay(playingMedia, if (onPhone) LOCAL_FORM_UNDER_WAY_MS else UNDER_WAY_MS)
             // YouTube's loudness figure for each queued form not known yet: quick, and enough to start it at the right
             // volume if it comes up before it's been measured (a skip). A file on the phone has none to ask for.
-            if (s.normalize) for ((song, form) in scans) {
-                if (form == playing || song.isLocal || c.loudnessIndex.isLocal(form) || c.loudnessIndex.hasYoutube(form) || c.loudnessIndex.measured(form) != null) continue
+            if (s.normalize) for ((_, form) in scans) {
+                if (form == playing || c.loudnessIndex.isLocal(form) || c.loudnessIndex.hasYoutube(form) || c.loudnessIndex.measured(form) != null) continue
                 withContext(Dispatchers.IO) { runCatching { c.ytm.playerExtras(form, c.streams.signatureTimestamp()).loudnessDb } }
                     .getOrNull()?.let { c.loudnessIndex.rememberYoutube(form, it.toFloat()) }
             }
-            // Then measured, the queued songs first (their volume is set as they start); the playing one last
-            // (Crossfade reads its ending near the end, and Normalize wants its figure for the next play).
-            // With the waveform bar, the playing song goes first: its bar is waiting for it.
-            for ((song, form) in scans.sortedBy { if (wave) it.second != playing else it.second == playing }) {
+            // Then measured, in [order]: the form heard now first when its volume waits for it, then the queued songs
+            // (their volume is set as they start), the playing one last otherwise (Crossfade reads its ending near the
+            // end). The heard form's scan outranks a walk's ([MixTempo.measure]), so a "Measure songs now" in progress
+            // can't push it past the window its figure still sets the volume in ([LoudnessCatchUp]).
+            for ((song, form) in scans.sortedBy { order.indexOf(it.second) }) {
                 // Asked again for each: the listener may have left since these were lined up.
                 if (form !in worth()) continue
-                c.mixTempo.measure(form, network, edges, wave = wave, peak = s.normalize, sourceSongId = song.id)
+                c.mixTempo.measure(
+                    form, network, edges, wave = wave, peak = s.normalize, sourceSongId = song?.id,
+                    // Only a scan the listen is waiting for outranks the walk: its own volume's figure, or the bar's.
+                    priority = form == playing && (playingNeedsFigure || wave),
+                )
                 // Its own figure landed while the form just started: it takes over ([LoudnessCatchUp]); later in the
                 // form, a jump would be heard.
                 if (currentFormId() == form) applyNormalization(GainReason.FIGURE)
@@ -2038,14 +2093,15 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * skipping ahead or moving on starts straight away. Downloaded songs don't need it.
      */
     private fun prefetchNext() {
+        // The playing form's own scan is queued even when nothing follows it (a single song, a file opened with Prism,
+        // autoplay's suggestions not in yet): before, this returned first and the last song of a queue was never
+        // scanned on that play, which a local file has no YouTube figure to cover.
+        scanAhead(player.currentMediaItem, *upcoming(QUEUE_AHEAD).toTypedArray())
         val i = player.nextMediaItemIndex
         if (i == C.INDEX_UNSET) return
         songForNextVideo(player.getMediaItemAt(i))
         val next = player.getMediaItemAt(i).mediaId.takeIf { it.isNotBlank() } ?: return
         warmedNext = next
-        // The next few queued songs' loudness (for normalization) and edges (for Crossfade), ready well before they
-        // play, so each starts at its own volume from its first second. Once this song is under way ([scanAhead]).
-        scanAhead(player.currentMediaItem, *upcoming(QUEUE_AHEAD).toTypedArray())
         // Settings → Load ahead: the next song or three loaded whole, once this one is under way.
         val preload = c.settings.current.preload
         preloadJob?.cancel()
@@ -3905,6 +3961,8 @@ internal const val CATCHUP_MIN_CHANGE_DB = 0.5f
 internal const val CATCHUP_GLIDE_SEC = 1.5f
 /** Queued songs are got ready once the playing one has played this long (not as it starts: that slowed its loading). */
 private const val UNDER_WAY_MS = 5_000L
+/** The same for a form already on the phone (a local file): nothing is fetched, so its own figure can come sooner. */
+private const val LOCAL_FORM_UNDER_WAY_MS = 1_000L
 /** "Download on stream" starts saving once the playing song has played this long (starting with it slowed the tap). */
 private const val DOWNLOAD_ON_STREAM_MS = 1_500L
 /** "Download songs ahead" waits a little longer, so it never competes with the playing song's own stream. */

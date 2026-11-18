@@ -323,9 +323,18 @@ class MixTempo(
     private val peakPrefs = context.getSharedPreferences("song_peak", Context.MODE_PRIVATE)
     /** Song id -> its key ([MusicKey.encode], or "none" when it has no clear one); DJ mode's harmonic ordering. */
     private val keyPrefs = context.getSharedPreferences("song_key", Context.MODE_PRIVATE)
-    private val failed = ConcurrentHashMap.newKeySet<String>()
+    /** Form id -> when its scan last failed: a failure isn't forever (a file back on the phone, a read that went wrong). */
+    private val failed = ConcurrentHashMap<String, Long>()
     /** One song at a time: decoding a whole song is the heaviest thing Prism does in the background. */
     private val lock = Mutex()
+
+    /**
+     * Whether [id]'s scan failed so lately that it isn't worth asking again yet (1.2.1). It used to be for the rest of
+     * the run: one transient failure — READ_MEDIA_AUDIO revoked, a half-copied file, an SD card out for a moment —
+     * kept that recording unmeasured (and so unnormalized) until Prism restarted.
+     */
+    private fun hasFailed(id: String): Boolean =
+        failed[id]?.let { android.os.SystemClock.elapsedRealtime() - it < FAILED_RETRY_MS } == true
 
     /**
      * Forgets what was measured of [id] as a song's sound for Mix (tempo, edges, key, DJ mode's quick scan), so it's
@@ -334,6 +343,7 @@ class MixTempo(
      */
     fun forget(id: String) {
         for (p in listOf(prefs, keyPrefs, quickPrefs)) p.edit().remove(id).apply()
+        failed.remove(id)
         traits?.forget(id)
     }
 
@@ -418,7 +428,7 @@ class MixTempo(
         scheduled: Boolean = false,
     ): QuickResult {
         if (keyed(id)) return QuickResult.KEYED
-        if (id in failed) return QuickResult.FAILED
+        if (hasFailed(id)) return QuickResult.FAILED
         // While music plays, one at a time (Reddit 1.7: "DJ mode is so laggy": three decodes beside playback were too
         // much for mid-range phones); while paused, a few at once.
         // A scheduled job does one at a time, with music off, and doesn't wait behind scans held while the listener's away.
@@ -451,7 +461,7 @@ class MixTempo(
                     QuickResult.KEYED
                 } catch (e: Exception) {
                     Log.w(TAG, "quick scan of $id failed: $e")
-                    failed += id
+                    failed[id] = android.os.SystemClock.elapsedRealtime()
                     QuickResult.FAILED
                 } finally {
                     android.os.Process.setThreadPriority(before)
@@ -506,53 +516,80 @@ class MixTempo(
      * [id] is the form scanned ([Loudness.formId]): the recording that actually plays, whose figure is what Normalize
      * needs. [sourceSongId] is the queue's song it plays for, when that's another id (a picked version, a video): where
      * its audio may be found on the phone when the form's own copy isn't ([local]).
+     *
+     * [priority] (1.2.1): this scan is for the form being heard, whose volume waits for it ([LoudnessCatchUp]'s first
+     * seconds), so other scans make way for it ([ScanPriority]). [deferToPlaying]: this scan belongs to a background
+     * walk (the settings' "Measure songs now"): it starts no song while the heard form's scan waits, and gives up its
+     * own where it next checks ([ease]) so that figure lands in the window rather than behind whole songs nobody is
+     * hearing. A scan given up this way isn't a failure — the form is still unmeasured, so a later walk takes it up.
      */
     suspend fun measure(
         id: String, network: Boolean = true, edges: Boolean = true, key: Boolean = false, wave: Boolean = false, peak: Boolean = false,
-        sourceSongId: String? = null,
+        sourceSongId: String? = null, priority: Boolean = false, deferToPlaying: Boolean = false,
     ): Tempo? {
         fun done() = scanned(id) && !(edges && old(id)) && !(key && !keyed(id)) && !(wave && waves?.has(id) == false) &&
             !(peak && (noPeak(id) || loudnessOld(id)))
-        if (done() || id in failed) return cached(id)
-        return lock.withLock {
-            if (done()) return@withLock cached(id)
-            withContext(Dispatchers.IO) {
-                val started = System.nanoTime()
-                // Decoding a whole song is heavy: at background priority, so the playing song's own loading comes first.
-                val before = android.os.Process.getThreadPriority(android.os.Process.myTid())
-                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
-                runCatching { yieldToPlaying() }
-                AudioDiagnostics.log("background", "song scan of $id started (Normalize/Crossfade/DJ)")
-                val r = try {
-                    runCatching { scan(id, network, sourceSongId) }.onFailure { Log.w(TAG, "scan of $id failed: $it") }
-                } finally {
-                    android.os.Process.setThreadPriority(before)
-                    AudioDiagnostics.log("background", "song scan of $id ended after ${(System.nanoTime() - started) / 1_000_000} ms")
-                }
-                // A scan the listener stopped (a second tap on the settings' "Measure songs now", or Prism going) isn't
-                // the song's failure: it's measured next time, not set aside as failed for the rest of the run.
-                (r.exceptionOrNull() as? kotlinx.coroutines.CancellationException)?.let { throw it }
-                val s = r.getOrNull()
-                when {
-                    r.isFailure -> { failed += id; cached(id) }
-                    s == null -> cached(id) // not on the phone, and no network for it now
-                    else -> {
-                        prefs.edit().putString(id, s.tempo?.encode() ?: "none").apply()
-                        loudPrefs.edit().putFloat(id, s.lufs ?: Float.NaN).apply()
-                        loudVersion.edit().putInt(id, LUFS_VERSION).apply()
-                        peakPrefs.edit().putFloat(id, s.peakDb ?: Float.NaN).apply()
-                        keyPrefs.edit().putString(id, s.key?.encode() ?: "none:${MusicKey.VERSION}").apply()
-                        traits?.record(com.prism.music.data.SongTraits(id, s.tempo, s.key, s.lufs, Energy.of(s.lufs, s.tempo?.confidence, s.brightness), whole = true))
-                        val ms = (System.nanoTime() - started) / 1_000_000
-                        val t = s.tempo
-                        Log.i(TAG, "scanned $id in $ms ms: loudness ${s.lufs?.let { "%.1f LUFS".format(it) } ?: "unknown"}, " +
-                            (if (t == null) "no clear music" else "%.1f BPM (confidence %.1f), music %d–%d ms, first beat %d ms"
-                                .format(t.bpm, t.confidence, t.firstSoundMs, t.lastSoundMs, t.firstBeatMs)) +
-                            ", key ${s.key?.let { "${it.name} (${it.camelot}, confidence %.3f)".format(it.confidence) } ?: "unclear"}")
-                        t
+        if (done() || hasFailed(id)) return cached(id)
+        if (priority) scanPriority.playingWants()
+        try {
+            // A walk starts no song while the form being heard is waiting for its own scan.
+            if (deferToPlaying) while (scanPriority.anyPlaying()) kotlinx.coroutines.delay(PLAYING_SCAN_POLL_MS)
+            // Waiting for the player to finish loading is the player's, not this scan's: done before the lock is taken,
+            // so a scan the volume is waiting for isn't held behind it.
+            withContext(Dispatchers.IO) { runCatching { yieldToPlaying() } }
+            return lock.withLock {
+                if (done()) return@withLock cached(id)
+                withContext(Dispatchers.IO) {
+                    if (deferToPlaying) scanPriority.markWalkScan(true)
+                    try {
+                        val started = System.nanoTime()
+                        // Decoding a whole song is heavy: at background priority, so the playing song's own loading comes first.
+                        val before = android.os.Process.getThreadPriority(android.os.Process.myTid())
+                        android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+                        AudioDiagnostics.log("background", "song scan of $id started (Normalize/Crossfade/DJ)")
+                        val r = try {
+                            runCatching { scan(id, network, sourceSongId) }
+                                .onFailure { if (it !is ScansAbandoned) Log.w(TAG, "scan of $id failed: $it") }
+                        } finally {
+                            android.os.Process.setThreadPriority(before)
+                            AudioDiagnostics.log("background", "song scan of $id ended after ${(System.nanoTime() - started) / 1_000_000} ms")
+                        }
+                        // A scan the listener stopped (a second tap on the settings' "Measure songs now", or Prism going) isn't
+                        // the song's failure: it's measured next time, not set aside as failed for the rest of the run.
+                        (r.exceptionOrNull() as? kotlinx.coroutines.CancellationException)?.let { throw it }
+                        // Nor is one a walk gave up for the form being heard: nothing is kept of it, and it's walked again.
+                        if (r.exceptionOrNull() is ScansAbandoned) return@withContext cached(id)
+                        val s = r.getOrNull()
+                        when {
+                            r.isFailure -> { failed[id] = android.os.SystemClock.elapsedRealtime(); cached(id) }
+                            s == null -> cached(id) // not on the phone, and no network for it now
+                            else -> {
+                                prefs.edit().putString(id, s.tempo?.encode() ?: "none").apply()
+                                loudPrefs.edit().putFloat(id, s.lufs ?: Float.NaN).apply()
+                                // A figure that couldn't be worked out (silence, or a file that decodes to nothing) isn't
+                                // "measured": leaving it current would keep the form at 0 dB for good, as a figure from
+                                // the current scan is never asked for again (1.2.1).
+                                if (s.lufs != null) loudVersion.edit().putInt(id, LUFS_VERSION).apply()
+                                else loudVersion.edit().remove(id).apply()
+                                peakPrefs.edit().putFloat(id, s.peakDb ?: Float.NaN).apply()
+                                keyPrefs.edit().putString(id, s.key?.encode() ?: "none:${MusicKey.VERSION}").apply()
+                                traits?.record(com.prism.music.data.SongTraits(id, s.tempo, s.key, s.lufs, Energy.of(s.lufs, s.tempo?.confidence, s.brightness), whole = true))
+                                val ms = (System.nanoTime() - started) / 1_000_000
+                                val t = s.tempo
+                                Log.i(TAG, "scanned $id in $ms ms: loudness ${s.lufs?.let { "%.1f LUFS".format(it) } ?: "unknown"}, " +
+                                    (if (t == null) "no clear music" else "%.1f BPM (confidence %.1f), music %d–%d ms, first beat %d ms"
+                                        .format(t.bpm, t.confidence, t.firstSoundMs, t.lastSoundMs, t.firstBeatMs)) +
+                                    ", key ${s.key?.let { "${it.name} (${it.camelot}, confidence %.3f)".format(it.confidence) } ?: "unclear"}")
+                                t
+                            }
+                        }
+                    } finally {
+                        if (deferToPlaying) scanPriority.markWalkScan(false)
                     }
                 }
             }
+        } finally {
+            if (priority) scanPriority.playingDone()
         }
     }
 
@@ -693,6 +730,12 @@ class MixTempo(
          */
         internal const val LUFS_VERSION = 2
 
+        /** A scan that failed (a file briefly gone, a read that went wrong) may be asked for again after this. */
+        internal const val FAILED_RETRY_MS = 5 * 60_000L
+
+        /** How often a background walk looks whether the form being heard is waiting for its own scan ([measure]). */
+        private const val PLAYING_SCAN_POLL_MS = 100L
+
         /** Room for a song of [lengthMs] at [rate], with a little over; a song whose length isn't known starts at 3 minutes. */
         internal fun decodedSize(lengthMs: Long, rate: Int): Int {
             val seconds = (if (lengthMs > 0) lengthMs / 1000 else 180L).coerceAtMost(MAX_SECONDS.toLong()) + 2
@@ -746,6 +789,9 @@ class MixTempo(
          * the decode loops, off the main thread.
          */
         fun ease() {
+            // A background walk's scan gives way here when the form being heard is waiting for its own (1.2.1): that
+            // figure is the volume now, and it only lands in the form's first seconds ([ScanPriority], [measure]).
+            if (scanPriority.abandonWalkScan()) throw ScansAbandoned()
             var waited = 0
             while (android.os.SystemClock.elapsedRealtime() - lastUnderrunAt < EASE_AFTER_UNDERRUN_MS && waited < MAX_EASE_MS) {
                 Thread.sleep(250); waited += 250
@@ -775,6 +821,26 @@ class MixTempo(
         ): List<String> {
             val coming = comingUp.filter { it != playing }.take(if (onScreen) ahead else 1)
             return if (playing != null && (onScreen || readsPlaying || playingUnmeasured)) listOf(playing) + coming else coming
+        }
+
+        /**
+         * The order the forms found around the queue are scanned in (1.2.1). The form heard now comes first when its
+         * volume is what the listen is waiting for — it has no figure yet ([playingNeedsFigure]) or the waveform bar is
+         * drawn from its scan ([wave]) — and last otherwise (the songs after it are got ready while it plays, and
+         * Crossfade reads its ending near the end). [forms] are distinct, as `scanAhead` makes them.
+         *
+         * Before, it was always last, so a first play's figure landed after up to three other songs had been scanned,
+         * past [com.prism.music.playback.CATCHUP_MS]: a downloaded or streamed song started on YouTube's near-flat
+         * figure until then, and a file on the phone (no YouTube figure at all) played at 0 dB for the whole listen.
+         */
+        internal fun scanOrder(forms: List<String>, playing: String?, playingNeedsFigure: Boolean, wave: Boolean): List<String> {
+            if (playing == null) return forms
+            fun rank(form: String) = when {
+                form != playing -> 1
+                wave || playingNeedsFigure -> 0
+                else -> 2
+            }
+            return forms.sortedBy(::rank)
         }
 
         /** Whether this phone's scans make way for the listener's touches: few cores, little memory or Performance mode. */

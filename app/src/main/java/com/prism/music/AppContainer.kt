@@ -596,7 +596,7 @@ class AppContainer(val app: Application) {
     }
     /** "Measure now" on a smart playlist: the songs its Sound rules can't see yet, scanned one by one (Wi-Fi for streams). */
     val smartMeasure by lazy {
-        com.prism.music.data.SmartMeasure(scope, { id, network -> mixTempo.measure(id, network = network, key = true) }) {
+        com.prism.music.data.SmartMeasure(scope, { id, network -> mixTempo.measure(id, network = network, key = true, deferToPlaying = true) }) {
             app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
         }
     }
@@ -611,7 +611,10 @@ class AppContainer(val app: Application) {
         com.prism.music.data.MeasureSongs(
             scope,
             { form, song, network ->
-                mixTempo.measure(form, network = network, edges = false, key = false, wave = false, peak = true, sourceSongId = song)
+                mixTempo.measure(
+                    form, network = network, edges = false, key = false, wave = false, peak = true, sourceSongId = song,
+                    deferToPlaying = true,
+                )
             },
             { form -> mixTempo.loudnessCurrent(form) },
             { id -> loudnessIndex.formId(id, null) },

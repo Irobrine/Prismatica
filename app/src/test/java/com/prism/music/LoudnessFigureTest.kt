@@ -69,6 +69,18 @@ class LoudnessFigureTest {
     }
 
     /**
+     * 1.2.1: a song that is itself a file on the phone keeps its own form whatever was picked for it. The player plays
+     * the file ([PlaybackService.losslessFileFor] returns it before any pick), so following the pick made the file play
+     * at the picked stream's level — a local file that was louder or quieter than its own measurement.
+     */
+    @Test fun aFileOnThePhoneIgnoresAVersionPickedForIt() {
+        assertEquals("local:abc", loudness(picks = mapOf("local:abc" to "cover")).formId("local:abc"))
+        // A streamed song's pick is still the recording heard, a file on the phone's included.
+        assertEquals("cover", loudness(picks = mapOf("song" to "cover")).formId("song"))
+        assertEquals("local:abc", loudness(picks = mapOf("song" to "local:abc")).formId("song"))
+    }
+
+    /**
      * A file picked for a song and the song's own recording never take each other's figures (1.1.3): the file is
      * another master, so it plays at its own once measured and as it is until then — never at the song's — and back
      * on its own recording the song is at its own level again, not the file's.

@@ -44,6 +44,22 @@ class ScanResultsTest {
         assertEquals(listOf("now", "a"), MixTempo.worthScanning(up, "now", onScreen = false, readsPlaying = false, playingUnmeasured = true, ahead = 3))
     }
 
+    /**
+     * 1.2.1: the form heard now is scanned first when its volume is what the listen is waiting for (no figure yet, or
+     * the waveform bar), and last otherwise. A local file has no YouTube figure to stand in, so scanning it behind the
+     * queued songs left it at 0 dB for the whole first listen.
+     */
+    @Test fun theHeardFormsOwnScanGoesFirstWhenItsVolumeWaitsForIt() {
+        val forms = listOf("a", "now", "b", "c")
+        assertEquals(listOf("now", "a", "b", "c"), MixTempo.scanOrder(forms, "now", playingNeedsFigure = true, wave = false))
+        // Its figure in: the songs about to play are got ready while it plays, and Crossfade reads its ending near the end.
+        assertEquals(listOf("a", "b", "c", "now"), MixTempo.scanOrder(forms, "now", playingNeedsFigure = false, wave = false))
+        // The waveform bar is drawn from its scan, so that goes first too.
+        assertEquals(listOf("now", "a", "b", "c"), MixTempo.scanOrder(forms, "now", playingNeedsFigure = false, wave = true))
+        // With no form heard, the order is the queue's.
+        assertEquals(forms, MixTempo.scanOrder(forms, null, playingNeedsFigure = true, wave = false))
+    }
+
     @Test fun videosAreMeasuredAheadOnlyForThoseWhoWatchThem() {
         val day = 86_400_000L
         val now = 100 * day
