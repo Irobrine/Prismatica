@@ -4,7 +4,13 @@ import com.prism.music.data.innertube.YouTubeMusic
 import com.prism.music.data.model.CollectionPage
 import com.prism.music.data.model.Song
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -53,14 +59,24 @@ data class PlaylistRead(val songs: List<Song>, val complete: Boolean, val count:
  * A playlist's songs, all of them (up to [MAX]), for views that put several playlists together. Kept for the session
  * ([cache] keeps a whole read between starts too, refreshed with what was added since): [refresh] forgets the session's
  * copy when it's picked again, so the kept one is refreshed rather than read whole.
+ *
+ * A copy already on the phone is shown at once and read again behind it ([scope]), so opening the view never waits on
+ * the network; [version] goes up as the read lands, for the screen to take the newer songs.
  */
 class PlaylistSongs(
     private val load: suspend (id: String, cached: KeptPlaylist?) -> PlaylistRead,
     private val cache: PlaylistSongsCache? = null,
+    private val scope: CoroutineScope? = null,
 ) {
     private val kept = ConcurrentHashMap<String, List<Song>>()
     /** When each kept copy was read: a copy older than [SESSION_TTL_MS] is read again (a process may live for days). */
     private val at = ConcurrentHashMap<String, Long>()
+    /** Playlists being read again behind what's shown, so two views don't ask twice. */
+    private val refreshing = ConcurrentHashMap.newKeySet<String>()
+    private val _version = MutableStateFlow(0)
+
+    /** Goes up as a playlist is read (or read again), so a screen showing it can take the newer songs. */
+    val version: StateFlow<Int> = _version
 
     /**
      * The playlist's songs: from the session's kept copy (for [SESSION_TTL_MS]), or read (a whole playlist the first
@@ -73,20 +89,40 @@ class PlaylistSongs(
         // Prism's own lists are read from the phone as they are now: never kept as if they were YouTube's.
         val disk = cache?.takeUnless { PrismLibrary.isPrismList(id) }
         val cached = disk?.read(id)
-        return try {
-            load(id, cached).let { read ->
-                if (read.complete) {
-                    kept[id] = read.songs
-                    at[id] = System.currentTimeMillis()
-                    disk?.write(id, read)
-                }
-                read.songs
+        // What the phone already has shows at once: the list is read again behind it, and [version] brings the newer
+        // songs when they're in (1.2.1: an 800-song playlist waited seconds for the network on every start).
+        if (cached != null && scope != null) {
+            kept[id] = cached.songs
+            at[id] = System.currentTimeMillis()
+            readBehind(id, disk, cached)
+            return cached.songs
+        }
+        return read(id, disk, cached)
+    }
+
+    private suspend fun read(id: String, disk: PlaylistSongsCache?, cached: KeptPlaylist?): List<Song>? = try {
+        load(id, cached).let { read ->
+            if (read.complete) {
+                kept[id] = read.songs
+                at[id] = System.currentTimeMillis()
+                disk?.write(id, read)
+                _version.update { it + 1 }
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            // Offline: a copy read earlier still beats nothing — this session's, or the one kept from an earlier start.
-            cached?.songs ?: kept[id]
+            read.songs
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        // Offline: a copy read earlier still beats nothing — this session's, or the one kept from an earlier start.
+        cached?.songs ?: kept[id]
+    }
+
+    /** Reads [id] again in the background, updating [version] when it comes: the screen keeps showing what it has. */
+    private fun readBehind(id: String, disk: PlaylistSongsCache?, cached: KeptPlaylist) {
+        val scope = scope ?: return
+        if (!refreshing.add(id)) return
+        scope.launch(Dispatchers.IO) {
+            try { read(id, disk, cached) } finally { refreshing.remove(id) }
         }
     }
 
@@ -115,6 +151,7 @@ class PlaylistSongs(
     fun refreshAll() {
         kept.clear()
         at.clear()
+        _version.update { it + 1 }
     }
 
     /**
@@ -127,6 +164,7 @@ class PlaylistSongs(
         kept[key] = songs
         at[key] = System.currentTimeMillis()
         cache?.write(key, PlaylistRead(songs, complete = true, count = count))
+        _version.update { it + 1 }
     }
 
     private fun fresh(id: String): Boolean {

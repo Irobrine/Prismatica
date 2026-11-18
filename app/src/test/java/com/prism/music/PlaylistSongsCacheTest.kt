@@ -6,7 +6,12 @@ import com.prism.music.data.PlaylistSongs
 import com.prism.music.data.PlaylistSongsCache
 import com.prism.music.data.model.ArtistRef
 import com.prism.music.data.model.Song
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -91,5 +96,26 @@ class PlaylistSongsCacheTest {
         lists.songs("PLx")
         lists.clear()
         assertNull(cache.read("PLx"))
+    }
+
+    @Test fun whatThePhoneHasShowsAtOnceAndIsReadBehindIt() = runBlocking {
+        val cache = PlaylistSongsCache(dir.root)
+        cache.write("PLx", PlaylistRead(listOf(s("a"), s("b")), complete = true, count = 3))
+        var given: KeptPlaylist? = null
+        val load: suspend (String, KeptPlaylist?) -> PlaylistRead = { _, cached ->
+            given = cached
+            PlaylistRead(listOf(s("a"), s("b"), s("c")), complete = true, count = 3)
+        }
+        val scope = CoroutineScope(Dispatchers.Default)
+        try {
+            val lists = PlaylistSongs(load, cache, scope)
+            // A long playlist mustn't keep the tab empty while YouTube is asked (an 800-song list waited seconds).
+            assertEquals("the kept copy shows without waiting", "a,b", lists.songs("PLx")!!.joinToString(",") { it.id })
+            withTimeout(5_000) { lists.version.first { it > 0 } }
+            assertEquals("the songs added since come in behind it", "a,b,c", lists.songs("PLx")!!.joinToString(",") { it.id })
+            assertEquals("the read starts from what was kept", "a,b", given!!.songs.joinToString(",") { it.id })
+        } finally {
+            scope.cancel()
+        }
     }
 }

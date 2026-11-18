@@ -317,11 +317,16 @@ fun LibraryScreen(bottomPadding: Dp) {
     var songsFrom by remember { mutableStateOf(com.prism.music.data.SongsFrom.decode(c.library.sortOf(com.prism.music.data.SongsFrom.KEY))) }
     // Songs went into a picked playlist from Prism: it's refreshed now, not at the next start.
     val playlistEdits by c.library.playlistEdits.collectAsState()
+    // A playlist read again behind what's shown (its copy refreshes itself): the tab takes the newer songs when they're in.
+    val playlistVersion by c.playlistSongs.version.collectAsState()
     val fromEdits = remember(songsFrom.playlists, playlistEdits) {
         songsFrom.playlists.mapNotNull { id -> playlistEdits[id.removePrefix("VL")]?.let { id to it } }
     }
     val handledEdits = remember { HashMap<String, Long>() }
-    val fromLoaded by androidx.compose.runtime.produceState(emptyMap<String, List<com.prism.music.data.model.Song>>(), songsFrom.playlists, fromEdits) {
+    val fromLoaded by androidx.compose.runtime.produceState(
+        emptyMap<String, List<com.prism.music.data.model.Song>>(),
+        listOf(songsFrom.playlists, fromEdits, playlistVersion),
+    ) {
         fromEdits.forEach { (id, at) ->
             if (handledEdits[id] != at) { handledEdits[id] = at; c.playlistSongs.refresh(id) }
         }

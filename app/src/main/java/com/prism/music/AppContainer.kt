@@ -592,6 +592,7 @@ class AppContainer(val app: Application) {
                 )
             },
             cache = playlistSongsCache,
+            scope = scope,
         )
     }
     /** "Measure now" on a smart playlist: the songs its Sound rules can't see yet, scanned one by one (Wi-Fi for streams). */
