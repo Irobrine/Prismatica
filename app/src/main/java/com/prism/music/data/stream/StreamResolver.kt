@@ -1021,9 +1021,13 @@ class StreamResolver(
 
     data class AnalysisStream(val url: String, val contentLength: Long, val durationSec: Long)
 
-    /** The smallest audio stream (AAC preferred, which decodes from a partial file), for analysis. */
+    /**
+     * The smallest audio stream (AAC preferred, which decodes from a partial file), for analysis. [videoId] is the form
+     * whose bytes are heard ([Loudness.formId]: a song, its video, the version picked for it): 1.1.3's scans pass that, so
+     * a picked version is measured from its own recording (the pick is applied where playback resolves it, not here).
+     */
     fun analysisAudio(videoId: String, video: Boolean = false): AnalysisStream {
-        val f = formats(versionOf(videoId) ?: videoId, forVideo = video)
+        val f = formats(videoId, forVideo = video)
         val usable = f.audio.filter { it.original }.ifEmpty { f.audio }
         val pick = usable.filter { it.mime.contains("mp4") }.minByOrNull { it.kbps }
             ?: usable.minByOrNull { it.kbps } ?: throw StreamException(tr(R.string.no_audio_stream))

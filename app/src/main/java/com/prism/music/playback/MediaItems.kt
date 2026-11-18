@@ -87,7 +87,8 @@ internal fun Song.trusted(): Song? {
 val MediaItem.videoModeId: String? get() = mediaMetadata.extras?.getString(EXTRA_VIDEO)
 
 /**
- * The id of the audio actually heard for this item: the music video's while watching it, else the song's. Loudness is
- * measured and normalized by this, so a song and its video play at the same level, whichever is heard.
+ * The id of the sound this item plays, as the normalizer knows it: the music video's while watching it, else the song's.
+ * It names the item's sound for [NormalizerProcessor]'s per-song gain (D62), not the loudness figure used: since 1.1.3
+ * that's the form's ([Loudness.formId], which also follows the version picked for a song).
  */
 val MediaItem.audioId: String get() = videoModeId ?: mediaId

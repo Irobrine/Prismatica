@@ -506,7 +506,7 @@ class Sing(private val c: AppContainer) : VocalStemProcessor.Source {
         val speeds = HashMap<Separation, Double>()
         try {
             if (!song.isLocal) fetchWhole(song.id)
-            val uri = c.audioOnPhone(song.id, scratch) ?: throw IOException(tr(R.string.this_song_isn_t_on_the))
+            val uri = c.audioOnPhone(song.id, song.id, scratch) ?: throw IOException(tr(R.string.this_song_isn_t_on_the))
             val (vocals, backing) = networks(Separation.FULL)
             decoding(uri) { dec ->
                 val first = dec.read() ?: throw IOException(tr(R.string.the_song_didn_t_decode))
@@ -550,7 +550,7 @@ class Sing(private val c: AppContainer) : VocalStemProcessor.Source {
         // The whole song from the player's own copy (cached whole first if need be), so the vocals line up with it.
         if (!song.isLocal) fetchWhole(id)
         val scratch = File(c.app.cacheDir, "sing_${id.replace(Regex("[^A-Za-z0-9_-]"), "_")}.part")
-        val uri = c.audioOnPhone(id, scratch)
+        val uri = c.audioOnPhone(id, id, scratch)
             ?: throw IOException(if (c.network.metered.value && !c.settings.current.singOnCellular) tr(R.string.waiting_for_wi_fi_to_get) else tr(R.string.this_song_isn_t_on_the))
         val way = if (quickPass) Separation.QUICK else choose()
         if (!quickPass) _method.value = way

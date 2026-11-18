@@ -418,10 +418,23 @@ class AppContainer(val app: Application) {
     val waves by lazy { com.prism.music.data.SongWaves(app) }
 
     /**
-     * Where a song's audio is on the phone, for scanning it without the network: a local file as it is; a download or
-     * a song cached whole, copied out of its cache into [scratch]. Null when it isn't all here.
+     * Where the form actually heard ([formId]: a song, its music video, the version picked for it, a file on the phone)
+     * is on the phone, for scanning it without the network: a local file as it is; a download or a song cached whole,
+     * copied out of its cache into [scratch]. Null when it isn't all here.
+     *
+     * [songId] is the queue's song the form plays for. A picked version is cached under its own id (its own bytes, never
+     * the song's: [songCacheKey]) and its download is the song's, fetched again as the version when it was picked, so
+     * that one is the form's bytes too. A video's audio is its own recording (its intro, its outro), so nothing else
+     * falls back to the song.
      */
-    internal fun audioOnPhone(id: String, scratch: File): android.net.Uri? {
+    internal fun audioOnPhone(formId: String, songId: String, scratch: File): android.net.Uri? {
+        cachedAudio(formId, scratch)?.let { return it }
+        if (formId == songId || versions.streamedOf(songId) != formId) return null
+        return cachedAudio(songId, scratch)
+    }
+
+    /** [id]'s own audio on the phone (a file on the phone, its download, its whole-song cache), copied into [scratch]. */
+    private fun cachedAudio(id: String, scratch: File): android.net.Uri? {
         if (id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX)) return localMusic.uriFor(id)
         // A file on the phone picked to play in its place is its sound too.
         versions.fileOf(id)?.let(localMusic::uriFor)?.let { return it }
@@ -445,10 +458,23 @@ class AppContainer(val app: Application) {
         }
         return null
     }
+    /**
+     * What each form of a song plays at (1.1.3): its loudness as measured by the scan ([MixTempo]) or YouTube's figure,
+     * keyed by the recording actually heard ([com.prism.music.playback.Loudness.formId]) — the song's, its music
+     * video's, the version picked for it. The one reader of the `loudness` pref (its name unchanged: a restored backup
+     * keeps the figures).
+     */
+    val loudnessIndex by lazy {
+        com.prism.music.playback.Loudness(
+            app.getSharedPreferences("loudness", android.content.Context.MODE_PRIVATE),
+            measuredOf = { id -> mixTempo.loudness(id) },
+            peakOf = { id -> mixTempo.peak(id) },
+            measuredCurrentOf = { id -> mixTempo.loudnessCurrent(id) },
+            pickedOf = { id -> versions.of(id) },
+            soundFrom = soundFrom,
+        )
+    }
     /** Per-song lyric timing nudges, in ms (positive = lyrics earlier). Keyed by song id, plus ":video" in video mode. */
-    /** YouTube's loudness figure per audio heard: a song, or a music video's own while it's watched (dB from the
-     *  reference level), kept for offline normalization. */
-    val loudness: android.content.SharedPreferences = app.getSharedPreferences("loudness", android.content.Context.MODE_PRIVATE)
     val lyricOffsets: android.content.SharedPreferences = app.getSharedPreferences("lyric_offsets", android.content.Context.MODE_PRIVATE)
 
     init {
@@ -805,9 +831,11 @@ class AppContainer(val app: Application) {
     fun songCacheKey(id: String): String = versions.streamedOf(id) ?: id
 
     /**
-     * Plays [pick] in [song]'s place from now on (null: its own sound again). The version's measurements go, and a
-     * download comes down again as the new one (each recording keeps its own cached part, [songCacheKey]). Playing now,
-     * the song starts again where it was.
+     * Plays [pick] in [song]'s place from now on (null: its own sound again). Its tempo readings go (they were of the
+     * recording that played when it was scanned), and a download comes down again as the new one (each recording keeps
+     * its own cached part, [songCacheKey]). Its loudness figures stay: each belongs to the recording it was measured
+     * from ([loudnessIndex], 1.1.3), so a pick changing doesn't make them wrong. Playing now, the song starts again
+     * where it was.
      */
     fun pickVersion(song: com.prism.music.data.model.Song, pick: com.prism.music.data.SongVersions.Pick?) {
         if (versions.of(song.id) == pick?.id?.takeIf { it != song.id }) return

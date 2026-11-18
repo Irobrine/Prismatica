@@ -89,13 +89,12 @@ class EffectQueueTest {
         val start = System.nanoTime()
         effects.attach(42)
         repeat(100) { i -> effects.apply(EqSettings(enabled = true, preampDb = i / 10f)) }
-        effects.setNormalization(-3f)
         effects.release()
         effects.shutdown()
         val tookMs = (System.nanoTime() - start) / 1_000_000
         assertTrue("AudioEffects calls took $tookMs ms with the effects thread stuck", tookMs < 500)
         // What's shown (stats for nerds) follows the settings at once, before the thread gets to them.
-        assertTrue(effects.activeSummary.contains("Normalize -3.0 dB"))
+        assertTrue(effects.activeSummary.startsWith("EQ"))
         unstick.countDown()
         assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS))
     }

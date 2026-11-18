@@ -697,8 +697,10 @@ class DownloadRepository(private val context: Context, private val c: AppContain
             c.db.songs().upsert(song.toEntity(c.db.songs().get(song.id)))
             // Lyrics come down with the song (karaoke if any source has it), so they're there offline too.
             ensureLyrics(song, force = true)
-            // ...and its loudness, so normalization works offline.
-            if (!c.loudness.contains(song.id)) runCatching { c.ytm.playerExtras(song.id, c.streams.signatureTimestamp()).loudnessDb?.let { c.loudness.edit().putFloat(song.id, it.toFloat()).apply() } }
+            // ...and its loudness, so normalization works offline: the recording that downloads (a picked version plays
+            // where the song would, and its bytes are its own), not the song's own.
+            val form = c.songCacheKey(song.id)
+            if (!c.loudnessIndex.hasYoutube(form)) runCatching { c.ytm.playerExtras(form, c.streams.signatureTimestamp()).loudnessDb?.let { c.loudnessIndex.rememberYoutube(form, it.toFloat()) } }
         }
         add(request, priority)
         // Downloads show their progress in a notification: the first one the listener starts asks, if nothing has.

@@ -150,7 +150,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     private val videoRetriedAt = HashMap<String, Long>()
     private var saveJob: Job? = null
     private var extrasJob: Job? = null
-    /** YouTube's loudness figure for the form now playing (the video's, while watching it). */
+    /** YouTube's loudness figure for the form now playing (its video's, the picked version's; 1.1.3). */
     private var formExtrasJob: Job? = null
     /** The Quick picks made behind the music, and the library brought up to date behind it (one of each at a time). */
     private var quickPicksJob: Job? = null
@@ -331,7 +331,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             }.distinctUntilChanged().collect { eqNow = it; effects.apply(it) }
         }
         scope.launch { c.settings.flow.map { it.skipSilence to it.sound.skipSilenceEpisodes }.distinctUntilChanged().collect { applySkipSilence() } }
-        scope.launch { c.settings.flow.map { it.sound.normalizeTarget to it.sound.normalizeAlbums }.distinctUntilChanged().drop(1).collect { applyNormalization() } }
+        scope.launch { c.settings.flow.map { it.sound.normalizeTarget to it.sound.normalizeAlbums }.distinctUntilChanged().drop(1).collect { applyNormalization(GainReason.SETTINGS) } }
         sessionPlayer.gentle = ::gentle
         scope.launch { c.settings.flow.map { it.behavior.pauseOnMute }.distinctUntilChanged().collect { muteWatch.update() } }
         scope.launch { c.settings.flow.map { it.behavior.faceDownPause }.distinctUntilChanged().collect { faceDownSetting(it) } }
@@ -368,7 +368,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 }
         }
         scope.launch { c.settings.flow.map { it.spatial to it.spatialAmount }.distinctUntilChanged().collect { (on, amount) -> spatial.configure(on, amount) } }
-        scope.launch { c.settings.flow.map { it.normalize }.distinctUntilChanged().collect { applyNormalization() } }
+        scope.launch { c.settings.flow.map { it.normalize }.distinctUntilChanged().collect { applyNormalization(GainReason.SETTINGS) } }
         // Prism's own volume (#116), when the player's slider is set to it; full otherwise (the phone's volume rules).
         scope.launch {
             c.settings.flow.map { if (it.volumeControl == com.prism.music.data.prefs.VolumeControl.PRISM) it.appVolume else 1f }.distinctUntilChanged()
@@ -713,7 +713,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             applyLiveVideo()
             // The same listen in another form (the song ↔ its video): its audio's own level, not the other form's, and
             // its own measurement for the next time.
-            mediaItem.toSong()?.let { loadFormLoudness(it) } ?: applyNormalization()
+            mediaItem.toSong()?.let { loadFormLoudness(it) } ?: applyNormalization(GainReason.FORM)
             scanAhead(player.currentMediaItem, *upcoming(QUEUE_AHEAD).toTypedArray())
             updateButtons()
             scheduleSave()
@@ -1396,6 +1396,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 c.player.reportError(tr(R.string.so_its_music_video_s_sound, song.title, if (here) tr(R.string.isn_t_available_where_you_are) else tr(R.string.wouldn_t_play)))
                 player.prepare()
                 player.play()
+                // The video's sound is the form from here on, mid-listen: its own figure is put on and asked for
+                // ([loadFormLoudness]), rather than the whole listen playing at nothing known of it.
+                loadFormLoudness(song)
             }
             return
         }
@@ -1457,18 +1460,25 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     // ------------------------------------------------------------ Features
 
     /**
-     * Normalization gain for the current song: YouTube's loudness figure says how far the track
-     * sits from its reference level, so loud songs come down and quiet ones go up (as far as their
-     * peaks allow, [NormalizerProcessor.gainFor]; the limiter keeps those from clipping).
+     * Normalization: every form heard — a song, its music video, the version picked for it, the file picked for it — gets
+     * its own gain from its own loudness ([Loudness.figure]: measured best, YouTube's until then, with the song's for a
+     * video just switched to), as far as its peaks allow ([NormalizerProcessor.gainFor]; the limiter keeps a lifted one
+     * from clipping). 1.1.3: figures are filed per form, so a video and its song, or two versions of one, no longer take
+     * each other's levels.
+     *
+     * This is the gain now applied (the ending song's, when a Mix blend's tail takes it over).
      */
-    /** The normalization gain now applied (the ending song's, when a Mix blend's tail takes it over). */
     private var normalizeGainDb = 0f
 
+    /** The form whose audio plays now, and when it started (elapsedRealtime): [catchUp]'s clock. */
+    private var heardForm: String? = null
+    private var heardFormAt = 0L
+
     /**
-     * The playing song is still just starting (loading, or in its first [SETTLE_MS] of sound): a better loudness figure
-     * may still set its volume. After that the volume stays put for the rest of the song.
+     * The better figures a form may still take in its first [CATCHUP_MS] (1.1.3): a scan's own figure lands there, seconds
+     * into the sound, and used to be kept for the next play only ([LoudnessCatchUp]).
      */
-    private fun settling() = player.currentPosition < SETTLE_MS
+    private val catchUp = LoudnessCatchUp()
 
     /**
      * "Albums as they are" (A2): while an album plays through, every song gets the same gain, set by the loudest of its
@@ -1481,101 +1491,161 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     private fun albumLoudness(song: Song?, queue: List<MediaItem>): Pair<Float, Float?>? {
         if (!c.settings.current.sound.normalizeAlbums || c.queue.source.value.kind != QueueKind.ALBUM) return null
         val album = song?.album?.id ?: return null
-        // An item armed as its video is heard as the video, so that form's figure is used once measured (its song's
-        // stands in until then, as it does for any unmeasured song).
-        fun heardAs(item: MediaItem) =
-            (item.videoModeId ?: item.mediaId).takeIf { c.mixTempo.loudness(it) != null } ?: item.mediaId
-        val songs = queue.filter { it.toSong()?.album?.id == album }
-            .map(::heardAs)
-            .filter { c.mixTempo.loudness(it) != null }
-        val loudest = songs.maxOfOrNull { c.mixTempo.loudness(it)!! } ?: return null
+        fun current(id: String) = c.loudnessIndex.measured(id)?.takeIf { c.loudnessIndex.measuredCurrent(id) }
+        // What each song is heard as ([Loudness.formId]): an item armed as its video is heard as the video, so that form's
+        // figure is used once measured (its song's stands in until then, as in [Loudness.figure]); a picked version is
+        // another recording, so it counts once its own figure is measured and not before.
+        fun heardAs(item: MediaItem): String? {
+            val s = item.toSong() ?: return null
+            val form = c.loudnessIndex.formId(s.id, item.videoModeId)
+            if (current(form) != null) return form
+            return if (item.videoModeId != null) s.id.takeIf { current(it) != null } else null
+        }
+        val songs = queue.filter { it.toSong()?.album?.id == album }.mapNotNull(::heardAs)
+        val loudest = songs.maxOfOrNull { current(it)!! } ?: return null
         // The album's highest peak bounds how far all of it can be lifted (unknown while any song's is).
-        val peaks = songs.map { c.mixTempo.peak(it) }
+        val peaks = songs.map { c.loudnessIndex.peak(it) }
         return loudest to (if (null in peaks) null else peaks.maxOf { it!! })
     }
 
     /**
-     * The gain (dB) for the audio [id] actually heard (a song, or its video while watching), from its measured loudness,
-     * else YouTube's figure [yt], with "Albums as they are" the [album]'s. [fallbackId]: the song's own audio, whose
-     * figure stands in until the form's is known (a video just switched to has none yet). Reads only settings and stored
-     * figures, so the audio thread can ask it too (D62, [NormalizerProcessor.songGainDb]) and gets what
-     * [applyNormalization] sets a moment later.
+     * [Loudness.figure] for a form about to start, or its album's (A2), on the audio thread (D62): it reads only settings
+     * and stored figures, so it answers with what [applyNormalization] sets a moment later. Null: nothing to ask for (no
+     * song), and the gain set stays.
      */
-    private fun normalizationGain(id: String?, yt: Float?, album: Pair<Float, Float?>?, fallbackId: String? = null): Float {
-        // The form's own measured loudness (integrated LUFS, from [MixTempo]'s scan) is the real figure. YouTube's
-        // loudnessDb hardly differs between a loud master and a quiet one, so it only stands in until it's measured.
-        val formMeasured = id?.let { c.mixTempo.loudness(it) }
-        val measured = formMeasured ?: fallbackId?.let { c.mixTempo.loudness(it) }
-        val peakId = if (formMeasured != null) id else fallbackId
-        val ytLevel = yt ?: fallbackId?.let { c.loudness.getFloat(it, Float.NaN).takeIf { v -> !v.isNaN() } }
-        // The level picked (A2; -14 LUFS unless changed), and with "Albums as they are" one level for a whole album.
-        val target = c.settings.current.sound.normalizeTarget.toFloat()
-        return when {
-            !c.settings.current.normalize -> 0f
-            album != null -> NormalizerProcessor.gainFor(target, album.first, album.second)
-            measured != null -> NormalizerProcessor.gainFor(target, measured, peakId?.let { c.mixTempo.peak(it) })
-            ytLevel != null -> NormalizerProcessor.gainFor(target, TARGET_LUFS + ytLevel)
-            else -> 0f
-        }
-    }
-
-    /** [normalizationGain] for a song about to start, on the audio thread: its remembered YouTube figure, as [loadExtras] reads it. */
     private fun startingGain(item: MediaItem, timeline: androidx.media3.common.Timeline): Float? {
         val song = item.toSong() ?: return null
-        val queue = if (!c.settings.current.sound.normalizeAlbums) emptyList()
+        val settings = c.settings.current
+        if (!settings.normalize) return 0f
+        val queue = if (!settings.sound.normalizeAlbums) emptyList()
             else (0 until timeline.windowCount).map { timeline.getWindow(it, androidx.media3.common.Timeline.Window()).mediaItem }
-        val audioId = item.audioId
-        val yt = c.loudness.getFloat(audioId, Float.NaN).takeIf { !it.isNaN() }
-        return normalizationGain(audioId, yt, albumLoudness(song, queue), fallbackId = song.id.takeIf { it != audioId })
+        val target = settings.sound.normalizeTarget.toFloat()
+        albumLoudness(song, queue)?.let { return NormalizerProcessor.gainFor(target, it.first, it.second) }
+        return c.loudnessIndex.figure(song.id, item.videoModeId, target).gainDb
     }
 
-    /** The id of the audio actually heard now: the video's while watching it, else the song's. */
-    private fun currentAudioId(): String? = player.currentMediaItem?.audioId ?: trackedSong?.id
+    /**
+     * The id of the audio actually heard now ([Loudness.formId]): the video's while watching one, the picked version's
+     * while one plays, the song's own otherwise. The player's item says which; the tracked song stands in without one.
+     */
+    private fun currentFormId(): String? {
+        val item = player.currentMediaItem
+        if (item != null) {
+            val song = item.toSong()
+            return if (song != null) c.loudnessIndex.formId(song.id, item.videoModeId) else item.audioId
+        }
+        return trackedSong?.let { c.loudnessIndex.formId(it.id, null) }
+    }
 
-    private fun applyNormalization() {
-        val audioId = currentAudioId()
-        val songId = trackedSong?.id
-        val measured = audioId?.let { c.mixTempo.loudness(it) }
-            ?: songId?.takeIf { it != audioId }?.let { c.mixTempo.loudness(it) }
-        val yt = audioId?.let { c.loudness.getFloat(it, Float.NaN).takeIf { v -> !v.isNaN() } }
-        val gain = normalizationGain(audioId, yt, albumLoudness(), fallbackId = songId?.takeIf { it != audioId })
-        // Once the song is under way, a better figure eases in over two seconds, and a small one isn't worth a change
-        // heard mid-song; before its sound starts, the right level is set at once.
+    /** Why a gain is worked out: a form starting, a figure landing, or a setting changing. */
+    private enum class GainReason { FORM, FIGURE, SETTINGS }
+
+    /**
+     * The sound under the playing song changed (another version picked, or its own again: [com.prism.music.AppContainer.pickVersion]):
+     * its own figure now, where the song's own figure played a moment ago.
+     */
+    internal fun formChanged() = applyNormalization(GainReason.FORM)
+
+    /**
+     * Sets the playing form's volume: its figure, or its album's with "Albums as they are". [reason] says why it's asked:
+     * a form starting (its figure at once), a figure landing (the catch-up window, [LoudnessCatchUp]), or a setting
+     * changed (the target, "Albums as they are", Normalize itself: a mid-form change of at least
+     * [MIN_MIDSONG_CHANGE_DB]). Before the form's sound is under way the right level is set at once, with no threshold:
+     * the listener is about to hear it from its first sample (D62).
+     */
+    private fun applyNormalization(reason: GainReason) {
+        val item = player.currentMediaItem
+        // An item from another app has no song of ours to take a figure from: it plays as it is (a moment without an
+        // item at all still has the tracked song). The same guard keeps a foreign item off the tracked song's level.
+        val song = if (item != null) item.toSong() else trackedSong
+        val form = currentFormId()
+        val now = SystemClock.elapsedRealtime()
+        // A form starting is a new listen even when it's the same form again (repeat one, or the same song twice
+        // running): the window opens for it too, rather than carrying the last listen's spent one.
+        if (reason == GainReason.FORM || form != heardForm) {
+            heardForm = form
+            heardFormAt = now
+            catchUp.start(form, now)
+        }
+        val settings = c.settings.current
+        val target = settings.sound.normalizeTarget.toFloat()
+        val figure = song?.let { c.loudnessIndex.figure(it.id, item?.videoModeId, target) }
+            ?: Loudness.Figure(0f, Loudness.Source.NONE)
+        val album = albumLoudness()
+        val gain = when {
+            !settings.normalize -> 0f
+            album != null -> NormalizerProcessor.gainFor(target, album.first, album.second)
+            else -> figure.gainDb
+        }
+        val elapsed = now - heardFormAt
         val underWay = player.isPlaying && player.currentPosition > 400
-        if (underWay && kotlin.math.abs(gain - normalizeGainDb) < MIN_MIDSONG_CHANGE_DB) return
-        // For this form only: a figure landing as it ended, after the audio moved on to the next (or to its video),
-        // isn't put on that one.
-        normalizer.setGainDb(gain, if (underWay) 2f else 0.1f, audioId)
-        if (gain != normalizeGainDb) AudioDiagnostics.log("normalize", "gain %.1f dB (%s) at %d s".format(gain, if (measured != null) "measured" else if (yt != null) "YouTube's figure" else "none", player.currentPosition / 1000))
-        normalizeGainDb = gain
-        c.nerdStats.value = c.nerdStats.value.copy(
-            loudnessDb = (measured ?: yt)?.toDouble(), loudnessMeasured = measured != null, normalizationGainDb = gain,
+        // A better figure still moves the volume once, in the form's first [CATCHUP_MS]; a setting changed later eases in
+        // over two seconds when it's worth hearing; and one that isn't worth hearing mid-form is left alone.
+        val catchUpWanted = reason == GainReason.FIGURE && elapsed >= SETTLE_MS && catchUp.wants(form, figure, normalizeGainDb, now)
+        val apply = when (reason) {
+            GainReason.FORM -> true
+            GainReason.SETTINGS -> !(underWay && kotlin.math.abs(gain - normalizeGainDb) < MIN_MIDSONG_CHANGE_DB)
+            GainReason.FIGURE -> if (elapsed >= SETTLE_MS) catchUpWanted
+                else !(underWay && kotlin.math.abs(gain - normalizeGainDb) < MIN_MIDSONG_CHANGE_DB)
+        }
+        if (!apply) return
+        val glide = when {
+            !underWay -> 0.1f
+            catchUpWanted -> CATCHUP_GLIDE_SEC
+            else -> 2f
+        }
+        // For this form only: a figure landing as it ended, after the audio moved on to the next (or to its video), isn't
+        // put on that one. The processor knows each sound by its media item's audio id (the video's while watching it).
+        normalizer.setGainDb(gain, glide, item?.audioId ?: song?.id)
+        if (catchUpWanted) catchUp.took(form, figure) else catchUp.note(form, figure)
+        if (gain != normalizeGainDb) AudioDiagnostics.log(
+            "normalize",
+            "gain %.1f dB (%s%s) at %d s".format(
+                gain, if (album != null) "the album's" else figure.source.label,
+                if (form != null && form != song?.id) ", form $form" else "", player.currentPosition / 1000,
+            ),
         )
+        normalizeGainDb = gain
+        // The stats overlay shows LUFS as measured and anything else as YouTube's dB: a figure borrowed from the song
+        // while its video just started is a measurement, but not this form's, so it isn't shown as one (1.1.3).
+        val shown = figure.level?.takeIf { figure.source != Loudness.Source.MEASURED_FALLBACK }
+        c.nerdStats.value = c.nerdStats.value.copy(
+            loudnessDb = shown?.toDouble(), loudnessMeasured = figure.source == Loudness.Source.MEASURED,
+            normalizationGainDb = gain,
+        )
+        val level = figure.level
         android.util.Log.i(
             "PrismNormalize",
-            (if (measured != null) "measured %.1f LUFS".format(measured) else "YouTube's figure ${yt ?: "unknown"} dB") +
-                " -> gain %.1f dB (normalize ${c.settings.current.normalize})".format(gain),
+            (if (level == null) "no figure"
+            else if (figure.source == Loudness.Source.MEASURED || figure.source == Loudness.Source.MEASURED_FALLBACK) "measured %.1f LUFS".format(level)
+            else "YouTube's figure %.1f dB".format(level)) +
+                " -> gain %.1f dB (normalize ${settings.normalize})".format(gain),
         )
     }
 
     /**
-     * The form now playing is known at once, but its YouTube loudness figure may not be: asks for it when it's a video's
-     * audio (the song's own is asked for by [loadExtras]), and puts the stored one on now. A video and its song then
-     * play at the same level rather than the video keeping the song's gain.
+     * The form now playing ([Loudness.formId]) may be the song's video, the version picked for it, or the video whose
+     * sound plays in its place: its YouTube figure may not be known yet, and its own is asked for here — the figure is
+     * the form's, never the song's. What's known is put on now ([applyNormalization]), so a video and its song play at
+     * the same level rather than the video keeping the song's gain.
+     *
+     * [fetch]: whether to ask YouTube when the form has no figure yet. The song's own start asks for it itself
+     * ([loadExtras], which needs the answer for its history sync anyway) and passes false here.
      */
-    private fun loadFormLoudness(song: Song) {
-        applyNormalization()
-        val item = player.currentMediaItem ?: return
-        val audioId = item.audioId
+    private fun loadFormLoudness(song: Song, fetch: Boolean = true) {
+        applyNormalization(GainReason.FORM)
         formExtrasJob?.cancel()
-        if (audioId == song.id || song.isLocal || song.isRss) return
-        // Measured already (or measured now by scanAhead): only YouTube's figure is worth asking for.
-        if (c.loudness.contains(audioId) || c.mixTempo.loudness(audioId) != null) return
+        if (!fetch) return
+        val form = currentFormId() ?: return
+        // Nothing to ask: a file on the phone, an episode from its own feed. Measured already (or measured now by
+        // scanAhead): a measured figure is the better one, so only YouTube's would be worth asking for, and it isn't.
+        if (song.isRss || c.loudnessIndex.isLocal(form) || c.loudnessIndex.hasYoutube(form) || c.loudnessIndex.measured(form) != null) return
         formExtrasJob = scope.launch {
-            val ex = runCatching { withContext(Dispatchers.IO) { c.ytm.playerExtras(audioId, c.streams.signatureTimestamp()) } }.getOrNull()
+            val ex = runCatching { withContext(Dispatchers.IO) { c.ytm.playerExtras(form, c.streams.signatureTimestamp()) } }.getOrNull()
             val loud = ex?.loudnessDb?.toFloat() ?: return@launch
-            c.loudness.edit().putFloat(audioId, loud).apply()
-            if (trackedSong?.id == song.id && currentAudioId() == audioId && settling()) applyNormalization()
+            c.loudnessIndex.rememberYoutube(form, loud)
+            // Just switched to ([LoudnessCatchUp]): its own figure takes over; later in the form, a jump would be heard.
+            if (currentFormId() == form) applyNormalization(GainReason.FIGURE)
         }
     }
 
@@ -1597,21 +1667,35 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val network = s.mixTempoOnCellular || getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
         val playingItem = player.currentMediaItem
         val playingMedia = playingItem?.mediaId
-        // The audio actually heard: a queued item armed as its video is scanned as that video, so its own loudness (and
-        // not only its song's) is known when it starts.
-        val playing = playingItem?.audioId
-        val all = items.mapNotNull { item ->
-            val song = item?.toSong() ?: return@mapNotNull null
-            if (song.isLive || song.isEpisode) null else song to item.audioId
-        }.distinctBy { it.second }
-        // A playing song with no figure yet (or one measured the old, mono way) is scanned too (Normalize): a first
-        // play's figure usually lands too late to use, but its next play then starts at its own level instead of
-        // YouTube's near-flat one.
-        fun worth() = MixTempo.worthScanning(
-            all.map { it.second }, playing, c.visible.value, s.mix || wave, QUEUE_AHEAD,
-            playingUnmeasured = playing != null && s.normalize &&
-                (c.mixTempo.loudness(playing) == null || !c.mixTempo.loudnessCurrent(playing)),
-        )
+        // The audio actually heard is the form scanned ([Loudness.formId]): a queued item armed as its video is scanned
+        // as that video, one that will play a picked version as the version, so the figure of what plays is known when
+        // it starts (and not only its song's).
+        fun formOf(item: MediaItem?): Pair<Song, String>? {
+            val song = item?.toSong() ?: return null
+            if (song.isLive || song.isEpisode) return null
+            return song to c.loudnessIndex.formId(song.id, item.videoModeId)
+        }
+        val playing = formOf(playingItem)?.second
+        // With "Albums as they are", the loudest of the album's measured songs sets every song's level (A2): all of the
+        // album is scanned, not only the few ahead, so that figure is known early rather than settling as it plays.
+        val album = if (s.normalize && s.sound.normalizeAlbums && c.queue.source.value.kind == QueueKind.ALBUM) {
+            val albumId = (playingItem?.toSong() ?: trackedSong)?.album?.id
+            if (albumId == null) emptyList()
+            else (0 until player.mediaItemCount).map { player.getMediaItemAt(it) }.filter { it.toSong()?.album?.id == albumId }
+        } else emptyList()
+        val all = (items.toList() + album).mapNotNull(::formOf).distinctBy { it.second }
+        // A playing form with no figure yet (or one measured another way) is scanned too (Normalize): a first play's
+        // figure usually lands too late to use, but its next play then starts at its own level instead of YouTube's
+        // near-flat one.
+        fun worth(): List<String> {
+            val usual = MixTempo.worthScanning(
+                all.map { it.second }, playing, c.visible.value, s.mix || wave, QUEUE_AHEAD,
+                playingUnmeasured = playing != null && s.normalize &&
+                    (c.loudnessIndex.measured(playing) == null || !c.loudnessIndex.measuredCurrent(playing)),
+            )
+            if (album.isEmpty()) return usual
+            return (usual + album.mapNotNull(::formOf).map { it.second }).distinct()
+        }
         val worth = worth()
         val scans = all.filter { it.second in worth }
         if (scans.isEmpty()) return
@@ -1621,45 +1705,50 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         scanJob = scope.launch {
             if (playingMedia != null) untilUnderWay(playingMedia, UNDER_WAY_MS)
             // YouTube's loudness figure for each queued form not known yet: quick, and enough to start it at the right
-            // volume if it comes up before it's been measured (a skip).
-            if (s.normalize) for ((song, audioId) in scans) {
-                if (audioId == playing || song.isLocal || c.loudness.contains(audioId) || c.mixTempo.loudness(audioId) != null) continue
-                withContext(Dispatchers.IO) { runCatching { c.ytm.playerExtras(audioId, c.streams.signatureTimestamp()).loudnessDb } }
-                    .getOrNull()?.let { c.loudness.edit().putFloat(audioId, it.toFloat()).apply() }
+            // volume if it comes up before it's been measured (a skip). A file on the phone has none to ask for.
+            if (s.normalize) for ((song, form) in scans) {
+                if (form == playing || song.isLocal || c.loudnessIndex.isLocal(form) || c.loudnessIndex.hasYoutube(form) || c.loudnessIndex.measured(form) != null) continue
+                withContext(Dispatchers.IO) { runCatching { c.ytm.playerExtras(form, c.streams.signatureTimestamp()).loudnessDb } }
+                    .getOrNull()?.let { c.loudnessIndex.rememberYoutube(form, it.toFloat()) }
             }
             // Then measured, the queued songs first (their volume is set as they start); the playing one last
             // (Crossfade reads its ending near the end, and Normalize wants its figure for the next play).
             // With the waveform bar, the playing song goes first: its bar is waiting for it.
-            for ((_, audioId) in scans.sortedBy { if (wave) it.second != playing else it.second == playing }) {
+            for ((song, form) in scans.sortedBy { if (wave) it.second != playing else it.second == playing }) {
                 // Asked again for each: the listener may have left since these were lined up.
-                if (audioId !in worth()) continue
-                c.mixTempo.measure(audioId, network, edges, wave = wave, peak = s.normalize)
-                // Measured while it's just begun: its own figure takes over (later in the song, a jump would be heard).
-                if (currentAudioId() == audioId && settling()) applyNormalization()
+                if (form !in worth()) continue
+                c.mixTempo.measure(form, network, edges, wave = wave, peak = s.normalize, sourceSongId = song.id)
+                // Its own figure landed while the form just started: it takes over ([LoudnessCatchUp]); later in the
+                // form, a jump would be heard.
+                if (currentFormId() == form) applyNormalization(GainReason.FIGURE)
             }
         }
     }
 
     private fun loadExtras(song: Song) {
         extrasJob?.cancel()
-        // Remembered loudness applies straight away (and offline); the network refreshes it. The form heard now may be the
-        // song's video, whose own figure is asked for there.
-        loadFormLoudness(song)
+        // Remembered loudness applies straight away (and offline): the form heard now may be the song's video, or the
+        // version picked for it, and its own figure is put on (not the song's). The network refresh is asked for below,
+        // for that same form.
+        loadFormLoudness(song, fetch = false)
         // A file on the phone (or an episode from its own feed) has nothing on YouTube to fetch or report.
         if (song.isLocal || song.isRss) return
+        val form = currentFormId() ?: song.id
+        // Nor has a file picked to play in the song's place.
+        if (c.loudnessIndex.isLocal(form)) return
         extrasJob = scope.launch {
-            val asked = runCatching { withContext(Dispatchers.IO) { c.ytm.playerExtras(song.id, c.streams.signatureTimestamp()) } }
+            // The form's own figure; its answer is what the account's history hears of this play too.
+            val asked = runCatching { withContext(Dispatchers.IO) { c.ytm.playerExtras(form, c.streams.signatureTimestamp()) } }
             val ex = asked.getOrNull()
             // #377: where a play's way to the account's history ends, for a diagnostics log.
             if (ex == null && c.settings.current.isLoggedIn && asked.exceptionOrNull() !is kotlinx.coroutines.CancellationException) {
                 AudioDiagnostics.log("history", "${song.id}: not sent: couldn't ask YouTube (${asked.exceptionOrNull()?.message?.take(120)})")
             }
             ex?.loudnessDb?.toFloat()?.let { loud ->
-                c.loudness.edit().putFloat(song.id, loud).apply()
-                // Only while the song is just starting: later, the volume jumping mid-song is worse than a figure
-                // that's a little off (it's kept, so the song plays at it from the start next time). While its video is
-                // heard, the video's own figure is the one that matters (loadFormLoudness asks for it).
-                if (trackedSong?.id == song.id && currentAudioId() == song.id && settling()) applyNormalization()
+                c.loudnessIndex.rememberYoutube(form, loud)
+                // Only while the form is just starting ([LoudnessCatchUp]): later, the volume jumping is worse than a
+                // figure that's a little off (it's kept, so the form plays at it from the start next time).
+                if (currentFormId() == form) applyNormalization(GainReason.FIGURE)
             }
             if (ex != null && c.settings.current.isLoggedIn) {
                 // #263: with "Same for your YouTube Music history" on, the account hears of the play once it counts here
@@ -3753,7 +3842,6 @@ internal fun decoderLost(error: PlaybackException): Boolean =
     (error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED || error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED) &&
         generateSequence(error as Throwable) { it.cause }.none { it is androidx.media3.common.ParserException }
 
-private const val TARGET_LUFS = -14f
 /** The extra Media3 puts on the media button it sends when its notification is swiped away. */
 private const val NOTIFICATION_DISMISSED = "androidx.media3.session.NOTIFICATION_DISMISSED_EVENT_KEY"
 /** "Fade on pause and play" (A5): 8 steps of 30 ms. */
@@ -3763,10 +3851,19 @@ private const val PAUSE_FADE_STEP_MS = 30L
 /** How far a music video's length may be from its song's for its sound to play in the song's place (#93, Reddit R1). */
 private const val SOUND_FROM_SLACK_SEC = 8
 
-/** A song's volume (normalization) can still be set this far into it; after that it stays put for the song. */
+/** A form's volume (normalization) can still be set this far into it as it was: a figure at the start is no jump. */
 private const val SETTLE_MS = 2_000L
-/** A song already playing only has its volume changed for a better loudness figure this much apart (dB). */
+/** A form already playing only has its volume changed for a better loudness figure this much apart (dB). */
 private const val MIN_MIDSONG_CHANGE_DB = 1.5f
+/**
+ * A better figure still sets a form's volume this far into it (1.1.3): its measured loudness comes from a scan of the
+ * whole song, which lands seconds into the sound, and a first play then lands where every later one does.
+ */
+internal const val CATCHUP_MS = 20_000L
+/** A better figure landing after [SETTLE_MS] has to be at least this far from the one in use to be worth hearing (dB). */
+internal const val CATCHUP_MIN_CHANGE_DB = 0.5f
+/** How long that change takes (s): slow enough not to be a jump, quick enough to be at the right level through the song. */
+internal const val CATCHUP_GLIDE_SEC = 1.5f
 /** Queued songs are got ready once the playing one has played this long (not as it starts: that slowed its loading). */
 private const val UNDER_WAY_MS = 5_000L
 /** "Download on stream" starts saving once the playing song has played this long (starting with it slowed the tap). */

@@ -167,7 +167,8 @@ class NormalizerProcessor : BaseAudioProcessor() {
      *
      * The same song in another form (swapped for its video, or back: a new item, so a new period, but the same media id)
      * is the same listen but not the same sound: the video's audio has its own loudness, so it gets its own gain rather
-     * than keeping the song's (the volume of a music video and its song then match). [MediaItem.audioId] is that form.
+     * than keeping the song's (the volume of a music video and its song then match). [MediaItem.audioId] names that
+     * sound.
      */
     override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
         val uid = streamMetadata.periodUid

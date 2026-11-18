@@ -1398,6 +1398,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         p.seekTo(at)
         p.prepare()
         p.playWhenReady = play
+        // Its sound changed under it (another version picked): its own loudness figure, at once (1.1.3).
+        service?.formChanged()
     }
 
     fun setVideoMode(enabled: Boolean) {

@@ -116,13 +116,13 @@ internal class EffectQueue(private val executor: ExecutorService) {
 /**
  * Owns the audio effect chain attached to the player's audio session:
  * a 10-band EQ (DynamicsProcessing on API 28+, platform Equalizer otherwise),
- * bass boost, virtualizer, loudness enhancer and loudness normalization.
+ * bass boost, virtualizer and loudness enhancer.
  * It also announces the session so system / OEM engines such as Dolby Atmos
  * can attach their own processing.
  *
  * Callers (the playback service, on the main thread) only hand work over: every effect is created, changed and
  * released on [EffectQueue]'s own thread, in the order asked, and the effect objects and session are only touched
- * there. What callers set ([wanted], [wantedNormalizationDb]) is read by that thread when it gets to it.
+ * there. What callers set ([wanted]) is read by that thread when it gets to it.
  */
 class AudioEffects(
     private val context: Context,
@@ -142,18 +142,15 @@ class AudioEffects(
 
     // Set by callers, read by the effects thread: the newest settings always win.
     @Volatile private var wanted = EqSettings()
-    @Volatile private var wantedNormalizationDb = 0f
     /** Whether the 10-band DynamicsProcessing EQ is the one in use (for [activeSummary]). */
     @Volatile private var tenBand = false
 
     val activeSummary: String
         get() {
             val s = wanted
-            val norm = wantedNormalizationDb
             return buildList {
                 if (s.enabled) add(if (tenBand) "EQ 10-band" else "EQ")
                 if (s.enabled && s.bassBoost > 0) add("Bass")
-                if (norm != 0f) add("Normalize %.1f dB".format(norm))
             }.joinToString(" · ").ifEmpty { "None" }
         }
 
@@ -161,11 +158,6 @@ class AudioEffects(
     fun attach(newSession: Int) {
         if (newSession == 0) return
         queue.run { attachNow(newSession) }
-    }
-
-    fun setNormalization(gainDb: Float) {
-        wantedNormalizationDb = gainDb
-        queue.applyLatest { applyNow() }
     }
 
     fun apply(s: EqSettings) {
@@ -195,11 +187,10 @@ class AudioEffects(
         applyNow()
     }
 
+    /** The EQ as set: its bands at the preamp's level (DynamicsProcessing's input gain does the preamp on API 28+). */
     private fun applyNow() {
         val s = wanted
-        val normalizationDb = wantedNormalizationDb
         if (sessionId == 0) return
-        val preGain = normalizationDb + if (s.enabled) s.preampDb else 0f
         if (Build.VERSION.SDK_INT >= 28) {
             runCatching {
                 val dp = dynamics ?: DynamicsProcessing(
@@ -214,11 +205,11 @@ class AudioEffects(
                     eq.setBand(i, DynamicsProcessing.EqBand(true, EqPresets.frequencies[i], if (s.enabled) s.bands.getOrElse(i) { 0f } else 0f))
                 }
                 dp.setPreEqAllChannelsTo(eq)
-                dp.setInputGainAllChannelsTo(preGain)
+                dp.setInputGainAllChannelsTo(if (s.enabled) s.preampDb else 0f)
                 dp.setLimiterAllChannelsTo(DynamicsProcessing.Limiter(true, true, 1, 1f, 60f, 10f, -1f, 0f))
-                dp.enabled = s.enabled || preGain != 0f
-            }.onFailure { dynamics = null; applyLegacyEq(s, normalizationDb) }
-        } else applyLegacyEq(s, normalizationDb)
+                dp.enabled = s.enabled
+            }.onFailure { dynamics = null; applyLegacyEq(s) }
+        } else applyLegacyEq(s)
         tenBand = dynamics != null
 
         runCatching {
@@ -238,18 +229,18 @@ class AudioEffects(
         }
     }
 
-    private fun applyLegacyEq(s: EqSettings, normalizationDb: Float) {
+    private fun applyLegacyEq(s: EqSettings) {
         runCatching {
             val eq = equalizer ?: Equalizer(0, sessionId).also { equalizer = it }
             val range = eq.bandLevelRange
             for (band in 0 until eq.numberOfBands) {
                 val centerHz = eq.getCenterFreq(band.toShort()) / 1000f
                 val nearest = EqPresets.frequencies.indices.minBy { kotlin.math.abs(EqPresets.frequencies[it] - centerHz) }
-                val mb = ((s.bands.getOrElse(nearest) { 0f } + s.preampDb + normalizationDb) * 100).roundToInt()
+                val mb = ((s.bands.getOrElse(nearest) { 0f } + s.preampDb) * 100).roundToInt()
                     .coerceIn(range[0].toInt(), range[1].toInt())
                 eq.setBandLevel(band.toShort(), mb.toShort())
             }
-            eq.enabled = s.enabled || normalizationDb != 0f
+            eq.enabled = s.enabled
         }
     }
 

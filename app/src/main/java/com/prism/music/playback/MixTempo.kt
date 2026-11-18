@@ -290,14 +290,21 @@ data class Tempo(
  * ([LoudnessMeter]). The song's audio is read from the phone when it's there ([local]: a download, the song
  * cache, a local file), else its smallest stream is fetched whole (1–4 MB, on Wi-Fi unless mobile data is allowed);
  * it's decoded to mono ~11 kHz for the tempo and key, and every channel is measured for its loudness. Results are
- * kept per song (`mix_tempo` and `song_loudness` prefs).
+ * kept per recording scanned (`mix_tempo` and `song_loudness` prefs).
+ *
+ * Since 1.1.3 a scan is asked for the *form* that plays ([Loudness.formId]: the song, its video, the version picked for
+ * it), and its figures are filed under that id: a version's loudness is the version's, never the song's ([sourceSongId]
+ * is only where its audio may be found when the form's own copy isn't here).
  */
 class MixTempo(
     private val context: Context,
     private val http: OkHttpClient,
     private val streams: StreamResolver,
-    /** Where the song's audio is on the phone, if it is (may copy it to the file it's given), else null. */
-    private val local: (id: String, scratch: File) -> android.net.Uri? = { _, _ -> null },
+    /**
+     * Where a form's audio is on the phone, if it is (may copy it to the file it's given), else null. [songId] is the
+     * queue's song it plays for: a picked version's download is the song's ([com.prism.music.AppContainer.audioOnPhone]).
+     */
+    private val local: (id: String, songId: String, scratch: File) -> android.net.Uri? = { _, _, _ -> null },
     /** Blocks while the playing song is still loading (a scan starting then competed with it); off the main thread. */
     private val yieldToPlaying: () -> Unit = {},
     /** Music is playing right now (DJ mode's quick scans then go one at a time). */
@@ -308,11 +315,11 @@ class MixTempo(
     private val traits: com.prism.music.data.TraitsSink? = null,
 ) {
     private val prefs = context.getSharedPreferences("mix_tempo", Context.MODE_PRIVATE)
-    /** Song id -> integrated loudness (LUFS; NaN when it couldn't be measured). Also marks a song as scanned. */
+    /** Form id ([Loudness.formId]) -> integrated loudness (LUFS; NaN when it couldn't be measured). Also marks it as scanned. */
     private val loudPrefs = context.getSharedPreferences("song_loudness", Context.MODE_PRIVATE)
-    /** Song id -> the [LUFS_VERSION] its loudness was measured with: one measured by the mono fold-down is measured again. */
+    /** Form id -> the [LUFS_VERSION] its loudness was measured with: one measured by another way is measured again. */
     private val loudVersion = context.getSharedPreferences("song_loudness_version", Context.MODE_PRIVATE)
-    /** Song id -> its loudest sample (dBFS), measured with its loudness since 1.8.0: how far Normalize may lift it. */
+    /** Form id -> its loudest sample (dBFS), measured with its loudness since 1.8.0: how far Normalize may lift it. */
     private val peakPrefs = context.getSharedPreferences("song_peak", Context.MODE_PRIVATE)
     /** Song id -> its key ([MusicKey.encode], or "none" when it has no clear one); DJ mode's harmonic ordering. */
     private val keyPrefs = context.getSharedPreferences("song_key", Context.MODE_PRIVATE)
@@ -320,9 +327,13 @@ class MixTempo(
     /** One song at a time: decoding a whole song is the heaviest thing Prism does in the background. */
     private val lock = Mutex()
 
-    /** Forgets what was measured of [id] (another version of it plays now), so it's measured again. */
+    /**
+     * Forgets what was measured of [id] as a song's sound for Mix (tempo, edges, key, DJ mode's quick scan), so it's
+     * measured again. Its loudness and peak stay (1.1.3): a figure belongs to the recording it was measured from (a
+     * [Loudness.formId]), and a pick changing says which recording plays next, not that this one's figure was wrong.
+     */
     fun forget(id: String) {
-        for (p in listOf(prefs, loudPrefs, loudVersion, peakPrefs, keyPrefs, quickPrefs)) p.edit().remove(id).apply()
+        for (p in listOf(prefs, keyPrefs, quickPrefs)) p.edit().remove(id).apply()
         traits?.forget(id)
     }
 
@@ -349,10 +360,10 @@ class MixTempo(
     /** How many songs have been measured so far, whole or by a quick scan: what a calm ↔ energetic radio has to go by. */
     fun measuredCount(): Int = (loudPrefs.all.keys + quickPrefs.all.keys).size
 
-    /** The song's measured loudness (integrated LUFS), once it's been scanned. */
+    /** The form's measured loudness (integrated LUFS), once it's been scanned: the recording heard, not its song's. */
     fun loudness(id: String): Float? = loudPrefs.getFloat(id, Float.NaN).takeIf { !it.isNaN() }
 
-    /** Whether the song's stored loudness is from the current measurement (1.8.5: every channel, not a mono fold-down). */
+    /** Whether the form's stored loudness is from the current measurement (1.8.5: every channel; 1.1.3: of this form). */
     fun loudnessCurrent(id: String): Boolean = loudVersion.getInt(id, 0) >= LUFS_VERSION
 
     /** Measured before the loudness heard every channel: it's measured again when Normalize wants it. */
@@ -457,7 +468,7 @@ class MixTempo(
         var ranged: RangedSource? = null
         try {
             var durationMs = 0L
-            val uri = local(id, scratch)
+            val uri = local(id, id, scratch)
             if (uri != null) ex.setDataSource(context, uri, null)
             else {
                 if (!network || id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX)) return null
@@ -491,9 +502,14 @@ class MixTempo(
      * before its fade-out and intro were measured is scanned again (only Crossfade's automatic length needs them), and
      * with [key], one scanned before its key was (DJ mode), with [wave], one with no outline for the waveform bar, and
      * with [peak], one scanned before its peak was, or before its loudness heard every channel (Normalize).
+     *
+     * [id] is the form scanned ([Loudness.formId]): the recording that actually plays, whose figure is what Normalize
+     * needs. [sourceSongId] is the queue's song it plays for, when that's another id (a picked version, a video): where
+     * its audio may be found on the phone when the form's own copy isn't ([local]).
      */
     suspend fun measure(
         id: String, network: Boolean = true, edges: Boolean = true, key: Boolean = false, wave: Boolean = false, peak: Boolean = false,
+        sourceSongId: String? = null,
     ): Tempo? {
         fun done() = scanned(id) && !(edges && old(id)) && !(key && !keyed(id)) && !(wave && waves?.has(id) == false) &&
             !(peak && (noPeak(id) || loudnessOld(id)))
@@ -508,7 +524,7 @@ class MixTempo(
                 runCatching { yieldToPlaying() }
                 AudioDiagnostics.log("background", "song scan of $id started (Normalize/Crossfade/DJ)")
                 val r = try {
-                    runCatching { scan(id, network) }.onFailure { Log.w(TAG, "scan of $id failed: $it") }
+                    runCatching { scan(id, network, sourceSongId) }.onFailure { Log.w(TAG, "scan of $id failed: $it") }
                 } finally {
                     android.os.Process.setThreadPriority(before)
                     AudioDiagnostics.log("background", "song scan of $id ended after ${(System.nanoTime() - started) / 1_000_000} ms")
@@ -537,11 +553,11 @@ class MixTempo(
         }
     }
 
-    /** Null when the song's audio isn't on the phone and [network] doesn't allow fetching it. */
-    private fun scan(id: String, network: Boolean): Scan? {
+    /** Null when the form's audio isn't on the phone and [network] doesn't allow fetching it. */
+    private fun scan(id: String, network: Boolean, sourceSongId: String? = null): Scan? {
         val file = File(context.cacheDir, "mix_$id.part")
         try {
-            val uri = local(id, file) ?: run {
+            val uri = local(id, sourceSongId ?: id, file) ?: run {
                 if (!network || id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX)) return null
                 Log.d(TAG, "downloading $id to scan it")
                 val a = streams.analysisAudio(id)
@@ -680,9 +696,11 @@ class MixTempo(
 
         /**
          * How [LoudnessMeter] measures a song's loudness; entries measured by an older way are measured again. 1.8.5: every
-         * channel (a mono fold-down with a flat +3 dB read a wide mix up to 3 dB quieter than it plays).
+         * channel (a mono fold-down with a flat +3 dB read a wide mix up to 3 dB quieter than it plays). 2 (1.1.3): a
+         * measurement is a form's ([Loudness.formId]) — 1's may describe the version picked when it was scanned — so every
+         * one is measured again when Normalize next wants it ([MixTempo.loudnessCurrent]'s gate).
          */
-        internal const val LUFS_VERSION = 1
+        internal const val LUFS_VERSION = 2
 
         /** Room for a song of [lengthMs] at [rate], with a little over; a song whose length isn't known starts at 3 minutes. */
         internal fun decodedSize(lengthMs: Long, rate: Int): Int {

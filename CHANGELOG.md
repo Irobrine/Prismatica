@@ -4,7 +4,20 @@ What changed in each release. Older releases are described on the [Releases page
 
 ## 1.1.3
 
-Shuffle starts anywhere in the list again.
+Shuffle starts anywhere in the list again, opening the player no longer crashes, and every recording — a song, its video, the version picked for it — plays at its own level.
+
+### The player
+
+- **Opening the player no longer crashes.** The morph's number was kept within 0 to 1 by its arithmetic alone, and a frame's float rounding could land it a hair past 1 — where the player card's corner radius went below zero and Compose refused to draw it, closing the app on the spot (1.1.2, twice on one phone, the same corner value both times). The number is now taken as the fraction it is everywhere it's written and read, so a corner can never go under zero and a value that isn't a number can't reach a layer either. The gesture, the settle and Reduce motion are unchanged.
+- `PlayerMorphTest` pins the mechanism: the eased curve stays a fraction wherever the hand left it, every value a settle takes lies between its two ends, and one ULP past the end — the exact arithmetic of the crash — reads as the fraction the layer can draw.
+
+### Volume
+
+- **Normalization rebuilt: every recording plays at its own level.** A song's sound can be one of several recordings — its own, its music video while watching, a version the listener picked, a file on the phone — each mastered differently. Every loudness figure is now keyed by the recording actually heard, where before all of them were filed under the song's id: a picked version's measurement described whichever recording was picked when it was scanned, its YouTube figure was the original's, and a video's audio played at its song's level until its own was known. A song and its video, or two versions of one, no longer take each other's levels — and switching between them, mid-song, changes to that recording's gain at once.
+- **A song's first play lands at the same level as every later one.** Its measured loudness comes from a scan that lands seconds into the sound; before, only the first two seconds could still set the volume, so the first play of a song was at another level than the same song again. A better figure arriving in the first 20 seconds now takes over once, easing over a second and a half.
+- **"Albums as they are" settles early.** The whole album is scanned as it plays through, so the one level it gets is set by its loudest song early rather than drifting as songs are measured one by one.
+- Under the hood: the loudness measurement's version moves to 2, so figures measured before the rebuild (which may describe a picked version, not the song) are measured again; the preference files keep their names, so a backup still carries every figure; and the unused normalization path beside the equalizer is gone — the one in Prism's own audio chain is the only one.
+- New and extended tests: `LoudnessFigureTest` (a form's own figure wins, a video may start on its song's, a picked version never borrows the song's, the catch-up window) and `NormalizationVersionSwitchTest` (a version and its song each at their own level, figures surviving a pick changing); `EffectQueueTest` follows the removed path out, and `NormalizeGapsTest` and `NormalizerSongStartTest` hold as before.
 
 ### Shuffle
 
