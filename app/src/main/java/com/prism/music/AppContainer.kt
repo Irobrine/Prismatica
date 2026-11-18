@@ -438,26 +438,37 @@ class AppContainer(val app: Application) {
         if (id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX)) return localMusic.uriFor(id)
         // A file on the phone picked to play in its place is its sound too.
         versions.fileOf(id)?.let(localMusic::uriFor)?.let { return it }
-        for ((cache, key) in listOf(downloadCache to id, playerCache to songCacheKey(id))) {
-            if (!cache.fullyCached(key, 0, C.LENGTH_UNSET.toLong())) continue
-            val ok = runCatching {
-                val source = CacheDataSource(cache, null)
-                source.open(DataSpec.Builder().setUri("prism://audio/$id").setKey(key).build())
-                try {
-                    scratch.outputStream().use { out ->
-                        val buf = ByteArray(64 * 1024)
-                        while (true) {
-                            val n = source.read(buf, 0, buf.size)
-                            if (n == C.RESULT_END_OF_INPUT) break
-                            out.write(buf, 0, n)
-                        }
-                    }
-                } finally { source.close() }
-            }.isSuccess
-            if (ok) return android.net.Uri.fromFile(scratch)
+        // A finished download is the recording's own bytes here, and Downloads' own state says so — not the cache's
+        // content-length metadata: a DownloadManager download records none (only [markWhole] writes it, for the song
+        // cache), so asking the cache made every downloaded song look absent and its scan went to the network for the
+        // whole song — data spent on bytes already on the phone, seconds a song in (the settings' "Measure songs now").
+        if (downloads.isDownloaded(id)) {
+            // A lossless download is a file on the phone: measured where it is, without a copy. One the phone can't
+            // decode is a song whose stream plays instead — so the stream's bytes are the ones to measure.
+            localLossless.matched[id]?.takeIf { it.uri !in localLossless.unplayable }?.let { return it.uri }
+            copyCached(downloadCache, id, scratch)?.let { return it }
         }
-        return null
+        // A song the player cached whole ([warmUp]): that cache keeps its length ([markWhole]), so it can be asked.
+        if (!playerCache.fullyCached(songCacheKey(id), 0, C.LENGTH_UNSET.toLong())) return null
+        return copyCached(playerCache, songCacheKey(id), scratch)
     }
+
+    /** [key]'s bytes in [cache], the whole of them as the cache serves them, copied into [scratch]. Null on failure. */
+    private fun copyCached(cache: Cache, key: String, scratch: File): android.net.Uri? = runCatching {
+        val source = CacheDataSource(cache, null)
+        source.open(DataSpec.Builder().setUri("prism://audio/$key").setKey(key).build())
+        try {
+            scratch.outputStream().use { out ->
+                val buf = ByteArray(64 * 1024)
+                while (true) {
+                    val n = source.read(buf, 0, buf.size)
+                    if (n == C.RESULT_END_OF_INPUT) break
+                    out.write(buf, 0, n)
+                }
+            }
+        } finally { source.close() }
+        android.net.Uri.fromFile(scratch)
+    }.getOrNull()
     /**
      * What each form of a song plays at (1.1.3): its loudness as measured by the scan ([MixTempo]) or YouTube's figure,
      * keyed by the recording actually heard ([com.prism.music.playback.Loudness.formId]) — the song's, its music
