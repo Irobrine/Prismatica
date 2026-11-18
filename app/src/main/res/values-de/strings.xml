@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Video zeigen</string>
     <string name="immersive_music_video_behind_lyrics">immersiv musikvideo hinter songtext</string>
     <string name="swipe_up_for_the_queue">Nach oben wischen für die Warteschlange</string>
+    <string name="gb_swipe_up_player">Auf dem Player nach oben wischen</string>
+    <string name="gb_swipe_up_player_info">Was ein Wischen nach oben auf der unteren Hälfte des Players öffnet: den Songtext oder die Warteschlange, jede Seite für sich oder beide gleich. Wische auf der unteren Hälfte nach unten, um sie zu schließen. Einhändig leichter, als nach oben zu greifen.</string>
+    <string name="panel_swipes_queue_right">Warteschlange rechts, Songtext links</string>
+    <string name="panel_swipes_queue_left">Warteschlange links, Songtext rechts</string>
+    <string name="panel_swipes_lyrics_both">Songtext auf beiden Seiten</string>
+    <string name="panel_swipes_queue_both">Warteschlange auf beiden Seiten</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">geste einhändig warteschlange songtext wischen</string>
     <string name="screen">Bildschirm</string>
     <string name="lock_to_portrait">Hochformat sperren</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Erstellt eine YouTube-Music-Playlist aus jedem Song, den du geliked hast, die du teilen, anpinnen oder in anderen Apps öffnen kannst. Prism hält sie aktuell: Songs, die du likest, kommen dazu, Songs, deren Like du zurücknimmst, fliegen raus.</string>
     <string name="check_your_connection_some_networks_such_all">Prüfe deine Verbindung. Manche Netzwerke, etwa in Firmen und Schulen, blockieren Discord: Versuch ein anderes WLAN oder mobile Daten.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Unschärfe und Milchglas, das Milchglas hinter Seiten, bewegte und illustrierte Hintergründe, animierte Cover, der Visualizer, ein treibender Player-Hintergrund, Fokus-Unschärfe und Leuchten im Songtext, das Bild oben auf der Startseite und Animationen</string>
-    <string name="swipe_up_on_the_lower_half_all">Wische auf der unteren Hälfte des Players nach oben: von der rechten Seite für die Warteschlange, von der linken Seite für den Songtext. Wische auf der unteren Hälfte von Warteschlange oder Songtext nach unten, um sie zu schließen. Einhändig leichter, als nach oben zu greifen.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Sendet, was du hörst (Scrobbles), an dein eigenes Last.fm-Konto: Ein Song zählt, sobald du die Hälfte oder vier Minuten davon gehört hast. Du verbindest dich auf der Seite von Last.fm selbst, Prism sieht dein Passwort also nie. Podcast-Folgen werden nicht gesendet.</string>
     <string name="mode_light">hellen</string>
     <string name="mode_dark">dunklen</string>

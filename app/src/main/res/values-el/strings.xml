@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Εμφάνιση του βίντεο</string>
     <string name="immersive_music_video_behind_lyrics">καθηλωτική μουσικό βίντεο πίσω από τους στίχους</string>
     <string name="swipe_up_for_the_queue">Σύρε προς τα πάνω για την ουρά</string>
+    <string name="gb_swipe_up_player">Σύρσιμο προς τα πάνω στην οθόνη αναπαραγωγής</string>
+    <string name="gb_swipe_up_player_info">Τι ανοίγει το σύρσιμο προς τα πάνω στο κάτω μισό της οθόνης αναπαραγωγής: τους στίχους ή την ουρά, κάθε πλευρά ξεχωριστά ή και οι δύο το ίδιο. Σύρε προς τα κάτω στο κάτω μισό για να τα κλείσεις. Πιο εύκολο με το ένα χέρι από το να φτάνεις στην κορυφή.</string>
+    <string name="panel_swipes_queue_right">Ουρά δεξιά, στίχοι αριστερά</string>
+    <string name="panel_swipes_queue_left">Ουρά αριστερά, στίχοι δεξιά</string>
+    <string name="panel_swipes_lyrics_both">Στίχοι και στις δύο πλευρές</string>
+    <string name="panel_swipes_queue_both">Ουρά και στις δύο πλευρές</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">κίνηση ένα χέρι ουρά στίχοι σύρσιμο</string>
     <string name="screen">Οθόνη</string>
     <string name="lock_to_portrait">Κλείδωμα σε κατακόρυφο</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Φτιάχνει μια playlist στο YouTube Music με κάθε τραγούδι που σου άρεσε, την οποία μπορείς να κοινοποιήσεις, να καρφιτσώσεις ή να ανοίξεις σε άλλες εφαρμογές. Το Prism την κρατά ενημερωμένη: τα τραγούδια που σου αρέσουν προστίθενται και αυτά που βγάζεις από τα αγαπημένα αφαιρούνται.</string>
     <string name="check_your_connection_some_networks_such_all">Έλεγξε τη σύνδεσή σου. Μερικά δίκτυα, όπως αυτά της δουλειάς και του σχολείου, μπλοκάρουν το Discord: δοκίμασε άλλο Wi-Fi ή δεδομένα κινητής.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Θάμπωμα και θαμπό γυαλί, το θάμπωμα πίσω από τις σελίδες, κινούμενα και εικονογραφημένα φόντα, κινούμενα εξώφυλλα, η οπτικοποίηση, ένα κινούμενο φόντο οθόνης αναπαραγωγής, το θάμπωμα εστίασης και η λάμψη στους στίχους, η εικόνα στο πάνω μέρος της Αρχικής και τα κινούμενα εφέ</string>
-    <string name="swipe_up_on_the_lower_half_all">Σύρε προς τα πάνω στο κάτω μισό της οθόνης αναπαραγωγής: από τη δεξιά πλευρά για την ουρά, από την αριστερή για τους στίχους. Σύρε προς τα κάτω στο κάτω μισό της ουράς ή των στίχων για να τα κλείσεις. Πιο εύκολο με το ένα χέρι από το να φτάνεις στην κορυφή.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Στέλνει ό,τι ακούς (scrobbles) στον δικό σου λογαριασμό Last.fm: ένα τραγούδι μετράει μόλις ακούσεις το μισό του ή τέσσερα λεπτά. Συνδέεσαι στη σελίδα του ίδιου του Last.fm, οπότε το Prism δεν βλέπει ποτέ τον κωδικό σου. Τα επεισόδια podcast δεν στέλνονται.</string>
     <string name="mode_light">ανοιχτή</string>
     <string name="mode_dark">σκούρα</string>

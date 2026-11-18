@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Показывать видео</string>
     <string name="immersive_music_video_behind_lyrics">погружение клип за текстом</string>
     <string name="swipe_up_for_the_queue">Свайп вверх для очереди</string>
+    <string name="gb_swipe_up_player">Свайп вверх в плеере</string>
+    <string name="gb_swipe_up_player_info">Что открывает свайп вверх по нижней половине плеера: текст или очередь, каждая сторона отдельно или обе одинаково. Свайп вниз по нижней половине закрывает их. Одной рукой проще, чем тянуться к верху экрана.</string>
+    <string name="panel_swipes_queue_right">Очередь справа, текст слева</string>
+    <string name="panel_swipes_queue_left">Очередь слева, текст справа</string>
+    <string name="panel_swipes_lyrics_both">Текст с обеих сторон</string>
+    <string name="panel_swipes_queue_both">Очередь с обеих сторон</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">жест одной рукой очередь текст свайп</string>
     <string name="screen">Экран</string>
     <string name="lock_to_portrait">Только вертикально</string>
@@ -3929,7 +3935,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Создаёт плейлист YouTube Music из всех понравившихся тебе песен — им можно делиться, закреплять или открывать в других приложениях. Prism обновляет его: песни, которые ты лайкаешь, добавляются, а с которых снимаешь лайк — убираются.</string>
     <string name="check_your_connection_some_networks_such_all">Проверь подключение. Некоторые сети, например рабочие и школьные, блокируют Discord: попробуй другой Wi-Fi или мобильный интернет.</string>
     <string name="blur_and_frosted_glass_the_frost_all">размытие и матовое стекло, матовый фон страниц, движущиеся и иллюстрированные фоны, анимированные обложки, визуализатор, плывущий фон плеера, размытие фокуса и свечение в тексте, картинку вверху главной и анимации</string>
-    <string name="swipe_up_on_the_lower_half_all">Проведи вверх по нижней половине плеера: с правой стороны — для очереди, с левой — для текста. Проведи вниз по нижней половине очереди или текста, чтобы закрыть их. Одной рукой так проще, чем тянуться к верху экрана.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Отправляет то, что ты слушаешь (скробблит), в твой собственный аккаунт Last.fm: песня засчитывается, когда ты прослушал половину или четыре минуты. Подключение происходит на собственной странице Last.fm, поэтому Prism никогда не видит твой пароль. Выпуски подкастов не отправляются.</string>
     <string name="mode_light">светлой</string>
     <string name="mode_dark">тёмной</string>

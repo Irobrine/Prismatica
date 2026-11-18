@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Videoyu göster</string>
     <string name="immersive_music_video_behind_lyrics">sürükleyici müzik videosu sözlerin arkasında</string>
     <string name="swipe_up_for_the_queue">Sıra için yukarı kaydır</string>
+    <string name="gb_swipe_up_player">Oynatıcıda yukarı kaydır</string>
+    <string name="gb_swipe_up_player_info">Oynatıcının alt yarısında yukarı kaydırmanın açtığı şey: şarkı sözleri ya da sıra; her taraf ayrı ayrı veya ikisi de aynı. Kapatmak için alt yarısında aşağı kaydır. Tek elle kullanım için üste uzanmaktan daha kolay.</string>
+    <string name="panel_swipes_queue_right">Sıra sağda, sözler solda</string>
+    <string name="panel_swipes_queue_left">Sıra solda, sözler sağda</string>
+    <string name="panel_swipes_lyrics_both">Her iki tarafta sözler</string>
+    <string name="panel_swipes_queue_both">Her iki tarafta sıra</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">hareket tek el sıra sözler kaydır</string>
     <string name="screen">Ekran</string>
     <string name="lock_to_portrait">Dikey konumda kilitle</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Beğendiğin her şarkıdan paylaşabileceğin, sabitleyebileceğin ya da başka uygulamalarda açabileceğin bir YouTube Music çalma listesi yapar. Prism onu güncel tutar: beğendiğin şarkılar eklenir, beğenisini kaldırdıkların çıkarılır.</string>
     <string name="check_your_connection_some_networks_such_all">Bağlantını kontrol et. İş ve okul ağları gibi bazı ağlar Discord\'u engeller: başka bir Wi-Fi ya da mobil veri dene.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Bulanıklık ve buzlu cam, sayfaların arkasındaki buzlanma, hareketli ve resimli arka planlar, hareketli kapaklar, görselleştirici, süzülen bir oynatıcı arka planı, sözlerdeki odak bulanıklığı ve parıltı, Ana sayfanın üstündeki resim ve animasyonlar</string>
-    <string name="swipe_up_on_the_lower_half_all">Oynatıcının alt yarısında yukarı kaydır: sağ tarafından sıra, sol tarafından sözler için. Kapatmak için sıranın ya da sözlerin alt yarısında aşağı kaydır. Tek elle kullanım için üste uzanmaktan daha kolay.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Dinlediklerini (scrobble) kendi Last.fm hesabına gönderir: bir şarkı, yarısını ya da dört dakikasını dinlediğinde sayılır. Last.fm\'in kendi sayfasında bağlanırsın, böylece Prism şifreni hiçbir zaman görmez. Podcast bölümleri gönderilmez.</string>
     <string name="mode_light">açık</string>
     <string name="mode_dark">koyu</string>

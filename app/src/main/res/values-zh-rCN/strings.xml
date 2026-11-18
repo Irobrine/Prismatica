@@ -1654,6 +1654,12 @@
     <string name="show_the_video">显示视频</string>
     <string name="immersive_music_video_behind_lyrics">沉浸 音乐视频 歌词 后方</string>
     <string name="swipe_up_for_the_queue">向上滑动打开队列</string>
+    <string name="gb_swipe_up_player">在播放器上向上滑动</string>
+    <string name="gb_swipe_up_player_info">在播放器下半部分向上滑动时打开的内容：歌词或队列，两侧可各自设置，也可设为相同。在下半部分向下滑动即可关闭。比伸手够到顶部更便于单手操作。</string>
+    <string name="panel_swipes_queue_right">右侧队列，左侧歌词</string>
+    <string name="panel_swipes_queue_left">左侧队列，右侧歌词</string>
+    <string name="panel_swipes_lyrics_both">两侧都是歌词</string>
+    <string name="panel_swipes_queue_both">两侧都是队列</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">手势 单手 队列 歌词 滑动</string>
     <string name="screen">屏幕</string>
     <string name="lock_to_portrait">锁定为竖屏</string>
@@ -3785,7 +3791,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">将你喜欢过的每首歌制作成一个 YouTube Music 播放列表，可以分享、固定或在其他应用中打开。Prism 会让它保持最新：你喜欢的歌曲会被添加，取消喜欢的歌曲会被移除。</string>
     <string name="check_your_connection_some_networks_such_all">请检查网络连接。有些网络（例如公司和学校的网络）会屏蔽 Discord：请尝试其他 Wi-Fi 或移动数据。</string>
     <string name="blur_and_frosted_glass_the_frost_all">模糊和磨砂玻璃、页面后方的磨砂效果、动态和插画背景、动态封面、可视化效果、漂移的播放器背景、歌词中的焦点模糊和发光、首页顶部的图片，以及动画</string>
-    <string name="swipe_up_on_the_lower_half_all">在播放器下半部分向上滑动：从右侧滑动打开队列，从左侧滑动打开歌词。在队列或歌词的下半部分向下滑动即可关闭。比伸手够到顶部更便于单手操作。</string>
     <string name="sends_what_you_listen_to_scrobbles_all">将你收听的内容（scrobble）发送到你自己的 Last.fm 账号：一首歌在你听完一半或四分钟后计入。你在 Last.fm 自己的页面上连接，所以 Prism 永远看不到你的密码。播客单集不会被发送。</string>
     <string name="mode_light">浅色</string>
     <string name="mode_dark">深色</string>

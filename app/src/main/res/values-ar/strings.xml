@@ -1654,6 +1654,12 @@
     <string name="show_the_video">إظهار الفيديو</string>
     <string name="immersive_music_video_behind_lyrics">غامر فيديو موسيقي خلف الكلمات</string>
     <string name="swipe_up_for_the_queue">السحب للأعلى لقائمة الانتظار</string>
+    <string name="gb_swipe_up_player">السحب للأعلى على المشغّل</string>
+    <string name="gb_swipe_up_player_info">أين يفتح السحب للأعلى على النصف السفلي من المشغّل: الكلمات أو قائمة الانتظار، كل جانب على حدة أو كلاهما بالشيء نفسه. اسحب للأسفل على النصف السفلي لإغلاقهما. أسهل بيد واحدة من الوصول إلى الأعلى.</string>
+    <string name="panel_swipes_queue_right">قائمة الانتظار يمينًا، الكلمات يسارًا</string>
+    <string name="panel_swipes_queue_left">قائمة الانتظار يسارًا، الكلمات يمينًا</string>
+    <string name="panel_swipes_lyrics_both">الكلمات على الجانبين</string>
+    <string name="panel_swipes_queue_both">قائمة الانتظار على الجانبين</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">إيماءة يد واحدة قائمة الانتظار كلمات سحب</string>
     <string name="screen">الشاشة</string>
     <string name="lock_to_portrait">القفل على الوضع العمودي</string>
@@ -4025,7 +4031,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">ينشئ قائمة تشغيل على YouTube Music بكل أغنية أعجبتك، يمكنك مشاركتها أو تثبيتها أو فتحها في تطبيقات أخرى. يحافظ Prism على تحديثها: تُضاف الأغاني التي تعجبك، وتُزال التي تلغي الإعجاب بها.</string>
     <string name="check_your_connection_some_networks_such_all">تحقق من اتصالك. بعض الشبكات، مثل شبكات العمل والمدارس، تحظر Discord: جرّب شبكة Wi-Fi أخرى أو بيانات الجوّال.</string>
     <string name="blur_and_frosted_glass_the_frost_all">التمويه والزجاج المصنفر، والزجاج المصنفر خلف الصفحات، والخلفيات المتحركة والمرسومة، والأغلفة المتحركة، والمؤثرات المرئية، وخلفية المشغّل المنسابة، وتمويه التركيز والتوهج في الكلمات، والصورة أعلى الرئيسية، والحركات</string>
-    <string name="swipe_up_on_the_lower_half_all">اسحب للأعلى على النصف السفلي من المشغّل: من جانبه الأيمن لقائمة الانتظار، ومن جانبه الأيسر للكلمات. واسحب للأسفل على النصف السفلي من قائمة الانتظار أو الكلمات لإغلاقها. أسهل بيد واحدة من الوصول إلى الأعلى.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">يرسل ما تستمع إليه (تسجيل الاستماع) إلى حسابك على Last.fm: تُحتسب الأغنية بعد أن تسمع نصفها أو أربع دقائق منها. تتصل من صفحة Last.fm نفسها، فلا يرى Prism كلمة مرورك أبدًا. لا تُرسل حلقات البودكاست.</string>
     <string name="mode_light">الفاتح</string>
     <string name="mode_dark">الداكن</string>

@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Hiện video</string>
     <string name="immersive_music_video_behind_lyrics">toàn màn hình video nhạc phía sau lời bài hát</string>
     <string name="swipe_up_for_the_queue">Vuốt lên để mở danh sách chờ</string>
+    <string name="gb_swipe_up_player">Vuốt lên trên trình phát</string>
+    <string name="gb_swipe_up_player_info">Nơi thao tác vuốt lên ở nửa dưới trình phát sẽ mở: lời bài hát hoặc danh sách chờ, mỗi bên riêng hoặc cả hai bên giống nhau. Vuốt xuống ở nửa dưới để đóng. Dễ dùng một tay hơn là với lên trên cùng.</string>
+    <string name="panel_swipes_queue_right">Danh sách chờ bên phải, lời bài hát bên trái</string>
+    <string name="panel_swipes_queue_left">Danh sách chờ bên trái, lời bài hát bên phải</string>
+    <string name="panel_swipes_lyrics_both">Lời bài hát ở cả hai bên</string>
+    <string name="panel_swipes_queue_both">Danh sách chờ ở cả hai bên</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">cử chỉ một tay danh sách chờ lời bài hát vuốt</string>
     <string name="screen">Màn hình</string>
     <string name="lock_to_portrait">Khóa hướng dọc</string>
@@ -3785,7 +3791,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Tạo một danh sách phát YouTube Music gồm mọi bài hát bạn đã thích, có thể chia sẻ, ghim hoặc mở trong ứng dụng khác. Prism luôn cập nhật nó: bài bạn thích được thêm vào, bài bạn bỏ thích được gỡ ra.</string>
     <string name="check_your_connection_some_networks_such_all">Hãy kiểm tra kết nối. Một số mạng, như mạng công ty và trường học, chặn Discord: hãy thử Wi-Fi khác hoặc dữ liệu di động.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Hiệu ứng mờ và kính mờ, lớp kính mờ phía sau các trang, hình nền chuyển động và hình minh họa, ảnh bìa động, hiệu ứng nhạc, nền trình phát trôi, làm mờ tiêu điểm và phát sáng trong lời bài hát, ảnh ở đầu Trang chủ, và hoạt ảnh</string>
-    <string name="swipe_up_on_the_lower_half_all">Vuốt lên ở nửa dưới trình phát: từ bên phải để mở danh sách chờ, từ bên trái để mở lời bài hát. Vuốt xuống ở nửa dưới danh sách chờ hoặc lời bài hát để đóng. Dễ dùng một tay hơn là với lên trên cùng.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Gửi những gì bạn nghe (scrobble) tới tài khoản Last.fm của bạn: một bài được tính khi bạn đã nghe một nửa hoặc bốn phút. Bạn kết nối trên trang của chính Last.fm, nên Prism không bao giờ thấy mật khẩu của bạn. Các tập podcast không được gửi.</string>
     <string name="mode_light">sáng</string>
     <string name="mode_dark">tối</string>

@@ -1795,6 +1795,12 @@
     <string name="show_the_video">Show the video</string>
     <string name="immersive_music_video_behind_lyrics">immersive music video behind lyrics</string>
     <string name="swipe_up_for_the_queue">Swipe up for the queue</string>
+    <string name="gb_swipe_up_player">Swipe up on the player</string>
+    <string name="gb_swipe_up_player_info">Where a swipe up on the lower half of the player opens: the lyrics or the queue, each side on its own or both the same. Swipe down on the lower half to close them. Easier one-handed than reaching for the top.</string>
+    <string name="panel_swipes_queue_right">Queue right, lyrics left</string>
+    <string name="panel_swipes_queue_left">Queue left, lyrics right</string>
+    <string name="panel_swipes_lyrics_both">Lyrics on both sides</string>
+    <string name="panel_swipes_queue_both">Queue on both sides</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gesture one hand queue lyrics swipe</string>
     <string name="screen">Screen</string>
     <string name="lock_to_portrait">Lock to portrait</string>
@@ -4163,7 +4169,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Makes a YouTube Music playlist of every song you\'ve liked, one you can share, pin or open in other apps. Prism keeps it up to date: songs you like are added, songs you unlike are taken out.</string>
     <string name="check_your_connection_some_networks_such_all">Check your connection. Some networks, such as work and school ones, block Discord: try another Wi-Fi or mobile data.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Blur and frosted glass, the frost behind pages, moving and illustrated backgrounds, animated covers, the visualizer, a drifting player background, focus blur and glow in the lyrics, the picture at the top of Home, and animations</string>
-    <string name="swipe_up_on_the_lower_half_all">Swipe up on the lower half of the player: from its right side for the queue, from its left side for the lyrics. Swipe down on the lower half of the queue or the lyrics to close them. Easier one-handed than reaching for the top.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Sends what you listen to (scrobbles) to your own Last.fm account: a song counts once you\'ve heard half of it or four minutes. You connect on Last.fm\'s own page, so Prism never sees your password. Podcast episodes aren\'t sent.</string>
     <string name="mode_light">light</string>
     <string name="mode_dark">dark</string>

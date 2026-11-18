@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Pokazuj wideo</string>
     <string name="immersive_music_video_behind_lyrics">immersyjny teledysk za tekstem</string>
     <string name="swipe_up_for_the_queue">Przesuń w górę, by zobaczyć kolejkę</string>
+    <string name="gb_swipe_up_player">Przesuń w górę na odtwarzaczu</string>
+    <string name="gb_swipe_up_player_info">Co otwiera przesunięcie w górę na dolnej połowie odtwarzacza: tekst lub kolejkę — każda strona osobno albo obie to samo. Przesuń w dół na dolnej połowie, by je zamknąć. Łatwiej jedną ręką niż sięgać do góry.</string>
+    <string name="panel_swipes_queue_right">Kolejka po prawej, tekst po lewej</string>
+    <string name="panel_swipes_queue_left">Kolejka po lewej, tekst po prawej</string>
+    <string name="panel_swipes_lyrics_both">Tekst po obu stronach</string>
+    <string name="panel_swipes_queue_both">Kolejka po obu stronach</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gest jedna ręka kolejka tekst przesuń</string>
     <string name="screen">Ekran</string>
     <string name="lock_to_portrait">Blokuj w pionie</string>
@@ -3929,7 +3935,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Tworzy playlistę YouTube Music ze wszystkich polubionych utworów, którą możesz udostępnić, przypiąć lub otworzyć w innych aplikacjach. Prism dba o jej aktualność: polubione utwory są dodawane, a te, którym cofniesz polubienie, usuwane.</string>
     <string name="check_your_connection_some_networks_such_all">Sprawdź połączenie. Niektóre sieci, np. w pracy lub szkole, blokują Discord: spróbuj innej sieci Wi-Fi lub danych mobilnych.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Rozmycie i matowe szkło, szron za stronami, ruchome i ilustrowane tła, animowane okładki, wizualizator, dryfujące tło odtwarzacza, rozmycie ostrości i poświata w tekście, obraz na górze ekranu głównego oraz animacje</string>
-    <string name="swipe_up_on_the_lower_half_all">Przesuń w górę na dolnej połowie odtwarzacza: z prawej strony po kolejkę, z lewej po tekst. Przesuń w dół na dolnej połowie kolejki lub tekstu, by je zamknąć. Łatwiej jedną ręką niż sięgać do góry.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Wysyła to, czego słuchasz (scrobble), na twoje konto Last.fm: utwór liczy się, gdy usłyszysz połowę lub cztery minuty. Łączysz się na stronie Last.fm, więc Prism nigdy nie widzi twojego hasła. Odcinki podcastów nie są wysyłane.</string>
     <string name="mode_light">jasnym</string>
     <string name="mode_dark">ciemnym</string>

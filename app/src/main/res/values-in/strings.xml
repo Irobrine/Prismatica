@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Tampilkan video</string>
     <string name="immersive_music_video_behind_lyrics">imersif video musik di belakang lirik</string>
     <string name="swipe_up_for_the_queue">Geser ke atas untuk antrean</string>
+    <string name="gb_swipe_up_player">Geser ke atas pada pemutar</string>
+    <string name="gb_swipe_up_player_info">Apa yang terbuka saat menggeser ke atas di separuh bawah pemutar: lirik atau antrean, tiap sisi sendiri-sendiri atau keduanya sama. Geser ke bawah di separuh bawah untuk menutupnya. Lebih mudah dengan satu tangan daripada menjangkau bagian atas.</string>
+    <string name="panel_swipes_queue_right">Antrean di kanan, lirik di kiri</string>
+    <string name="panel_swipes_queue_left">Antrean di kiri, lirik di kanan</string>
+    <string name="panel_swipes_lyrics_both">Lirik di kedua sisi</string>
+    <string name="panel_swipes_queue_both">Antrean di kedua sisi</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gestur satu tangan antrean lirik geser</string>
     <string name="screen">Layar</string>
     <string name="lock_to_portrait">Kunci ke potret</string>
@@ -3785,7 +3791,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Membuat playlist YouTube Music dari setiap lagu yang kamu sukai, yang bisa kamu bagikan, sematkan, atau buka di aplikasi lain. Prism selalu memperbaruinya: lagu yang kamu sukai ditambahkan, lagu yang batal kamu sukai dikeluarkan.</string>
     <string name="check_your_connection_some_networks_such_all">Periksa koneksimu. Beberapa jaringan, seperti jaringan kantor dan sekolah, memblokir Discord: coba Wi-Fi lain atau data seluler.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Blur dan kaca buram, efek buram di belakang halaman, latar bergerak dan bergambar, sampul animasi, visualizer, latar pemutar yang melayang, blur fokus dan pendar di lirik, gambar di bagian atas Beranda, dan animasi</string>
-    <string name="swipe_up_on_the_lower_half_all">Geser ke atas di separuh bawah pemutar: dari sisi kanan untuk antrean, dari sisi kiri untuk lirik. Geser ke bawah di separuh bawah antrean atau lirik untuk menutupnya. Lebih mudah dengan satu tangan daripada menjangkau bagian atas.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Mengirim yang kamu dengarkan (scrobble) ke akun Last.fm milikmu: lagu dihitung setelah kamu mendengar separuhnya atau empat menit. Kamu menghubungkan di halaman Last.fm sendiri, jadi Prism tidak pernah melihat sandimu. Episode podcast tidak dikirim.</string>
     <string name="mode_light">terang</string>
     <string name="mode_dark">gelap</string>

@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Mostra il video</string>
     <string name="immersive_music_video_behind_lyrics">immersivo video musicale dietro i testi</string>
     <string name="swipe_up_for_the_queue">Scorri verso l\'alto per la coda</string>
+    <string name="gb_swipe_up_player">Scorri in su sul player</string>
+    <string name="gb_swipe_up_player_info">Cosa apre uno scorrimento in su sulla metà inferiore del player: i testi o la coda, ogni lato per conto suo o entrambi uguali. Scorri in giù sulla metà inferiore per chiuderli. Più comodo con una mano che arrivare in cima.</string>
+    <string name="panel_swipes_queue_right">Coda a destra, testi a sinistra</string>
+    <string name="panel_swipes_queue_left">Coda a sinistra, testi a destra</string>
+    <string name="panel_swipes_lyrics_both">Testi su entrambi i lati</string>
+    <string name="panel_swipes_queue_both">Coda su entrambi i lati</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gesto una mano coda testi scorri</string>
     <string name="screen">Schermo</string>
     <string name="lock_to_portrait">Blocca in verticale</string>
@@ -3881,7 +3887,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Crea una playlist di YouTube Music con tutti i brani che ti piacciono, da condividere, fissare o aprire in altre app. Prism la tiene aggiornata: i brani a cui metti Mi piace vengono aggiunti, quelli a cui lo togli vengono rimossi.</string>
     <string name="check_your_connection_some_networks_such_all">Controlla la connessione. Alcune reti, come quelle di lavoro e di scuola, bloccano Discord: prova un altro Wi-Fi o i dati mobili.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Sfocatura e vetro smerigliato, la smerigliatura dietro le pagine, gli sfondi animati e illustrati, le copertine animate, il visualizzatore, lo sfondo del player in movimento, la sfocatura di messa a fuoco e il bagliore nei testi, l\'immagine in cima alla Home e le animazioni</string>
-    <string name="swipe_up_on_the_lower_half_all">Scorri in su sulla metà inferiore del player: dal lato destro per la coda, dal lato sinistro per i testi. Scorri in giù sulla metà inferiore della coda o dei testi per chiuderli. Più comodo con una mano che arrivare in cima.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Invia ciò che ascolti (scrobbling) al tuo account Last.fm: un brano conta dopo che ne hai sentito metà o quattro minuti. Ti colleghi dalla pagina di Last.fm, quindi Prism non vede mai la tua password. Gli episodi dei podcast non vengono inviati.</string>
     <string name="mode_light">chiara</string>
     <string name="mode_dark">scura</string>

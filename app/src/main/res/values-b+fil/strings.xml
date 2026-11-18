@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Ipakita ang video</string>
     <string name="immersive_music_video_behind_lyrics">immersive music video sa likod ng lyrics</string>
     <string name="swipe_up_for_the_queue">I-swipe pataas para sa queue</string>
+    <string name="gb_swipe_up_player">Mag-swipe pataas sa player</string>
+    <string name="gb_swipe_up_player_info">Ang bumubukas kapag nag-swipe pataas sa ibabang kalahati ng player: ang lyrics o ang queue, hiwalay ang bawat panig o pareho ang dalawa. Mag-swipe pababa sa ibabang kalahati para isara sila. Mas madali sa isang kamay kaysa abutin ang itaas.</string>
+    <string name="panel_swipes_queue_right">Queue sa kanan, lyrics sa kaliwa</string>
+    <string name="panel_swipes_queue_left">Queue sa kaliwa, lyrics sa kanan</string>
+    <string name="panel_swipes_lyrics_both">Lyrics sa magkabilang panig</string>
+    <string name="panel_swipes_queue_both">Queue sa magkabilang panig</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">galaw isang kamay queue lyrics swipe</string>
     <string name="screen">Screen</string>
     <string name="lock_to_portrait">I-lock sa portrait</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Gumagawa ng YouTube Music playlist ng bawat kantang na-like mo, na puwede mong i-share, i-pin o buksan sa ibang app. Pinapanatili itong updated ng Prism: idinadagdag ang mga kantang nila-like mo, inaalis ang mga kantang ina-unlike mo.</string>
     <string name="check_your_connection_some_networks_such_all">Tingnan ang koneksyon mo. Bina-block ng ilang network, gaya ng sa trabaho at paaralan, ang Discord: sumubok ng ibang Wi-Fi o mobile data.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Blur at frosted glass, ang frost sa likod ng mga page, gumagalaw at may-larawang background, mga animated cover, ang visualizer, umaanod na background ng player, focus blur at glow sa lyrics, ang larawan sa itaas ng Home, at mga animation</string>
-    <string name="swipe_up_on_the_lower_half_all">Mag-swipe pataas sa ibabang kalahati ng player: mula sa kanang bahagi nito para sa queue, mula sa kaliwang bahagi para sa lyrics. Mag-swipe pababa sa ibabang kalahati ng queue o lyrics para isara sila. Mas madali sa isang kamay kaysa abutin ang itaas.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Ipinapadala ang mga pinapakinggan mo (scrobbles) sa sarili mong Last.fm account: binibilang ang kanta kapag narinig mo na ang kalahati nito o apat na minuto. Sa sariling page ng Last.fm ka kumokonekta, kaya hindi kailanman nakikita ng Prism ang password mo. Hindi ipinapadala ang mga podcast episode.</string>
     <string name="mode_light">light</string>
     <string name="mode_dark">dark</string>

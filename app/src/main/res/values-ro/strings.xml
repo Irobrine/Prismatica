@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Afișează videoclipul</string>
     <string name="immersive_music_video_behind_lyrics">imersiv videoclip muzical în spatele versurilor</string>
     <string name="swipe_up_for_the_queue">Glisează în sus pentru coadă</string>
+    <string name="gb_swipe_up_player">Glisează în sus pe player</string>
+    <string name="gb_swipe_up_player_info">Ce deschide o glisare în sus pe jumătatea de jos a playerului: versurile sau coada, fiecare parte separat sau ambele la fel. Glisează în jos pe jumătatea de jos ca să le închizi. Mai ușor cu o mână decât să ajungi sus.</string>
+    <string name="panel_swipes_queue_right">Coada la dreapta, versurile la stânga</string>
+    <string name="panel_swipes_queue_left">Coada la stânga, versurile la dreapta</string>
+    <string name="panel_swipes_lyrics_both">Versuri pe ambele părți</string>
+    <string name="panel_swipes_queue_both">Coadă pe ambele părți</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gest o mână coadă versuri glisare</string>
     <string name="screen">Ecran</string>
     <string name="lock_to_portrait">Blochează pe vertical</string>
@@ -3881,7 +3887,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Creează un playlist YouTube Music cu fiecare melodie apreciată, pe care îl poți distribui, fixa sau deschide în alte aplicații. Prism îl ține la zi: melodiile apreciate sunt adăugate, cele la care anulezi aprecierea sunt scoase.</string>
     <string name="check_your_connection_some_networks_such_all">Verifică-ți conexiunea. Unele rețele, cum ar fi cele de la serviciu sau de la școală, blochează Discord: încearcă alt Wi-Fi sau datele mobile.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Estomparea și sticla mată, sticla mată din spatele paginilor, fundalurile animate și ilustrate, copertele animate, vizualizatorul, fundalul plutitor al playerului, estomparea de focalizare și strălucirea din versuri, imaginea din partea de sus a ecranului Acasă și animațiile</string>
-    <string name="swipe_up_on_the_lower_half_all">Glisează în sus pe jumătatea de jos a playerului: din partea dreaptă pentru coadă, din partea stângă pentru versuri. Glisează în jos pe jumătatea de jos a cozii sau a versurilor ca să le închizi. Mai ușor cu o mână decât să ajungi sus.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Trimite ce asculți (scrobble) în propriul cont Last.fm: o melodie contează după ce ai auzit jumătate din ea sau patru minute. Te conectezi pe pagina Last.fm, așa că Prism nu-ți vede niciodată parola. Episoadele de podcast nu se trimit.</string>
     <string name="mode_light">luminos</string>
     <string name="mode_dark">întunecat</string>

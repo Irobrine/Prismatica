@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Zobrazit video</string>
     <string name="immersive_music_video_behind_lyrics">pohlcující hudební video za texty</string>
     <string name="swipe_up_for_the_queue">Přejetím nahoru fronta</string>
+    <string name="gb_swipe_up_player">Přejetí nahoru v přehrávači</string>
+    <string name="gb_swipe_up_player_info">Co otevře přejetí nahoru po spodní polovině přehrávače: texty, nebo frontu — každá strana zvlášť, nebo obě stejně. Přejetím dolů po spodní polovině je zavřeš. Jednou rukou je to snazší než natahovat se nahoru.</string>
+    <string name="panel_swipes_queue_right">Fronta vpravo, texty vlevo</string>
+    <string name="panel_swipes_queue_left">Fronta vlevo, texty vpravo</string>
+    <string name="panel_swipes_lyrics_both">Texty na obou stranách</string>
+    <string name="panel_swipes_queue_both">Fronta na obou stranách</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gesto jedna ruka fronta texty přejetí</string>
     <string name="screen">Obrazovka</string>
     <string name="lock_to_portrait">Zamknout na výšku</string>
@@ -3929,7 +3935,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Vytvoří v YouTube Music playlist všech skladeb, které máš mezi oblíbenými, takový, který můžeš sdílet, připnout nebo otevřít v jiných aplikacích. Prism ho udržuje aktuální: oblíbené skladby se přidávají, ty odebrané z oblíbených se odstraní.</string>
     <string name="check_your_connection_some_networks_such_all">Zkontroluj připojení. Některé sítě, například pracovní a školní, Discord blokují: zkus jinou Wi-Fi nebo mobilní data.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Rozmazání a matné sklo, matné sklo za stránkami, pohyblivá a ilustrovaná pozadí, animované obaly, vizualizér, plující pozadí přehrávače, rozmazání mimo fokus a záře v textech, obrázek nahoře na obrazovce Domů a animace</string>
-    <string name="swipe_up_on_the_lower_half_all">Přejeď nahoru po spodní polovině přehrávače: z pravé strany pro frontu, z levé pro texty. Přejetím dolů po spodní polovině fronty nebo textů je zavřeš. Jednou rukou je to snazší než natahovat se nahoru.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Posílá, co posloucháš (scrobbly), na tvůj vlastní účet Last.fm: skladba se počítá, jakmile uslyšíš její polovinu nebo čtyři minuty. Připojíš se na vlastní stránce Last.fm, takže Prism nikdy neuvidí tvoje heslo. Epizody podcastů se neposílají.</string>
     <string name="mode_light">světlém</string>
     <string name="mode_dark">tmavém</string>

@@ -6,6 +6,7 @@ import com.prism.music.data.prefs.BehaviorPrefs
 import com.prism.music.data.prefs.DeckPart
 import com.prism.music.data.prefs.MenuAction
 import com.prism.music.data.prefs.MenuGroup
+import com.prism.music.data.prefs.PanelSwipes
 import com.prism.music.data.prefs.PlayerButton
 import com.prism.music.data.prefs.PlayerGesture
 import com.prism.music.data.prefs.PlayerPart
@@ -59,7 +60,9 @@ class IssueFixes1811Test {
         assertEquals(MenuAction.OPEN_LYRICS, l.groups.single().second.single())
         // A cover gesture that opens them, or a swipe up on the controls, is another way too.
         assertEquals(setOf(MenuAction.OPEN_LYRICS), noStrip.copy(coverLongPress = PlayerGesture.LYRICS).menuFolds())
-        assertEquals(setOf(MenuAction.OPEN_LYRICS), noStrip.copy(behavior = BehaviorPrefs(panelSwipes = true)).menuFolds())
+        assertEquals(setOf(MenuAction.OPEN_LYRICS), noStrip.copy(behavior = BehaviorPrefs(panelSwipes = PanelSwipes.QUEUE_RIGHT)).menuFolds())
+        // Both sides to the queue leaves no way from the panel swipes, so "Show lyrics" stays.
+        assertTrue(noStrip.copy(behavior = BehaviorPrefs(panelSwipes = PanelSwipes.QUEUE_BOTH)).menuFolds().isEmpty())
         // …but not a gesture on a cover that isn't there.
         val noCover = noStrip.copy(coverLongPress = PlayerGesture.LYRICS, view = ViewLook(parts = PlayerParts(hidden = setOf(PlayerPart.COVER))))
         assertTrue(noCover.menuFolds().isEmpty())

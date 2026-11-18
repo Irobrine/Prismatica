@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Afficher la vidéo</string>
     <string name="immersive_music_video_behind_lyrics">immersif clip vidéo derrière les paroles</string>
     <string name="swipe_up_for_the_queue">Balayer vers le haut pour la file d’attente</string>
+    <string name="gb_swipe_up_player">Balayer vers le haut sur le lecteur</string>
+    <string name="gb_swipe_up_player_info">Ce qu’ouvre un balayage vers le haut sur la moitié inférieure du lecteur : les paroles ou la file d’attente, chaque côté de son côté ou les deux identiques. Balayez vers le bas sur la moitié inférieure pour les fermer. Plus simple à une main que d’atteindre le haut.</string>
+    <string name="panel_swipes_queue_right">File d’attente à droite, paroles à gauche</string>
+    <string name="panel_swipes_queue_left">File d’attente à gauche, paroles à droite</string>
+    <string name="panel_swipes_lyrics_both">Paroles des deux côtés</string>
+    <string name="panel_swipes_queue_both">File d’attente des deux côtés</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">geste une main file d’attente paroles balayer</string>
     <string name="screen">Écran</string>
     <string name="lock_to_portrait">Verrouiller en portrait</string>
@@ -3881,7 +3887,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Crée une playlist YouTube Music de tous les titres que vous avez aimés, que vous pouvez partager, épingler ou ouvrir dans d’autres applis. Prism la tient à jour : les titres que vous aimez sont ajoutés, ceux dont vous retirez le J’aime sont enlevés.</string>
     <string name="check_your_connection_some_networks_such_all">Vérifiez votre connexion. Certains réseaux, comme ceux des entreprises et des écoles, bloquent Discord : essayez un autre Wi-Fi ou les données mobiles.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Le flou et le verre dépoli, le givre derrière les pages, les arrière-plans animés et illustrés, les pochettes animées, le visualiseur, l’arrière-plan mouvant du lecteur, le flou de mise au point et le halo des paroles, l’image en haut de l’accueil, et les animations</string>
-    <string name="swipe_up_on_the_lower_half_all">Balayez vers le haut sur la moitié inférieure du lecteur : depuis son côté droit pour la file d’attente, depuis son côté gauche pour les paroles. Balayez vers le bas sur la moitié inférieure de la file d’attente ou des paroles pour les fermer. Plus simple à une main que d’atteindre le haut.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Envoie ce que vous écoutez (scrobbles) à votre propre compte Last.fm : un titre compte dès que vous en avez entendu la moitié ou quatre minutes. Vous vous connectez sur la page de Last.fm, Prism ne voit donc jamais votre mot de passe. Les épisodes de podcast ne sont pas envoyés.</string>
     <string name="mode_light">clair</string>
     <string name="mode_dark">sombre</string>

@@ -1654,6 +1654,12 @@
     <string name="show_the_video">ভিডিও দেখান</string>
     <string name="immersive_music_video_behind_lyrics">ইমারসিভ মিউজিক ভিডিও লিরিক্সের পেছনে</string>
     <string name="swipe_up_for_the_queue">সারির জন্য ওপরে সোয়াইপ করুন</string>
+    <string name="gb_swipe_up_player">প্লেয়ারে ওপরে সোয়াইপ করুন</string>
+    <string name="gb_swipe_up_player_info">প্লেয়ারের নিচের অর্ধেকে ওপরে সোয়াইপ করলে কী খোলে: লিরিক্স বা সারি, প্রতিটি দিক আলাদা বা দুটোই একই। বন্ধ করতে নিচের অর্ধেকে নিচে সোয়াইপ করুন। ওপরে হাত বাড়ানোর চেয়ে এক হাতে সহজ।</string>
+    <string name="panel_swipes_queue_right">সারি ডানে, লিরিক্স বাঁয়ে</string>
+    <string name="panel_swipes_queue_left">সারি বাঁয়ে, লিরিক্স ডানে</string>
+    <string name="panel_swipes_lyrics_both">লিরিক্স দুদিকেই</string>
+    <string name="panel_swipes_queue_both">সারি দুদিকেই</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">জেসচার এক হাতে সারি লিরিক্স সোয়াইপ</string>
     <string name="screen">স্ক্রিন</string>
     <string name="lock_to_portrait">পোর্ট্রেটে লক করুন</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">আপনার পছন্দ করা প্রতিটি গানের একটি YouTube Music প্লেলিস্ট বানায়, যা শেয়ার, পিন বা অন্য অ্যাপে খুলতে পারেন। Prism এটি হালনাগাদ রাখে: পছন্দ করা গান যোগ হয়, অপছন্দ করা গান সরে যায়।</string>
     <string name="check_your_connection_some_networks_such_all">আপনার কানেকশন দেখুন। কিছু নেটওয়ার্ক, যেমন অফিস আর স্কুলের, Discord আটকে দেয়: অন্য Wi-Fi বা মোবাইল ডেটা চেষ্টা করুন।</string>
     <string name="blur_and_frosted_glass_the_frost_all">ব্লার আর ঝাপসা কাচ, পেজের পেছনের ঝাপসা আভা, চলমান আর চিত্রিত ব্যাকগ্রাউন্ড, অ্যানিমেটেড কভার, ভিজুয়ালাইজার, ভাসমান প্লেয়ার ব্যাকগ্রাউন্ড, লিরিক্সে ফোকাস ব্লার আর আভা, হোমের ওপরের ছবি, আর অ্যানিমেশন</string>
-    <string name="swipe_up_on_the_lower_half_all">প্লেয়ারের নিচের অর্ধেকে ওপরে সোয়াইপ করুন: সারির জন্য ডান দিক থেকে, লিরিক্সের জন্য বাঁ দিক থেকে। বন্ধ করতে সারি বা লিরিক্সের নিচের অর্ধেকে নিচে সোয়াইপ করুন। ওপরে হাত বাড়ানোর চেয়ে এক হাতে সহজ।</string>
     <string name="sends_what_you_listen_to_scrobbles_all">আপনি যা শোনেন তা (স্ক্রবল) আপনার নিজের Last.fm অ্যাকাউন্টে পাঠায়: অর্ধেক বা চার মিনিট শুনলে একটি গান গণনা হয়। আপনি Last.fm-এর নিজের পেজে কানেক্ট করেন, তাই Prism কখনও আপনার পাসওয়ার্ড দেখে না। পডকাস্টের পর্ব পাঠানো হয় না।</string>
     <string name="mode_light">লাইট</string>
     <string name="mode_dark">ডার্ক</string>

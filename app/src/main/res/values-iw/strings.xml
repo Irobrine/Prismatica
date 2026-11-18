@@ -1654,6 +1654,12 @@
     <string name="show_the_video">הצגת הסרטון</string>
     <string name="immersive_music_video_behind_lyrics">סוחף קליפ מאחורי המילים</string>
     <string name="swipe_up_for_the_queue">החלקה למעלה לתור</string>
+    <string name="gb_swipe_up_player">החלקה למעלה בנגן</string>
+    <string name="gb_swipe_up_player_info">מה נפתח בהחלקה למעלה בחצי התחתון של הנגן: המילים או התור, כל צד בנפרד או שניהם אותו דבר. החלק למטה בחצי התחתון כדי לסגור אותם. קל יותר ביד אחת מאשר להגיע למעלה.</string>
+    <string name="panel_swipes_queue_right">תור מימין, מילים משמאל</string>
+    <string name="panel_swipes_queue_left">תור משמאל, מילים מימין</string>
+    <string name="panel_swipes_lyrics_both">מילים משני הצדדים</string>
+    <string name="panel_swipes_queue_both">תור משני הצדדים</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">מחווה יד אחת תור מילים החלקה</string>
     <string name="screen">מסך</string>
     <string name="lock_to_portrait">נעילה לאורך</string>
@@ -3881,7 +3887,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">יוצר פלייליסט ב-YouTube Music של כל שיר שאהבת, שאפשר לשתף, להצמיד או לפתוח באפליקציות אחרות. Prism מעדכן אותו: שירים שאתה אוהב נוספים, ושירים שביטלת להם לייק מוסרים.</string>
     <string name="check_your_connection_some_networks_such_all">בדוק את החיבור. חלק מהרשתות, כמו רשתות בעבודה ובבית ספר, חוסמות את Discord: נסה Wi-Fi אחר או חבילת גלישה.</string>
     <string name="blur_and_frosted_glass_the_frost_all">טשטוש וזכוכית חלבית, הזכוכית החלבית מאחורי הדפים, רקעים זזים ומאוירים, עטיפות מונפשות, הוויזואלייזר, רקע נגן נסחף, טשטוש מיקוד וזוהר במילים, התמונה בראש דף הבית, ואנימציות</string>
-    <string name="swipe_up_on_the_lower_half_all">החלק למעלה בחצי התחתון של הנגן: מהצד הימני שלו לתור, מהצד השמאלי שלו למילים. החלק למטה בחצי התחתון של התור או המילים כדי לסגור אותם. קל יותר ביד אחת מאשר להגיע למעלה.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">שולח את מה שאתה שומע (סקרובלינג) לחשבון Last.fm שלך: שיר נספר אחרי ששמעת חצי ממנו או ארבע דקות. החיבור נעשה בדף של Last.fm עצמו, כך ש-Prism אף פעם לא רואה את הסיסמה שלך. פרקי פודקאסטים לא נשלחים.</string>
     <string name="mode_light">בהיר</string>
     <string name="mode_dark">כהה</string>

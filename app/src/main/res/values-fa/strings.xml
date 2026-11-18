@@ -1654,6 +1654,12 @@
     <string name="show_the_video">نمایش ویدیو</string>
     <string name="immersive_music_video_behind_lyrics">تمام‌صفحه موزیک‌ویدیو پشت متن آهنگ</string>
     <string name="swipe_up_for_the_queue">کشیدن به بالا برای صف</string>
+    <string name="gb_swipe_up_player">کشیدن به بالا روی پخش‌کننده</string>
+    <string name="gb_swipe_up_player_info">اینکه کشیدن به بالا روی نیمه پایینی پخش‌کننده چه چیزی را باز می‌کند: متن آهنگ یا صف، هر طرف جداگانه یا هر دو یکسان. برای بستن آنها روی نیمه پایینی به پایین بکشید. با یک دست راحت‌تر از رسیدن به بالای صفحه است.</string>
+    <string name="panel_swipes_queue_right">صف راست، متن آهنگ چپ</string>
+    <string name="panel_swipes_queue_left">صف چپ، متن آهنگ راست</string>
+    <string name="panel_swipes_lyrics_both">متن آهنگ در هر دو طرف</string>
+    <string name="panel_swipes_queue_both">صف در هر دو طرف</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">ژست یک‌دستی صف متن آهنگ کشیدن</string>
     <string name="screen">صفحه نمایش</string>
     <string name="lock_to_portrait">قفل روی حالت عمودی</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">از همه آهنگ‌هایی که پسندیده‌اید یک فهرست پخش YouTube Music می‌سازد، که می‌توانید به اشتراک بگذارید، سنجاق کنید یا در برنامه‌های دیگر باز کنید. Prism آن را به‌روز نگه می‌دارد: آهنگ‌هایی که می‌پسندید اضافه می‌شوند و آهنگ‌هایی که از پسند برمی‌دارید حذف می‌شوند.</string>
     <string name="check_your_connection_some_networks_such_all">اتصالتان را بررسی کنید. بعضی شبکه‌ها، مثل شبکه محل کار یا مدرسه، Discord را مسدود می‌کنند: Wi-Fi دیگری یا داده تلفن همراه را امتحان کنید.</string>
     <string name="blur_and_frosted_glass_the_frost_all">محوشدگی و شیشه مات، مه پشت صفحه‌ها، پس‌زمینه‌های متحرک و تصویری، کاورهای متحرک، نمایشگر صوتی، پس‌زمینه شناور پخش‌کننده، محوشدگی تمرکز و درخشش در متن آهنگ، تصویر بالای صفحه اصلی، و انیمیشن‌ها</string>
-    <string name="swipe_up_on_the_lower_half_all">روی نیمه پایینی پخش‌کننده به بالا بکشید: از سمت راستش برای صف، از سمت چپش برای متن آهنگ. برای بستن، روی نیمه پایینی صف یا متن آهنگ به پایین بکشید. با یک دست راحت‌تر از رسیدن به بالای صفحه است.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">آنچه گوش می‌دهید را (اسکرابل) به حساب Last.fm خودتان می‌فرستد: آهنگ وقتی حساب می‌شود که نصفش یا چهار دقیقه‌اش را شنیده باشید. در صفحه خود Last.fm وصل می‌شوید، پس Prism هرگز رمزتان را نمی‌بیند. قسمت‌های پادکست فرستاده نمی‌شوند.</string>
     <string name="mode_light">روشن</string>
     <string name="mode_dark">تیره</string>

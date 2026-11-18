@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Videó megjelenítése</string>
     <string name="immersive_music_video_behind_lyrics">magával ragadó zenei videó dalszöveg mögött</string>
     <string name="swipe_up_for_the_queue">Felfelé húzás a lejátszási sorért</string>
+    <string name="gb_swipe_up_player">Felfelé húzás a lejátszón</string>
+    <string name="gb_swipe_up_player_info">Mit nyit a lejátszó alsó felén való felfelé húzás: a dalszöveget vagy a lejátszási sort — mindkét oldal külön, vagy mindkettő ugyanazt. Húzd le az alsó felén a bezárásukhoz. Egy kézzel könnyebb, mint felnyúlni a tetejéig.</string>
+    <string name="panel_swipes_queue_right">Lejátszási sor jobbra, dalszöveg balra</string>
+    <string name="panel_swipes_queue_left">Lejátszási sor balra, dalszöveg jobbra</string>
+    <string name="panel_swipes_lyrics_both">Dalszöveg mindkét oldalon</string>
+    <string name="panel_swipes_queue_both">Lejátszási sor mindkét oldalon</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">mozdulat egy kéz lejátszási sor dalszöveg húzás</string>
     <string name="screen">Képernyő</string>
     <string name="lock_to_portrait">Rögzítés álló helyzetben</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">YouTube Music-lejátszási listát készít minden kedvelt dalodból, amelyet megoszthatsz, kitűzhetsz vagy más alkalmazásokban megnyithatsz. A Prism naprakészen tartja: a kedvelt dalok bekerülnek, a visszavontak kikerülnek.</string>
     <string name="check_your_connection_some_networks_such_all">Ellenőrizd a kapcsolatot. Egyes hálózatok, például munkahelyiek és iskolaiak, letiltják a Discordot: próbálj másik Wi-Fi-t vagy mobiladatot.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Elmosás és matt üveg, a dérüveg az oldalak mögött, mozgó és illusztrált hátterek, animált borítók, a vizualizáció, a sodródó lejátszóháttér, a fókuszos elmosás és a ragyogás a dalszövegben, a kép a kezdőlap tetején, és az animációk</string>
-    <string name="swipe_up_on_the_lower_half_all">Húzd fel a lejátszó alsó felén: a jobb oldaláról a lejátszási sorért, a bal oldaláról a dalszövegért. Húzd le a lejátszási sor vagy a dalszöveg alsó felén a bezárásukhoz. Egy kézzel könnyebb, mint felnyúlni a tetejéig.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Elküldi, amit hallgatsz (scrobble) a saját Last.fm-fiókodba: egy dal akkor számít, ha a felét vagy négy percét meghallgattad. A Last.fm saját oldalán csatlakozol, így a Prism soha nem látja a jelszavadat. A podcastepizódokat nem küldi el.</string>
     <string name="mode_light">világos</string>
     <string name="mode_dark">sötét</string>

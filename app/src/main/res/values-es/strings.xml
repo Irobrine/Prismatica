@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Mostrar el video</string>
     <string name="immersive_music_video_behind_lyrics">inmersivo video musical detrás de la letra</string>
     <string name="swipe_up_for_the_queue">Desliza hacia arriba para la cola</string>
+    <string name="gb_swipe_up_player">Desliza hacia arriba en el reproductor</string>
+    <string name="gb_swipe_up_player_info">Qué abre un deslizamiento hacia arriba en la mitad inferior del reproductor: la letra o la cola, cada lado por su cuenta o ambos igual. Desliza hacia abajo en la mitad inferior para cerrarlos. Más fácil con una mano que llegar hasta arriba.</string>
+    <string name="panel_swipes_queue_right">Cola a la derecha, letra a la izquierda</string>
+    <string name="panel_swipes_queue_left">Cola a la izquierda, letra a la derecha</string>
+    <string name="panel_swipes_lyrics_both">Letra en ambos lados</string>
+    <string name="panel_swipes_queue_both">Cola en ambos lados</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gesto una mano cola letra deslizar</string>
     <string name="screen">Pantalla</string>
     <string name="lock_to_portrait">Bloquear en vertical</string>
@@ -3881,7 +3887,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Crea una playlist de YouTube Music con cada canción que te gustó, que puedes compartir, fijar o abrir en otras apps. Prism la mantiene al día: se agregan las canciones a las que les das me gusta y se quitan las que dejan de gustarte.</string>
     <string name="check_your_connection_some_networks_such_all">Revisa tu conexión. Algunas redes, como las del trabajo o la escuela, bloquean Discord: prueba con otra red Wi-Fi o con datos móviles.</string>
     <string name="blur_and_frosted_glass_the_frost_all">El desenfoque y el cristal esmerilado, el esmerilado detrás de las páginas, los fondos en movimiento e ilustrados, las portadas animadas, el visualizador, un fondo del reproductor a la deriva, el desenfoque y el brillo de la letra, la imagen arriba en Inicio y las animaciones</string>
-    <string name="swipe_up_on_the_lower_half_all">Desliza hacia arriba en la mitad inferior del reproductor: desde el lado derecho para la cola, desde el izquierdo para la letra. Desliza hacia abajo en la mitad inferior de la cola o la letra para cerrarlas. Más fácil con una mano que llegar hasta arriba.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Envía lo que escuchas (scrobbles) a tu propia cuenta de Last.fm: una canción cuenta cuando escuchaste la mitad o cuatro minutos. Te conectas en la propia página de Last.fm, así que Prism nunca ve tu contraseña. Los episodios de podcasts no se envían.</string>
     <string name="mode_light">claro</string>
     <string name="mode_dark">oscuro</string>

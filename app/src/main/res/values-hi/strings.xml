@@ -1654,6 +1654,12 @@
     <string name="show_the_video">वीडियो दिखाएं</string>
     <string name="immersive_music_video_behind_lyrics">इमर्सिव म्यूज़िक वीडियो बोल के पीछे</string>
     <string name="swipe_up_for_the_queue">कतार के लिए ऊपर स्वाइप करें</string>
+    <string name="gb_swipe_up_player">प्लेयर पर ऊपर स्वाइप करें</string>
+    <string name="gb_swipe_up_player_info">प्लेयर के निचले आधे हिस्से पर ऊपर स्वाइप करने से क्या खुलता है: बोल या कतार, हर तरफ़ अलग या दोनों एक जैसे। उन्हें बंद करने के लिए निचले आधे हिस्से पर नीचे स्वाइप करें। ऊपर तक पहुंचने से ज़्यादा आसान, एक हाथ से।</string>
+    <string name="panel_swipes_queue_right">कतार दाईं ओर, बोल बाईं ओर</string>
+    <string name="panel_swipes_queue_left">कतार बाईं ओर, बोल दाईं ओर</string>
+    <string name="panel_swipes_lyrics_both">बोल दोनों ओर</string>
+    <string name="panel_swipes_queue_both">कतार दोनों ओर</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">जेस्चर एक हाथ कतार बोल स्वाइप</string>
     <string name="screen">स्क्रीन</string>
     <string name="lock_to_portrait">पोर्ट्रेट में लॉक करें</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">आपके पसंद किए हर गाने की YouTube Music प्लेलिस्ट बनाता है, जिसे आप शेयर, पिन या दूसरे ऐप में खोल सकते हैं। Prism इसे अप टू डेट रखता है: आपके पसंद किए गाने जोड़े जाते हैं, पसंद हटाए गए गाने निकाले जाते हैं।</string>
     <string name="check_your_connection_some_networks_such_all">अपना कनेक्शन जांचें। कुछ नेटवर्क, जैसे ऑफ़िस और स्कूल के, Discord को ब्लॉक करते हैं: कोई दूसरा Wi-Fi या मोबाइल डेटा आज़माएं।</string>
     <string name="blur_and_frosted_glass_the_frost_all">ब्लर और फ़्रॉस्टेड ग्लास, पेजों के पीछे का फ़्रॉस्ट, चलते और चित्रों वाले बैकग्राउंड, एनिमेटेड कवर, विज़ुअलाइज़र, बहता प्लेयर बैकग्राउंड, बोल में फ़ोकस ब्लर और चमक, होम में सबसे ऊपर की तस्वीर, और एनिमेशन</string>
-    <string name="swipe_up_on_the_lower_half_all">प्लेयर के निचले आधे हिस्से पर ऊपर स्वाइप करें: कतार के लिए दाईं ओर से, बोल के लिए बाईं ओर से। बंद करने के लिए कतार या बोल के निचले आधे हिस्से पर नीचे स्वाइप करें। ऊपर तक पहुंचने से ज़्यादा आसान, एक हाथ से।</string>
     <string name="sends_what_you_listen_to_scrobbles_all">आप जो सुनते हैं (स्क्रॉबल) उसे आपके अपने Last.fm खाते पर भेजता है: कोई गाना तब गिना जाता है जब आप उसका आधा या चार मिनट सुन लें। आप Last.fm के अपने पेज पर कनेक्ट करते हैं, इसलिए Prism आपका पासवर्ड कभी नहीं देखता। पॉडकास्ट एपिसोड नहीं भेजे जाते।</string>
     <string name="mode_light">लाइट</string>
     <string name="mode_dark">डार्क</string>

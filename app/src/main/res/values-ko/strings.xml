@@ -1654,6 +1654,12 @@
     <string name="show_the_video">동영상 표시</string>
     <string name="immersive_music_video_behind_lyrics">몰입 뮤직비디오 가사 뒤</string>
     <string name="swipe_up_for_the_queue">위로 스와이프해서 대기열 열기</string>
+    <string name="gb_swipe_up_player">플레이어에서 위로 스와이프</string>
+    <string name="gb_swipe_up_player_info">플레이어 아래쪽 절반에서 위로 스와이프할 때 열리는 항목: 가사 또는 대기열, 양쪽을 각각 따로 지정하거나 양쪽 모두 같게 지정할 수 있어요. 아래쪽 절반에서 아래로 스와이프하면 닫혀요. 위쪽까지 손을 뻗는 것보다 한 손으로 쓰기 쉬워요.</string>
+    <string name="panel_swipes_queue_right">오른쪽은 대기열, 왼쪽은 가사</string>
+    <string name="panel_swipes_queue_left">왼쪽은 대기열, 오른쪽은 가사</string>
+    <string name="panel_swipes_lyrics_both">양쪽 모두 가사</string>
+    <string name="panel_swipes_queue_both">양쪽 모두 대기열</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">제스처 한 손 대기열 가사 스와이프</string>
     <string name="screen">화면</string>
     <string name="lock_to_portrait">세로 모드로 고정</string>
@@ -3785,7 +3791,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">좋아요 표시한 모든 곡으로 YouTube Music 재생목록을 만들어요. 공유하거나, 고정하거나, 다른 앱에서 열 수 있어요. Prism이 항상 최신 상태로 유지해요: 좋아요를 누른 곡은 추가되고, 좋아요를 취소한 곡은 빠져요.</string>
     <string name="check_your_connection_some_networks_such_all">연결을 확인하세요. 회사나 학교 네트워크 등 일부 네트워크는 Discord를 차단해요. 다른 Wi-Fi나 모바일 데이터로 시도해 보세요.</string>
     <string name="blur_and_frosted_glass_the_frost_all">흐림 효과와 반투명 유리, 페이지 뒤의 반투명 효과, 움직이는 배경과 일러스트 배경, 움직이는 커버, 비주얼라이저, 흐르는 플레이어 배경, 가사의 초점 흐림과 글로우, 홈 상단 사진, 애니메이션</string>
-    <string name="swipe_up_on_the_lower_half_all">플레이어 아래쪽 절반에서 위로 스와이프하세요: 오른쪽에서는 대기열, 왼쪽에서는 가사가 열려요. 대기열이나 가사의 아래쪽 절반에서 아래로 스와이프하면 닫혀요. 위쪽까지 손을 뻗는 것보다 한 손으로 쓰기 쉬워요.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">듣는 곡을 내 Last.fm 계정으로 보내요(스크로블). 곡의 절반이나 4분을 들으면 집계돼요. Last.fm 자체 페이지에서 연결하므로 Prism은 비밀번호를 절대 볼 수 없어요. 팟캐스트 에피소드는 보내지 않아요.</string>
     <string name="mode_light">라이트</string>
     <string name="mode_dark">다크</string>

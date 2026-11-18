@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import com.prism.music.data.prefs.AppSettings
+import com.prism.music.data.prefs.PanelSwipes
 import com.prism.music.data.prefs.PipMode
 import com.prism.music.data.prefs.PlayerGesture
 import com.prism.music.data.prefs.SessionButton
@@ -70,7 +71,7 @@ class GesturesButtonsPageTest : ListeningPageHarness(SettingsPageId.GESTURES_BUT
     private val holdSeek = t(R.string.hold_previous_next_to_seek)
     private val previousBack = t(R.string.previous_always_goes_back)
     private val haptics = t(R.string.haptics)
-    private val queueSwipe = t(R.string.swipe_up_for_the_queue)
+    private val queueSwipe = t(R.string.gb_swipe_up_player)
     private val tabSwipe = t(R.string.swipe_between_tabs)
     private val rowSwipes = t(R.string.gb_row_swipes)
     private val coverPlays = t(R.string.gb_lyrics_cover_plays)
@@ -178,7 +179,10 @@ class GesturesButtonsPageTest : ListeningPageHarness(SettingsPageId.GESTURES_BUT
         assertEquals(onCover, valueOf(work))
         assertEquals(SettingsTags.ROW_SLIDER, typeOf(holdSeek))
         assertEquals("10 s", valueOf(holdSeek))
-        for (title in listOf(haptics, queueSwipe, tabSwipe, rowSwipes, coverPlays, notificationLyrics, portrait)) assertEquals(title, SettingsTags.ROW_SWITCH, typeOf(title))
+        for (title in listOf(haptics, tabSwipe, rowSwipes, coverPlays, notificationLyrics, portrait)) assertEquals(title, SettingsTags.ROW_SWITCH, typeOf(title))
+        // 1.9: the panel swipes' sides: Off as Prism comes, then each way of setting them.
+        assertEquals(SettingsTags.ROW_PICK, typeOf(queueSwipe))
+        assertEquals(t(R.string.off), valueOf(queueSwipe))
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(previousBack))
         assertEquals(SettingsTags.ROW_CHOICE, typeOf(pip))
         assertEquals(PipMode.AUTO.label, valueOf(pip))
@@ -232,7 +236,7 @@ class GesturesButtonsPageTest : ListeningPageHarness(SettingsPageId.GESTURES_BUT
         pickIn(mini, pullDown, PlayerGesture.NONE.label)
         until("mini_swipe_down") { it.miniSwipeDown == PlayerGesture.NONE }
 
-        // hold_seek_seconds (Off at its start), previous_always_back, haptics, panel_swipes, swipe_tabs, row_swipes, lyrics_cover_plays
+        // hold_seek_seconds (Off at its start), previous_always_back, haptics, panel_swipes (Off, then its sides), swipe_tabs, row_swipes, lyrics_cover_plays
         slide(holdSeek, 0f)
         until("hold_seek_seconds") { it.behavior.holdSeekSeconds == 0 }
         assertEquals(t(R.string.off), valueOf(holdSeek))
@@ -240,8 +244,9 @@ class GesturesButtonsPageTest : ListeningPageHarness(SettingsPageId.GESTURES_BUT
         until("previous_always_back") { it.behavior.previousAlwaysBack }
         tap(haptics)
         until("haptics") { !it.haptics }
-        tap(queueSwipe)
-        until("panel_swipes") { it.behavior.panelSwipes }
+        pick(queueSwipe, PanelSwipes.QUEUE_BOTH.label)
+        until("panel_swipes") { it.behavior.panelSwipes == PanelSwipes.QUEUE_BOTH }
+        assertEquals(PanelSwipes.QUEUE_BOTH.label, valueIn(touch, queueSwipe))
         tap(tabSwipe)
         until("swipe_tabs") { it.swipeTabs }
         tap(rowSwipes)
@@ -340,6 +345,30 @@ class GesturesButtonsPageTest : ListeningPageHarness(SettingsPageId.GESTURES_BUT
         assertFalse(hasRow(t(R.string.gestures_anywhere_on_the_player)) || hasRow(t(R.string.gestures_under_the_lyrics)))
         assertTrue(SettingsIndex.search("gestures below the lyrics").any { it.title == work })
         assertTrue(SettingsIndex.search("gestures anywhere on the player").any { it.title == work })
+    }
+
+    /** 1.9: the panel swipes are picked per side — off, each side's panel, or both the same — and each stores. */
+    @Test fun thePanelSwipesArePickedPerSide() {
+        show()
+        // Off as Prism comes, and found by the name the switch had.
+        assertEquals(SettingsTags.ROW_PICK, typeOf(queueSwipe))
+        assertEquals(t(R.string.off), valueOf(queueSwipe))
+        val e = SettingsIndex.entries.single { it.title == queueSwipe }
+        assertEquals(SettingsPageId.GESTURES_BUTTONS, e.page)
+        assertEquals(touch, e.group)
+        assertTrue(SettingsIndex.search("queue").any { it.title == queueSwipe })
+        // The sheet lists every way, one ticked.
+        tap(queueSwipe)
+        assertEquals(PanelSwipes.entries.size, options().size)
+        assertEquals(1, options().count { it.config.getOrNull(SemanticsProperties.Selected) == true })
+        swipeSheetAway()
+        // Each mode says what it does on its row and is what's stored; then back to off.
+        for (mode in listOf(PanelSwipes.QUEUE_RIGHT, PanelSwipes.QUEUE_LEFT, PanelSwipes.LYRICS_BOTH, PanelSwipes.QUEUE_BOTH, PanelSwipes.OFF)) {
+            pick(queueSwipe, mode.label)
+            until("$mode stored") { it.behavior.panelSwipes == mode }
+            assertEquals(mode.label, valueIn(touch, queueSwipe))
+            assertTrue("$mode differs from how Prism comes", row(queueSwipe).fetchSemanticsNode().config[SettingsRowChanged] == (mode != PanelSwipes.OFF))
+        }
     }
 
     /** #406 and #392: the two new rows. */

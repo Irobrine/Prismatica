@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Visa videon</string>
     <string name="immersive_music_video_behind_lyrics">uppslukande musikvideo bakom låttext</string>
     <string name="swipe_up_for_the_queue">Svep uppåt för kön</string>
+    <string name="gb_swipe_up_player">Svep uppåt på spelaren</string>
+    <string name="gb_swipe_up_player_info">Vad ett svep uppåt på spelarens nedre halva öppnar: låttexten eller kön, varje sida för sig eller båda samma. Svep nedåt på den nedre halvan för att stänga dem. Enklare med en hand än att sträcka sig mot toppen.</string>
+    <string name="panel_swipes_queue_right">Kö till höger, låttext till vänster</string>
+    <string name="panel_swipes_queue_left">Kö till vänster, låttext till höger</string>
+    <string name="panel_swipes_lyrics_both">Låttext på båda sidor</string>
+    <string name="panel_swipes_queue_both">Kö på båda sidor</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gest en hand kö låttext svep</string>
     <string name="screen">Skärm</string>
     <string name="lock_to_portrait">Lås i stående läge</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Skapar en YouTube Music-spellista med alla låtar du har gillat, en som du kan dela, fästa eller öppna i andra appar. Prism håller den uppdaterad: låtar du gillar läggs till, låtar du slutar gilla tas bort.</string>
     <string name="check_your_connection_some_networks_such_all">Kontrollera anslutningen. Vissa nätverk, till exempel på jobb och i skolor, blockerar Discord: prova ett annat Wi-Fi eller mobildata.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Oskärpa och frostat glas, frosten bakom sidor, rörliga och illustrerade bakgrunder, animerade omslag, visualiseraren, en drivande spelarbakgrund, fokusoskärpa och glöd i låttexten, bilden högst upp på Hem, och animationer</string>
-    <string name="swipe_up_on_the_lower_half_all">Svep uppåt på spelarens nedre halva: från höger sida för kön, från vänster sida för låttexten. Svep nedåt på nedre halvan av kön eller låttexten för att stänga dem. Enklare med en hand än att sträcka sig mot toppen.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Skickar det du lyssnar på (scrobblar) till ditt eget Last.fm-konto: en låt räknas när du har hört hälften av den eller fyra minuter. Du ansluter på Last.fms egen sida, så Prism ser aldrig ditt lösenord. Poddavsnitt skickas inte.</string>
     <string name="mode_light">ljust</string>
     <string name="mode_dark">mörkt</string>

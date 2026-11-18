@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Tunjukkan video</string>
     <string name="immersive_music_video_behind_lyrics">imersif video muzik di belakang lirik</string>
     <string name="swipe_up_for_the_queue">Leret ke atas untuk baris gilir</string>
+    <string name="gb_swipe_up_player">Leret ke atas pada pemain</string>
+    <string name="gb_swipe_up_player_info">Apa yang terbuka apabila leret ke atas pada separuh bawah pemain: lirik atau baris gilir, setiap sisi tersendiri atau kedua-duanya sama. Leret ke bawah pada separuh bawah untuk menutupnya. Lebih mudah dengan satu tangan berbanding mencapai bahagian atas.</string>
+    <string name="panel_swipes_queue_right">Baris gilir di kanan, lirik di kiri</string>
+    <string name="panel_swipes_queue_left">Baris gilir di kiri, lirik di kanan</string>
+    <string name="panel_swipes_lyrics_both">Lirik di kedua-dua belah</string>
+    <string name="panel_swipes_queue_both">Baris gilir di kedua-dua belah</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gerak isyarat satu tangan baris gilir lirik leret</string>
     <string name="screen">Skrin</string>
     <string name="lock_to_portrait">Kunci kepada potret</string>
@@ -3785,7 +3791,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Membuat senarai main YouTube Music bagi setiap lagu yang anda sukai, yang boleh anda kongsi, semat atau buka dalam apl lain. Prism mengemas kininya: lagu yang anda suka ditambah, lagu yang anda nyahsuka dikeluarkan.</string>
     <string name="check_your_connection_some_networks_such_all">Semak sambungan anda. Sesetengah rangkaian, seperti rangkaian tempat kerja dan sekolah, menyekat Discord: cuba Wi-Fi lain atau data mudah alih.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Kabur dan kaca kabur, kesan kabur di belakang halaman, latar belakang bergerak dan berilustrasi, kulit beranimasi, visualisasi, latar belakang pemain yang hanyut, kabur fokus dan cahaya dalam lirik, gambar di bahagian atas Laman Utama, dan animasi</string>
-    <string name="swipe_up_on_the_lower_half_all">Leret ke atas pada separuh bawah pemain: dari sisi kanan untuk baris gilir, dari sisi kiri untuk lirik. Leret ke bawah pada separuh bawah baris gilir atau lirik untuk menutupnya. Lebih mudah dengan satu tangan berbanding mencapai bahagian atas.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Menghantar apa yang anda dengar (scrobble) ke akaun Last.fm anda sendiri: lagu dikira apabila anda telah mendengar separuh daripadanya atau empat minit. Anda bersambung pada halaman Last.fm sendiri, jadi Prism tidak pernah melihat kata laluan anda. Episod podcast tidak dihantar.</string>
     <string name="mode_light">cerah</string>
     <string name="mode_dark">gelap</string>

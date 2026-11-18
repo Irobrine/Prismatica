@@ -14,6 +14,7 @@ import androidx.compose.ui.test.swipe
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.prism.music.data.model.Song
+import com.prism.music.data.prefs.PanelSwipes
 import com.prism.music.data.prefs.PlayerGesture
 import com.prism.music.playback.QueueKind
 import com.prism.music.playback.QueueSource
@@ -65,6 +66,35 @@ class PlayerMorphAppTest {
     private fun leftOf(tag: String) = compose.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().first().boundsInRoot.left
     private fun mini(): SemanticsNodeInteraction = compose.onAllNodes(hasTestTag("miniPlayer"), useUnmergedTree = true).onFirst()
     private fun rootHeight() = compose.onRoot().fetchSemanticsNode().boundsInRoot.height
+    private fun deck(): SemanticsNodeInteraction = compose.onAllNodes(hasTestTag("playerDeck"), useUnmergedTree = true).onFirst()
+
+    private fun lyricsShown() = compose.onAllNodes(hasContentDescription(tr(R.string.close_lyrics)), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+    private fun queueShown() = compose.onAllNodes(hasText(tr(R.string.queue)), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+
+    /** A swipe up (or down) on the deck's lower half, from its left ([right] false) or right side. */
+    private fun swipeTheDeck(right: Boolean, up: Boolean = true) {
+        val h = rootHeight()
+        deck().performTouchInput {
+            val x = width * if (right) 0.95f else 0.05f
+            val y = if (up) height * 0.05f else height * 0.05f + h * 0.30f
+            val to = if (up) height * 0.05f - h * 0.30f else height * 0.05f
+            swipe(Offset(x, y), Offset(x, to), 300)
+        }
+    }
+
+    /** The deck's gesture follows the finger (the title goes with the morph), whichever side brought which panel. */
+    private fun theDeckFollowsTheFinger(right: Boolean) {
+        val h = rootHeight()
+        val before = leftOf("playerTitle")
+        deck().performTouchInput {
+            down(Offset(width * if (right) 0.95f else 0.05f, height * 0.05f))
+            moveBy(Offset(0f, -h * 0.15f))
+        }
+        compose.waitForIdle()
+        val middle = leftOf("playerTitle")
+        assertTrue("the sleeve follows the finger from the ${if (right) "right" else "left"}: before $before, at $middle", middle > before + 10f)
+        deck().performTouchInput { moveBy(Offset(0f, -h * 0.15f)); up() }
+    }
 
     private fun openPlayer() {
         Fixture.context.startActivity(
@@ -141,10 +171,10 @@ class PlayerMorphAppTest {
         compose.waitUntil(10_000) { !shown("playerDeck") && shown("miniPlayer") }
     }
 
-    /** "Swipe up for the queue": up on the right of the controls opens it (following the finger); down closes it. */
+    /** "Swipe up on the player": up on the right of the controls opens the queue (following the finger); down closes it. */
     @Test fun theQueueOpensAndClosesWithTheControlsSwipe() {
-        settings.setPanelSwipes(true)
-        compose.waitUntil(5_000) { settings.current.behavior.panelSwipes }
+        settings.setPanelSwipes(PanelSwipes.QUEUE_RIGHT)
+        compose.waitUntil(5_000) { settings.current.behavior.panelSwipes == PanelSwipes.QUEUE_RIGHT }
         songs("Prism morph queue")
         compose.waitUntil(15_000) { shown("miniPlayer") }
         openPlayer()
@@ -159,6 +189,73 @@ class PlayerMorphAppTest {
             swipe(Offset(width * 0.95f, height * 0.05f), Offset(width * 0.95f, height * 0.05f + h * 0.30f), 300)
         }
         compose.waitUntil(10_000) { compose.onAllNodes(hasText(tr(R.string.queue)), useUnmergedTree = true).fetchSemanticsNodes().isEmpty() }
+    }
+
+    /**
+     * 1.9: the left of the deck opens the lyrics as the right opens the queue (as Prism came), with the same
+     * follow-the-finger morph.
+     */
+    @Test fun theControlsSwipeOpensTheLyricsFromTheLeft() {
+        settings.setPanelSwipes(PanelSwipes.QUEUE_RIGHT)
+        compose.waitUntil(5_000) { settings.current.behavior.panelSwipes == PanelSwipes.QUEUE_RIGHT }
+        songs("Prism morph left lyrics")
+        compose.waitUntil(15_000) { shown("miniPlayer") }
+        openPlayer()
+        theDeckFollowsTheFinger(right = false)
+        compose.waitUntil(10_000) { lyricsShown() }
+        // And back down.
+        swipeTheDeck(right = false, up = false)
+        compose.waitUntil(10_000) { !lyricsShown() }
+    }
+
+    /** 1.9: both sides can bring the queue; the left does it as the right always has. */
+    @Test fun bothSidesCanBringTheQueue() {
+        settings.setPanelSwipes(PanelSwipes.QUEUE_BOTH)
+        compose.waitUntil(5_000) { settings.current.behavior.panelSwipes == PanelSwipes.QUEUE_BOTH }
+        songs("Prism morph queue both")
+        compose.waitUntil(15_000) { shown("miniPlayer") }
+        openPlayer()
+        theDeckFollowsTheFinger(right = false)
+        compose.waitUntil(10_000) { queueShown() }
+    }
+
+    /** 1.9: both sides can bring the lyrics, the right included. */
+    @Test fun bothSidesCanBringTheLyrics() {
+        settings.setPanelSwipes(PanelSwipes.LYRICS_BOTH)
+        compose.waitUntil(5_000) { settings.current.behavior.panelSwipes == PanelSwipes.LYRICS_BOTH }
+        songs("Prism morph lyrics both")
+        compose.waitUntil(15_000) { shown("miniPlayer") }
+        openPlayer()
+        theDeckFollowsTheFinger(right = true)
+        compose.waitUntil(10_000) { lyricsShown() }
+    }
+
+    /** 1.9: the two sides can swap: the left brings the queue, the right the lyrics. */
+    @Test fun theSidesCanSwap() {
+        settings.setPanelSwipes(PanelSwipes.QUEUE_LEFT)
+        compose.waitUntil(5_000) { settings.current.behavior.panelSwipes == PanelSwipes.QUEUE_LEFT }
+        songs("Prism morph swapped")
+        compose.waitUntil(15_000) { shown("miniPlayer") }
+        openPlayer()
+        theDeckFollowsTheFinger(right = false)
+        compose.waitUntil(10_000) { queueShown() }
+        // The other side, the other panel.
+        swipeTheDeck(right = false, up = false)
+        compose.waitUntil(10_000) { !queueShown() }
+        theDeckFollowsTheFinger(right = true)
+        compose.waitUntil(10_000) { lyricsShown() }
+    }
+
+    /** 1.9: off, the deck's swipe opens nothing (the gesture stays away from the player, as it always did). */
+    @Test fun withPanelSwipesOffTheDeckOpensNothing() {
+        settings.setPanelSwipes(PanelSwipes.OFF)
+        songs("Prism morph off")
+        compose.waitUntil(15_000) { shown("miniPlayer") }
+        openPlayer()
+        swipeTheDeck(right = true)
+        compose.waitForIdle()
+        assertFalse("nothing opened", queueShown() || lyricsShown())
+        assertTrue("the player is still here", shown("playerDeck"))
     }
 
     /** The cover's own swipe up (the queue, by default) opens it through the same morph. */

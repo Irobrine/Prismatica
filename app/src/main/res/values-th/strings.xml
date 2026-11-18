@@ -1654,6 +1654,12 @@
     <string name="show_the_video">แสดงวิดีโอ</string>
     <string name="immersive_music_video_behind_lyrics">อิมเมอร์ซีฟ มิวสิกวิดีโอ ด้านหลัง เนื้อเพลง</string>
     <string name="swipe_up_for_the_queue">ปัดขึ้นเพื่อดูคิว</string>
+    <string name="gb_swipe_up_player">ปัดขึ้นบนเพลเยอร์</string>
+    <string name="gb_swipe_up_player_info">ตำแหน่งที่การปัดขึ้นบนครึ่งล่างของเพลเยอร์จะเปิด: เนื้อเพลงหรือคิว แต่ละด้านแยกกันหรือทั้งสองด้านเหมือนกัน ปัดลงบนครึ่งล่างเพื่อปิด ใช้มือเดียวง่ายกว่าเอื้อมไปด้านบน</string>
+    <string name="panel_swipes_queue_right">คิวขวา เนื้อเพลงซ้าย</string>
+    <string name="panel_swipes_queue_left">คิวซ้าย เนื้อเพลงขวา</string>
+    <string name="panel_swipes_lyrics_both">เนื้อเพลงทั้งสองด้าน</string>
+    <string name="panel_swipes_queue_both">คิวทั้งสองด้าน</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">ท่าทางสัมผัส มือเดียว คิว เนื้อเพลง ปัด</string>
     <string name="screen">หน้าจอ</string>
     <string name="lock_to_portrait">ล็อกเป็นแนวตั้ง</string>
@@ -3785,7 +3791,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">สร้างเพลย์ลิสต์ YouTube Music จากทุกเพลงที่คุณชอบ ที่คุณแชร์ ปักหมุด หรือเปิดในแอปอื่นได้ Prism จะอัปเดตให้เสมอ: เพลงที่คุณชอบจะถูกเพิ่ม เพลงที่คุณเลิกชอบจะถูกนำออก</string>
     <string name="check_your_connection_some_networks_such_all">ตรวจสอบการเชื่อมต่อของคุณ บางเครือข่าย เช่น ที่ทำงานและโรงเรียน จะบล็อก Discord: ลอง Wi-Fi อื่นหรืออินเทอร์เน็ตมือถือ</string>
     <string name="blur_and_frosted_glass_the_frost_all">เบลอและกระจกฝ้า ฝ้าด้านหลังหน้าต่างๆ พื้นหลังเคลื่อนไหวและพื้นหลังภาพวาด ปกเคลื่อนไหว ภาพแสดงเสียง พื้นหลังเพลเยอร์ที่ลอยไปมา เบลอโฟกัสและเรืองแสงในเนื้อเพลง รูปภาพด้านบนของหน้าแรก และแอนิเมชัน</string>
-    <string name="swipe_up_on_the_lower_half_all">ปัดขึ้นบนครึ่งล่างของเพลเยอร์: จากด้านขวาเพื่อดูคิว จากด้านซ้ายเพื่อดูเนื้อเพลง ปัดลงบนครึ่งล่างของคิวหรือเนื้อเพลงเพื่อปิด ใช้มือเดียวง่ายกว่าเอื้อมไปด้านบน</string>
     <string name="sends_what_you_listen_to_scrobbles_all">ส่งเพลงที่คุณฟัง (สครอบเบิล) ไปยังบัญชี Last.fm ของคุณเอง: เพลงจะนับเมื่อคุณฟังไปครึ่งเพลงหรือสี่นาที คุณเชื่อมต่อในหน้าของ Last.fm เอง Prism จึงไม่เห็นรหัสผ่านของคุณ ตอนพอดแคสต์จะไม่ถูกส่ง</string>
     <string name="mode_light">สว่าง</string>
     <string name="mode_dark">มืด</string>

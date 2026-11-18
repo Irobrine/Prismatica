@@ -1654,6 +1654,12 @@
     <string name="show_the_video">De video tonen</string>
     <string name="immersive_music_video_behind_lyrics">meeslepend muziekvideo achter songtekst</string>
     <string name="swipe_up_for_the_queue">Omhoog vegen voor de wachtrij</string>
+    <string name="gb_swipe_up_player">Veeg omhoog op de speler</string>
+    <string name="gb_swipe_up_player_info">Wat een veeg omhoog op de onderste helft van de speler opent: de songtekst of de wachtrij, elke kant apart of beide hetzelfde. Veeg omlaag op de onderste helft om ze te sluiten. Makkelijker met één hand dan naar boven reiken.</string>
+    <string name="panel_swipes_queue_right">Wachtrij rechts, songtekst links</string>
+    <string name="panel_swipes_queue_left">Wachtrij links, songtekst rechts</string>
+    <string name="panel_swipes_lyrics_both">Songtekst aan beide kanten</string>
+    <string name="panel_swipes_queue_both">Wachtrij aan beide kanten</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gebaar één hand wachtrij songtekst vegen</string>
     <string name="screen">Scherm</string>
     <string name="lock_to_portrait">Vergrendelen in staande stand</string>
@@ -3833,7 +3839,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Maakt een YouTube Music-playlist van elk nummer dat je hebt geliket, een die je kunt delen, vastzetten of openen in andere apps. Prism houdt hem bij: nummers die je liket worden toegevoegd, nummers die je unlikt worden eruit gehaald.</string>
     <string name="check_your_connection_some_networks_such_all">Controleer je verbinding. Sommige netwerken, zoals die van werk en school, blokkeren Discord: probeer een andere wifi of mobiele data.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Vervaging en matglas, het matglas achter pagina\'s, bewegende en geïllustreerde achtergronden, geanimeerde covers, de visualizer, een drijvende spelerachtergrond, focusvervaging en gloed in de songteksten, de afbeelding bovenaan Home, en animaties</string>
-    <string name="swipe_up_on_the_lower_half_all">Veeg omhoog op de onderste helft van de speler: vanaf de rechterkant voor de wachtrij, vanaf de linkerkant voor de songtekst. Veeg omlaag op de onderste helft van de wachtrij of de songtekst om ze te sluiten. Makkelijker met één hand dan naar boven reiken.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Stuurt wat je luistert (scrobbles) naar je eigen Last.fm-account: een nummer telt zodra je de helft ervan of vier minuten hebt gehoord. Je koppelt op de eigen pagina van Last.fm, dus Prism ziet je wachtwoord nooit. Podcastafleveringen worden niet verstuurd.</string>
     <string name="mode_light">licht</string>
     <string name="mode_dark">donker</string>

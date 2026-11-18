@@ -335,8 +335,11 @@ data class BehaviorPrefs(
     val pauseOnMute: Boolean = false,
     /** When a video goes picture-in-picture (#167). */
     val pip: PipMode = PipMode.AUTO,
-    /** Swipe up on the player's lower half for the queue (or lyrics), down to close them (#200, #197). */
-    val panelSwipes: Boolean = false,
+    /**
+     * Swipe up on the player's lower half for the queue (or lyrics), down to close them (#200, #197); which panel each
+     * side brings, or both the same, is the listener's ([PanelSwipes.entries]). Off, as Prism came.
+     */
+    val panelSwipes: PanelSwipes = PanelSwipes.OFF,
     /** Home's Recently played: every song, or the albums and playlists they were played from (#196). */
     val recentShows: RecentShows = RecentShows.SONGS,
     /** The queue's order is locked: no drag handles, no swiping songs away (#159), so scrolling can't move anything. */
@@ -590,6 +593,31 @@ enum class PipMode(val label: String) { AUTO(tr(R.string.when_you_leave_prism)),
 /** What Home's Recently played lists (1.7.8, #196). */
 enum class RecentShows(val label: String) { SONGS(tr(R.string.songs)), COLLECTIONS(tr(R.string.albums_playlists)) }
 
+/**
+ * What a swipe up on the player's lower half opens (#200, #197), chosen per side: as Prism came, [QUEUE_RIGHT] (the
+ * queue from the right, the lyrics from the left); either panel from both sides, or each from the other side too.
+ * [OFF] keeps the gesture away from the player altogether, as every mode did before.
+ */
+enum class PanelSwipes(val label: String) {
+    OFF(tr(R.string.off)),
+    QUEUE_RIGHT(tr(R.string.panel_swipes_queue_right)),
+    QUEUE_LEFT(tr(R.string.panel_swipes_queue_left)),
+    LYRICS_BOTH(tr(R.string.panel_swipes_lyrics_both)),
+    QUEUE_BOTH(tr(R.string.panel_swipes_queue_both));
+
+    /** Whether a swipe up opens the lyrics at all (off, or the queue from both sides: it doesn't). */
+    val opensLyrics: Boolean get() = this != OFF && this != QUEUE_BOTH
+
+    /** Whether a swipe up from the right (else the left) half opens the queue. */
+    fun queueFrom(right: Boolean): Boolean = when (this) {
+        QUEUE_RIGHT -> right
+        QUEUE_LEFT -> !right
+        LYRICS_BOTH -> false
+        QUEUE_BOTH -> true
+        OFF -> false
+    }
+}
+
 /** The player's look, added in 1.7.8 (part of a Look). Nested (see [ShapeLook]). Every default keeps 1.7.7's look. */
 data class ViewLook(
     /** The player's controls while the lyrics or the queue are open (#193, #197). */
@@ -825,9 +853,10 @@ fun AppSettings.menuFromPlayer(): List<MenuAction> {
 
 /**
  * #345: the player opens its lyrics without the menu's "Show lyrics": a tap on the current lyric, a swipe up on the
- * controls ("Swipe up for the queue"), or a gesture on the cover (while the cover's there, or gestures work anywhere).
+ * controls ("Swipe up on the player", when a side brings the lyrics), or a gesture on the cover (while the cover's
+ * there, or gestures work anywhere).
  */
-fun AppSettings.lyricsElsewhere(): Boolean = shows(PlayerPart.LYRIC_LINE) || behavior.panelSwipes ||
+fun AppSettings.lyricsElsewhere(): Boolean = shows(PlayerPart.LYRIC_LINE) || behavior.panelSwipes.opensLyrics ||
     ((shows(PlayerPart.COVER) || behavior.gesturesEverywhere) &&
         PlayerGesture.LYRICS in listOf(coverSwipeLeft, coverSwipeRight, coverSwipeUp, coverDoubleTap, coverLongPress))
 
@@ -2342,7 +2371,13 @@ class SettingsRepository(
         val tvBackdropDim = intPreferencesKey("tv_backdrop_dim")
         val pauseOnMute = booleanPreferencesKey("pause_on_mute")
         val pipMode = stringPreferencesKey("pip_mode")
-        val panelSwipes = booleanPreferencesKey("panel_swipes")
+        val panelSwipes = stringPreferencesKey("panel_swipes_sides")
+        /**
+         * Before each side could be picked: the on/off the row was. Read on every load for a listener who upgraded and
+         * never touched the row (and for an old backup restored), so this fallback is load-bearing until that key's
+         * gone from every phone that had it.
+         */
+        val panelSwipesOn = booleanPreferencesKey("panel_swipes")
         val recentShows = stringPreferencesKey("recent_shows")
         val quickPicksSource = stringPreferencesKey("quick_picks_source")
         val speedDialYoursFirst = booleanPreferencesKey("speed_dial_yours_first")
@@ -2540,7 +2575,7 @@ class SettingsRepository(
                 // 1.7.8 ([BehaviorPrefs]).
                 "lock_screen_player", "lock_screen_layout", "lock_screen_volume", "lock_screen_like", "lock_screen_output", "lock_screen_paused", "lock_screen_hide_song",
                 "lock_screen_repeat", "lock_screen_up_next",
-                "lock_portrait", "pause_on_mute", "pip_mode", "panel_swipes", "recent_shows", "queue_locked", "scroll_shows_controls", "playlist_genres", "artist_bio", "artist_you", "artist_essentials", "screen_fades", "player_gestures_everywhere", "page_slide", "tab_bar_position",
+                "lock_portrait", "pause_on_mute", "pip_mode", "panel_swipes", "panel_swipes_sides", "recent_shows", "queue_locked", "scroll_shows_controls", "playlist_genres", "artist_bio", "artist_you", "artist_essentials", "screen_fades", "player_gestures_everywhere", "page_slide", "tab_bar_position",
                 // 1.8.0 ([TvPrefs]): how Prism behaves on a TV and in desk mode.
                 "tv_ambient_minutes", "desk_mode", "tv_lyrics_scale", "tv_welcomed", "tv_home_layout", "tv_backdrop_dim",
                 // 1.7.8 ([SoundPrefs]).
@@ -2862,7 +2897,7 @@ class SettingsRepository(
                 lockPortrait = p[K.lockPortrait] ?: d.behavior.lockPortrait,
                 pauseOnMute = p[K.pauseOnMute] ?: d.behavior.pauseOnMute,
                 pip = p.enum(K.pipMode, d.behavior.pip),
-                panelSwipes = p[K.panelSwipes] ?: d.behavior.panelSwipes,
+                panelSwipes = p.enum(K.panelSwipes, if (p[K.panelSwipesOn] == true) PanelSwipes.QUEUE_RIGHT else d.behavior.panelSwipes),
                 recentShows = p.enum(K.recentShows, d.behavior.recentShows),
                 queueLocked = p[K.queueLocked] ?: d.behavior.queueLocked,
                 scrollShowsControls = p[K.scrollShowsControls] ?: d.behavior.scrollShowsControls,
@@ -3624,7 +3659,10 @@ class SettingsRepository(
     }
     fun setPauseOnMute(v: Boolean) = edit { it[K.pauseOnMute] = v }
     fun setPipMode(v: PipMode) = edit { it[K.pipMode] = v.name }
-    fun setPanelSwipes(v: Boolean) = edit { it[K.panelSwipes] = v }
+    fun setPanelSwipes(v: PanelSwipes) = edit {
+        it[K.panelSwipes] = v.name
+        it.remove(K.panelSwipesOn)
+    }
     fun setRecentShows(v: RecentShows) = edit { it[K.recentShows] = v.name }
     fun setQuickPicksSource(v: QuickPicksSource) = edit { it[K.quickPicksSource] = v.name }
     fun setSpeedDialYoursFirst(v: Boolean) = edit { it[K.speedDialYoursFirst] = v }

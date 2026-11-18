@@ -46,6 +46,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.prism.music.R
 import com.prism.music.data.prefs.AppSettings
+import com.prism.music.data.prefs.PanelSwipes
 import com.prism.music.data.prefs.PersistentAction
 import com.prism.music.data.prefs.PipMode
 import com.prism.music.data.prefs.PlayerGesture
@@ -211,7 +212,7 @@ fun GesturesButtonsPage(bottomPadding: Dp, find: String? = null, showBack: Boole
     val holdChanged = reset.add(tr(R.string.hold_previous_next_to_seek), s.behavior.holdSeekSeconds, d.behavior.holdSeekSeconds, holdText) { prefs.setHoldSeekSeconds(it) }
     val previousChanged = reset.add(tr(R.string.previous_always_goes_back), s.behavior.previousAlwaysBack, d.behavior.previousAlwaysBack, onOff) { prefs.setPreviousAlwaysBack(it) }
     val hapticsChanged = reset.add(tr(R.string.haptics), s.haptics, d.haptics, onOff) { prefs.setHaptics(it) }
-    val panelChanged = reset.add(tr(R.string.swipe_up_for_the_queue), s.behavior.panelSwipes, d.behavior.panelSwipes, onOff) { prefs.setPanelSwipes(it) }
+    val panelChanged = reset.add(tr(R.string.gb_swipe_up_player), s.behavior.panelSwipes, d.behavior.panelSwipes, { it.label }) { prefs.setPanelSwipes(it) }
     val tabsChanged = reset.add(tr(R.string.swipe_between_tabs), s.swipeTabs, d.swipeTabs, onOff) { prefs.setSwipeTabs(it) }
     val rowsChanged = reset.add(tr(R.string.gb_row_swipes), s.behavior.rowSwipes, d.behavior.rowSwipes, onOff) { prefs.setRowSwipes(it) }
     // 1.8.3.2: what a song row's swipe left and right do, and whether Library's rows swipe at all.
@@ -266,7 +267,11 @@ fun GesturesButtonsPage(bottomPadding: Dp, find: String? = null, showBack: Boole
                 info = tr(R.string.previous_always_goes_back_info), changed = previousChanged,
             ) { prefs.setPreviousAlwaysBack(it) }
             SwitchRow(tr(R.string.haptics), s.haptics, info = tr(R.string.a_light_tap_on_buttons_and), changed = hapticsChanged) { prefs.setHaptics(it) }
-            SwitchRow(tr(R.string.swipe_up_for_the_queue), s.behavior.panelSwipes, info = tr(R.string.swipe_up_on_the_lower_half_all), changed = panelChanged) { prefs.setPanelSwipes(it) }
+            // Each side picks its panel (or both the same), and off keeps the gesture away from the player, as before.
+            PickListRow(
+                tr(R.string.gb_swipe_up_player), PanelSwipes.entries, s.behavior.panelSwipes, { it.label },
+                info = tr(R.string.gb_swipe_up_player_info), changed = panelChanged,
+            ) { prefs.setPanelSwipes(it) }
             // From Tabs & mini player (§2.3): a swipe, so it is looked for here.
             SwitchRow(tr(R.string.swipe_between_tabs), s.swipeTabs, info = tr(R.string.a_sideways_swipe_on_a_tab), changed = tabsChanged) { prefs.setSwipeTabs(it) }
             // #406 (1.8.4): on is how Prism was.
@@ -509,7 +514,7 @@ val gesturesButtonsIndex: List<SettingEntry> by lazy {
         SettingEntry(page, touch, tr(R.string.hold_previous_next_to_seek), tr(R.string.fast_forward_rewind) + " " + tr(R.string.each_step)),
         SettingEntry(page, touch, tr(R.string.previous_always_goes_back), tr(R.string.previous_always_goes_back_info) + " " + tr(R.string.widget_previous) + " " + tr(R.string.previous_song)),
         SettingEntry(page, touch, tr(R.string.haptics), tr(R.string.vibration_vibrate)),
-        SettingEntry(page, touch, tr(R.string.swipe_up_for_the_queue), tr(R.string.gesture_one_hand_queue_lyrics_swipe)),
+        SettingEntry(page, touch, tr(R.string.gb_swipe_up_player), tr(R.string.gesture_one_hand_queue_lyrics_swipe) + " " + tr(R.string.swipe_up_for_the_queue)),
         SettingEntry(page, touch, tr(R.string.swipe_between_tabs), tr(R.string.tab_bar_swipe_gesture_sideways)),
         SettingEntry(page, touch, tr(R.string.gb_row_swipes), tr(R.string.gb_row_swipes_keywords)),
         SettingEntry(page, tr(R.string.songs), tr(R.string.swipe_left), tr(R.string.gb_row_swipes_keywords) + " " + SongSwipeAction.entries.joinToString(" ") { it.label }),

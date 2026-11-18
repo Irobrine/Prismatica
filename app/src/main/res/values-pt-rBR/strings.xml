@@ -1654,6 +1654,12 @@
     <string name="show_the_video">Mostrar o vídeo</string>
     <string name="immersive_music_video_behind_lyrics">imersivo videoclipe atrás da letra</string>
     <string name="swipe_up_for_the_queue">Deslizar para cima para a fila</string>
+    <string name="gb_swipe_up_player">Deslize para cima no player</string>
+    <string name="gb_swipe_up_player_info">O que um deslize para cima na metade de baixo do player abre: a letra ou a fila, cada lado por conta própria ou os dois iguais. Deslize para baixo na metade de baixo para fechá-las. Mais fácil com uma mão só do que alcançar o topo.</string>
+    <string name="panel_swipes_queue_right">Fila à direita, letra à esquerda</string>
+    <string name="panel_swipes_queue_left">Fila à esquerda, letra à direita</string>
+    <string name="panel_swipes_lyrics_both">Letra dos dois lados</string>
+    <string name="panel_swipes_queue_both">Fila dos dois lados</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">gesto uma mão fila letra deslizar</string>
     <string name="screen">Tela</string>
     <string name="lock_to_portrait">Travar na vertical</string>
@@ -3881,7 +3887,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">Cria uma playlist no YouTube Music com todas as músicas que você curtiu, que você pode compartilhar, fixar ou abrir em outros apps. O Prism mantém ela atualizada: músicas que você curte entram, músicas que você descurte saem.</string>
     <string name="check_your_connection_some_networks_such_all">Verifique sua conexão. Algumas redes, como as de trabalho e de escola, bloqueiam o Discord: tente outro Wi-Fi ou os dados móveis.</string>
     <string name="blur_and_frosted_glass_the_frost_all">Desfoque e vidro fosco, o fosco atrás das páginas, fundos animados e ilustrados, capas animadas, o visualizador, um fundo do player flutuando, o desfoque de foco e o brilho na letra, a imagem no topo do Início e as animações</string>
-    <string name="swipe_up_on_the_lower_half_all">Deslize para cima na metade de baixo do player: do lado direito para a fila, do lado esquerdo para a letra. Deslize para baixo na metade de baixo da fila ou da letra para fechar. Mais fácil com uma mão só do que alcançar o topo.</string>
     <string name="sends_what_you_listen_to_scrobbles_all">Envia o que você ouve (scrobbles) para sua própria conta do Last.fm: uma música conta quando você ouviu metade dela ou quatro minutos. Você se conecta na própria página do Last.fm, então o Prism nunca vê sua senha. Episódios de podcast não são enviados.</string>
     <string name="mode_light">claro</string>
     <string name="mode_dark">escuro</string>

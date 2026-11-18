@@ -463,6 +463,12 @@ internal class PanelShift(start: Float = 0f) {
     }
 }
 
+/** How far the lyrics, the queue and the stats rise as they fade in: the same 26 dp below their place. */
+private const val PANEL_RISE_DP = 26f
+
+/** A panel's rise at [fade] (0…1): the one value every panel's layer uses, so whichever opened it, it comes in alike. */
+internal fun panelRise(fade: Float): Dp = PANEL_RISE_DP.dp * (1f - fade.coerceIn(0f, 1f))
+
 /**
  * The cover, title, artist and transport controls moving between the mini player's places and the full player's. Drawn
  * only while a morph is in flight (and never with Reduce motion), over both players, with no input of its own: it's a

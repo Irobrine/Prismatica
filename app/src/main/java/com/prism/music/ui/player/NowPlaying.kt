@@ -1473,12 +1473,18 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                     }
 
                     // ---- Lyrics and queue panels, under the collapsed header
+                    // Both panels make the same move (the side only picks which): they rise and fade with the finger,
+                    // whatever brought them there. One layer, one rise (panelRise), for the lyrics, the queue and the
+                    // stats alike.
                     if (lyricsOpen) {
                         LyricsPanel(
                             lyricsState, isPlaying && !covered, lyricsControlsOpen,
                             onRevealControls = { lyricsControlsOpen = true },
                             onHideControls = { if (!controlsStay) lyricsControlsOpen = false },
-                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT).graphicsLayer { alpha = panelFade },
+                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT).graphicsLayer {
+                                alpha = panelFade
+                                translationY = panelRise(panelFade).toPx()
+                            },
                             onChangeSource = { showProviders = true },
                         )
                     }
@@ -1486,7 +1492,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         NerdStatsPanel(
                             Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
                                 alpha = panelFade
-                                translationY = (1f - panelFade) * 26.dp.toPx()
+                                translationY = panelRise(panelFade).toPx()
                             },
                         )
                     }
@@ -1497,7 +1503,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             onClose = { haptics.gestureEnd(); toggleQueue() },
                             modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
                                 alpha = panelFade
-                                translationY = (1f - panelFade) * 26.dp.toPx()
+                                translationY = panelRise(panelFade).toPx()
                             },
                         )
                     }
@@ -1514,11 +1520,15 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                     enter = expandVertically(tween(300, easing = FastOutSlowInEasing), expandFrom = Alignment.Top) + fadeIn(tween(220, easing = FastOutSlowInEasing)),
                     exit = shrinkVertically(tween(260, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Top) + fadeOut(tween(200)),
                 ) {
-                    // Settings → Controls & gestures → "Swipe up for the queue" (#200, #197): up on the controls opens the
-                    // queue (from their right half) or the lyrics (left half); down closes whichever is open, and with
-                    // neither open it pulls the player itself down. It follows the finger (panelShift / PlayerMorph), so a
-                    // pull that turns back unwinds, and it's one-handed instead of reaching for the buttons.
-                    val swipes = if (!settings.behavior.panelSwipes) Modifier else Modifier.pointerInput(panelPlayer, morphSpan) {
+                    // Settings → Gestures & buttons → "Swipe up on the player" (#200, #197; each side picked since 1.9):
+                    // up on the deck's lower half opens the queue or the lyrics, whichever that side brings (as Prism
+                    // came, the queue from the right and the lyrics from the left), and whichever it is the same drag
+                    // and the same morph bring it — the letters and the list rise and fade alike. Down closes whichever
+                    // is open, and with neither open it pulls the player itself down. It follows the finger (panelShift
+                    // / PlayerMorph), so a pull that turns back unwinds, and it's one-handed instead of reaching for the
+                    // buttons.
+                    val panelSwipes = settings.behavior.panelSwipes
+                    val swipes = if (panelSwipes == com.prism.music.data.prefs.PanelSwipes.OFF) Modifier else Modifier.pointerInput(panelPlayer, morphSpan, panelSwipes) {
                         var total = 0f
                         var fromRight = true
                         var mode = 0
@@ -1570,7 +1580,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                                     if (lyricsOpen || queueOpen || statsOpen) { panelShift.begin(); mode = 1; startedOpen = true }
                                     else {
                                         panelShift.begin(); mode = 1; startedOpen = false
-                                        openPanelByGesture(if (fromRight) PlayerPage.QUEUE else PlayerPage.LYRICS)
+                                        panelSwipes.page(fromRight)?.let { openPanelByGesture(it) }
                                     }
                                 } else {
                                     if (lyricsOpen || queueOpen || statsOpen) { panelShift.begin(); mode = 1; startedOpen = true }
@@ -1587,7 +1597,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                     // #259 (1.7.9.2): "Gestures anywhere on the player": the cover's swipes, double tap and long press work
                     // around the controls too (the buttons and bars keep their own taps and drags).
                     val coverGestures = when {
-                        settings.behavior.panelSwipes -> Modifier
+                        panelSwipes != com.prism.music.data.prefs.PanelSwipes.OFF -> Modifier
                         // #282: below the lyrics, the deck takes the cover's gestures. The lyrics are their own list above it,
                         // so scrolling them never reaches this.
                         lyricsOpen && !queueOpen && !statsOpen && settings.behavior.gesturesUnderLyrics ->

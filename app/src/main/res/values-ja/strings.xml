@@ -1654,6 +1654,12 @@
     <string name="show_the_video">動画を表示</string>
     <string name="immersive_music_video_behind_lyrics">没入 ミュージック ビデオ 歌詞の後ろ</string>
     <string name="swipe_up_for_the_queue">上にスワイプでキュー</string>
+    <string name="gb_swipe_up_player">プレーヤーで上にスワイプ</string>
+    <string name="gb_swipe_up_player_info">プレーヤーの下半分で上にスワイプしたときに開くもの：歌詞かキュー、左右それぞれ別々に、または両側とも同じに。下半分で下にスワイプすると閉じます。上端まで指を伸ばすより片手で操作しやすくなります。</string>
+    <string name="panel_swipes_queue_right">右がキュー、左が歌詞</string>
+    <string name="panel_swipes_queue_left">左がキュー、右が歌詞</string>
+    <string name="panel_swipes_lyrics_both">両側とも歌詞</string>
+    <string name="panel_swipes_queue_both">両側ともキュー</string>
     <string name="gesture_one_hand_queue_lyrics_swipe">ジェスチャー 片手 キュー 歌詞 スワイプ</string>
     <string name="screen">画面</string>
     <string name="lock_to_portrait">縦向きに固定</string>
@@ -3785,7 +3791,6 @@
     <string name="makes_a_youtube_music_playlist_of_all">いいねしたすべての曲で YouTube Music のプレイリストを作り、共有、固定、ほかのアプリで開くことができます。Prism が常に最新に保ち、いいねした曲は追加し、いいねを外した曲は削除します。</string>
     <string name="check_your_connection_some_networks_such_all">接続を確認してください。職場や学校などのネットワークでは Discord がブロックされていることがあります。別の Wi-Fi かモバイルデータをお試しください。</string>
     <string name="blur_and_frosted_glass_the_frost_all">ぼかしとすりガラス、ページの後ろのすりガラス、動く背景やイラストの背景、アニメーション カバー、ビジュアライザー、漂うプレーヤーの背景、歌詞のフォーカスぼかしとグロー、ホーム上部の画像、アニメーション</string>
-    <string name="swipe_up_on_the_lower_half_all">プレーヤーの下半分で上にスワイプ：右側からでキュー、左側からで歌詞。キューや歌詞の下半分で下にスワイプすると閉じます。上端まで指を伸ばすより片手で操作しやすくなります。</string>
     <string name="sends_what_you_listen_to_scrobbles_all">聴いた曲を自分の Last.fm アカウントに送信（スクロブル）します。曲の半分または 4 分を聴くと 1 回に数えられます。接続は Last.fm 自身のページで行うため、Prism がパスワードを見ることはありません。ポッドキャストのエピソードは送信しません。</string>
     <string name="mode_light">ライト</string>
     <string name="mode_dark">ダーク</string>
