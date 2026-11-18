@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,5 +28,13 @@ class ScanAudioSourceTest {
         val file = Uri.parse("content://media/external/audio/media/42")
         c.localLossless.linked = mapOf("abc" to file)
         assertEquals(file, c.audioOnPhone("abc", File(c.app.cacheDir, "scan.part")))
+    }
+
+    /** A file playback set aside because this phone can't decode it is not handed to the scanner either. */
+    @Test fun aSetAsideLosslessFileFallsThrough() {
+        val file = Uri.parse("content://media/external/audio/media/42")
+        c.localLossless.linked = mapOf("abc" to file)
+        c.localLossless.unplayable += file
+        assertNull(c.audioOnPhone("abc", File(c.app.cacheDir, "scan.part")))
     }
 }

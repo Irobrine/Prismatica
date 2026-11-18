@@ -159,6 +159,26 @@ class PlayerConn184Test {
         assertFalse(c.queue.smartShuffle.value)
     }
 
+    // ------------------------------------------------------------------ Previous (1.8.5)
+
+    /** The setting is read by PlayerConnection.previous(), not only by the bare player's own method. */
+    @Test fun previousGoesBackOnlyWhenTheSettingIsOn() {
+        c.player.playQueue(songs(3), 1, playlist)
+        player.seekTo(30_000)
+        c.settings.setPreviousGoesBack(true)
+        settled { it.behavior.previousGoesBack }
+        c.player.previous()
+        assertEquals("on: the song before", 0, player.currentMediaItemIndex)
+
+        c.settings.setPreviousGoesBack(false)
+        settled { !it.behavior.previousGoesBack }
+        c.player.next()
+        player.seekTo(30_000)
+        c.player.previous()
+        assertEquals("off: the same song", 1, player.currentMediaItemIndex)
+        assertEquals("from its start", 0, player.currentPosition)
+    }
+
     /**
      * What the playback service hears through [com.prism.music.playback.QueueState.smartOn] while [block] runs, collected
      * as the service collects it (a coroutine on the main thread): true asks for Smart Shuffle's picks, false drops them.

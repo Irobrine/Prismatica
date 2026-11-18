@@ -237,7 +237,7 @@ class SmartMeasure(
     fun stop() { job?.cancel() }
 
     companion object {
-        /** The most songs one tap measures (each is a whole song's scan). */
+        /** The most songs one tap measures (each is a quick look at three stretches). */
         const val AT_ONCE = 100
     }
 }

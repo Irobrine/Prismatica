@@ -11,7 +11,7 @@ What changed in each release. Older releases are described on the [Releases page
 ### Fixes
 
 - **Swiping the mini player works on its buttons and cover.** A swipe that began on Next, Previous, Play or the cover could be taken for a tap instead, so the button acted or the player opened instead of the swipe. Now a swipe takes the touch once the finger has moved, and taps are still taps.
-- **Measure now is much faster, and reads songs already on the phone.** It looks at three short stretches of each song rather than the whole file (the same figures a smart playlist's Sound rules use), and it no longer streams a song that is downloaded, saved as lossless, one of your own files, or a music video downloaded as its song. Busy work on songs that can't be measured is gone too.
+- **Measure now is much faster, and reads songs already on the phone.** It looks at three short stretches of each song rather than the whole file, and only falls back to the whole song when those can't find a clear beat or key. It no longer streams a song that is downloaded, saved as lossless, one of your own files, or a music video downloaded as its song.
 
 ## 1.8.4.1
 

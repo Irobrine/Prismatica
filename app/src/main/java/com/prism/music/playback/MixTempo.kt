@@ -422,7 +422,12 @@ class MixTempo(
                 AudioDiagnostics.log("background", "DJ quick scan of $id started")
                 try {
                     val (r, bytes) = BackgroundBudget.asJob(scheduled) { quickRead(id, network) } ?: return@withContext QuickResult.NEEDS_NETWORK
-                    keyPrefs.edit().putString(id, r.key?.encode() ?: "none:${MusicKey.VERSION}").apply()
+                    // A quick look at three stretches can miss a key the whole song would find. Measure now forces a
+                    // scan over a stored key whose song has no measurement row; that must not replace a good key with
+                    // "none" (DJ mode would never look for it again).
+                    if (!keyed(id) || r.key != null) {
+                        keyPrefs.edit().putString(id, r.key?.encode() ?: "none:${MusicKey.VERSION}").apply()
+                    }
                     quickPrefs.edit().putString(id, "${r.tempo?.bpm ?: 0.0}|${r.tempo?.confidence ?: 0.0}|${r.lufs ?: Float.NaN}").apply()
                     traits?.record(com.prism.music.data.SongTraits(id, r.tempo, r.key, r.lufs, Energy.of(r.lufs, r.tempo?.confidence, r.brightness), whole = false))
                     Log.i(

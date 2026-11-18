@@ -1727,8 +1727,9 @@ fun tagItem(t: com.prism.music.data.db.TagSummary) =
     PlaylistItem(TAG_PAGE + t.tag, t.tag, tr(R.string.tag_n_songs, com.prism.music.data.model.songCount(t.songs)), t.thumbnail)
 
 /**
- * A smart playlist's songs its Sound rules can't see yet (1.8.3): how many, and Measure now (the scan Normalize and DJ
- * mode use, one song after another; songs not on the phone only on Wi-Fi); while it runs, how far it is.
+ * A smart playlist's songs its Sound rules can't see yet (1.8.3): how many, and Measure now (1.8.5's quick look at three
+ * stretches, with a whole-song scan for the few it can't read; songs not on the phone only on Wi-Fi); while it runs, how
+ * far it is.
  */
 @Composable
 private fun SmartMeasureRow(rules: com.prism.music.data.SmartRules, unmeasured: Int, progress: Pair<Int, Int>?) {

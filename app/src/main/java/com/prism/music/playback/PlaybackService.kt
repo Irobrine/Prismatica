@@ -83,6 +83,13 @@ private data class SavedQueue(
     val shuffle: Boolean = false, val shuffleOrder: List<Int> = emptyList(), val repeat: Int = Player.REPEAT_MODE_OFF,
 )
 
+/**
+ * Whether a session Previous command should go to the song before (1.8.5): the listener set it, and the command is the
+ * one a Previous button or media key sends (a queue's own previous-item command already goes back).
+ */
+internal fun previousTakesTheSongBefore(command: Int, previousGoesBack: Boolean): Boolean =
+    previousGoesBack && command == Player.COMMAND_SEEK_TO_PREVIOUS
+
 @OptIn(UnstableApi::class)
 open class PlaybackService : MediaLibraryService(), Player.Listener {
     private val c by lazy { container }
@@ -2529,7 +2536,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             }
             // 1.8.5: the notification's, the lock screen's, a watch's or a headset's Previous obeys the same choice as
             // Prism's own buttons: always the song before, rather than the playing one's start.
-            if (playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS && c.settings.current.behavior.previousGoesBack) {
+            if (previousTakesTheSongBefore(playerCommand, c.settings.current.behavior.previousGoesBack)) {
                 session.player.seekToPreviousAsChosen(previousGoesBack = true)
                 return SessionResult.RESULT_INFO_SKIPPED
             }

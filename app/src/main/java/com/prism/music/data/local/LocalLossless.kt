@@ -85,6 +85,10 @@ class LocalLossless(private val context: Context) {
     val matched = ConcurrentHashMap<String, Track>()
     /** Files this phone couldn't decode (ALAC without a decoder, #135): the song's stream plays instead, this run. */
     val unplayable: MutableSet<Uri> = ConcurrentHashMap.newKeySet()
+
+    /** The file lossless sync tied to [id], if this phone can play it (not [setAside] this run). */
+    fun linkedFile(id: String): Uri? = linked[id]?.takeIf { it !in unplayable }
+
     /**
      * Songs whose file was set aside so ([setAside]), by video id -> the file's format ("ALAC"): Stats for nerds says on
      * the song that its stream plays because this phone can't decode the file (1.8.4.1; Reddit took the quiet stream for

@@ -1,13 +1,17 @@
 package com.prism.music
 
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.test.core.app.ApplicationProvider
 import com.prism.music.data.model.Song
 import com.prism.music.playback.HistoryShuffleOrder
+import com.prism.music.playback.previousTakesTheSongBefore
 import com.prism.music.playback.seekToPreviousAsChosen
 import com.prism.music.playback.toMediaItem
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,6 +63,14 @@ class PreviousGoesBackTest {
     }
 
     /** The player's own previous item, so a shuffled queue goes back through what played. */
+    /** The setting's route through the media session: only a Previous command, and only when it's on. */
+    @Test fun onlyAPreviousCommandTakesTheSongBeforeWhenSet() {
+        assertFalse(previousTakesTheSongBefore(Player.COMMAND_SEEK_TO_PREVIOUS, previousGoesBack = false))
+        assertTrue(previousTakesTheSongBefore(Player.COMMAND_SEEK_TO_PREVIOUS, previousGoesBack = true))
+        assertFalse("a queue's own previous item already goes back", previousTakesTheSongBefore(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM, previousGoesBack = true))
+        assertFalse(previousTakesTheSongBefore(Player.COMMAND_SEEK_TO_NEXT, previousGoesBack = true))
+    }
+
     @Test fun onShuffledFollowsThePlayOrder() {
         player.shuffleModeEnabled = true
         // 2 plays first, then 0 (where it is now), then 3, then 1.

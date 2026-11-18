@@ -126,7 +126,7 @@ internal fun Modifier.miniPlayerSwipes(
                     raw += dy
                     rawX += dx
                     justClaimed = true
-                } else if (event.changes.any { it.id != down.id && it.pressed }) { lost = true; break }
+                }
             }
             if (vertical != null) {
                 // Taken before the button or the card's tap can read the up (or any more movement).
@@ -229,7 +229,9 @@ fun MiniPlayer(
             PlayerGesture.SEEK_BACK -> pc.seekBy(-10_000L)
             PlayerGesture.SEEK_AHEAD -> pc.seekBy(10_000L)
             PlayerGesture.PLAY_PAUSE -> pc.togglePlay()
-            PlayerGesture.LIKE -> container.library.toggleLike(s)
+            // The gesture handler lives as long as the card, so [s] can be the song that played when it was first
+            // composed: like whatever is playing now.
+            PlayerGesture.LIKE -> pc.currentSong.value?.let { container.library.toggleLike(it) }
             PlayerGesture.SLEEP -> sleep = true
             PlayerGesture.MENU -> menu = true
             PlayerGesture.STOP -> pc.stop()

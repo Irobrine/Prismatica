@@ -395,8 +395,9 @@ class AppContainer(val app: Application) {
     internal fun audioOnPhone(id: String, scratch: File): android.net.Uri? {
         if (id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX)) return localMusic.uriFor(id)
         // 1.8.5: a lossless file (or one of the listener's own) shows in Downloads as the song but lives outside both
-        // caches; Measure now and Sing used to stream it again.
-        localLossless.linked[id]?.let { return it }
+        // caches; Measure now and Sing used to stream it again. A file this phone set aside (ALAC without a decoder)
+        // is passed over, and the stream plays as it does for playback.
+        localLossless.linkedFile(id)?.let { return it }
         // 1.8.5: a music video downloaded as its song is kept under the song's own id.
         val keptAs = downloadStandIns.value[id] ?: id
         for ((cache, key) in listOf(
@@ -523,11 +524,22 @@ class AppContainer(val app: Application) {
     /**
      * "Measure now" on a smart playlist: the songs its Sound rules can't see yet, looked at three stretches at a time
      * ([com.prism.music.playback.MixTempo.quickScan], which fills the same traits a smart playlist filters on), rather
-     * than whole songs with everything Normalize and Crossfade need. Downloaded, lossless and own-file songs are read
-     * from the phone; streams are fetched only on an unmetered network.
+     * than whole songs with everything Normalize and Crossfade need, and the whole song only where those stretches find
+     * no clear beat or key. Downloaded, lossless and own-file songs are read from the phone; streams are fetched only on
+     * an unmetered network.
      */
     val smartMeasure by lazy {
-        com.prism.music.data.SmartMeasure(scope, { id, network -> mixTempo.quickScan(id, network = network, force = true) }) {
+        com.prism.music.data.SmartMeasure(scope, { id, network ->
+            // What was measured before but never made it to the traits table (a quick scan's row write came after its
+            // prefs, say): a quick look may not find the same beat or key, so those songs get the whole-song scan.
+            val hadValues = mixTempo.keyed(id) || mixTempo.cached(id) != null
+            val looked = mixTempo.quickScan(id, network = network, force = true)
+            // A quick look can miss a steady beat or a clear key that the whole song has; those songs get the full
+            // scan too, so a BPM/Key smart playlist can still find them.
+            if (looked == com.prism.music.playback.MixTempo.QuickResult.KEYED &&
+                (hadValues || mixTempo.djBpm(id) == null || mixTempo.key(id) == null)
+            ) mixTempo.measure(id, network = network, edges = false, key = true)
+        }) {
             app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
         }
     }
