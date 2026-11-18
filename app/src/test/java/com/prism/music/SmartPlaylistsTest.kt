@@ -75,6 +75,14 @@ class SmartPlaylistsTest {
         assertEquals(listOf("a", "b", "c", "d", file.id, "f"), ids())
     }
 
+    /**
+     * Settings → Sound & quality's "Measure songs" walks the listener's own songs' ids ([SmartPlaylists.knownIds]): the
+     * same ones the rules start from, without the downloads and files that have no row of their own.
+     */
+    @Test fun knownIdsAreTheListenersOwnSongsAndNothingElse() = runBlocking {
+        assertEquals(setOf("a", "b", "c", "d"), smart.knownIds().toSet())
+    }
+
     @Test fun soundRules() {
         assertEquals(listOf("a", "c"), ids(SmartRule(SmartField.BPM, min = 120.0, max = 150.0)))
         assertEquals("open-ended", listOf("b"), ids(SmartRule(SmartField.BPM, max = 100.0)))

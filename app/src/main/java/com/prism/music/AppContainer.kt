@@ -582,6 +582,25 @@ class AppContainer(val app: Application) {
             app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
         }
     }
+    /**
+     * Settings → Sound & quality's "Measure songs now" (1.1.3): a set of the listener's songs through the whole-song scan
+     * Normalize measures with, one at a time ([com.prism.music.data.MeasureSongs]). Each is measured as the recording
+     * that actually plays ([loudnessIndex]) and only for its loudness and peak (not tempo, key or Mix's edges), so songs
+     * measured already are skipped and a re-run fills the gaps. Songs not on the phone are fetched on Wi-Fi only, unless
+     * mobile data is allowed for the scan.
+     */
+    val measureSongs by lazy {
+        com.prism.music.data.MeasureSongs(
+            scope,
+            { form, song, network ->
+                mixTempo.measure(form, network = network, edges = false, key = false, wave = false, peak = true, sourceSongId = song)
+            },
+            { form -> mixTempo.loudnessCurrent(form) },
+            { id -> loudnessIndex.formId(id, null) },
+        ) {
+            app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
+        }
+    }
     /** The listener's Prism Account: a name and picture kept on this phone ([com.prism.music.data.PrismAccount]). */
     val account by lazy { com.prism.music.data.PrismAccount(this) }
 

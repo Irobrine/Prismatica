@@ -5547,4 +5547,6 @@
     <string name="prepare_library_videos" translatable="false">Prepare music videos</string>
     <string name="prepare_library_videos_info" translatable="false">Looks up the song for each music video in your library and saves its stream address, so taps start at once. Downloaded videos are skipped. It also does this by itself once a day, on mobile data only when Load ahead on mobile data is on. No sound is downloaded.</string>
     <string name="prepare_videos_keywords" translatable="false">music videos song match stream address ready prepare ahead</string>
+    <string name="measure_songs_now" translatable="false">Measure songs now</string>
+    <string name="measure_songs_now_info" translatable="false">Measures in the background, one song at a time; songs already measured are skipped. A song that is not on your phone is downloaded first (a small part of it), unless you are on mobile data and mobile data is not allowed for measuring. Music videos are measured as you watch them. While it runs, a tap here stops it.</string>
 </resources>

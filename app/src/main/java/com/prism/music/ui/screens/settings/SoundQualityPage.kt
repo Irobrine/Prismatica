@@ -1,5 +1,6 @@
 package com.prism.music.ui.screens.settings
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -20,10 +21,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.prism.music.AppContainer
 import com.prism.music.R
 import com.prism.music.data.local.LocalLossless
+import com.prism.music.data.model.songCount
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.AudioQuality
 import com.prism.music.data.prefs.NORMALIZE_TARGETS
@@ -45,10 +49,10 @@ private val page = SettingsPageId.SOUND_QUALITY
 
 /**
  * Settings → Sound & quality (1.8.4's map, plan §2.3), built with the kit: lossless and the streaming quality, Premium
- * quality and music videos' quality; then loudness, Prism Spatial, the Equalizer and skip silence. This file is the
- * only place for the page: its composable, its lines in Settings' search ([soundQualityIndex]), its "Reset this page"
- * keys ([soundQualityLookKeys]), its line on the root ([soundQualityValue]) and the old group names it answers to
- * ([soundQualityOldGroups]).
+ * quality and music videos' quality; then loudness, measuring the library's songs ahead of time (1.8.5), Prism Spatial,
+ * the Equalizer and skip silence. This file is the only place for the page: its composable, its lines in Settings'
+ * search ([soundQualityIndex]), its "Reset this page" keys ([soundQualityLookKeys]), its line on the root
+ * ([soundQualityValue]) and the old group names it answers to ([soundQualityOldGroups]).
  *
  * The group "Sound" keeps its name: the player's Equalizer button opens the page there. Wi-Fi's and mobile data's
  * quality are one row ([StreamingQuality], plan §2.5) over the two settings Prism already keeps, and so are Normalize's
@@ -165,6 +169,8 @@ fun SoundQualityPage(bottomPadding: Dp, find: String? = null, showBack: Boolean 
                 },
             ) { LoudnessSample(it) }
             if (s.normalize) SwitchRow(tr(R.string.albums_as_they_are), s.sound.normalizeAlbums, info = tr(R.string.while_an_album_plays_through_every), changed = albumsChanged) { prefs.setNormalizeAlbums(it) }
+            // 1.8.5: the scan at the listener's word, on a set of songs of their choosing (it needs Normalize to be worth it).
+            if (s.normalize) MeasureSongsRow()
             // A software spatializer, so it works without Dolby Atmos or spatial-audio hardware.
             SwitchRow(tr(R.string.prism_spatial), s.spatial, info = tr(R.string.software_spatial_audio_a_wider_stage), changed = spatialChanged) { prefs.setSpatial(it) }
             if (s.spatial) SliderRow(tr(R.string.intensity), s.spatialAmount, 0.1f..1f, percent, changed = intensityChanged) { prefs.setSpatialAmount(it) }
@@ -265,6 +271,83 @@ private fun StreamingQualityRow(quality: StreamingQuality, changed: Boolean, onW
     }
 }
 
+/**
+ * "Measure songs now" (1.1.3): the scan at the listener's own word, on a set of songs of their choosing, one song at a
+ * time ([com.prism.music.data.MeasureSongs]): the songs already measured are left out, so a walk is only the work left.
+ *
+ * A tap opens the sheet of the four sets, each with how many of its songs are left (worked out as it opens: the three on
+ * hand at once, the Library's once the database has answered). A pick starts the walk and the sheet goes; while it runs
+ * the row says how far it is, and a tap stops it (the sheet is gone by then, so the row is the one place to stop it).
+ */
+@Composable
+private fun MeasureSongsRow() {
+    val c = LocalContainer.current
+    val s = LocalAppSettings.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val measuring by c.measureSongs.progress.collectAsState()
+    val title = tr(R.string.measure_songs_now)
+    var open by rememberSaveable(title, "measure-songs") { mutableStateOf(false) }
+    // How many of each set's songs are left to measure: empty until the sheet has counted them.
+    var left by remember(title) { mutableStateOf<Map<MeasureScope, Int>>(emptyMap()) }
+    LinkRow(
+        title,
+        value = measuring?.let { tr(R.string.measuring_n_of_n, it.first, it.second) },
+        info = tr(R.string.measure_songs_now_info), action = true,
+    ) {
+        if (measuring != null) c.measureSongs.stop() else open = true
+    }
+    if (open) {
+        LaunchedEffect(open) {
+            left = emptyMap()
+            // The sets Prism has to hand first, so the sheet fills as it opens; the Library's needs the database read.
+            val sets = MeasureScope.entries.filter { it != MeasureScope.LIBRARY } + MeasureScope.LIBRARY
+            for (set in sets) left = left + (set to c.measureSongs.pending(set.ids(c)).size)
+        }
+        RowsSheet(title, { open = false }) {
+            MeasureScope.entries.forEach { set ->
+                val count = left[set]
+                LinkRow(
+                    set.title,
+                    value = count?.let { songCount(it) },
+                    // A set with nothing left says so (0 songs) and does nothing.
+                    enabled = count != 0,
+                    action = true,
+                ) {
+                    open = false
+                    scope.launch {
+                        val network = c.measureSongs.network(s.mixTempoOnCellular)
+                        c.measureSongs.start(c.measureSongs.pending(set.ids(c)), network)
+                        // Songs not on the phone wait for Wi-Fi unless mobile data is allowed for the scan: said so, as the
+                        // scan's own row on a smart playlist does.
+                        if (!network) Toast.makeText(context, tr(R.string.on_wi_fi_songs_not_on_the_phone_are_measured_too), Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The sets of songs "Measure songs now" walks, as its sheet lists them, each under the name it goes by elsewhere in
+ * Prism: the listener's own songs ([com.prism.music.data.SmartQuery.KNOWN]'s: liked, played, tagged), their downloads,
+ * the music files on the phone, and their liked songs.
+ */
+private enum class MeasureScope(val title: String) {
+    LIBRARY(tr(R.string.library)),
+    DOWNLOADED(tr(R.string.downloaded)),
+    PHONE(tr(R.string.on_this_phone)),
+    LIKED(tr(R.string.liked_songs));
+
+    /** The set's songs' ids now: the Library's read from the database (off the main thread), the others as Prism has them. */
+    suspend fun ids(c: AppContainer): List<String> = when (this) {
+        LIBRARY -> c.smart.knownIds()
+        DOWNLOADED -> c.downloads.completedSongs().map { it.id }
+        PHONE -> c.localMusic.tracks.value.map { it.song.id }
+        LIKED -> c.library.likedIds.value.toList()
+    }
+}
+
 /** The root's line for Sound & quality: the quality, then what's on of Normalize, Spatial and the equalizer. */
 fun soundQualityValue(s: AppSettings, dark: Boolean): String = listOfNotNull(
     if (s.lossless) tr(R.string.lossless) else tr(R.string.audio_quality_x, s.audioQuality.label),
@@ -307,6 +390,11 @@ val soundQualityIndex: List<SettingEntry> by lazy {
             SettingEntry(page, quality, tr(R.string.music_video_quality), tr(R.string.resolution_1080p_720p)),
             SettingEntry(page, sound, tr(R.string.same_loudness_for_every_song), tr(R.string.loudness_lufs_level) + " " + tr(R.string.normalize_volume) + " " + tr(R.string.normalize_loudness_lufs_loud_quiet_broadcast)),
             SettingEntry(page, sound, tr(R.string.albums_as_they_are), tr(R.string.album_mode_normalize_album_gain), needs = turnOn(tr(R.string.normalize_volume)) { it.normalize }),
+            // 1.8.5: an action, not a stored setting (found by the scan's own name too).
+            SettingEntry(
+                page, sound, tr(R.string.measure_songs_now), tr(R.string.measure_now),
+                needs = turnOn(tr(R.string.normalize_volume)) { it.normalize },
+            ),
             SettingEntry(page, sound, tr(R.string.prism_spatial), tr(R.string.spatial_audio_3d_surround_atmos)),
             SettingEntry(page, sound, tr(R.string.intensity), tr(R.string.spatial_audio_width), shown = tr(R.string.prism_spatial_intensity), needs = Needs(tr(R.string.turn_on_prism_spatial_first)) { it.spatial }),
             SettingEntry(page, sound, tr(R.string.equalizer), tr(R.string.eq_bass_boost_treble_loudness_headphone)),

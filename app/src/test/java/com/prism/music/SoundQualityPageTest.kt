@@ -1,8 +1,12 @@
 package com.prism.music
 
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
+import com.prism.music.data.db.toEntity
 import com.prism.music.data.local.LocalLossless
+import com.prism.music.data.model.Song
+import com.prism.music.data.model.songCount
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.AudioQuality
 import com.prism.music.data.prefs.NORMALIZE_TARGETS
@@ -14,6 +18,7 @@ import com.prism.music.ui.screens.settings.SettingsMap
 import com.prism.music.ui.screens.settings.SettingsPageId
 import com.prism.music.ui.screens.settings.SettingsTags
 import com.prism.music.ui.screens.settings.SettingsTarget
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -30,8 +35,9 @@ import kotlin.math.abs
 /**
  * 1.8.4, Settings → Sound & quality rebuilt with the kit (plan §2.3, the ledger's Sound & quality table): the groups
  * Quality and Sound within the budgets, a control for every stored setting the ledger gives the page (worked here, and
- * the store follows), Wi-Fi and mobile quality as one row (§2.5), Reset this page, the player's Equalizer button still
- * landing on Sound, and the page drawn in light, dark, Performance mode and at large text.
+ * the store follows), Wi-Fi and mobile quality as one row (§2.5), "Measure songs now" (1.8.5: the scan on a set of the
+ * listener's songs, a tap stopping it), Reset this page, the player's Equalizer button still landing on Sound, and the
+ * page drawn in light, dark, Performance mode and at large text.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -50,6 +56,7 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
     private val video = t(R.string.music_video_quality)
     private val loudness = t(R.string.same_loudness_for_every_song)
     private val albums = t(R.string.albums_as_they_are)
+    private val measureSongs = t(R.string.measure_songs_now)
     private val spatial = t(R.string.prism_spatial)
     private val intensity = t(R.string.intensity)
     private val equalizer = t(R.string.equalizer)
@@ -65,7 +72,7 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
         assertBudgets("defaults")
         assertEquals(listOf(t(R.string.quality), t(R.string.sound)), groupTitles())
         // A fresh install: lossless on (so no quality to pick), not signed in; Normalize on.
-        assertEquals(listOf(3, 5), groupSizes())
+        assertEquals(listOf(3, 6), groupSizes())
         assertEquals(0, changedRows())
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(lossless))
         assertEquals(SettingsTags.ROW_LINK, typeOf(allowFiles))
@@ -74,6 +81,9 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
         assertEquals(SettingsTags.ROW_PICK, typeOf(loudness))
         assertEquals(NORMALIZE_TARGETS.first { it.first == -14 }.second, valueOf(loudness))
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(albums))
+        // 1.8.5: an action, so a link without a value line until it runs.
+        assertEquals(SettingsTags.ROW_LINK, typeOf(measureSongs))
+        assertEquals("", valueOf(measureSongs))
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(spatial))
         assertEquals(SettingsTags.ROW_LINK, typeOf(equalizer))
         assertEquals(t(R.string.off), valueOf(equalizer))
@@ -91,12 +101,12 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
         // Lossless with Data saver, signed in: lossless, the files row, mobile quality, Premium, video quality.
         show { signedIn(it).copy(dataSaver = true) }
         assertBudgets("lossless, Data saver, signed in, Spatial")
-        assertEquals(listOf(5, 6), groupSizes())
+        assertEquals(listOf(5, 7), groupSizes())
         assertTrue(hasRow(mobileOnly) && hasRow(premium) && hasRow(intensity))
         // Without lossless: one row for both qualities.
         container.settings.setLossless(false)
         until("lossless off") { !it.lossless }
-        assertEquals(listOf(4, 6), groupSizes())
+        assertEquals(listOf(4, 7), groupSizes())
         assertTrue(hasRow(streaming))
         assertFalse(hasRow(mobileOnly) || hasRow(allowFiles) || hasRow(scanAgain))
     }
@@ -149,6 +159,7 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
         until("normalize") { !it.normalize }
         assertEquals(t(R.string.off), valueOf(loudness))
         assertFalse("Albums as they are only shows with it on", hasRow(albums))
+        assertFalse("and so does measuring songs ahead of time", hasRow(measureSongs))
         pick(loudness, NORMALIZE_TARGETS.first { it.first == -8 }.second)
         until("normalize_target") { it.normalize && it.sound.normalizeTarget == -8 }
         // normalize_albums
@@ -167,7 +178,7 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
         until("skip_silence_episodes") { !it.skipSilence && it.sound.skipSilenceEpisodes }
 
         assertBudgets("everything changed")
-        assertEquals(listOf(5, 6), groupSizes())
+        assertEquals(listOf(5, 7), groupSizes())
 
         // Reset this page: what it lists goes back; lossless stays on (it is how Prism comes) with its files.
         val lines = resetLines(confirm = true)
@@ -178,6 +189,57 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
         }
         assertTrue(stored.lossless)
         assertEquals(0, changedRows())
+    }
+
+    /**
+     * 1.8.5: "Measure songs now" walks a set of the listener's songs through the whole-song scan, one at a time. A tap
+     * opens the sheet of the four sets, each with how many songs of it are left; a pick starts the walk and the sheet goes;
+     * while it runs the row says how far it is, and a tap stops it rather than opening the sheet.
+     */
+    @Test fun measureSongsWalksASetAndStops() {
+        // One of the listener's own songs, a file on the phone (its scan needs no network, so its walk is over at once): a
+        // phone's liked songs are never empty, and a test's database starts as one.
+        val own = Song("${Song.LOCAL_PREFIX}9001", "Own song")
+        runBlocking { container.db.songs().upsertAll(listOf(own.toEntity().copy(liked = true, likedAt = 1L))) }
+        show()
+        // The liked set is the database's own list, kept by a flow: let it land before the sheet counts its songs.
+        compose.waitUntil(5_000) { container.library.likedIds.value == setOf(own.id) }
+        // While a walk runs the row says how far it is (as the scan does on a smart playlist), and a tap stops it instead.
+        container.measureSongs.progress.value = 2 to 5
+        compose.waitForIdle()
+        assertEquals(tr(R.string.measuring_n_of_n, 2, 5), valueOf(measureSongs))
+        tap(measureSongs)
+        assertEquals("tapping the row while it runs stops the walk", 0, sheets())
+        container.measureSongs.progress.value = null
+        compose.waitForIdle()
+        assertEquals("", valueOf(measureSongs))
+
+        tap(measureSongs)
+        assertEquals(1, sheets())
+        // The sets Prism has to hand say their counts at once; the sets with nothing left can't be picked.
+        assertEquals(songCount(0), valueOf(t(R.string.downloaded)))
+        assertEquals(songCount(0), valueOf(t(R.string.on_this_phone)))
+        assertEquals(songCount(1), valueOf(t(R.string.liked_songs)))
+        compose.onNode(rowIs(t(R.string.downloaded))).assertIsNotEnabled()
+        // The liked set is picked, and the walk starts on its one song, measured as itself.
+        tap(t(R.string.liked_songs))
+        compose.waitUntil(5_000) { sheets() == 0 }
+        // (The walk itself — one song at a time, its counts, stopping it — is MeasureSongsTest's: a song on the phone is
+        // scanned in less time than a frame here, so the row's own "x of y" is what this test works out above.)
+    }
+
+    /** A song measured with the current scan is left out of the count (and so of the walk): nothing to do is said as 0. */
+    @Test fun alreadyMeasuredSongsAreCountedOut() {
+        val id = "${Song.LOCAL_PREFIX}9002"
+        runBlocking { container.db.songs().upsertAll(listOf(Song(id, "Measured already").toEntity().copy(liked = true, likedAt = 1L))) }
+        RuntimeEnvironment.getApplication().getSharedPreferences("song_loudness_version", android.content.Context.MODE_PRIVATE)
+            .edit().putInt(id, com.prism.music.playback.MixTempo.LUFS_VERSION).commit()
+        show()
+        compose.waitUntil(5_000) { container.library.likedIds.value == setOf(id) }
+        assertEquals("measured, so it has no work left", 0, container.measureSongs.pending(listOf(id)).size)
+        tap(measureSongs)
+        assertEquals(songCount(0), valueOf(t(R.string.liked_songs)))
+        compose.onNode(rowIs(t(R.string.liked_songs))).assertIsNotEnabled()
     }
 
     /** eq: the Equalizer is its own screen; the row opens it and says whether it's on. */

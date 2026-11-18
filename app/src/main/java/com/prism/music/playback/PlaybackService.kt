@@ -1396,9 +1396,10 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 c.player.reportError(tr(R.string.so_its_music_video_s_sound, song.title, if (here) tr(R.string.isn_t_available_where_you_are) else tr(R.string.wouldn_t_play)))
                 player.prepare()
                 player.play()
-                // The video's sound is the form from here on, mid-listen: its own figure is put on and asked for
-                // ([loadFormLoudness]), rather than the whole listen playing at nothing known of it.
+                // The video's sound is the form from here on, mid-listen: its own figure is put on and asked for, and
+                // the scan queued, rather than the whole listen playing at nothing known of it ([formChanged]'s rule).
                 loadFormLoudness(song)
+                scanAhead()
             }
             return
         }
@@ -1542,9 +1543,19 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
 
     /**
      * The sound under the playing song changed (another version picked, or its own again: [com.prism.music.AppContainer.pickVersion]):
-     * its own figure now, where the song's own figure played a moment ago.
+     * its own figure now, where the song's own figure played a moment ago — and, when none is known for it yet, the
+     * same asking and queueing a song's own start does ([loadFormLoudness], [scanAhead]).
+     *
+     * Without that, a version picked mid-song that was never heard before (no measured figure, no YouTube one) played at
+     * 0 dB for the rest of the listen — "it doesn't normalize until I change to another song and back", the next song's
+     * own start being what fetched and measured it. A picked version is a form that starts here, mid-song, and its
+     * catch-up window opens from here ([LoudnessCatchUp]), so whatever lands in the next seconds still sets its level.
      */
-    internal fun formChanged() = applyNormalization(GainReason.FORM)
+    internal fun formChanged() {
+        val song = trackedSong
+        if (song != null) loadFormLoudness(song) else applyNormalization(GainReason.FORM)
+        scanAhead()
+    }
 
     /**
      * Sets the playing form's volume: its figure, or its album's with "Albums as they are". [reason] says why it's asked:

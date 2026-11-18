@@ -313,6 +313,15 @@ class SmartPlaylists(
         }
     }
 
+    /** Ids of the listener's own songs ([SmartQuery.KNOWN]: liked, played, tagged): what Settings' "Measure songs" walks. */
+    suspend fun knownIds(): List<String> = withContext(Dispatchers.IO) {
+        // The songs' own rows only, which is all a walk over them needs (no flags: nothing here filters by them).
+        val q = SmartQuery.KNOWN.replace("SELECT s.*", "SELECT s.id")
+        db.openHelper.readableDatabase.query(androidx.sqlite.db.SimpleSQLiteQuery(q)).use { c ->
+            buildList { while (c.moveToNext()) add(c.getString(0)) }
+        }
+    }
+
     /** Ids of up to [limit] songs the rules' Sound part can't see yet (for "Measure now"). */
     suspend fun unmeasuredIds(rules: SmartRules, limit: Int, now: Long = System.currentTimeMillis()): List<String> = withContext(Dispatchers.IO) {
         val q = SmartQuery.unmeasuredIds(rules, now, limit) ?: return@withContext emptyList()
