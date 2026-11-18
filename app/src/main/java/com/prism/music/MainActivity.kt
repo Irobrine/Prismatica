@@ -125,6 +125,7 @@ import com.prism.music.ui.Routes
 import com.prism.music.ui.player.MiniPlayer
 import com.prism.music.ui.player.NowPlayingScreen
 import com.prism.music.ui.player.PlayerMorph
+import com.prism.music.ui.player.sanely
 import com.prism.music.ui.player.playerMorphMini
 import com.prism.music.ui.screens.ArtistScreen
 import com.prism.music.ui.screens.BrowseScreen
@@ -1101,7 +1102,12 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                     }
                     Box(
                         Modifier.fillMaxSize().graphicsLayer {
-                            val t = PlayerMorph.progress
+                            // (Prism 1.1.2): the number is a fraction by contract, but the layer takes no
+                            // chances with what reaches it — one float ULP past 1 took the frame down with it
+                            // (CornerBasedShape threw on a corner of -8.761883E-6 px = (1 - nextFloat(1)) · 28
+                            // dp, both crashes on one phone, the same value). [PlayerMorph] clamps every write;
+                            // reading it as a fraction come what may keeps this layer safe whatever feeds it.
+                            val t = PlayerMorph.progress.sanely(1f)
                             if (!settings.reduceMotion) {
                                 // A card growing into the screen from where the mini player was, not a second screen
                                 // sliding over the first.

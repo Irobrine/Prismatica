@@ -51,6 +51,18 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
+ * A morph's number as everything downstream takes it: within 0…1, and a number at all. The arithmetic between an
+ * eased fraction and its ends can land a hair outside the range (one float ULP past 1), and the numbers these
+ * fractions feed take a negative or NaN size as a crash — the player card's corner radius is
+ * (1 - [PlayerMorph.progress]) · 28 dp, and Compose's CornerBasedShape throws IllegalArgumentException on the very
+ * frame a corner goes under zero (Prism 1.1.2, twice on one phone: corner -8.761883E-6 px = (1 - nextFloat(1)) · 28
+ * dp, identical both times). One bad frame is all it takes — the frame's own apply crashes before a next frame could
+ * correct it — so the writes are clamped, and the reads that feed sizes are too. [to] stands in for a value that
+ * isn't a number: the settle was on its way there (a read with nowhere to go takes 1, the layer's rest).
+ */
+internal fun Float.sanely(to: Float): Float = if (isFinite()) coerceIn(0f, 1f) else to
+
+/**
  * The one transition the player opens and closes with: a gesture-driven morph between the mini player and the full
  * player. [progress] runs 0 (the mini player, alone) to 1 (the full player, alone) and is written straight from the
  * finger while a swipe is in flight, so the whole change follows the hand, can turn back mid-way, and is only
@@ -210,7 +222,8 @@ object PlayerMorph {
     }
 
     fun dragTo(value: Float) {
-        progress = value.coerceIn(0f, 1f)
+        // A fraction (NaN included, which coerceIn passes through) never reaches the layer below.
+        if (value.isFinite()) progress = value.coerceIn(0f, 1f)
     }
 
     /**
@@ -272,7 +285,7 @@ object PlayerMorph {
                     reduceMs = 140,
                     reduceMotion = reduceMotion,
                 ),
-            ) { v, _ -> progress = v }
+            ) { v, _ -> progress = v.sanely(to) }
             then?.invoke()
         }
     }
@@ -283,7 +296,7 @@ object PlayerMorph {
         settleJob = null
         handOff = 0f
         dragging = false
-        progress = value.coerceIn(0f, 1f)
+        progress = if (value.isFinite()) value.coerceIn(0f, 1f) else 1f
     }
 
     // ---------------------------------------------------------------- the two ends of the morph, in the window
@@ -394,9 +407,15 @@ internal object MorphSettle {
     /** 0 at the start and 1 at the end, off the mark at [slope] times the average speed and easing to a stop. */
     private class HandOff(private val slope: Float) : Easing {
         override fun transform(fraction: Float): Float {
+            // An Easing is a fraction's curve: what it hands back is one too, whatever the float arithmetic of the
+            // polynomial did at the ends. Compose's own curves are allowed to over- and under-shoot and hand an
+            // out-of-range fraction straight back, so this one clamps both ends (an ULP past 1 reaches a corner
+            // size — the crash by [sanely] above) and maps a value that isn't a number to the curve's start,
+            // which coerceIn would otherwise let through.
+            if (!fraction.isFinite()) return 0f
             val t = fraction.coerceIn(0f, 1f)
             val t2 = t * t
-            return (3f * t2 - 2f * t2 * t) + slope * (t2 * t - 2f * t2 + t)
+            return ((3f * t2 - 2f * t2 * t) + slope * (t2 * t - 2f * t2 + t)).coerceIn(0f, 1f)
         }
     }
 }
@@ -421,7 +440,8 @@ internal class PanelShift(start: Float = 0f) {
     fun follow(v: Float) {
         job?.cancel()
         job = null
-        value = v.coerceIn(0f, 1f)
+        // A fraction (NaN included, which coerceIn passes through) never reaches the layer below.
+        if (v.isFinite()) value = v.coerceIn(0f, 1f)
     }
 
     fun end() {
@@ -437,7 +457,7 @@ internal class PanelShift(start: Float = 0f) {
             return
         }
         job = scope.launch {
-            animate(from, to, animationSpec = MorphSettle.spec(from, to, velocity, ms = 320, reduceMs = 150, reduceMotion)) { v, _ -> value = v }
+            animate(from, to, animationSpec = MorphSettle.spec(from, to, velocity, ms = 320, reduceMs = 150, reduceMotion)) { v, _ -> value = v.sanely(to) }
             then?.invoke()
         }
     }

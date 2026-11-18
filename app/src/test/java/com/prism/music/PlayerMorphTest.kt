@@ -7,6 +7,7 @@ import com.prism.music.ui.player.MorphSettle
 import com.prism.music.ui.player.PanelShift
 import com.prism.music.ui.player.PlayerMorph
 import com.prism.music.ui.player.PlayerPage
+import com.prism.music.ui.player.sanely
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -236,5 +237,87 @@ class PlayerMorphTest {
     @Test fun reduceMotionIsAPlainFade() {
         val spec = MorphSettle.spec(0.3f, 1f, velocity = 4f, ms = 340, reduceMs = 140, reduceMotion = true)
         assertEquals(140_000_000L, target(0.3f, 1f, spec).durationNanos)
+    }
+
+    // ---- The number stays a fraction, whatever the float arithmetic of a settle does at its ends.
+    // The player card's corner radius is (1 - progress) · 28 dp, and one float ULP past 1 in progress took the
+    // frame down with it (IllegalArgumentException from Compose's CornerBasedShape, corner -8.761883E-6 px =
+    // (1 - nextFloat(1)) · 28 dp, the same value on both crashes of one phone).
+
+    /** The arithmetic of one ULP past the end, made concrete: this is the corner the crash died on. */
+    @Test fun oneUlpPastOneIsTheCrash() {
+        val pastOne = Math.nextUp(1f)
+        assertTrue("the float just past 1", pastOne > 1f)
+        assertTrue("its corner goes under zero", (1f - pastOne) * 28f < 0f)
+        // As the layer reads the number ([sanely], the same way MainActivity does): a fraction come
+        // what may — a hair past either end, or a value that isn't a number — so the corner it
+        // draws from is never negative.
+        for (v in listOf(0f, 0.5f, 1f, pastOne, Math.nextUp(pastOne), 2f, -1f, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY)) {
+            val t = v.sanely(1f)
+            assertTrue("$v reads as $t", t.isFinite() && t >= 0f && t <= 1f)
+            assertTrue("$v", (1f - t) * 28f >= 0f)
+        }
+    }
+
+    /**
+     * A settle's own eased curve (the hand's speed carried in) never leaves 0…1, wherever the fraction lands —
+     * even a hair outside the ends or a value that isn't a number. The plain ease a settle starts from
+     * (velocity 0, Compose's own curve, allowed to over-shoot by contract) stays a fraction within the range,
+     * which is all a tween can ever ask of it: its play time is clamped to its duration.
+     */
+    @Test fun theEasingStaysAFraction() {
+        val fractions = buildList {
+            for (i in 0..100) add(i / 100f)
+            // The floats at and around the ends, including a hair outside them.
+            add(Math.nextUp(0f)); add(Math.nextDown(1f)); add(1f); add(Math.nextUp(1f))
+            add(Math.nextUp(Math.nextUp(1f))); add(-0.001f); add(1.001f); add(2f); add(Float.NaN)
+        }
+        for (velocity in listOf(0.5f, 1f, 2f, 4f, 12f)) {
+            val spec = MorphSettle.spec(0f, 1f, velocity, ms = 340, reduceMs = 140, reduceMotion = false)
+            val easing = (spec as androidx.compose.animation.core.TweenSpec<Float>).easing
+            for (fraction in fractions) {
+                val eased = easing.transform(fraction)
+                assertTrue("easing of $fraction at velocity $velocity is $eased", eased in 0f..1f && !eased.isNaN())
+            }
+        }
+        val plain = MorphSettle.spec(0f, 1f, 0f, ms = 340, reduceMs = 140, reduceMotion = false)
+        val easing = (plain as androidx.compose.animation.core.TweenSpec<Float>).easing
+        for (i in 0..1000) {
+            val eased = easing.transform(i / 1000f)
+            assertTrue("the plain ease of ${i / 1000f} is $eased", eased in 0f..1f)
+        }
+    }
+
+    /**
+     * Every value a settle's animation takes lies between its two ends — to within a float's rounding, the very hair
+     * past an end that the writes clamp away ([sanely]) before any layer takes it.
+     */
+    @Test fun aSettlesValuesStayBetweenItsEnds() {
+        for ((from, to) in listOf(0f to 1f, 1f to 0f, 0.3f to 1f, 0.99999994f to 1f)) {
+            for (velocity in listOf(0f, 1f, 3f, 8f)) {
+                val anim = settle(from, to, velocity)
+                val step = 1_000_000L // every millisecond, and densely through the last ten.
+                var t = 0L
+                while (t < anim.durationNanos) {
+                    val v = anim.getValueFromNanos(t)
+                    assertTrue("at ${t}ns of $from -> $to (velocity $velocity): $v", v >= kotlin.math.min(from, to) - 0.000001f && v <= kotlin.math.max(from, to) + 0.000001f)
+                    t += if (t > anim.durationNanos - 10_000_000L) 100_000L else step
+                }
+            }
+        }
+    }
+
+    /** A value that isn't a number never reaches the number: not through a drag, a snap, or a panel's follow. */
+    @Test fun notANumberNeverReachesTheNumber() {
+        PlayerMorph.snap(0.5f)
+        PlayerMorph.dragTo(Float.NaN)
+        assertEquals("a drag of NaN changes nothing", 0.5f, PlayerMorph.progress, 0.0001f)
+        PlayerMorph.snap(Float.NaN)
+        assertEquals("a snap of NaN is the open end", 1f, PlayerMorph.progress, 0.0001f)
+        val shift = PanelShift(0.4f)
+        shift.begin()
+        shift.follow(Float.NaN)
+        assertEquals("a panel's follow of NaN changes nothing", 0.4f, shift.value, 0.0001f)
+        shift.end()
     }
 }
