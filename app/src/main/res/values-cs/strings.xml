@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Animované obaly</string>
     <string name="animated_covers_and_save_with_downloads">Animované obaly a Ukládat se staženými</string>
     <string name="hold_previous_next_to_seek">Podržením předchozí / další přetáčet</string>
+    <string name="previous_always_goes_back">Předchozí vždy přejde zpět</string>
+    <string name="previous_always_goes_back_info">Tlačítko předchozí přejde na předchozí skladbu, ať je tato kdekoli. Vypnuto: nejprve spustí tuto skladbu od začátku a zpět přejde jen blízko jejího začátku.</string>
     <string name="songs_not_videos">Skladby, ne videa</string>
     <string name="crossfade_songs">Prolínat skladby</string>
     <string name="turn_on_crossfade_songs_and_turn">Nejdřív zapni Prolínat skladby a vypni Automatickou délku</string>

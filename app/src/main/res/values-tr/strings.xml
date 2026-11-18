@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Hareketli kapaklar</string>
     <string name="animated_covers_and_save_with_downloads">Hareketli kapaklar ve İndirmelerle kaydet</string>
     <string name="hold_previous_next_to_seek">Sarmak için önceki / sonraki düğmesini basılı tut</string>
+    <string name="previous_always_goes_back">Önceki her zaman geri gider</string>
+    <string name="previous_always_goes_back_info">Önceki düğmesi, bu şarkı nerede olursa olsun hep önceki şarkıya gider. Kapalı: önce bu şarkıyı baştan başlatır ve yalnızca başlangıcına yakınken geri gider.</string>
     <string name="songs_not_videos">Videolar değil, şarkılar</string>
     <string name="crossfade_songs">Şarkılar arasında çapraz geçiş</string>
     <string name="turn_on_crossfade_songs_and_turn">Önce Şarkılar arasında çapraz geçişi aç ve Otomatik uzunluğu kapat</string>

@@ -1342,6 +1342,8 @@
     <string name="animated_covers">움직이는 커버</string>
     <string name="animated_covers_and_save_with_downloads">움직이는 커버와 다운로드와 함께 저장</string>
     <string name="hold_previous_next_to_seek">이전/다음을 길게 눌러 탐색</string>
+    <string name="previous_always_goes_back">이전은 항상 뒤로 이동</string>
+    <string name="previous_always_goes_back_info">이전 버튼은 이 곡이 어디까지 재생됐든 항상 이전 곡으로 이동합니다. 끔: 먼저 이 곡을 처음부터 다시 재생하고, 곡 시작 부근에서만 뒤로 이동합니다.</string>
     <string name="songs_not_videos">동영상 대신 노래</string>
     <string name="crossfade_songs">곡 크로스페이드</string>
     <string name="turn_on_crossfade_songs_and_turn">먼저 곡 크로스페이드를 켜고 자동 길이를 끄세요</string>

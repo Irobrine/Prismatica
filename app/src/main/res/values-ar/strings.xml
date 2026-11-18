@@ -1342,6 +1342,8 @@
     <string name="animated_covers">الأغلفة المتحركة</string>
     <string name="animated_covers_and_save_with_downloads">الأغلفة المتحركة والحفظ مع التنزيلات</string>
     <string name="hold_previous_next_to_seek">الضغط مطولًا على السابق / التالي للتنقل</string>
+    <string name="previous_always_goes_back">السابق يعود دائمًا</string>
+    <string name="previous_always_goes_back_info">زر السابق ينتقل إلى الأغنية السابقة، أينما وصلت هذه. عند الإيقاف: يعيد تشغيل هذه من البداية أولًا، ولا يعود إلا قرب بدايتها.</string>
     <string name="songs_not_videos">أغانٍ لا فيديوهات</string>
     <string name="crossfade_songs">التلاشي المتداخل بين الأغاني</string>
     <string name="turn_on_crossfade_songs_and_turn">فعّل التلاشي المتداخل بين الأغاني وأوقف المدة التلقائية أولًا</string>

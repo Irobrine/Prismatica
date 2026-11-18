@@ -66,7 +66,11 @@ import java.util.Locale
  * The app itself talks to the real player and never sees either.
  */
 @OptIn(UnstableApi::class)
-class LyricsOverlayPlayer(player: Player) : ForwardingSimpleBasePlayer(player) {
+class LyricsOverlayPlayer(
+    player: Player,
+    /** Settings → Gestures & buttons → "Previous always goes back", for the controls outside Prism. */
+    private val previousAlwaysBack: () -> Boolean = { false },
+) : ForwardingSimpleBasePlayer(player) {
     /** [subtitle] is only set when a lyric may wrap onto the second line (PR #400): otherwise the song's own stays. */
     class Overlay(val mediaId: String, val title: String, val artist: String, val artwork: ByteArray?, val subtitle: String? = null)
 
@@ -196,6 +200,14 @@ class LyricsOverlayPlayer(player: Player) : ForwardingSimpleBasePlayer(player) {
     }
 
     override fun handleSeek(mediaItemIndex: Int, positionMs: Long, seekCommand: Int): com.google.common.util.concurrent.ListenableFuture<*> {
+        // "Previous always goes back" (Settings → Gestures & buttons) outside Prism too: the notification's, the lock
+        // screen's, a watch's and a car's previous goes to the song before wherever the playhead is, as Prism's own
+        // buttons do (PlayerConnection.previous). Restarting this one is left for when there's nothing before it.
+        if (seekCommand == Player.COMMAND_SEEK_TO_PREVIOUS && previousAlwaysBack()) {
+            val p = getPlayer()
+            if (p.hasPreviousMediaItem()) p.seekToPreviousMediaItem() else p.seekToDefaultPosition()
+            return com.google.common.util.concurrent.Futures.immediateVoidFuture()
+        }
         val order = shown
         val real = if (order != null && mediaItemIndex in order.indices) order[mediaItemIndex] else mediaItemIndex
         return super.handleSeek(real, positionMs, seekCommand)

@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Animált borítók</string>
     <string name="animated_covers_and_save_with_downloads">Animált borítók és Mentés a letöltésekkel</string>
     <string name="hold_previous_next_to_seek">Előző / következő lenyomva tartása a tekeréshez</string>
+    <string name="previous_always_goes_back">Az előző mindig visszalép</string>
+    <string name="previous_always_goes_back_info">Az előző gomb az előző számra lép, bárhol tartson is ez. Kikapcsolva: előbb újraindítja ezt a számot, és csak az elejéhez közel lép vissza.</string>
     <string name="songs_not_videos">Dalok, nem videók</string>
     <string name="crossfade_songs">Dalok áttűnése</string>
     <string name="turn_on_crossfade_songs_and_turn">Előbb kapcsold be a Dalok áttűnését, és kapcsold ki az Automatikus hosszt</string>

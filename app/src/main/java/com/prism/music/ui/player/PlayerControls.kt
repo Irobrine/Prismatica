@@ -631,7 +631,7 @@ fun TransportRow(
         val nextIcon = if (style == TransportStyle.GLYPHS) PrismIcons.Forward else PrismIcons.Next
         val skip = if (style == TransportStyle.GLYPHS) skipSize else skipSize * 0.82f
         // Settings → Player → "Hold to seek": holding previous / next jumps back / forward.
-        val holdMs = LocalAppSettings.current.holdSeekSeconds * 1000L
+        val holdMs = LocalAppSettings.current.behavior.holdSeekSeconds * 1000L
         val back = if (holdMs > 0) ({ pc.seekBy(-holdMs) }) else null
         val ahead = if (holdMs > 0) ({ pc.seekBy(holdMs) }) else null
         // A podcast episode skips within itself, as podcast players do: back 15 s, ahead 30 s.

@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Sampul animasi</string>
     <string name="animated_covers_and_save_with_downloads">Sampul animasi dan Simpan bersama download</string>
     <string name="hold_previous_next_to_seek">Tahan sebelumnya / berikutnya untuk mencari</string>
+    <string name="previous_always_goes_back">Sebelumnya selalu kembali</string>
+    <string name="previous_always_goes_back_info">Tombol sebelumnya selalu ke lagu sebelumnya, di mana pun lagu ini berada. Nonaktif: lagu ini diulang dari awal dulu, dan kembali hanya di dekat awalnya.</string>
     <string name="songs_not_videos">Lagu, bukan video</string>
     <string name="crossfade_songs">Crossfade lagu</string>
     <string name="turn_on_crossfade_songs_and_turn">Aktifkan Crossfade lagu dan nonaktifkan Durasi otomatis dulu</string>

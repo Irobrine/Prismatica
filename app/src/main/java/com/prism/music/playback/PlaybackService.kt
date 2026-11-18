@@ -269,7 +269,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         applySkipSilence()
         lockScreen = com.prism.music.ui.lockscreen.LockScreenGate(this, c.settings.flow, player, scope).also { it.start() }
 
-        sessionPlayer = LyricsOverlayPlayer(player)
+        sessionPlayer = LyricsOverlayPlayer(player) { c.settings.current.behavior.previousAlwaysBack }
         // Compatibility mode (on by default for vivo/iQOO): report the placeholder as playing, since OriginOS hides a
         // paused media session's card on the lock screen and in the shade.
         sessionPlayer.setPlaceholderAsPlaying(c.settings.current.persistent.compatibility)

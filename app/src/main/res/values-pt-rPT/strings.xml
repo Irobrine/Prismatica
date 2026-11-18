@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Capas animadas</string>
     <string name="animated_covers_and_save_with_downloads">Capas animadas e Guardar com as transferências</string>
     <string name="hold_previous_next_to_seek">Manter anterior / seguinte premido para avançar</string>
+    <string name="previous_always_goes_back">Anterior volta sempre atrás</string>
+    <string name="previous_always_goes_back_info">O botão anterior passa para a música anterior, onde quer que esta esteja. Desligado: reinicia primeiro esta música e só volta atrás perto do início dela.</string>
     <string name="songs_not_videos">Músicas, não vídeos</string>
     <string name="crossfade_songs">Crossfade entre músicas</string>
     <string name="turn_on_crossfade_songs_and_turn">Ativa primeiro Crossfade entre músicas e desativa Duração automática</string>

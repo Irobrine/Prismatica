@@ -1427,6 +1427,8 @@
     <string name="animated_covers">Animated covers</string>
     <string name="animated_covers_and_save_with_downloads">Animated covers and Save with downloads</string>
     <string name="hold_previous_next_to_seek">Hold previous / next to seek</string>
+    <string name="previous_always_goes_back">Previous always goes back</string>
+    <string name="previous_always_goes_back_info">The previous button goes to the song before, wherever this one has got to. Off, it starts this one over first and goes back only near its start.</string>
     <string name="songs_not_videos">Songs, not videos</string>
     <string name="crossfade_songs">Crossfade songs</string>
     <string name="turn_on_crossfade_songs_and_turn">Turn on Crossfade songs and turn off Automatic length first</string>

@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Copertine animate</string>
     <string name="animated_covers_and_save_with_downloads">Copertine animate e Salva con i download</string>
     <string name="hold_previous_next_to_seek">Tieni premuto precedente / successivo per spostarti</string>
+    <string name="previous_always_goes_back">Precedente torna sempre indietro</string>
+    <string name="previous_always_goes_back_info">Il pulsante precedente passa al brano precedente, ovunque sia arrivato questo. Disattivato: riavvia prima questo brano e torna indietro solo vicino al suo inizio.</string>
     <string name="songs_not_videos">Brani, non video</string>
     <string name="crossfade_songs">Dissolvenza incrociata tra brani</string>
     <string name="turn_on_crossfade_songs_and_turn">Prima attiva Dissolvenza incrociata tra brani e disattiva Durata automatica</string>

@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Pochettes animées</string>
     <string name="animated_covers_and_save_with_downloads">Pochettes animées et Enregistrer avec les téléchargements</string>
     <string name="hold_previous_next_to_seek">Maintenir précédent / suivant pour avancer</string>
+    <string name="previous_always_goes_back">Précédent revient toujours en arrière</string>
+    <string name="previous_always_goes_back_info">Le bouton précédent passe au morceau précédent, où qu’en soit celui-ci. Désactivé : il relance d’abord ce morceau et ne revient en arrière que près de son début.</string>
     <string name="songs_not_videos">Titres, pas vidéos</string>
     <string name="crossfade_songs">Fondu enchaîné</string>
     <string name="turn_on_crossfade_songs_and_turn">Activez d’abord Fondu enchaîné et désactivez Durée automatique</string>

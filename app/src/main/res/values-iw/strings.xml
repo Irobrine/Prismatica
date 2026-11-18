@@ -1342,6 +1342,8 @@
     <string name="animated_covers">עטיפות מונפשות</string>
     <string name="animated_covers_and_save_with_downloads">עטיפות מונפשות ושמירה עם ההורדות</string>
     <string name="hold_previous_next_to_seek">לחיצה ארוכה על הקודם / הבא כדי להריץ</string>
+    <string name="previous_always_goes_back">הקודם תמיד חוזר אחורה</string>
+    <string name="previous_always_goes_back_info">לחצן הקודם עובר לשיר הקודם, בכל מקום שהשיר הזה נמצא בו. כבוי: הוא מתחיל את השיר הזה מהתחלה קודם, וחוזר אחורה רק סמוך לתחילתו.</string>
     <string name="songs_not_videos">שירים, לא סרטונים</string>
     <string name="crossfade_songs">מעבר הדרגתי בין שירים</string>
     <string name="turn_on_crossfade_songs_and_turn">קודם הפעל ״מעבר הדרגתי בין שירים״ וכבה ״אורך אוטומטי״</string>

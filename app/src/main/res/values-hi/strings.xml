@@ -1342,6 +1342,8 @@
     <string name="animated_covers">एनिमेटेड कवर</string>
     <string name="animated_covers_and_save_with_downloads">एनिमेटेड कवर और डाउनलोड के साथ सेव करें</string>
     <string name="hold_previous_next_to_seek">आगे-पीछे जाने के लिए पिछला / अगला दबाकर रखें</string>
+    <string name="previous_always_goes_back">पिछला हमेशा पीछे जाता है</string>
+    <string name="previous_always_goes_back_info">पिछला बटन पिछले गाने पर जाता है, चाहे यह गाना कहीं भी हो। बंद होने पर: पहले यह गाना शुरू से चलाता है और सिर्फ़ इसकी शुरुआत के पास पीछे जाता है।</string>
     <string name="songs_not_videos">गाने, वीडियो नहीं</string>
     <string name="crossfade_songs">गानों में क्रॉसफ़ेड</string>
     <string name="turn_on_crossfade_songs_and_turn">पहले गानों में क्रॉसफ़ेड चालू करें और अपने-आप लंबाई बंद करें</string>

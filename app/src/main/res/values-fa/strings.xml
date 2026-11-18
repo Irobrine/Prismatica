@@ -1342,6 +1342,8 @@
     <string name="animated_covers">کاورهای متحرک</string>
     <string name="animated_covers_and_save_with_downloads">کاورهای متحرک و «ذخیره همراه دانلودها»</string>
     <string name="hold_previous_next_to_seek">نگه داشتن قبلی / بعدی برای جلو و عقب رفتن</string>
+    <string name="previous_always_goes_back">قبلی همیشه به عقب برمی‌گردد</string>
+    <string name="previous_always_goes_back_info">دکمه قبلی همیشه به آهنگ قبلی می‌رود، هر جا که این آهنگ باشد. خاموش: ابتدا همین آهنگ را از اول پخش می‌کند و فقط نزدیک ابتدایش به عقب می‌رود.</string>
     <string name="songs_not_videos">آهنگ، نه ویدیو</string>
     <string name="crossfade_songs">کراس‌فید آهنگ‌ها</string>
     <string name="turn_on_crossfade_songs_and_turn">اول «کراس‌فید آهنگ‌ها» را روشن و «مدت خودکار» را خاموش کنید</string>

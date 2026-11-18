@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Mga animated cover</string>
     <string name="animated_covers_and_save_with_downloads">Mga animated cover at I-save kasama ng mga download</string>
     <string name="hold_previous_next_to_seek">Pindutin nang matagal ang nakaraan / susunod para mag-seek</string>
+    <string name="previous_always_goes_back">Nakaraan ay laging bumabalik</string>
+    <string name="previous_always_goes_back_info">Ang nakaraan na buton ay laging pumupunta sa nakaraang kanta, kahit saan na ang kantang ito. Naka-off: inuulit muna ang kantang ito mula sa umpisa at bumabalik lamang malapit sa simula nito.</string>
     <string name="songs_not_videos">Mga kanta, hindi video</string>
     <string name="crossfade_songs">I-crossfade ang mga kanta</string>
     <string name="turn_on_crossfade_songs_and_turn">I-on muna ang I-crossfade ang mga kanta at i-off ang Awtomatikong haba</string>

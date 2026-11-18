@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Kulit beranimasi</string>
     <string name="animated_covers_and_save_with_downloads">Kulit beranimasi dan Simpan bersama muat turun</string>
     <string name="hold_previous_next_to_seek">Tahan sebelumnya / seterusnya untuk mencari</string>
+    <string name="previous_always_goes_back">Sebelumnya sentiasa kembali</string>
+    <string name="previous_always_goes_back_info">Butang sebelumnya sentiasa ke lagu sebelumnya, di mana pun lagu ini berada. Dimatikan: lagu ini dimulakan semula dahulu, dan kembali hanya berhampiran permulaannya.</string>
     <string name="songs_not_videos">Lagu, bukan video</string>
     <string name="crossfade_songs">Pudar silang lagu</string>
     <string name="turn_on_crossfade_songs_and_turn">Hidupkan Pudar silang lagu dan matikan Panjang automatik dahulu</string>

@@ -4,7 +4,14 @@ What changed in each release. Older releases are described on the [Releases page
 
 ## 1.1.3
 
-Shuffle starts anywhere in the list again, opening the player no longer crashes, and every recording — a song, its video, the version picked for it — plays at its own level.
+Shuffle starts anywhere in the list again, opening the player no longer crashes, every recording — a song, its video, the version picked for it — plays at its own level, and the mini player's swipe up is never taken for a tap.
+
+### The mini player
+
+- **A swipe up on the mini player is a swipe up, however the hand starts.** The card had one gesture detector per way, racing for the same touch: a fast swipe whose thumb went sideways first lost to the sideways one, so the card slid a little and the player never opened — and the same starting on the cover or one of the buttons could pass for a tap. One gesture now follows the whole movement and picks its way from it: up (or down) wins as soon as the hand has gone that way, however much it drifted sideways getting there, and a swipe that begins on a button never also presses it.
+- **Previous can always go back.** Settings → Gestures & buttons → "Previous always goes back" (off, as Prism comes): the previous button goes to the song before wherever this one has got to, as it did only near its start before, when any later press started this one over. It's the same for Prism's own buttons and the controls outside it — the notification, the lock screen, a watch and a car — and at the first song previous starts it over, as there's nothing before it.
+- `MiniPlayerGestureTest` swipes up from the cover, the title and each of the three buttons, straight and with a sideways thumb-arc, and holds the taps and sideways swipes as they were; `PreviousAlwaysBackTest` pins both ways of Previous for Prism and for the session's controls.
+- Under the hood: "Hold to seek" and the new switch live in `BehaviorPrefs`, so AppSettings' constructor stays under the JVM's 255-argument limit (`AppSettingsSizeTest`).
 
 ### The player
 

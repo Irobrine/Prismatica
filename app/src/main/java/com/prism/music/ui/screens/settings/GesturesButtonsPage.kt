@@ -208,7 +208,8 @@ fun GesturesButtonsPage(bottomPadding: Dp, find: String? = null, showBack: Boole
         prefs.setGesturesEverywhere(everywhere); prefs.setGesturesUnderLyrics(underLyrics)
     }
     val miniChanged = mini.map { menuChanged(miniTitle, it) }
-    val holdChanged = reset.add(tr(R.string.hold_previous_next_to_seek), s.holdSeekSeconds, d.holdSeekSeconds, holdText) { prefs.setHoldSeekSeconds(it) }
+    val holdChanged = reset.add(tr(R.string.hold_previous_next_to_seek), s.behavior.holdSeekSeconds, d.behavior.holdSeekSeconds, holdText) { prefs.setHoldSeekSeconds(it) }
+    val previousChanged = reset.add(tr(R.string.previous_always_goes_back), s.behavior.previousAlwaysBack, d.behavior.previousAlwaysBack, onOff) { prefs.setPreviousAlwaysBack(it) }
     val hapticsChanged = reset.add(tr(R.string.haptics), s.haptics, d.haptics, onOff) { prefs.setHaptics(it) }
     val panelChanged = reset.add(tr(R.string.swipe_up_for_the_queue), s.behavior.panelSwipes, d.behavior.panelSwipes, onOff) { prefs.setPanelSwipes(it) }
     val tabsChanged = reset.add(tr(R.string.swipe_between_tabs), s.swipeTabs, d.swipeTabs, onOff) { prefs.setSwipeTabs(it) }
@@ -257,9 +258,13 @@ fun GesturesButtonsPage(bottomPadding: Dp, find: String? = null, showBack: Boole
         group(tr(R.string.gb_swipes_and_touch)) {
             // 1.8.0: one slider, Off at its start. Same stored value.
             SliderRow(
-                tr(R.string.hold_previous_next_to_seek), s.holdSeekSeconds.toFloat(), 0f..20f, { holdText(it.roundToInt()) }, steps = 19,
+                tr(R.string.hold_previous_next_to_seek), s.behavior.holdSeekSeconds.toFloat(), 0f..20f, { holdText(it.roundToInt()) }, steps = 19,
                 info = tr(R.string.a_tap_still_changes_songs), changed = holdChanged,
             ) { prefs.setHoldSeekSeconds(it.roundToInt()) }
+            SwitchRow(
+                tr(R.string.previous_always_goes_back), s.behavior.previousAlwaysBack,
+                info = tr(R.string.previous_always_goes_back_info), changed = previousChanged,
+            ) { prefs.setPreviousAlwaysBack(it) }
             SwitchRow(tr(R.string.haptics), s.haptics, info = tr(R.string.a_light_tap_on_buttons_and), changed = hapticsChanged) { prefs.setHaptics(it) }
             SwitchRow(tr(R.string.swipe_up_for_the_queue), s.behavior.panelSwipes, info = tr(R.string.swipe_up_on_the_lower_half_all), changed = panelChanged) { prefs.setPanelSwipes(it) }
             // From Tabs & mini player (§2.3): a swipe, so it is looked for here.
@@ -502,6 +507,7 @@ val gesturesButtonsIndex: List<SettingEntry> by lazy {
         SettingEntry(page, mini, tr(R.string.swipe_up), tr(R.string.swipe_the_mini_player_up) + " " + tr(R.string.mini_player_swipe_up_open_player)),
         SettingEntry(page, mini, tr(R.string.pull_down), tr(R.string.mini_player_stop)),
         SettingEntry(page, touch, tr(R.string.hold_previous_next_to_seek), tr(R.string.fast_forward_rewind) + " " + tr(R.string.each_step)),
+        SettingEntry(page, touch, tr(R.string.previous_always_goes_back), tr(R.string.previous_always_goes_back_info) + " " + tr(R.string.widget_previous) + " " + tr(R.string.previous_song)),
         SettingEntry(page, touch, tr(R.string.haptics), tr(R.string.vibration_vibrate)),
         SettingEntry(page, touch, tr(R.string.swipe_up_for_the_queue), tr(R.string.gesture_one_hand_queue_lyrics_swipe)),
         SettingEntry(page, touch, tr(R.string.swipe_between_tabs), tr(R.string.tab_bar_swipe_gesture_sideways)),

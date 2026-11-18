@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Portadas animadas</string>
     <string name="animated_covers_and_save_with_downloads">Portadas animadas y Guardar con las descargas</string>
     <string name="hold_previous_next_to_seek">Mantener anterior / siguiente para buscar</string>
+    <string name="previous_always_goes_back">Anterior siempre vuelve atrás</string>
+    <string name="previous_always_goes_back_info">El botón anterior va a la canción anterior, esté donde esté esta. Desactivado: primero reinicia esta canción y solo vuelve atrás cerca de su inicio.</string>
     <string name="songs_not_videos">Canciones, no videos</string>
     <string name="crossfade_songs">Fundido entre canciones</string>
     <string name="turn_on_crossfade_songs_and_turn">Primero activa Fundido entre canciones y desactiva Duración automática</string>

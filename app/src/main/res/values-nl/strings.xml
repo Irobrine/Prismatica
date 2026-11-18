@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Geanimeerde covers</string>
     <string name="animated_covers_and_save_with_downloads">Geanimeerde covers en Opslaan met downloads</string>
     <string name="hold_previous_next_to_seek">Vorige / volgende ingedrukt houden om te spoelen</string>
+    <string name="previous_always_goes_back">Vorige gaat altijd terug</string>
+    <string name="previous_always_goes_back_info">De vorige-knop gaat naar het vorige nummer, waar dit nummer ook is. Uit: hij start dit nummer eerst opnieuw en gaat alleen vlak bij het begin terug.</string>
     <string name="songs_not_videos">Nummers, geen video\'s</string>
     <string name="crossfade_songs">Crossfade tussen nummers</string>
     <string name="turn_on_crossfade_songs_and_turn">Zet eerst Crossfade tussen nummers aan en Automatische lengte uit</string>

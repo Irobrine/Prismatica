@@ -1342,6 +1342,8 @@
     <string name="animated_covers">অ্যানিমেটেড কভার</string>
     <string name="animated_covers_and_save_with_downloads">অ্যানিমেটেড কভার আর ডাউনলোডের সাথে সেভ</string>
     <string name="hold_previous_next_to_seek">সামনে-পেছনে যেতে আগের / পরের ধরে রাখুন</string>
+    <string name="previous_always_goes_back">আগের সবসময় পেছনে যায়</string>
+    <string name="previous_always_goes_back_info">আগের বোতামটি সর্বদা আগের গানে যায়, এই গানটি যতদূরই এগিয়ে থাকুক। বন্ধ থাকলে: প্রথমে এই গানটিই আবার শুরু করে, এবং কেবল শুরুর কাছাকাছি থাকলে পেছনে যায়।</string>
     <string name="songs_not_videos">গান, ভিডিও নয়</string>
     <string name="crossfade_songs">গান ক্রসফেড করুন</string>
     <string name="turn_on_crossfade_songs_and_turn">আগে গান ক্রসফেড করুন চালু আর স্বয়ংক্রিয় দৈর্ঘ্য বন্ধ করুন</string>

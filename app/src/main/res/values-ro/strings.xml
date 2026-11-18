@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Coperte animate</string>
     <string name="animated_covers_and_save_with_downloads">Coperte animate și Salvează cu descărcările</string>
     <string name="hold_previous_next_to_seek">Ține apăsat înapoi / înainte ca să derulezi</string>
+    <string name="previous_always_goes_back">Butonul înapoi merge mereu înapoi</string>
+    <string name="previous_always_goes_back_info">Butonul înapoi trece la piesa anterioară, oriunde ar fi aceasta. Oprit: repornește mai întâi această piesă și merge înapoi doar aproape de începutul ei.</string>
     <string name="songs_not_videos">Melodii, nu videoclipuri</string>
     <string name="crossfade_songs">Tranziție între melodii</string>
     <string name="turn_on_crossfade_songs_and_turn">Pornește Tranziție între melodii și oprește întâi Durată automată</string>

@@ -1342,6 +1342,8 @@
     <string name="animated_covers">アニメーション カバー</string>
     <string name="animated_covers_and_save_with_downloads">「アニメーション カバー」と「ダウンロードと一緒に保存」</string>
     <string name="hold_previous_next_to_seek">前へ / 次へを長押しでシーク</string>
+    <string name="previous_always_goes_back">前へは常に前の曲へ戻る</string>
+    <string name="previous_always_goes_back_info">前へボタンは、この曲がどこまで進んでいても前の曲へ移ります。オフ: まずこの曲を最初から再生し、曲の始め近くでのみ前へ戻ります。</string>
     <string name="songs_not_videos">動画ではなく曲で</string>
     <string name="crossfade_songs">曲をクロスフェード</string>
     <string name="turn_on_crossfade_songs_and_turn">先に「曲をクロスフェード」をオンにし、「長さを自動調整」をオフにしてください</string>

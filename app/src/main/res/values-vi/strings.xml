@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Ảnh bìa động</string>
     <string name="animated_covers_and_save_with_downloads">Ảnh bìa động và Lưu cùng nội dung tải xuống</string>
     <string name="hold_previous_next_to_seek">Giữ nút trước / tiếp để tua</string>
+    <string name="previous_always_goes_back">Trước luôn quay lại</string>
+    <string name="previous_always_goes_back_info">Nút trước luôn chuyển sang bài trước, dù bài này đã phát đến đâu. Tắt: bài này được phát lại từ đầu trước, và chỉ quay lại khi gần đoạn đầu.</string>
     <string name="songs_not_videos">Bài hát, không phải video</string>
     <string name="crossfade_songs">Chuyển tiếp mượt giữa các bài</string>
     <string name="turn_on_crossfade_songs_and_turn">Hãy bật Chuyển tiếp mượt giữa các bài và tắt Độ dài tự động trước</string>

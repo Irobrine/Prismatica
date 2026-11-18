@@ -382,6 +382,13 @@ data class BehaviorPrefs(
     val noVideoOnData: Boolean = false,
     /** #282 (1.8.2): the cover's gestures work on the controls below the lyrics too, never on the lyrics themselves. */
     val gesturesUnderLyrics: Boolean = false,
+    /** Holding previous / next seeks back / forward this many seconds, again every moment it's held (0 = off). */
+    val holdSeekSeconds: Int = 10,
+    /**
+     * 1.1.3: Previous always goes to the song before, rather than starting this one over first (as players do: near
+     * the start it goes back, later it restarts). Off, as Prism has always done.
+     */
+    val previousAlwaysBack: Boolean = false,
     /** #280 (1.8.2): the player opens on the page it was closed on: the cover, the lyrics or the queue. */
     val playerRemembersPage: Boolean = false,
     /**
@@ -1586,8 +1593,6 @@ data class AppSettings(
     val bestPartButton: Boolean = true,
     /** The Song / Video switch on the player. Off, the player stays audio only. */
     val showVideoSwitch: Boolean = true,
-    /** Holding previous / next seeks back / forward this many seconds, again every moment it's held (0 = off). */
-    val holdSeekSeconds: Int = 10,
     val audioQuality: AudioQuality = AudioQuality.HIGH,
     val cellularQuality: AudioQuality = AudioQuality.HIGH,
     /** Ask for songs as the signed-in account so Music Premium's 256 kbps streams come (StreamResolver.premiumFormats). */
@@ -2066,6 +2071,7 @@ class SettingsRepository(
         val bestPartButton = booleanPreferencesKey("best_part_button")
         val showVideoSwitch = booleanPreferencesKey("show_video_switch")
         val holdSeekSeconds = intPreferencesKey("hold_seek_seconds")
+        val previousAlwaysBack = booleanPreferencesKey("previous_always_back")
         val canvasWithDownloads = booleanPreferencesKey("canvas_with_downloads")
         val canvasWithDownloadsCellular = booleanPreferencesKey("canvas_with_downloads_cellular")
         val audioQuality = stringPreferencesKey("audio_quality")
@@ -2479,7 +2485,7 @@ class SettingsRepository(
                 "sing_cache_mb", "dj_flow", "release_notifications", "rewind_notification", "web_remote", "handoff_available",
                 "car_lyrics", "car_lyrics_style", "car_lyrics_on_phone", "car_lyrics_keep_title", "auto_grid", "nerd_stats",
                 "show_quality", "square_video_covers", "lyrics_on_mobile_data", "best_part_button", "show_video_switch",
-                "hold_seek_seconds", "canvas_with_downloads", "canvas_with_downloads_cellular", "audio_quality", "cellular_quality",
+                "hold_seek_seconds", "previous_always_back", "canvas_with_downloads", "canvas_with_downloads_cellular", "audio_quality", "cellular_quality",
                 "premium_stream", "autoplay", "autoplay_source", "radio_songs_only", "songs_everywhere", "show_track_length",
                 "audio_diagnostics", "search_keyboard", "search_keyboard_second_tap", "double_tap_seek_seconds", "stop_on_swipe_away", "data_saver",
                 "video_continues", "lossless", "lossless_local", "normalize", "skip_silence", "mix", "mix_seconds", "mix_auto",
@@ -2668,7 +2674,6 @@ class SettingsRepository(
             lyricsOnMobileData = p[K.lyricsOnMobileData] ?: d.lyricsOnMobileData,
             bestPartButton = p[K.bestPartButton] ?: d.bestPartButton,
             showVideoSwitch = p[K.showVideoSwitch] ?: d.showVideoSwitch,
-            holdSeekSeconds = p[K.holdSeekSeconds] ?: d.holdSeekSeconds,
             canvasWithDownloads = p[K.canvasWithDownloads] ?: d.canvasWithDownloads,
             canvasWithDownloadsCellular = p[K.canvasWithDownloadsCellular] ?: d.canvasWithDownloadsCellular,
             audioQuality = p.enum(K.audioQuality, d.audioQuality),
@@ -2856,6 +2861,8 @@ class SettingsRepository(
                 japaneseEngine = p.enum(K.japaneseEngine, d.behavior.japaneseEngine),
                 noVideoOnData = p[K.noVideoOnData] ?: d.behavior.noVideoOnData,
                 gesturesUnderLyrics = p[K.gesturesUnderLyrics] ?: d.behavior.gesturesUnderLyrics,
+                holdSeekSeconds = (p[K.holdSeekSeconds] ?: d.behavior.holdSeekSeconds).coerceIn(0, 20),
+                previousAlwaysBack = p[K.previousAlwaysBack] ?: d.behavior.previousAlwaysBack,
                 playerRemembersPage = p[K.playerRemembersPage] ?: d.behavior.playerRemembersPage,
                 lyricsSteady = p[K.lyricsSteady] ?: d.behavior.lyricsSteady,
                 embeddedLyrics = p[K.embeddedLyrics] ?: d.behavior.embeddedLyrics,
@@ -3351,6 +3358,7 @@ class SettingsRepository(
     fun setBestPartButton(v: Boolean) = edit { it[K.bestPartButton] = v }
     fun setShowVideoSwitch(v: Boolean) = edit { it[K.showVideoSwitch] = v }
     fun setHoldSeekSeconds(v: Int) = edit { it[K.holdSeekSeconds] = v.coerceIn(0, 20) }
+    fun setPreviousAlwaysBack(v: Boolean) = edit { it[K.previousAlwaysBack] = v }
     fun setCanvasWithDownloads(v: Boolean) = edit { it[K.canvasWithDownloads] = v }
     fun setCanvasWithDownloadsCellular(v: Boolean) = edit { it[K.canvasWithDownloadsCellular] = v }
     fun setAudioQuality(v: AudioQuality) = edit { it[K.audioQuality] = v.name }

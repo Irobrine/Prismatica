@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Анімовані обкладинки</string>
     <string name="animated_covers_and_save_with_downloads">«Анімовані обкладинки» і «Зберігати із завантаженнями»</string>
     <string name="hold_previous_next_to_seek">Утримуй «назад» / «далі» для перемотування</string>
+    <string name="previous_always_goes_back">«Назад» завжди до попередньої пісні</string>
+    <string name="previous_always_goes_back_info">Кнопка «назад» переходить до попередньої пісні, де б не була ця. Вимк.: спершу починає цю пісню з початку й переходить назад лише поблизу її початку.</string>
     <string name="songs_not_videos">Пісні, а не відео</string>
     <string name="crossfade_songs">Плавний перехід між піснями</string>
     <string name="turn_on_crossfade_songs_and_turn">Спершу ввімкни «Плавний перехід між піснями» і вимкни «Автоматична тривалість»</string>

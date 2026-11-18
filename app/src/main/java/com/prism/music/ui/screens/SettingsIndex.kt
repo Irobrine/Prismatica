@@ -52,7 +52,7 @@ object SettingNeeds {
     val immersive = turnOn(tr(R.string.immersive_mode)) { it.immersivePlayer }
     val canvas = turnOn(tr(R.string.animated_covers)) { it.canvasEnabled }
     val canvasSave = turnOn(tr(R.string.animated_covers_and_save_with_downloads)) { it.canvasEnabled && it.canvasWithDownloads }
-    val holdSeek = turnOn(tr(R.string.hold_previous_next_to_seek)) { it.holdSeekSeconds > 0 }
+    val holdSeek = turnOn(tr(R.string.hold_previous_next_to_seek)) { it.behavior.holdSeekSeconds > 0 }
     val songsOnly = turnOn(tr(R.string.songs_not_videos)) { it.radioSongsOnly }
     val crossfade = turnOn(tr(R.string.crossfade_songs)) { it.mix }
     val manualLength = Needs(tr(R.string.turn_on_crossfade_songs_and_turn)) { it.mix && !it.mixAuto }

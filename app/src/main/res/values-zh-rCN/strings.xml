@@ -1342,6 +1342,8 @@
     <string name="animated_covers">动态封面</string>
     <string name="animated_covers_and_save_with_downloads">“动态封面”和“随下载保存”</string>
     <string name="hold_previous_next_to_seek">按住上一首 / 下一首以快退 / 快进</string>
+    <string name="previous_always_goes_back">上一首总是回到上一首</string>
+    <string name="previous_always_goes_back_info">上一首按钮总是回到上一首歌曲，无论当前歌曲播放到哪里。关闭：先将当前歌曲从头播放，仅在歌曲开头附近才回到上一首。</string>
     <string name="songs_not_videos">只放歌曲，不放视频</string>
     <string name="crossfade_songs">歌曲交叉淡入淡出</string>
     <string name="turn_on_crossfade_songs_and_turn">请先开启“歌曲交叉淡入淡出”并关闭“自动时长”</string>

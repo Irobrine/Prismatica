@@ -1189,9 +1189,20 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     fun next() = withPlayer { it.seekToNext() }
-    fun previous() = withPlayer { it.seekToPrevious() }
+    /**
+     * Previous: the song before near the start of this one, or this one's start again once past it. Settings → Gestures
+     * & buttons → "Previous always goes back" goes to the song before wherever the playhead is (and starts this one
+     * over only when there's nothing before it).
+     */
+    fun previous() = withPlayer { p ->
+        if (c.settings.current.behavior.previousAlwaysBack) previousToSongBefore(p) else p.seekToPrevious()
+    }
     /** The song before, wherever this one is (#481: Previous held): the player's own previous item, so shuffle's order. */
     fun previousSong() = withPlayer { it.seekToPreviousMediaItem() }
+    /** The song before if there is one (the player's own, so shuffle's order), else this one from its start. */
+    private fun previousToSongBefore(p: Player) {
+        if (p.hasPreviousMediaItem()) p.seekToPreviousMediaItem() else p.seekToDefaultPosition()
+    }
 
     /** Calls [done] once the player is reached (after commands asked for before it, such as a widget's), at once if it is. */
     fun afterPending(done: () -> Unit) = withPlayer { done() }

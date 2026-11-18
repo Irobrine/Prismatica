@@ -1342,6 +1342,8 @@
     <string name="animated_covers">اینیمیٹڈ کورز</string>
     <string name="animated_covers_and_save_with_downloads">اینیمیٹڈ کورز اور ڈاؤن لوڈز کے ساتھ محفوظ کریں</string>
     <string name="hold_previous_next_to_seek">آگے پیچھے جانے کے لیے پچھلا / اگلا دبا کر رکھیں</string>
+    <string name="previous_always_goes_back">پچھلا ہمیشہ پچھلے گانے پر جاتا ہے</string>
+    <string name="previous_always_goes_back_info">پچھلا بٹن پچھلے گانے پر جاتا ہے، چاہے یہ گانا کہیں بھی ہو۔ بند ہونے پر: پہلے یہی گانا شروع سے چلاتا ہے اور صرف اس کے آغاز کے قریب پیچھے جاتا ہے۔</string>
     <string name="songs_not_videos">گانے، ویڈیوز نہیں</string>
     <string name="crossfade_songs">گانوں میں کراس فیڈ</string>
     <string name="turn_on_crossfade_songs_and_turn">پہلے گانوں میں کراس فیڈ آن اور خودکار لمبائی آف کریں</string>

@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Κινούμενα εξώφυλλα</string>
     <string name="animated_covers_and_save_with_downloads">Κινούμενα εξώφυλλα και Αποθήκευση με τις λήψεις</string>
     <string name="hold_previous_next_to_seek">Κράτα πατημένο προηγούμενο / επόμενο για μετακίνηση</string>
+    <string name="previous_always_goes_back">Το προηγούμενο πηγαίνει πάντα πίσω</string>
+    <string name="previous_always_goes_back_info">Το κουμπί προηγούμενο πηγαίνει στο προηγούμενο τραγούδι, όπου κι αν έχει φτάσει αυτό. Ανενεργό: ξεκινά πρώτα αυτό το τραγούδι από την αρχή και πηγαίνει πίσω μόνο κοντά στην αρχή του.</string>
     <string name="songs_not_videos">Τραγούδια, όχι βίντεο</string>
     <string name="crossfade_songs">Ομαλή μετάβαση τραγουδιών</string>
     <string name="turn_on_crossfade_songs_and_turn">Ενεργοποίησε πρώτα την Ομαλή μετάβαση τραγουδιών και απενεργοποίησε την Αυτόματη διάρκεια</string>

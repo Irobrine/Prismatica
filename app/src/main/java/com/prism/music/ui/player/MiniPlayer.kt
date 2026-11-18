@@ -15,8 +15,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -154,6 +154,7 @@ fun MiniPlayer(
             .offset { IntOffset(drag.value.roundToInt(), pull.value.roundToInt()) }
             .graphicsLayer { alpha = 1f - (pull.value / (height.toPx() * 1.6f)).coerceIn(0f, 0.85f) }
             .pointerInput(morphSpan) {
+                val slop = viewConfiguration.touchSlop
                 val stopAt = height.toPx() * 0.9f
                 val goneAt = height.toPx() * 1.6f
                 // Up (#149, 1.7.7): opening the player (or a page of it) is the morph, following the finger over the
@@ -165,68 +166,19 @@ fun MiniPlayer(
                 var raw = 0f
                 var morphing = false
                 var base = 0f
+                var rawX = 0f
                 // The speed the card is let go at, so the morph it starts carries on at it (PlayerMorph.released).
                 val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
                 fun letGoSpeed(): Float = -tracker.calculateVelocity().y / morphSpan
-                detectVerticalDragGestures(
-                    onDragStart = {
-                        pull.cancel()
-                        tracker.resetTracking()
-                        raw = pull.value
-                        morphing = false
-                    },
-                    onDragEnd = {
-                        val now = container.settings.current
-                        if (morphing) {
-                            val v = letGoSpeed()
-                            haptics.gestureEnd()
-                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = true, velocity = v)) {
-                                PlayerMorph.released(v)
-                                onOpen()
-                            } else {
-                                PlayerMorph.request(null)
-                                PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = now.reduceMotion, velocity = v)
-                            }
-                            pull.settle(scope, 0f)
-                            return@detectVerticalDragGestures
-                        }
-                        val up = now.miniSwipeUp
-                        // Pulled down: stop (#59) or whatever's set in Settings → Player → Gestures (1.7.4).
-                        val down = now.miniSwipeDown
-                        when {
-                            pull.value <= upAt && up != PlayerGesture.NONE -> {
-                                haptics.gestureEnd()
-                                runMiniGesture(up)
-                                pull.settle(scope, 0f)
-                            }
-                            pull.value > stopAt && down != PlayerGesture.NONE -> {
-                                haptics.gestureEnd()
-                                if (down == PlayerGesture.STOP) {
-                                    // It falls away, then the music stops and the card's own exit takes it from there.
-                                    // The offset comes home only after that (or never: the card is gone) so the song
-                                    // kept for the exit doesn't flash back up at the top for a frame.
-                                    pull.settle(scope, goneAt, tween(160, easing = com.prism.music.ui.theme.PrismTokens.Motion.Ease)) {
-                                        pc.stop()
-                                        kotlinx.coroutines.delay(400)
-                                        pull.reset(0f)
-                                    }
-                                } else {
-                                    runMiniGesture(down)
-                                    pull.settle(scope, 0f)
-                                }
-                            }
-                            else -> pull.settle(scope, 0f)
-                        }
-                    },
-                    onDragCancel = {
-                        if (morphing) {
-                            PlayerMorph.request(null)
-                            PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = container.settings.current.reduceMotion)
-                        }
-                        pull.settle(scope, 0f)
-                    },
-                ) { change, d ->
-                    change.consume()
+
+                // Up and down (below).
+                fun verticalStart() {
+                    pull.cancel()
+                    tracker.resetTracking()
+                    raw = pull.value
+                    morphing = false
+                }
+                fun verticalDrag(change: androidx.compose.ui.input.pointer.PointerInputChange, d: Float) {
                     tracker.addPosition(change.uptimeMillis, change.position)
                     raw += d
                     val now = container.settings.current
@@ -258,25 +210,63 @@ fun MiniPlayer(
                         pull.set(after)
                     }
                 }
-            }
-            .pointerInput(Unit) {
-                var rawX = 0f
-                detectHorizontalDragGestures(
-                    onDragStart = {
-                        drag.cancel()
-                        rawX = drag.value
-                    },
-                    onDragEnd = {
-                        val now = container.settings.current
-                        val g = when {
-                            drag.value < -140 -> now.miniSwipeLeft
-                            drag.value > 140 -> now.miniSwipeRight
-                            else -> PlayerGesture.NONE
+                fun verticalEnd() {
+                    val now = container.settings.current
+                    if (morphing) {
+                        val v = letGoSpeed()
+                        haptics.gestureEnd()
+                        if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = true, velocity = v)) {
+                            PlayerMorph.released(v)
+                            onOpen()
+                        } else {
+                            PlayerMorph.request(null)
+                            PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = now.reduceMotion, velocity = v)
                         }
-                        if (g != PlayerGesture.NONE) { haptics.gestureEnd(); runMiniGesture(g) }
-                        drag.settle(scope, 0f)
-                    },
-                ) { _, d ->
+                        pull.settle(scope, 0f)
+                        return
+                    }
+                    val up = now.miniSwipeUp
+                    // Pulled down: stop (#59) or whatever's set in Settings → Player → Gestures (1.7.4).
+                    val down = now.miniSwipeDown
+                    when {
+                        pull.value <= upAt && up != PlayerGesture.NONE -> {
+                            haptics.gestureEnd()
+                            runMiniGesture(up)
+                            pull.settle(scope, 0f)
+                        }
+                        pull.value > stopAt && down != PlayerGesture.NONE -> {
+                            haptics.gestureEnd()
+                            if (down == PlayerGesture.STOP) {
+                                // It falls away, then the music stops and the card's own exit takes it from there.
+                                // The offset comes home only after that (or never: the card is gone) so the song
+                                // kept for the exit doesn't flash back up at the top for a frame.
+                                pull.settle(scope, goneAt, tween(160, easing = com.prism.music.ui.theme.PrismTokens.Motion.Ease)) {
+                                    pc.stop()
+                                    kotlinx.coroutines.delay(400)
+                                    pull.reset(0f)
+                                }
+                            } else {
+                                runMiniGesture(down)
+                                pull.settle(scope, 0f)
+                            }
+                        }
+                        else -> pull.settle(scope, 0f)
+                    }
+                }
+                fun verticalCancel() {
+                    if (morphing) {
+                        PlayerMorph.request(null)
+                        PlayerMorph.endDrag(towardPlayer = true, complete = false, scope = scope, reduceMotion = container.settings.current.reduceMotion)
+                    }
+                    pull.settle(scope, 0f)
+                }
+
+                // Sideways (the mini player's left and right swipes).
+                fun sidewaysStart() {
+                    drag.cancel()
+                    rawX = drag.value
+                }
+                fun sidewaysDrag(d: Float) {
                     val before = drag.value
                     rawX += d
                     // #222: nor sideways, toward a swipe set to Nothing.
@@ -284,6 +274,83 @@ fun MiniPlayer(
                     val after = if ((if (rawX < 0f) now.miniSwipeLeft else now.miniSwipeRight) == PlayerGesture.NONE) 0f else rawX
                     if ((kotlin.math.abs(before) < 140f) != (kotlin.math.abs(after) < 140f)) haptics.threshold()
                     drag.set(after)
+                }
+                fun sidewaysEnd() {
+                    val now = container.settings.current
+                    val g = when {
+                        drag.value < -140 -> now.miniSwipeLeft
+                        drag.value > 140 -> now.miniSwipeRight
+                        else -> PlayerGesture.NONE
+                    }
+                    if (g != PlayerGesture.NONE) { haptics.gestureEnd(); runMiniGesture(g) }
+                    drag.settle(scope, 0f)
+                }
+
+                awaitEachGesture {
+                    // One gesture for both ways, decided by the way the hand actually went. Two detectors racing (one
+                    // each way) let a sideways thumb-arc take an up swipe: the card slid a little and the player never
+                    // opened, and the same on the cover or a button could pass for a tap. The dominant way wins, and
+                    // from the slop on the card consumes the drag on the first pass, so a swipe it takes is never also
+                    // read as a tap by the card's own tap or by one of its buttons.
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                    // "Customize this" took the touch (it opens the mini player's own settings from a tap).
+                    if (down.isConsumed) return@awaitEachGesture
+                    var totalX = 0f
+                    var totalY = 0f
+                    // 0 until it's a drag at all (a tap, left to the card and its buttons), 1 up and down, 2 sideways.
+                    var axis = 0
+                    var finished = false
+                    while (true) {
+                        val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        val dx = change.position.x - change.previousPosition.x
+                        val dy = change.position.y - change.previousPosition.y
+                        if (axis == 0) {
+                            // Something above took it (the page's own sideways swipe, a sheet).
+                            if (change.isConsumed) break
+                            totalX += dx
+                            totalY += dy
+                            val across = kotlin.math.abs(totalX)
+                            val along = kotlin.math.abs(totalY)
+                            // Up and down as soon as the hand has gone that way, however much it drifted sideways
+                            // getting there. Sideways only once it has clearly gone further sideways than up: a
+                            // thumb's arc starts a fast swipe with more sideways travel than up, so committing to
+                            // the sideways way at the first slop took the swipe and nothing came of it.
+                            val way = when {
+                                along >= slop -> 1
+                                across >= slop * 1.5f && across >= along * 1.8f -> 2
+                                else -> 0
+                            }
+                            if (way == 0) {
+                                if (change.pressed) continue
+                                // Lifted before a way was clear: a real move is still a swipe (the longer way); anything
+                                // shorter was a tap, left to the card and its buttons.
+                                if (maxOf(across, along) < slop) { finished = true; break }
+                                axis = if (along >= across) 1 else 2
+                            } else axis = way
+                            change.consume()
+                            // The slop is the price of starting a drag; what's past it moves the card.
+                            if (axis == 1) {
+                                verticalStart()
+                                verticalDrag(change, totalY - kotlin.math.sign(totalY) * slop)
+                            } else {
+                                sidewaysStart()
+                                sidewaysDrag(totalX - kotlin.math.sign(totalX) * slop)
+                            }
+                        } else {
+                            change.consume()
+                            if (axis == 1) verticalDrag(change, dy) else sidewaysDrag(dx)
+                        }
+                        if (!change.pressed) {
+                            if (axis == 1) verticalEnd() else sidewaysEnd()
+                            finished = true
+                            break
+                        }
+                    }
+                    // The pointer was taken away mid-drag (the system or a sheet): put the card back.
+                    if (!finished) {
+                        if (axis == 1) verticalCancel()
+                    }
                 }
             },
     ) {

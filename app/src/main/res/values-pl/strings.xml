@@ -1342,6 +1342,8 @@
     <string name="animated_covers">Animowane okładki</string>
     <string name="animated_covers_and_save_with_downloads">Animowane okładki i Zapisuj z pobranymi</string>
     <string name="hold_previous_next_to_seek">Przytrzymaj poprzedni / następny, by przewijać</string>
+    <string name="previous_always_goes_back">Poprzedni zawsze wraca</string>
+    <string name="previous_always_goes_back_info">Przycisk poprzedni przechodzi do poprzedniego utworu, niezależnie od tego, gdzie jest ten utwór. Wyłączone: najpierw odtwarza ten utwór od początku i wraca tylko blisko jego początku.</string>
     <string name="songs_not_videos">Utwory, nie wideo</string>
     <string name="crossfade_songs">Przenikanie utworów</string>
     <string name="turn_on_crossfade_songs_and_turn">Najpierw włącz Przenikanie utworów i wyłącz Automatyczną długość</string>
