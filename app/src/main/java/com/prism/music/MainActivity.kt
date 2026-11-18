@@ -32,7 +32,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -1277,8 +1276,8 @@ private fun NavRail(tabs: List<Tab>, route: String?, settings: AppSettings, onSe
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(if (material) 16.dp else 22.dp)).background(indicator)
                         .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = if (material) androidx.compose.foundation.LocalIndication.current else null,
+                            interactionSource = null,
+                            indication = null,
                             onClickLabel = tab.label,
                         ) { onSelect(tab.route) }
                         .padding(vertical = if (showLabel) 8.dp else 12.dp),
@@ -1438,7 +1437,7 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
     // Holding the Settings tab switches "Customize this" on and off (1.7.3).
     val c = LocalContainer.current
     val click = Modifier.combinedClickable(
-        interactionSource = remember { MutableInteractionSource() }, indication = if (material) androidx.compose.foundation.LocalIndication.current else null, onClickLabel = tab.label,
+        interactionSource = null, indication = null, onClickLabel = tab.label,
         onLongClickLabel = if (tab.route == Routes.SETTINGS) tr(R.string.customize_this) else null,
         onLongClick = if (tab.route == Routes.SETTINGS) ({ c.customizing.value = !c.customizing.value }) else null,
         onClick = onClick,
@@ -1542,8 +1541,8 @@ private fun MinimalTab(tab: Tab, selected: Boolean, height: Dp = 44.dp, onClick:
     Box(
         Modifier.size(54.dp, height).clip(CircleShape).background(bg)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = if (material) androidx.compose.foundation.LocalIndication.current else null,
+                interactionSource = null,
+                indication = null,
                 onClickLabel = tab.label, onClick = onClick,
             ),
         contentAlignment = Alignment.Center,
