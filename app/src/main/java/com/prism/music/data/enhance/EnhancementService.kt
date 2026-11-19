@@ -98,7 +98,7 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         )
     }
     private val separators = EngineSlot {
-        MelBandSeparator.load(
+        HtDemucs.load(
             OrtLoader.environment(runtimeDir()), separatorDir(),
             threads = minOf(4, Runtime.getRuntime().availableProcessors() - 1).coerceAtLeast(1),
         )
@@ -242,7 +242,7 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
     }
 
     /**
-     * Separates [song]'s voice from its backing (Mel-Band RoFormer, one 8 s piece at a time). The vocal stem and the
+     * Separates [song]'s voice from its backing (HTDemucs, one 7.8 s piece at a time). The vocal stem and the
      * instrumental (the sum of drums, bass and other) are stored separately. The original audio is only read.
      */
     suspend fun separateVocals(song: Song, options: EnhanceOptions = EnhanceOptions(), report: (Float) -> Unit = {}): SeparationRecord = withContext(heavy) {
@@ -282,22 +282,25 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
                 store.putCurrentFingerprint(song.id, fingerprint)
             }
             val songRate = probeRate(uri)
+            // Decoding a whole song is a stretch of the job with nothing to count yet: said as its own small step, so the
+            // bar leaves zero while it happens.
+            report(0.02f)
             val frames44 = if (adoptPrefetched(song.id, stereo44 = true, source = uri.toString(), target = src44)) {
                 src44.length() / 4
             } else {
-                AudioScratch.decode(uri, MelBandSeparator.RATE, 2, src44, c) { cancel.get() }
+                AudioScratch.decode(uri, HtDemucs.RATE, 2, src44, c) { cancel.get() }
             }
             if (frames44 <= 0) throw EnhanceNoAudio()
-            val songFrames = if (songRate == MelBandSeparator.RATE) frames44 else (frames44.toDouble() * songRate / MelBandSeparator.RATE).roundToLong()
+            val songFrames = if (songRate == HtDemucs.RATE) frames44 else (frames44.toDouble() * songRate / HtDemucs.RATE).roundToLong()
             checkMemory()
-            report(0f)
+            report(0.05f)
             val demucs = acquireSeparator()
-            val vResample = Resampler(2, MelBandSeparator.RATE, songRate)
-            val iResample = Resampler(2, MelBandSeparator.RATE, songRate)
+            val vResample = Resampler(2, HtDemucs.RATE, songRate)
+            val iResample = Resampler(2, HtDemucs.RATE, songRate)
             java.io.BufferedOutputStream(java.io.FileOutputStream(vTmp), 1 shl 16).use { vOut ->
                 java.io.BufferedOutputStream(java.io.FileOutputStream(iTmp), 1 shl 16).use { iOut ->
                     demucs.separate(src44, frames44, { cancel.get() }, { f ->
-                        report(f * 0.95f)
+                        report(0.05f + f * 0.9f)
                         // Between pieces, as Sing does: out of sight with nothing playing, the run waits rather
                         // than burning the cores of an idle phone (BackgroundBudget).
                         com.prism.music.playback.BackgroundBudget.pace { !cancel.get() }
@@ -392,9 +395,13 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         val allAligned = ArrayList<AlignedUnit>()
         var confidenceSum = 0f
         var confidenceWeight = 0
+        // A song that fits one piece must still say the model has it: a bar that waits at 0 until a four-minute forward
+        // pass ends isn't progress.
+        report(0.05f)
         for ((i, plan) in plans.withIndex()) {
             if (cancel.get()) throw CancellationException("cancelled")
             if (plan.units.isEmpty()) continue
+            report(0.05f + 0.9f * i / plans.size)
             val from = plan.fromMs.coerceIn(0, durationMs)
             val to = plan.toMs.coerceIn(from, durationMs)
             val fromSample = (from * 16).toInt().coerceIn(0, audio.size)
@@ -404,7 +411,7 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
             allAligned += result.units
             confidenceSum += result.confidence * result.units.size
             confidenceWeight += result.units.size
-            report(((i + 1f) / plans.size) * 0.98f)
+            report(((i + 1f) / plans.size) * 0.9f + 0.05f)
             com.prism.music.playback.BackgroundBudget.pace { !cancel.get() }
         }
         val quality = AlignmentQualityCheck.evaluate(allAligned, audio, if (confidenceWeight > 0) confidenceSum / confidenceWeight else 0f)
@@ -646,7 +653,7 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         prefetchThread.execute {
             try {
                 val frames = if (stereo) {
-                    AudioScratch.decode(source, MelBandSeparator.RATE, 2, item.file, c) { prefetched !== item }
+                    AudioScratch.decode(source, HtDemucs.RATE, 2, item.file, c) { prefetched !== item }
                 } else {
                     AudioScratch.decode(source, 16_000, 1, item.file, c) { prefetched !== item }
                 }
@@ -684,7 +691,7 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         return aligners.get()
     }
 
-    private fun acquireSeparator(): MelBandSeparator {
+    private fun acquireSeparator(): HtDemucs {
         if (!separators.cached() && aligners.cached() && freeMemory() in 1..ALIGNER_HEADROOM) aligners.drop()
         return separators.get()
     }

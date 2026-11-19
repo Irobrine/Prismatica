@@ -5,7 +5,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.prism.music.data.enhance.AlignLanguage
 import com.prism.music.data.enhance.AlignmentQualityCheck
-import com.prism.music.data.enhance.MelBandSeparator
+import com.prism.music.data.enhance.HtDemucs
 import com.prism.music.data.enhance.LyricsUnits
 import com.prism.music.data.enhance.QwenAligner
 import com.prism.music.playback.sing.OrtLoader
@@ -91,9 +91,9 @@ class EnhanceEngineAndroidTest {
 
     @Test fun vocalSeparationRunsOnThePhone() {
         keepOnScreen()
-        val dir = File(root, "ytm")
+        val dir = File(root, "htdemucs")
         val wav = File(root, "audio/mix.wav")
-        Assume.assumeTrue("enhance-test/ytm and audio/mix.wav are needed", dir.isDirectory && wav.isFile)
+        Assume.assumeTrue("enhance-test/htdemucs and audio/mix.wav are needed", dir.isDirectory && wav.isFile)
         val (pcm, frames) = readPcm16(wav)
         val src = File(context.cacheDir, "android-sep.src.pcm")
         RandomAccessFile(src, "rw").use { raf ->
@@ -104,7 +104,7 @@ class EnhanceEngineAndroidTest {
         val v = ArrayList<Float>(); val i = ArrayList<Float>()
         val start = SystemClock.elapsedRealtime()
         android.util.Log.i("PrismEnhanceTest", "before separator load")
-        MelBandSeparator.load(engine(), dir, threads = 4).use { d ->
+        HtDemucs.load(engine(), dir).use { d ->
             android.util.Log.i("PrismEnhanceTest", "after separator load")
             d.separate(src, frames, { false }, { }) { vocals, instrumental -> vocals.forEach { v.add(it) }; instrumental.forEach { i.add(it) } }
         }

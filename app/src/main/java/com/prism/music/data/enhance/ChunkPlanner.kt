@@ -6,8 +6,9 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Splits a song's lyrics into pieces the aligner can take (its own limit is five minutes; Prism keeps a piece up to
- * that, with a little lead and tail so a line's first or last word isn't at the very edge). Line-timed lyrics are
+ * Splits a song's lyrics into pieces the aligner can take (its own limit is five minutes; Prism keeps a piece to about
+ * two, so the job's progress moves and Cancel is heard while it works, with a little lead and tail so a line's first or
+ * last word isn't at the very edge). Line-timed lyrics are
  * split at their own line boundaries; plain lyrics are split in proportion to the recording and each piece's audio is
  * taken from that part of it.
  *
@@ -17,8 +18,12 @@ import kotlin.math.min
 internal object ChunkPlanner {
     class Plan(val units: List<AlignUnit>, val fromMs: Long, val toMs: Long)
 
-    /** The aligner's five minutes, less the lead and tail a piece is given: a piece stays inside the model's limit. */
-    private const val MAX_CHUNK_MS = 297_000L
+    /**
+     * Two minutes of lyrics a piece: well inside the aligner's five-minute limit, and short enough that its progress
+     * moves and a Cancel lands while a piece is being worked out, not after a four-minute forward pass. A piece is
+     * still split at line boundaries.
+     */
+    private const val MAX_CHUNK_MS = 117_000L
     private const val LEAD_MS = 1_200L
     private const val TAIL_MS = 1_500L
     private const val MAX_UNITS = 420

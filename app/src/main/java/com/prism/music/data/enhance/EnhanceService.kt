@@ -86,6 +86,7 @@ class EnhanceService : Service() {
     /** The running jobs' progress, as the queue's sheets show it; no count until one is running. */
     private fun notification(tasks: List<EnhanceTask>): Notification {
         val percent = tasks.filter { it.state == "running" }.maxOfOrNull { it.progress }
+            ?.takeIf { it > 0f }
             ?.let { (it * 100).toInt().coerceIn(0, 100) }
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)

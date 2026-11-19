@@ -70,14 +70,15 @@ private fun qualityReason(code: String): String = when (code) {
 
 /** Everything a song's operation can be in, from the same persisted queue the Settings sheet shows. */
 private sealed interface LineState {
-    data class Running(val progress: Float) : LineState
+    /** Working. [progress] is null until the job has something to count: the bar animates rather than sitting at zero. */
+    data class Running(val progress: Float?) : LineState
     data class Failed(val message: String) : LineState
     data class Other(val text: String) : LineState
 }
 
 private fun taskState(task: EnhanceTask?): LineState? = when (task?.state) {
-    "queued" -> LineState.Running(0f)
-    "running" -> LineState.Running(task.progress)
+    "queued" -> LineState.Running(null)
+    "running" -> LineState.Running(task.progress.takeIf { it > 0f })
     "failed" -> LineState.Failed(task.message ?: tr(R.string.enhance_failed))
     "cancelled" -> LineState.Other(tr(R.string.enhance_cancelled))
     "interrupted" -> LineState.Other(tr(R.string.enhance_interrupted))
@@ -110,6 +111,7 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
     var problem by remember(song.id) { mutableStateOf<String?>(null) }
     var pending by remember { mutableStateOf<PendingEnhance?>(null) }
     var cancelAsk by remember { mutableStateOf<EnhanceTask?>(null) }
+    var askVocalsFirst by remember(song.id) { mutableStateOf(false) }
     var downloaded by remember { mutableStateOf(0f) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) scope.launch {
@@ -129,6 +131,8 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
         hasExternal = c.enhance.store.hasExternalInstrumental(song.id)
     }
     fun taskOf(kind: EnhanceKind) = tasks.lastOrNull { it.song.id == song.id && it.kind == kind }
+    fun live(kind: EnhanceKind) = taskOf(kind)?.state == "queued" || taskOf(kind)?.state == "running"
+
     fun start(vararg kinds: EnhanceKind) {
         val wanted = LinkedHashSet<EnhanceKind>()
         wanted += kinds
@@ -146,11 +150,46 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
         problem = null
         c.enhance.enqueue(listOf(song), wanted)
     }
+
+    /**
+     * Sync lyrics. When the words would be timed against separated vocals but none are here, the listener is asked
+     * whether to separate them first — the pipeline is theirs to choose, not a silent extra few minutes (or a silent
+     * drop back to the mix). A separation already waiting or running is used without asking: the queue runs it first.
+     */
+    fun sync() {
+        val vocalsHere = c.enhance.store.hasVocals(song.id)
+        if (settings.enhanceAlignWithVocals && !vocalsHere && !live(EnhanceKind.VOCALS) && c.enhance.separatorReady()) {
+            askVocalsFirst = true
+            return
+        }
+        start(EnhanceKind.LYRICS)
+    }
     var kind by remember(song.id, hasGenerated, hasExternal) { mutableStateOf(c.sing.instrumentalKind(song.id)) }
     fun choose(k: InstrumentalKind) { c.sing.setInstrumental(song.id, k); kind = k }
     val external = c.enhance.store.externalInstrumental(song.id)
 
     LaunchedEffect(Unit) { c.enhance.models.refresh(); c.models.refresh() }
+    // Separate first, or time the words against the mix: the listener's call, made once per song.
+    if (askVocalsFirst) {
+        AlertDialog(
+            onDismissRequest = { askVocalsFirst = false },
+            title = { Text(tr(R.string.enhance_sync_with_vocals_question)) },
+            text = { Text(tr(R.string.enhance_sync_with_vocals_info)) },
+            confirmButton = {
+                PrismTextButton(onClick = { askVocalsFirst = false; start(EnhanceKind.VOCALS, EnhanceKind.LYRICS) }) {
+                    Text(tr(R.string.enhance_separate_and_sync))
+                }
+            },
+            dismissButton = {
+                Row {
+                    PrismTextButton(onClick = { askVocalsFirst = false; start(EnhanceKind.LYRICS) }) {
+                        Text(tr(R.string.enhance_sync_without_vocals))
+                    }
+                    PrismTextButton(onClick = { askVocalsFirst = false }) { Text(tr(R.string.cancel)) }
+                }
+            },
+        )
+    }
     // Stopping a job asks first: it's the listener's own work, and a long separation is not a slip of the finger.
     cancelAsk?.let { task ->
         AlertDialog(
@@ -217,7 +256,7 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
                 state = taskState(taskOf(EnhanceKind.LYRICS)),
                 tag = "enhance:sync",
                 onCancel = { taskOf(EnhanceKind.LYRICS)?.let { cancelAsk = it } },
-            ) { start(EnhanceKind.LYRICS) }
+            ) { sync() }
             alignment?.let { a ->
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -327,7 +366,7 @@ private fun ActionLine(
                     is LineState.Failed -> Text(state.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     is LineState.Other -> Text(state.text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     is LineState.Running -> Text(
-                        tr(R.string.enhance_running, (state.progress * 100).toInt()),
+                        tr(R.string.enhance_running, ((state.progress ?: 0f) * 100).toInt()),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary,
                     )
                     null -> Unit
@@ -341,7 +380,9 @@ private fun ActionLine(
             }
         }
         if (state is LineState.Running) {
-            androidx.compose.material3.LinearProgressIndicator(progress = { state.progress }, modifier = Modifier.fillMaxWidth().height(3.dp))
+            val p = state.progress
+            if (p == null) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().height(3.dp))
+            else androidx.compose.material3.LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth().height(3.dp))
         }
     }
 }

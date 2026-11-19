@@ -36,9 +36,14 @@ internal class QwenAligner private constructor(
         if (units.isEmpty()) return ChunkResult(emptyList(), 0f)
         // Quiet pieces still have to produce features; one frame is enough for the graph to see the prompt.
         val mono = if (audio.isEmpty()) FloatArray(MelSpectrogram.RATE / 10) else audio
-        val features = mel.compute(mono)
-        val t = features.size / MelSpectrogram.N_MELS
+        val computed = mel.compute(mono)
+        val full = computed.size / MelSpectrogram.N_MELS
+        // The export's own ScatterND miscounts an exact multiple of the encoder's 100-frame block: ONNX Runtime refuses
+        // it ("updates tensor should have shape equal to ..."), whatever the audio. One frame less is 10 ms of a piece,
+        // well inside the tolerance the graph's buckets have anyway.
+        val t = if (full % 100 == 0) full - 1 else full
         if (t <= 0) throw IllegalStateException("The audio is too short to align")
+        val features = if (t == full) computed else trimFrames(computed, full, t)
         val audioTokens = outputLength(t)
         val ids = ArrayList<Long>(audioTokens + units.size * 8 + 8)
         ids.add(tokenizer.audioStart.toLong())
@@ -119,6 +124,13 @@ internal class QwenAligner private constructor(
             aligned += AlignedUnit(u.clean, u.start, u.end, u.group, max(0, start), max(start, end), u.line)
         }
         return ChunkResult(aligned, (confidence / (slotsSeen * 2)).toFloat())
+    }
+
+    /** The first [keep] frames of every mel band: the features are [mel][frame] with stride [full]. */
+    private fun trimFrames(features: FloatArray, full: Int, keep: Int): FloatArray {
+        val out = FloatArray(MelSpectrogram.N_MELS * keep)
+        for (m in 0 until MelSpectrogram.N_MELS) System.arraycopy(features, m * full, out, m * keep, keep)
+        return out
     }
 
     /** Digits after the audio encoder: the processor's own formula (chunks of 100 mel frames, three stride-2 convs). */

@@ -5534,6 +5534,10 @@
     <string name="enhance_words_timed">%1$d words timed</string>
     <string name="enhance_use_synced_lyrics">Use synced lyrics</string>
     <string name="enhance_use_synced_lyrics_info">Off, the song\'s own line timings are shown. The words timed here are kept, and come back when this is on again.</string>
+    <string name="enhance_sync_with_vocals_question">Separate the vocals first?</string>
+    <string name="enhance_sync_with_vocals_info">Word timings are more accurate against the vocals alone. Separating them takes a few minutes; the words are timed right after.</string>
+    <string name="enhance_separate_and_sync">Separate and sync</string>
+    <string name="enhance_sync_without_vocals">Sync without separating</string>
     <string name="enhance_remove_model_keeps_work">Removing a model keeps the lyrics and audio it made.</string>
     <string name="enhance_download_consent">%1$s will download %2$s. Nothing leaves your phone, and the model stays until you remove it.</string>
     <string name="enhance_separation_original_kept">The song\'s own audio and any file you added are left exactly as they are.</string>

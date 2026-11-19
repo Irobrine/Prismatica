@@ -63,7 +63,7 @@ private val libraries = listOf(
     Library(tr(R.string.spleeter_2_stem_model_sing_downloaded), tr(R.string.deezer_onnx_conversion_by_sherpa_onnx), "MIT", "spleeter", "https://github.com/deezer/spleeter"),
     // Lyrics enhancement (1.9): both models are downloaded on request, never in the APK.
     Library(tr(R.string.enhance_aligner), tr(R.string.enhance_qwen_team), tr(R.string.apache_2_0), "apache-2.0", "https://github.com/QwenLM/Qwen3-ASR"),
-    Library(tr(R.string.enhance_separator), tr(R.string.enhance_stemsplit_team), "MIT", "mit", "https://huggingface.co/redbaty/ytm-vocal-separator"),
+    Library(tr(R.string.enhance_separator), tr(R.string.enhance_stemsplit_team), "MIT", "mit", "https://github.com/StemSplit/demucs-onnx"),
     Library(tr(R.string.outfit_prism_s_typeface), tr(R.string.the_outfit_project_authors), tr(R.string.sil_open_font_license_1_1), "outfit", "https://github.com/Outfitio/Outfit-Fonts"),
     Library(tr(R.string.manrope_the_clean_font), tr(R.string.the_manrope_project_authors), tr(R.string.sil_open_font_license_1_1), "manrope", "https://github.com/googlefonts/manrope"),
     Library(tr(R.string.plus_jakarta_sans_the_geometric_font), tr(R.string.the_plus_jakarta_sans_project_authors), tr(R.string.sil_open_font_license_1_1), "plus_jakarta_sans", "https://github.com/tokotype/PlusJakartaSans"),

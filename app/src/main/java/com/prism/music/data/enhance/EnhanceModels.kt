@@ -89,14 +89,14 @@ enum class EnhanceModel(
         ),
     ),
     SEPARATOR(
-        "ytm-vocal-separator-int8", "ytm-melband-int8-2026",
+        "htdemucs-fp16weights", "htdemucs-fp16weights-2026",
         tr(R.string.enhance_separator),
         tr(R.string.enhance_separator_notice),
         listOf(
             RemoteFile(
-                MelBandSeparator.MODEL,
-                "https://huggingface.co/redbaty/ytm-vocal-separator/resolve/main/sep-all-int8.onnx",
-                235_623_148, "e9570dac2ae14382c99357a547a6739777a029ad7f2b5f6e6bc22e9b0e7b2580",
+                HtDemucs.MODEL,
+                "https://huggingface.co/StemSplitio/htdemucs-onnx/resolve/main/htdemucs_fp16weights.onnx",
+                165_612_636, "d05c269d0178d2a72ad484b10b11dd370193fc923201c3b27a99f848745db70a",
             ),
         ),
     ),
@@ -150,7 +150,21 @@ class EnhanceModelStore(private val context: Context, private val http: OkHttpCl
     fun sizeOnPhone(m: EnhanceModel): Long = dir(m).walkTopDown().filter { it.isFile && !it.name.endsWith(PART) }.sumOf { it.length() }
 
     /** Reads the marker again (a model put there or removed outside a download). */
-    fun refresh() = _states.update { s -> s.mapValues { (m, st) -> if (st is State.Downloading) st else stateOf(m) } }
+    fun refresh() {
+        dropRetired()
+        _states.update { s -> s.mapValues { (m, st) -> if (st is State.Downloading) st else stateOf(m) } }
+    }
+
+    /**
+     * Removes models this build no longer uses — a separator that was replaced, say. Their files are dead weight the
+     * listener can't even see: no row points at them any more.
+     */
+    private fun dropRetired() {
+        val known = EnhanceModel.entries.mapTo(HashSet()) { it.id }
+        root.listFiles()?.forEach { dir ->
+            if (dir.isDirectory && dir.name !in known) runCatching { dir.deleteRecursively() }
+        }
+    }
 
     private fun stateOf(m: EnhanceModel): State = when {
         ready(m) -> State.Ready
