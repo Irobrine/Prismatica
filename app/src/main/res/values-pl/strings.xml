@@ -5647,4 +5647,13 @@
     <string name="snoozed_n_tracks">Odłożono %1$d utworów</string>
     <string name="invalid_number">Nieprawidłowa liczba</string>
     <string name="eq_refused">Android odmawia teraz efektów dźwiękowych. Pomaga ponowne uruchomienie telefonu.</string>
+    <string name="time_until_sleep">Czas do zaśnięcia</string>
+    <string name="fade_out_duration">Długość wyciszania</string>
+    <string name="maximum_bpm">Maksymalne BPM</string>
+    <string name="sleep_timer_volume">Głośność wyłącznika snu</string>
+    <string name="temporarily_disable_the_bpm_limit">Tymczasowo wyłącz limit BPM</string>
+    <string name="sleep_bpm_none_left">Nie zostały utwory poniżej %1$d BPM</string>
+    <string name="sleep_bpm_under">Poniżej %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Szybszy utwór lub utwór o nieznanym tempie jest pomijany.</string>
+    <string name="sleep_timer_volume_info">Muzyka gra z tą głośnością przez cały czasomierz i wycisza się z niej do ciszy.</string>
 </resources>

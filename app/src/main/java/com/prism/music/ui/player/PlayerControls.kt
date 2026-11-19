@@ -1410,8 +1410,12 @@ fun SleepBadge(modifier: Modifier = Modifier) {
     if (sleepAt <= 0 && !endOfSong) return
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(sleepAt, lifecycle) { if (sleepAt > 0) lifecycle.tickWhileShown(15_000) { now = System.currentTimeMillis() } }
-    val left = if (endOfSong) tr(R.string.song_end) else tr(R.string.min, ((sleepAt - now) / 60_000).coerceAtLeast(0) + 1)
+    // Every second in overtime, so "Song end" shows as soon as the deadline passes; otherwise the minutes are enough.
+    LaunchedEffect(sleepAt, endOfSong, lifecycle) {
+        if (sleepAt > 0) lifecycle.tickWhileShown(if (endOfSong) 1_000 else 15_000) { now = System.currentTimeMillis() }
+    }
+    val overtime = endOfSong && sleepAt <= now
+    val left = if (overtime) tr(R.string.song_end) else tr(R.string.min, ((sleepAt - now) / 60_000).coerceAtLeast(0) + 1)
     var open by remember { mutableStateOf(false) }
     Row(
         modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.10f)).clickable { open = true }
@@ -1423,7 +1427,7 @@ fun SleepBadge(modifier: Modifier = Modifier) {
         Spacer(Modifier.width(5.dp))
         Text(left, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
     }
-    if (open) SleepTimerDialog { open = false }
+    if (open) SleepTimerSheet { open = false }
 }
 
 private val OUTPUT_TYPES = setOf(

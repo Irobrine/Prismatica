@@ -5572,4 +5572,13 @@
     <string name="snoozed_n_tracks">%1$d brani rimandati</string>
     <string name="invalid_number">Numero non valido</string>
     <string name="eq_refused">Android sta rifiutando gli effetti sonori. Riavviare il telefono risolve il problema.</string>
+    <string name="time_until_sleep">Tempo prima dello spegnimento</string>
+    <string name="fade_out_duration">Durata della dissolvenza</string>
+    <string name="maximum_bpm">BPM massimi</string>
+    <string name="sleep_timer_volume">Volume del timer sonno</string>
+    <string name="temporarily_disable_the_bpm_limit">Disattiva temporaneamente il limite di BPM</string>
+    <string name="sleep_bpm_none_left">Nessun brano sotto %1$d BPM rimasto</string>
+    <string name="sleep_bpm_under">Meno di %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Un brano più veloce o dal tempo sconosciuto viene saltato.</string>
+    <string name="sleep_timer_volume_info">La musica suona a questo volume per tutto il timer e sfuma da qui al silenzio.</string>
 </resources>

@@ -5566,4 +5566,13 @@
     <string name="expressive" translatable="false">Expressive</string>
     <string name="monochrome" translatable="false">Monochrome</string>
     <string name="material_you_info" translatable="false">Material You is Google\'s Material 3 design language: colors from one tonal palette, Material\'s type and shape scales, and flat tonal surfaces instead of glass. The accent comes from your wallpaper when Android 12 or newer can give one, otherwise from the accent below; the palette picks how much color it carries. Light and dark are the same palette at two tones.</string>
+    <string name="time_until_sleep">Time until sleep</string>
+    <string name="fade_out_duration">Fade-out duration</string>
+    <string name="maximum_bpm">Maximum BPM</string>
+    <string name="sleep_timer_volume">Sleep timer volume</string>
+    <string name="temporarily_disable_the_bpm_limit">Temporarily disable the BPM limit</string>
+    <string name="sleep_bpm_none_left">No songs under %1$d BPM left</string>
+    <string name="sleep_bpm_under">Under %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">A song faster than this, or one whose tempo isn\'t known, is passed over.</string>
+    <string name="sleep_timer_volume_info">Music plays at this volume for the whole timer, and fades from it to silence.</string>
 </resources>

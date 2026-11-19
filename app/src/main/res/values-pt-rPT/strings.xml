@@ -5572,4 +5572,13 @@
     <string name="snoozed_n_tracks">%1$d faixas adiadas</string>
     <string name="invalid_number">Número inválido</string>
     <string name="eq_refused">O Android está a recusar efeitos de som neste momento. Reiniciar o telemóvel resolve.</string>
+    <string name="time_until_sleep">Tempo até adormecer</string>
+    <string name="fade_out_duration">Duração do fade</string>
+    <string name="maximum_bpm">BPM máximo</string>
+    <string name="sleep_timer_volume">Volume do temporizador de sono</string>
+    <string name="temporarily_disable_the_bpm_limit">Desativar temporariamente o limite de BPM</string>
+    <string name="sleep_bpm_none_left">Já não há músicas abaixo de %1$d BPM</string>
+    <string name="sleep_bpm_under">Abaixo de %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Uma música mais rápida, ou com tempo desconhecido, é saltada.</string>
+    <string name="sleep_timer_volume_info">A música toca neste volume durante todo o temporizador e desvanece daqui até ao silêncio.</string>
 </resources>

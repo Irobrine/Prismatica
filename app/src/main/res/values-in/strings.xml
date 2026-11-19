@@ -5422,4 +5422,13 @@
     <string name="snoozed_n_tracks">%1$d trek ditunda</string>
     <string name="invalid_number">Angka tidak valid</string>
     <string name="eq_refused">Android sedang menolak efek suara. Memulai ulang ponsel akan memperbaikinya.</string>
+    <string name="time_until_sleep">Waktu hingga tidur</string>
+    <string name="fade_out_duration">Durasi memudar</string>
+    <string name="maximum_bpm">BPM maksimum</string>
+    <string name="sleep_timer_volume">Volume pengatur waktu tidur</string>
+    <string name="temporarily_disable_the_bpm_limit">Nonaktifkan sementara batas BPM</string>
+    <string name="sleep_bpm_none_left">Tidak ada lagu di bawah %1$d BPM tersisa</string>
+    <string name="sleep_bpm_under">Di bawah %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Lagu yang lebih cepat atau yang temponya tidak diketahui dilewati.</string>
+    <string name="sleep_timer_volume_info">Musik diputar pada volume ini sepanjang pengatur waktu dan memudar dari sini ke senyap.</string>
 </resources>

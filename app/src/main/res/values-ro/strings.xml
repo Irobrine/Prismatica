@@ -5572,4 +5572,13 @@
     <string name="snoozed_n_tracks">%1$d piese amânate</string>
     <string name="invalid_number">Număr invalid</string>
     <string name="eq_refused">Android refuză acum efectele sonore. Repornirea telefonului rezolvă problema.</string>
+    <string name="time_until_sleep">Timp până la adormire</string>
+    <string name="fade_out_duration">Durata estompării</string>
+    <string name="maximum_bpm">BPM maxim</string>
+    <string name="sleep_timer_volume">Volumul temporizatorului de somn</string>
+    <string name="temporarily_disable_the_bpm_limit">Dezactivează temporar limita de BPM</string>
+    <string name="sleep_bpm_none_left">Nu mai există piese sub %1$d BPM</string>
+    <string name="sleep_bpm_under">Sub %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">O piesă mai rapidă sau cu tempo necunoscut este sărită.</string>
+    <string name="sleep_timer_volume_info">Muzica rulează la acest volum tot timpul temporizatorului și se estompează de aici până la tăcere.</string>
 </resources>

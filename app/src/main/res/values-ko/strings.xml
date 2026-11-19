@@ -5422,4 +5422,13 @@
     <string name="snoozed_n_tracks">%1$d개 트랙을 스누즈했습니다</string>
     <string name="invalid_number">잘못된 숫자</string>
     <string name="eq_refused">Android가 지금 음향 효과를 거부하고 있어요. 휴대전화를 다시 시작하면 해결돼요.</string>
+    <string name="time_until_sleep">취침까지 남은 시간</string>
+    <string name="fade_out_duration">페이드아웃 길이</string>
+    <string name="maximum_bpm">최대 BPM</string>
+    <string name="sleep_timer_volume">수면 타이머 볼륨</string>
+    <string name="temporarily_disable_the_bpm_limit">BPM 제한 일시 해제</string>
+    <string name="sleep_bpm_none_left">%1$d BPM 미만 곡이 없습니다</string>
+    <string name="sleep_bpm_under">%1$d BPM 미만</string>
+    <string name="sleep_timer_bpm_info">이보다 빠르거나 템포를 알 수 없는 곡은 건너뜁니다.</string>
+    <string name="sleep_timer_volume_info">타이머가 끝날 때까지 이 볼륨으로 재생하고 여기서 무음으로 페이드아웃합니다.</string>
 </resources>

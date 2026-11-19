@@ -5497,4 +5497,13 @@
     <string name="snoozed_n_tracks">%1$d ٹریکس اسنوز کیے گئے</string>
     <string name="invalid_number">غلط نمبر</string>
     <string name="eq_refused">Android اس وقت ساؤنڈ ایفیکٹس سے انکار کر رہا ہے۔ فون ری اسٹارٹ کرنے سے ٹھیک ہو جاتا ہے۔</string>
+    <string name="time_until_sleep">سونے تک وقت</string>
+    <string name="fade_out_duration">فیڈ آؤٹ دورانیہ</string>
+    <string name="maximum_bpm">زیادہ سے زیادہ BPM</string>
+    <string name="sleep_timer_volume">سلیپ ٹائمر والیوم</string>
+    <string name="temporarily_disable_the_bpm_limit">BPM حد عارضی طور پر بند کریں</string>
+    <string name="sleep_bpm_none_left">%1$d BPM سے کم کوئی گانا نہیں بچا</string>
+    <string name="sleep_bpm_under">%1$d BPM سے کم</string>
+    <string name="sleep_timer_bpm_info">اس سے تیز یا نامعلوم ٹیمپو والا گانا چھوڑ دیا جاتا ہے۔</string>
+    <string name="sleep_timer_volume_info">موسیقی پورے ٹائمر کے دوران اس والیوم پر چلتی ہے اور یہاں سے خاموشی تک فیڈ ہوتی ہے۔</string>
 </resources>

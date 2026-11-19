@@ -45,6 +45,7 @@ import androidx.compose.material3.SliderDefaults
 import com.prism.music.playback.VideoSyncState
 import com.prism.music.ui.theme.LocalContainer
 import com.prism.music.ui.theme.MonoStyle
+import com.prism.music.ui.components.tickWhileShown
 import kotlin.math.roundToInt
 
 /** Plain-language codec name from a codec / mime string ("opus" → "Opus", "mp4a.40.2" → "AAC"). */
@@ -291,29 +292,135 @@ private fun StatTile(label: String, value: String, modifier: Modifier = Modifier
     }
 }
 
+/**
+ * The sleep timer's menu: the configuration one when nothing runs, the active timer's editor when one does. Tapping the
+ * player's countdown opens the latter; the timer itself lives in [com.prism.music.playback.SleepTimerEngine].
+ */
 @Composable
-fun SleepTimerDialog(onDismiss: () -> Unit) {
+fun SleepTimerSheet(onDismiss: () -> Unit) {
     val pc = LocalContainer.current.player
     val sleepAt by pc.sleepAt.collectAsState()
-    val endOfSong by pc.sleepEndOfSong.collectAsState()
+    if (sleepAt > 0) SleepTimerEditDialog(onDismiss) else SleepTimerDialog(onDismiss)
+}
+
+/** The sleep timer's choices before it starts: time, fade, BPM limit, finish current song and its volume. */
+@Composable
+fun SleepTimerDialog(onDismiss: () -> Unit) {
+    val c = LocalContainer.current
+    val pc = c.player
+    val choices by c.sleepPrefs.choices.collectAsState()
+    val settings by c.settings.flow.collectAsState()
+    val fade = settings.sound.sleepFadeSeconds
+    // A fade is always shorter than the countdown: moving the time down clamps what's shown and started. The stored
+    // setting goes up to 60 s (Settings → Playback's row has the same limit).
+    val maxFade = minOf(60, (choices.minutes * 60 - 1).coerceAtLeast(0))
+    var fadeValue by remember(choices.minutes, fade) { mutableFloatStateOf(fade.coerceAtMost(maxFade).toFloat()) }
+    var fadeTouched by remember { mutableStateOf(false) }
+    var bpmValue by remember(choices.maxBpm) { mutableFloatStateOf(choices.maxBpm.toFloat()) }
+    var volumeValue by remember(choices.volume) { mutableFloatStateOf(choices.volume) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(tr(R.string.sleep_timer)) },
         text = {
-            Column {
-                if (endOfSong) Text(tr(R.string.stops_when_this_song_ends), color = MaterialTheme.colorScheme.primary)
-                else if (sleepAt > 0) Text(tr(R.string.stops_in_min, ((sleepAt - System.currentTimeMillis()) / 60_000).coerceAtLeast(0) + 1), color = MaterialTheme.colorScheme.primary)
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text(tr(R.string.time_until_sleep), style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(endOfSong, { pc.setSleepEndOfSong(true); onDismiss() }, { Text(tr(R.string.end_of_song)) })
-                    listOf(5, 10, 15, 30, 45, 60, 90).forEach { m ->
-                        FilterChip(false, { pc.setSleepTimer(m); onDismiss() }, { Text(tr(R.string.min, m)) })
+                    listOf(5, 10, 15, 30, 45, 60, 90, 120).forEach { m ->
+                        FilterChip(choices.minutes == m, { c.sleepPrefs.setMinutes(m) }, { Text(tr(R.string.min, m)) })
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr(R.string.fade_out_duration), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    Text(if (fadeValue < 1f) tr(R.string.off) else tr(R.string.hist_count_seconds, fadeValue.roundToInt()),
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                }
+                PrismSlider(
+                    fadeValue, { fadeValue = it; fadeTouched = true; if (it < 1f) c.settings.setSleepFade(0) },
+                    valueRange = 0f..maxFade.coerceAtLeast(1).toFloat(), steps = 0, enabled = maxFade > 0,
+                ) { c.settings.setSleepFade(fadeValue.roundToInt()) }
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr(R.string.maximum_bpm), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    Text(if (bpmValue < 1f) tr(R.string.off) else "${bpmValue.roundToInt()} ${tr(R.string.rule_bpm)}",
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                }
+                PrismSlider(
+                    bpmValue, { bpmValue = it }, valueRange = 0f..com.prism.music.data.prefs.SleepTimerPrefs.MAX_BPM_LIMIT.toFloat(),
+                    steps = 10,
+                ) { c.sleepPrefs.setMaxBpm(bpmValue.roundToInt()) }
+                Text(tr(R.string.sleep_timer_bpm_info), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(12.dp))
+                FilterChip(choices.finishSong, { c.sleepPrefs.setFinishSong(!choices.finishSong) }, { Text(tr(R.string.end_of_song)) })
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr(R.string.sleep_timer_volume), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    Text(tr(R.string.tv_percent, (volumeValue * 100).roundToInt()), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary)
+                }
+                PrismSlider(volumeValue, { volumeValue = it }, valueRange = 0f..1f, steps = 9) {
+                    c.sleepPrefs.setVolume(volumeValue)
+                }
+                Text(tr(R.string.sleep_timer_volume_info), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = {
+            PrismTextButton(onClick = {
+                if (fadeTouched) c.settings.setSleepFade(fadeValue.roundToInt())
+                pc.startSleepTimer(fadeValue.roundToInt())
+                onDismiss()
+            }) { Text(tr(R.string.start)) }
+        },
+        dismissButton = { PrismTextButton(onClick = onDismiss) { Text(tr(R.string.close)) } },
+    )
+}
+
+/**
+ * The active timer's own menu (a separate one from the choices above): the countdown, -5 / +5 minutes, and the temporary
+ * BPM override. Changes apply to the running session at once; the saved choices stay exactly as they were.
+ */
+@Composable
+fun SleepTimerEditDialog(onDismiss: () -> Unit) {
+    val pc = LocalContainer.current.player
+    val sleepAt by pc.sleepAt.collectAsState()
+    val endOfSong by pc.sleepEndOfSong.collectAsState()
+    val bpmDisabled by pc.sleepBpmDisabled.collectAsState()
+    val maxBpm by pc.sleepMaxBpm.collectAsState()
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(sleepAt, endOfSong, lifecycle) { lifecycle.tickWhileShown(1_000) { now = System.currentTimeMillis() } }
+    val left = sleepAt - now
+    val overtime = endOfSong && left <= 0
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(tr(R.string.sleep_timer)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    if (overtime) tr(R.string.stops_when_this_song_ends) else tr(R.string.stops_in_min, (left / 60_000).coerceAtLeast(0) + 1),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                if (endOfSong) Text(tr(R.string.end_of_song), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(false, { pc.adjustSleepTimer(-5) }, { Text(tr(R.string.min, -5)) })
+                    FilterChip(false, { pc.adjustSleepTimer(5) }, { Text(tr(R.string.min, "+5")) })
+                }
+                Spacer(Modifier.height(12.dp))
+                FilterChip(bpmDisabled, { pc.setSleepBpmDisabled(!bpmDisabled) },
+                    { Text(tr(R.string.temporarily_disable_the_bpm_limit)) })
+                if (maxBpm > 0) Text(
+                    tr(R.string.sleep_bpm_under, maxBpm), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         },
         confirmButton = { PrismTextButton(onClick = onDismiss) { Text(tr(R.string.close)) } },
-        dismissButton = if (sleepAt > 0 || endOfSong) ({
-            PrismTextButton(onClick = { pc.setSleepTimer(0); pc.setSleepEndOfSong(false); onDismiss() }) { Text(tr(R.string.turn_off)) }
-        }) else null,
+        dismissButton = {
+            PrismTextButton(onClick = { pc.cancelSleepTimer(); onDismiss() }) { Text(tr(R.string.turn_off)) }
+        },
     )
 }

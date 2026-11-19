@@ -139,6 +139,7 @@ fun PlayerOptionsSheet(
     fun toast(text: String) = android.widget.Toast.makeText(context, text, android.widget.Toast.LENGTH_SHORT).show()
     val sleepMin = if (sleepAt > 0) ((sleepAt - System.currentTimeMillis()) / 60_000).coerceAtLeast(0) + 1 else 0
     val sleeping = sleepAt > 0 || sleepEnd
+    val sleepOvertime = sleepEnd && sleepAt <= System.currentTimeMillis()
     val inSession = together !is com.prism.music.playback.together.TogetherState.Idle
     val downloadItem = ActionItem(
         if (downloaded) PrismIcons.DownloadDone else PrismIcons.Download, tr(R.string.download),
@@ -147,7 +148,7 @@ fun PlayerOptionsSheet(
     ) { if (dl != null) c.downloads.remove(song.id) else c.downloads.download(song) }
     val sleepItem = ActionItem(
         PrismIcons.Moon, tr(R.string.sleep_timer),
-        value = when { sleepEnd -> tr(R.string.song_end); sleepAt > 0 -> tr(R.string.min, sleepMin); else -> null },
+        value = when { sleepOvertime -> tr(R.string.song_end); sleepAt > 0 -> tr(R.string.min, sleepMin); else -> null },
         active = sleeping, onClick = onSleepTimer,
     )
 

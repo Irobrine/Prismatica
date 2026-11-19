@@ -85,6 +85,14 @@ class NormalizerProcessor : BaseAudioProcessor() {
         /** The sleep timer's fade-out (1.7.8, A5), on top of [appVolume]: 1 except while it fades. */
         @Volatile var fadeVolume = 1f
 
+        /**
+         * The sleep timer's own volume, on top of [appVolume] and [fadeVolume]: the level the listener picked for the
+         * session (the slider's place is turned into a volume with [volumeFor]). 1 is the listener's usual volume, so a
+         * session's end (or its cancellation) puts back exactly what played before by returning this to 1; the saved
+         * volume setting itself is never touched.
+         */
+        @Volatile var sleepVolume = 1f
+
         /** A slider's place (0 … 1) as a volume: squared, so the slider's middle sounds like half as loud. */
         fun volumeFor(slider: Float): Float = slider.coerceIn(0f, 1f).let { it * it }
 
@@ -127,7 +135,7 @@ class NormalizerProcessor : BaseAudioProcessor() {
         if (bytes == 0) return
         val out = replaceOutputBuffer(bytes)
         val target = targetGain
-        val volTarget = appVolume * fadeVolume
+        val volTarget = appVolume * fadeVolume * sleepVolume
         if (target == 1f && volTarget == 1f && abs(gain - 1f) < 1e-4f && abs(vol - 1f) < 1e-4f && env < 0.89f) {
             gain = 1f
             vol = 1f

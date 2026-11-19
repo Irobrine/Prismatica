@@ -5497,4 +5497,13 @@
     <string name="snoozed_n_tracks">%1$d nummers uitgesteld</string>
     <string name="invalid_number">Ongeldig getal</string>
     <string name="eq_refused">Android weigert nu geluidseffecten. Een herstart van de telefoon lost het op.</string>
+    <string name="time_until_sleep">Tijd tot inslapen</string>
+    <string name="fade_out_duration">Duur van het uitfaden</string>
+    <string name="maximum_bpm">Maximale BPM</string>
+    <string name="sleep_timer_volume">Volume van de slaaptimer</string>
+    <string name="temporarily_disable_the_bpm_limit">BPM-limiet tijdelijk uitschakelen</string>
+    <string name="sleep_bpm_none_left">Geen nummers onder %1$d BPM meer</string>
+    <string name="sleep_bpm_under">Onder %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Een sneller nummer, of een waarvan het tempo onbekend is, wordt overgeslagen.</string>
+    <string name="sleep_timer_volume_info">De muziek speelt het hele timerduur op dit volume en fadet hiervan naar stilte.</string>
 </resources>

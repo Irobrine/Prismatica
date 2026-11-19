@@ -5422,4 +5422,13 @@
     <string name="snoozed_n_tracks">已將 %1$d 首曲目設為稍後播放</string>
     <string name="invalid_number">無效數字</string>
     <string name="eq_refused">Android 目前拒絕建立音效。重新啟動手機即可解決。</string>
+    <string name="time_until_sleep">睡眠前時間</string>
+    <string name="fade_out_duration">淡出時長</string>
+    <string name="maximum_bpm">最大 BPM</string>
+    <string name="sleep_timer_volume">睡眠計時器音量</string>
+    <string name="temporarily_disable_the_bpm_limit">暫時關閉 BPM 限制</string>
+    <string name="sleep_bpm_none_left">沒有低於 %1$d BPM 的歌曲了</string>
+    <string name="sleep_bpm_under">低於 %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">速度更快或節奏未知的歌曲會被略過。</string>
+    <string name="sleep_timer_volume_info">音樂在整個計時器期間以此音量播放，並從這裡淡出至靜音。</string>
 </resources>

@@ -742,7 +742,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             // ⋯ → Sing: its sheet (Sing on or off, the voice, the key; the one-time download first).
             onSing = { showSing = true },
         ) { showActions = false }
-        if (showSleep) SleepTimerDialog { showSleep = false }
+        if (showSleep) SleepTimerSheet { showSleep = false }
         if (showTiming) LyricsTimingSheet { showTiming = false }
         if (showSing) SingSheet(song) { showSing = false }
         // Held Best part button, or ⋯ → Your best part.

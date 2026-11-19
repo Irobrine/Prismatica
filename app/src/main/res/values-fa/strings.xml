@@ -5497,4 +5497,13 @@
     <string name="snoozed_n_tracks">%1$d آهنگ به تعویق افتاد</string>
     <string name="invalid_number">عدد نامعتبر</string>
     <string name="eq_refused">Android در حال حاضر جلوه‌های صوتی را رد می‌کند. راه‌اندازی دوباره گوشی آن را درست می‌کند.</string>
+    <string name="time_until_sleep">زمان تا خواب</string>
+    <string name="fade_out_duration">مدت محو شدن</string>
+    <string name="maximum_bpm">حداکثر BPM</string>
+    <string name="sleep_timer_volume">صدای تایمر خواب</string>
+    <string name="temporarily_disable_the_bpm_limit">غیرفعال کردن موقت محدودیت BPM</string>
+    <string name="sleep_bpm_none_left">هیچ آهنگی زیر %1$d BPM نمانده است</string>
+    <string name="sleep_bpm_under">زیر %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">آهنگی سریع‌تر یا با تمپوی نامشخص رد می‌شود.</string>
+    <string name="sleep_timer_volume_info">موسیقی در تمام مدت تایمر با این صدا پخش می‌شود و از اینجا به سکوت محو می‌شود.</string>
 </resources>

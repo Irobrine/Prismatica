@@ -5647,4 +5647,13 @@
     <string name="snoozed_n_tracks">Odloženo %1$d skladeb</string>
     <string name="invalid_number">Neplatné číslo</string>
     <string name="eq_refused">Android teď odmítá zvukové efekty. Pomůže restart telefonu.</string>
+    <string name="time_until_sleep">Čas do usnutí</string>
+    <string name="fade_out_duration">Délka prolínání</string>
+    <string name="maximum_bpm">Maximální BPM</string>
+    <string name="sleep_timer_volume">Hlasitost časovače spánku</string>
+    <string name="temporarily_disable_the_bpm_limit">Dočasně vypnout limit BPM</string>
+    <string name="sleep_bpm_none_left">Žádné skladby pod %1$d BPM nezbývají</string>
+    <string name="sleep_bpm_under">Pod %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Rychlejší skladba nebo skladba s neznámým tempem se přeskakuje.</string>
+    <string name="sleep_timer_volume_info">Hudba hraje po celou dobu časovače touto hlasitostí a z ní se prolíná do ticha.</string>
 </resources>

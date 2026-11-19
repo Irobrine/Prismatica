@@ -193,8 +193,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     val hasPrevious: StateFlow<Boolean> = _hasPrevious
     private val _errors = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val errors = _errors.asSharedFlow()
-    private val _sleepAt = MutableStateFlow(0L)
-    val sleepAt: StateFlow<Long> = _sleepAt
+    /** The sleep timer's deadline as wall-clock time (0 when none runs), for the countdown the UI shows. */
+    val sleepAt: StateFlow<Long> get() = sleepTimer.wallDeadline
     private val _output = MutableStateFlow<AudioDeviceInfo?>(null)
     /** The output picked in Prism's device sheet; null follows the system (e.g. newly connected headphones). */
     val preferredOutput: StateFlow<AudioDeviceInfo?> = _output
@@ -377,6 +377,9 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     internal fun detach() {
+        // A recreated service (or a stopped one) has no playback for a timer to belong to: end it. Always put the volume
+        // back, even between a timer's natural end and its silent tail, so a recreated service never comes back silent.
+        cancelSleepTimer()
         service?.player?.removeListener(this)
         service = null
         controllerFuture?.let { MediaController.releaseFuture(it) }
@@ -1460,47 +1463,222 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
 
     suspend fun videoIdFor(song: Song): String? = service?.videoIdFor(song)?.id ?: if (song.isVideo) song.id else null
 
-    private val _sleepEndOfSong = MutableStateFlow(false)
-    /** The sleep timer is set to pause when the current song ends. */
-    val sleepEndOfSong: StateFlow<Boolean> = _sleepEndOfSong
+    // ------------------------------------------------------------ Sleep timer
 
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private val sleepAudio = object : SleepAudio {
+        override val itemKey: String?
+            get() {
+                val p = player ?: return null
+                val item = p.currentMediaItem ?: return null
+                // The song's own id, not the form's: a song ↔ video swap is the same listen, not a new song.
+                return "${p.currentMediaItemIndex}:${item.toSong()?.id ?: item.mediaId}"
+            }
+        override val isPlaying: Boolean get() = player?.isPlaying == true
+        override val positionMs: Long get() = position
+        override val durationMs: Long get() = duration
+        override val speed: Float get() = player?.playbackParameters?.speed ?: 1f
+
+        override fun pause() { player?.pause() }
+        override fun setPauseAtEnd(on: Boolean) { player?.pauseAtEndOfMediaItems = on }
+        override fun setFade(gain: Float) { NormalizerProcessor.fadeVolume = gain }
+        override fun setSessionVolume(volume: Float) { NormalizerProcessor.sleepVolume = NormalizerProcessor.volumeFor(volume) }
+        override fun restoreVolume() { NormalizerProcessor.fadeVolume = 1f; NormalizerProcessor.sleepVolume = 1f }
+        override fun reportNoEligibleSongs(maxBpm: Int) { reportError(tr(R.string.sleep_bpm_none_left, maxBpm)) }
+    }
+
+    /** The one running sleep session: its clock, fade and BPM gate (see [SleepTimerEngine]). */
+    private val sleepTimer = SleepTimerEngine(sleepAudio, { id -> c.mixTempo.djBpm(id) })
+    private var sleepJob: Job? = null
+    private var sleepRestoreJob: Job? = null
+
+    /** The timer's own pause, so switching the BPM limit off can bring the music back (a listener's pause stays). */
+    private var pausedBySleepBpm = false
+
+    /** "Finish current song": the timer lets the song playing at the deadline end instead of stopping at it. */
+    val sleepEndOfSong: StateFlow<Boolean> = sleepTimer.finishSong
+
+    /** The temporary "allow every BPM" override of the running session (false when none runs). */
+    val sleepBpmDisabled: StateFlow<Boolean> = sleepTimer.bpmDisabled
+
+    /** The limit the running session was started with (0 when none). */
+    val sleepMaxBpm: StateFlow<Int> = sleepTimer.maxBpm
+
+    /**
+     * Starts the one sleep session from the menu's saved choices and the fade set in Settings. Any running session is
+     * replaced, and the BPM limit (if one was picked) applies to the song playing now at once.
+     */
+    fun startSleepTimer(fadeSeconds: Int? = null) {
+        val choices = c.sleepPrefs.choices.value
+        sleepTimer.start(
+            SleepConfig(
+                minutes = choices.minutes,
+                // The menu's slider value is passed in: the settings store writes off the main thread, so a Start right
+                // after a drag must still use what was shown, not the value before the write landed.
+                fadeSeconds = fadeSeconds ?: c.settings.current.sound.sleepFadeSeconds,
+                maxBpm = choices.maxBpm,
+                finishSong = choices.finishSong,
+                volume = choices.volume,
+            ),
+        )
+        runSleepLoop()
+        enforceSleepBpm()
+    }
+
+    /** The old one-tap API (a chip's minutes): the same session with the saved choices, the time picked here. */
+    fun setSleepTimer(minutes: Int) {
+        if (minutes <= 0) { cancelSleepTimer(); return }
+        val choices = c.sleepPrefs.choices.value
+        sleepTimer.start(
+            SleepConfig(
+                minutes = minutes,
+                fadeSeconds = c.settings.current.sound.sleepFadeSeconds,
+                maxBpm = choices.maxBpm,
+                finishSong = choices.finishSong,
+                volume = choices.volume,
+            ),
+        )
+        runSleepLoop()
+        enforceSleepBpm()
+    }
+
+    /** The old end-of-song API: a session that finishes the current song over the saved countdown. */
     fun setSleepEndOfSong(on: Boolean) {
-        _sleepEndOfSong.value = on
-        if (on) _sleepAt.value = 0
-        withPlayer { it.pauseAtEndOfMediaItems = on }
+        if (!on) { cancelSleepTimer(); return }
+        val choices = c.sleepPrefs.choices.value
+        sleepTimer.start(
+            SleepConfig(
+                minutes = choices.minutes,
+                fadeSeconds = c.settings.current.sound.sleepFadeSeconds,
+                maxBpm = choices.maxBpm,
+                finishSong = true,
+                volume = choices.volume,
+            ),
+        )
+        runSleepLoop()
+        enforceSleepBpm()
+    }
+
+    /** Turns the timer off and puts the listener's own volume back (the saved choices stay as they are). */
+    fun cancelSleepTimer() {
+        sleepJob?.cancel()
+        sleepJob = null
+        sleepRestoreJob?.cancel()
+        sleepRestoreJob = null
+        pausedBySleepBpm = false
+        sleepTimer.cancel()
+    }
+
+    /** -5 / +5 on the active timer: the deadline and the fade schedule move at once. */
+    fun adjustSleepTimer(minutes: Int) {
+        sleepTimer.adjust(minutes)
+        if (sleepTimer.active.value && sleepJob?.isActive != true) runSleepLoop()
+    }
+
+    /**
+     * The active menu's temporary "allow every BPM" switch: off, songs the limit held back play again; on again, the
+     * current song and the queue are checked immediately. The saved limit is never changed.
+     */
+    fun setSleepBpmDisabled(disabled: Boolean) {
+        sleepTimer.setBpmDisabled(disabled)
+        if (disabled) {
+            if (pausedBySleepBpm) {
+                pausedBySleepBpm = false
+                player?.play()
+            }
+        } else {
+            enforceSleepBpm()
+        }
+    }
+
+    /** Whether the running session's limit rules [songId] out (false when no timer runs, or the override is on). */
+    fun sleepBlocksBpm(songId: String?): Boolean = sleepTimer.blocksBpm(songId)
+
+    /** Called by the service as an item starts: a finished song in overtime ends the session; either way, recalculate. */
+    internal fun onSleepItemChanged() = sleepTimer.onItemChanged()
+
+    /** A play, pause or seek changes when the current song ends: work the stop time out again at once. */
+    internal fun onSleepPlaybackChanged() = sleepTimer.onPlaybackChanged()
+
+    /**
+     * Applies the BPM limit to what plays right now: the song itself is skipped for the next allowed one (in play order,
+     * never wrapping), and when none is left the music stops instead of skipping for ever. Called when the timer starts,
+     * when the restriction is switched back on, and when something starts while the limit holds.
+     */
+    fun enforceSleepBpm() {
+        val p = player ?: return
+        if (c.queue.followingHost) return
+        service?.let {
+            pausedBySleepBpm = it.enforceSleepBpm()
+            return
+        }
+        val song = p.currentMediaItem?.toSong()
+        if (!sleepTimer.blocksBpm(song?.id) || p.mediaItemCount == 0) {
+            pausedBySleepBpm = false
+            return
+        }
+        val next = nextSleepAllowed(p)
+        if (next != C.INDEX_UNSET) {
+            pausedBySleepBpm = false
+            p.seekTo(next, 0)
+            return
+        }
+        pausedBySleepBpm = true
+        p.pause()
+        sleepAudio.reportNoEligibleSongs(sleepTimer.maxBpm.value)
+    }
+
+    internal fun reportSleepBpmExhausted() = sleepAudio.reportNoEligibleSongs(sleepTimer.maxBpm.value)
+
+    /** The first item after the one playing (in play order) the limit allows, or [C.INDEX_UNSET] when none is left. */
+    internal fun nextSleepAllowed(p: Player): Int {
+        val tl = p.currentTimeline
+        var i = tl.getNextWindowIndex(p.currentMediaItemIndex, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled)
+        var seen = 0
+        while (i != C.INDEX_UNSET && seen < tl.windowCount) {
+            if (!sleepTimer.blocksBpm(p.getMediaItemAt(i).toSong()?.id)) return i
+            i = tl.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled)
+            seen++
+        }
+        return C.INDEX_UNSET
+    }
+
+    /**
+     * The session's clock: every tick reads the (monotonic) clock and works the fade out from it rather than stepping a
+     * volume down, so a late tick lands on the right gain. At the end, what's already queued for the speaker plays out
+     * silent before the listener's volume comes back; a new session started meanwhile wins.
+     */
+    private fun runSleepLoop() {
+        sleepRestoreJob?.cancel()
+        sleepJob?.cancel()
+        sleepJob = scope.launch {
+            while (true) {
+                // The limit holds for the whole session, not only at a song change: a song whose tempo is measured late,
+                // a queue edited under the current song, or one added by a car are checked here too.
+                if (sleepTimer.active.value && player?.isPlaying == true) {
+                    val song = player?.currentMediaItem?.toSong()
+                    if (sleepTimer.blocksBpm(song?.id)) enforceSleepBpm()
+                }
+                val wait = sleepTimer.tick()
+                if (!sleepTimer.active.value) {
+                    sleepRestoreJob = scope.launch {
+                        kotlinx.coroutines.delay(400)
+                        if (!sleepTimer.active.value) sleepAudio.restoreVolume()
+                    }
+                    return@launch
+                }
+                kotlinx.coroutines.delay(wait)
+            }
+        }
     }
 
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-        // Paused at the end of the song for the sleep timer: done; playing on from here goes on as usual.
-        if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM && _sleepEndOfSong.value) setSleepEndOfSong(false)
-    }
-
-    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-    fun setSleepTimer(minutes: Int) {
-        if (_sleepEndOfSong.value) setSleepEndOfSong(false)
-        _sleepAt.value = if (minutes <= 0) 0 else System.currentTimeMillis() + minutes * 60_000L
-        if (minutes > 0) scope.launch {
-            val target = _sleepAt.value
-            // A5: the music fades out over the last seconds instead of stopping mid-note.
-            val fadeMs = c.settings.current.sound.sleepFadeSeconds * 1000L
-            kotlinx.coroutines.delay((minutes * 60_000L - fadeMs).coerceAtLeast(0))
-            if (_sleepAt.value != target) return@launch
-            if (fadeMs > 0 && player?.isPlaying == true) {
-                val from = android.os.SystemClock.elapsedRealtime()
-                while (_sleepAt.value == target) {
-                    val f = ((android.os.SystemClock.elapsedRealtime() - from).toFloat() / fadeMs).coerceIn(0f, 1f)
-                    NormalizerProcessor.fadeVolume = (1 - f) * (1 - f)
-                    if (f >= 1f) break
-                    kotlinx.coroutines.delay(100)
-                }
-            }
-            if (_sleepAt.value == target) {
-                player?.pause()
-                _sleepAt.value = 0
-                kotlinx.coroutines.delay(400) // what's already queued for the speaker plays out silent
-            }
-            NormalizerProcessor.fadeVolume = 1f
+        // Paused at the end of the song for the sleep timer: the finish-current-song overtime is done.
+        if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM && sleepEndOfSong.value) {
+            cancelSleepTimer()
+            return
         }
+        if (playWhenReady) onSleepPlaybackChanged()
     }
 
     // The player may only be asked on its own thread (main). Asked from anywhere else (Compose's test clock can run a frame
@@ -1584,6 +1762,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         }.asReversed()
         if (song != null && (changed || song.isLive != wasLive)) checkVideo(song)
         updateLyricTiming()
+        // A seek, a pause or a queue change moves where the current song ends: the running timer works its stop out again.
+        if (sleepTimer.active.value) sleepTimer.tick()
     }
 
     /** Called when a music video failed to load; the button stays usable so it can be tried again. */

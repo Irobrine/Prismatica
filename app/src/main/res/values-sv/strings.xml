@@ -5497,4 +5497,13 @@
     <string name="snoozed_n_tracks">%1$d låtar uppskjutna</string>
     <string name="invalid_number">Ogiltigt nummer</string>
     <string name="eq_refused">Android vägrar just nu ljudeffekter. Det löser sig om du startar om telefonen.</string>
+    <string name="time_until_sleep">Tid till insomning</string>
+    <string name="fade_out_duration">Utfadningens längd</string>
+    <string name="maximum_bpm">Högsta BPM</string>
+    <string name="sleep_timer_volume">Sömntimerns volym</string>
+    <string name="temporarily_disable_the_bpm_limit">Stäng av BPM-gränsen tillfälligt</string>
+    <string name="sleep_bpm_none_left">Inga låtar under %1$d BPM kvar</string>
+    <string name="sleep_bpm_under">Under %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">En snabbare låt, eller en med okänt tempo, hoppas över.</string>
+    <string name="sleep_timer_volume_info">Musiken spelas på den här volymen under hela timern och tonar från den till tystnad.</string>
 </resources>

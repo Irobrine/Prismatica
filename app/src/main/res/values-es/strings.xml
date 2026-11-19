@@ -5572,4 +5572,13 @@
     <string name="snoozed_n_tracks">%1$d pistas pospuestas</string>
     <string name="invalid_number">Número no válido</string>
     <string name="eq_refused">Android está rechazando los efectos de sonido en este momento. Reiniciar el teléfono lo arregla.</string>
+    <string name="time_until_sleep">Tiempo hasta que se apague</string>
+    <string name="fade_out_duration">Duración del fundido</string>
+    <string name="maximum_bpm">BPM máximo</string>
+    <string name="sleep_timer_volume">Volumen del temporizador</string>
+    <string name="temporarily_disable_the_bpm_limit">Desactivar temporalmente el límite de BPM</string>
+    <string name="sleep_bpm_none_left">No quedan canciones por debajo de %1$d BPM</string>
+    <string name="sleep_bpm_under">Menos de %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Se salta una canción más rápida o con un tempo desconocido.</string>
+    <string name="sleep_timer_volume_info">La música suena a este volumen durante todo el temporizador y se funde desde aquí hasta el silencio.</string>
 </resources>

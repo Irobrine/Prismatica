@@ -327,6 +327,8 @@ class AppContainer(val app: Application) {
         prompt()
     }
     val settings = SettingsRepository(app, scope)
+    /** The sleep timer's menu choices (time, BPM limit, finish current song, volume), kept apart from a running session. */
+    val sleepPrefs = com.prism.music.data.prefs.SleepTimerPrefs(app)
     /** Looks (1.7.3): saved, Prism's own and shared looks, Undo for look changes, the day / night schedule. */
     val looks = com.prism.music.data.looks.LookStore(app, settings, scope)
     /** Looks people shared on GitHub (themes/ in Prism's repository), fetched only when the listener opens the list. */

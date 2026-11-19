@@ -5572,4 +5572,13 @@
     <string name="snoozed_n_tracks">%1$d titres reportés</string>
     <string name="invalid_number">Nombre invalide</string>
     <string name="eq_refused">Android refuse actuellement les effets sonores. Redémarrer le téléphone règle le problème.</string>
+    <string name="time_until_sleep">Temps avant l\'endormissement</string>
+    <string name="fade_out_duration">Durée du fondu</string>
+    <string name="maximum_bpm">BPM maximal</string>
+    <string name="sleep_timer_volume">Volume du minuteur de sommeil</string>
+    <string name="temporarily_disable_the_bpm_limit">Désactiver temporairement la limite de BPM</string>
+    <string name="sleep_bpm_none_left">Plus aucun morceau sous %1$d BPM</string>
+    <string name="sleep_bpm_under">Moins de %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Un morceau plus rapide, ou dont le tempo est inconnu, est ignoré.</string>
+    <string name="sleep_timer_volume_info">La musique joue à ce volume pendant toute la minuterie, puis s\'éteint en fondu.</string>
 </resources>

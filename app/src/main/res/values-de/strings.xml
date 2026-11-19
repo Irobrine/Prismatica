@@ -5497,4 +5497,13 @@
     <string name="snoozed_n_tracks">%1$d Titel zurückgestellt</string>
     <string name="invalid_number">Ungültige Zahl</string>
     <string name="eq_refused">Android verweigert gerade Soundeffekte. Ein Neustart des Handys behebt das.</string>
+    <string name="time_until_sleep">Zeit bis zum Einschlafen</string>
+    <string name="fade_out_duration">Ausblenddauer</string>
+    <string name="maximum_bpm">Maximale BPM</string>
+    <string name="sleep_timer_volume">Lautstärke des Sleep-Timers</string>
+    <string name="temporarily_disable_the_bpm_limit">BPM-Grenze vorübergehend deaktivieren</string>
+    <string name="sleep_bpm_none_left">Keine Songs unter %1$d BPM mehr</string>
+    <string name="sleep_bpm_under">Unter %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Ein schnellerer Song oder einer mit unbekanntem Tempo wird übersprungen.</string>
+    <string name="sleep_timer_volume_info">Die Musik spielt den ganzen Timer über mit dieser Lautstärke und blendet davon zur Stille aus.</string>
 </resources>

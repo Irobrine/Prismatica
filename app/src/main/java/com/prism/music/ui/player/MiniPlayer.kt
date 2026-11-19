@@ -102,7 +102,7 @@ fun MiniPlayer(
     if (menu) com.prism.music.ui.components.SongActionsSheet(s) { menu = false }
     val container = LocalContainer.current
     var sleep by remember { mutableStateOf(false) }
-    if (sleep) SleepTimerDialog { sleep = false }
+    if (sleep) SleepTimerSheet { sleep = false }
     // The mini player's swipes (Settings → Player → Gestures): what doesn't need the full player.
     fun runMiniGesture(g: PlayerGesture) {
         when (g) {

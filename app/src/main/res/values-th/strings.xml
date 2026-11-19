@@ -5422,4 +5422,13 @@
     <string name="snoozed_n_tracks">พักไว้ %1$d แทร็ก</string>
     <string name="invalid_number">ตัวเลขไม่ถูกต้อง</string>
     <string name="eq_refused">ตอนนี้ Android ไม่ยอมสร้างเอฟเฟกต์เสียง การรีสตาร์ตโทรศัพท์จะแก้ได้</string>
+    <string name="time_until_sleep">เวลาจนถึงการนอนหลับ</string>
+    <string name="fade_out_duration">ระยะเวลาการเฟดเอาต์</string>
+    <string name="maximum_bpm">BPM สูงสุด</string>
+    <string name="sleep_timer_volume">ระดับเสียงของตัวจับเวลานอนหลับ</string>
+    <string name="temporarily_disable_the_bpm_limit">ปิดการจำกัด BPM ชั่วคราว</string>
+    <string name="sleep_bpm_none_left">ไม่มีเพลงที่ต่ำกว่า %1$d BPM เหลืออยู่</string>
+    <string name="sleep_bpm_under">ต่ำกว่า %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">เพลงที่เร็วกว่านี้หรือไม่ทราบจังหวะจะถูกข้าม</string>
+    <string name="sleep_timer_volume_info">เพลงเล่นที่ระดับเสียงนี้ตลอดช่วงตัวจับเวลา และเฟดจากตรงนี้ไปสู่ความเงียบ</string>
 </resources>

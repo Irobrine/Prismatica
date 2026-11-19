@@ -5497,4 +5497,13 @@
     <string name="snoozed_n_tracks">%1$d track ang naka-snooze</string>
     <string name="invalid_number">Di-wastong numero</string>
     <string name="eq_refused">Tinatanggihan ngayon ng Android ang mga sound effect. Maaayos ito ng pag-restart ng phone.</string>
+    <string name="time_until_sleep">Oras bago matulog</string>
+    <string name="fade_out_duration">Tagal ng pag-fade</string>
+    <string name="maximum_bpm">Pinakamataas na BPM</string>
+    <string name="sleep_timer_volume">Volume ng sleep timer</string>
+    <string name="temporarily_disable_the_bpm_limit">Pansamantalang patayin ang limitasyon sa BPM</string>
+    <string name="sleep_bpm_none_left">Wala nang kanta sa ilalim ng %1$d BPM</string>
+    <string name="sleep_bpm_under">Sa ilalim ng %1$d BPM</string>
+    <string name="sleep_timer_bpm_info">Ang mas mabilis na kanta, o ang tempo ay hindi alam, ay nilalaktawan.</string>
+    <string name="sleep_timer_volume_info">Tumutugtog ang musika sa volume na ito sa buong timer at nagfa-fade mula rito tungo sa katahimikan.</string>
 </resources>

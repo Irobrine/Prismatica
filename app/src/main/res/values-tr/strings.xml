@@ -5497,4 +5497,13 @@
     <string name="snoozed_n_tracks">%1$d parça ertelendi</string>
     <string name="invalid_number">Geçersiz sayı</string>
     <string name="eq_refused">Android şu anda ses efektlerine izin vermiyor. Telefonu yeniden başlatmak sorunu çözer.</string>
+    <string name="time_until_sleep">Uykuya kadar süre</string>
+    <string name="fade_out_duration">Sönüm süresi</string>
+    <string name="maximum_bpm">En yüksek BPM</string>
+    <string name="sleep_timer_volume">Uyku zamanlayıcısı ses düzeyi</string>
+    <string name="temporarily_disable_the_bpm_limit">BPM sınırını geçici olarak kapat</string>
+    <string name="sleep_bpm_none_left">%1$d BPM altında şarkı kalmadı</string>
+    <string name="sleep_bpm_under">%1$d BPM altında</string>
+    <string name="sleep_timer_bpm_info">Daha hızlı ya da temposu bilinmeyen bir şarkı atlanır.</string>
+    <string name="sleep_timer_volume_info">Müzik zamanlayıcı boyunca bu ses düzeyinde çalar ve buradan sessizliğe söner.</string>
 </resources>
