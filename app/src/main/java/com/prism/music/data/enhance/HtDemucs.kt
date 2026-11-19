@@ -39,6 +39,7 @@ class HtDemucs private constructor(
         frames: Long,
         cancelled: () -> Boolean,
         onProgress: (Float) -> Unit,
+        waitFor: (Long) -> Unit = {},
         emit: (vocals: FloatArray, instrumental: FloatArray) -> Unit,
     ) {
         val total = frames.coerceAtLeast(1)
@@ -54,14 +55,17 @@ class HtDemucs private constructor(
         val accV = FloatArray(N_SAMPLES * 2)
         val accI = FloatArray(N_SAMPLES * 2)
         val weight = FloatArray(N_SAMPLES)
+        val stems = FloatArray(4 * 2 * N_SAMPLES)
         var emitted = 0L
         RandomAccessFile(source, "r").use { raf ->
             var start = 0L
             while (start < total) {
                 if (cancelled()) throw SeparationCancelled()
                 val len = min(N_SAMPLES.toLong(), total - start).toInt()
+                // The song is still being decoded: wait for this piece's bytes rather than for the whole song.
+                waitFor(start + len)
                 readSource(raf, start, len, input)
-                withStems(input) { fb ->
+                withStems(input, stems) {
                     // A piece's edge is faded unless it's the song's own edge: two pieces overlap by exactly one ramp, so
                     // their weights add up to one in the crossfade and dividing by the sum restores the level.
                     val first = start == 0L
@@ -76,9 +80,9 @@ class HtDemucs private constructor(
                         val base = j * 2
                         for (ch in 0 until 2) {
                             val at = ch * N_SAMPLES + j
-                            val v = fb.get(3 * 2 * N_SAMPLES + at)
+                            val v = stems[3 * 2 * N_SAMPLES + at]
                             // Drums, bass and other: the instrumental the model itself builds.
-                            val ins = fb.get(at) + fb.get(2 * N_SAMPLES + at) + fb.get(4 * N_SAMPLES + at)
+                            val ins = stems[at] + stems[2 * N_SAMPLES + at] + stems[4 * N_SAMPLES + at]
                             accV[base + ch] += v * w
                             accI[base + ch] += ins * w
                         }
@@ -112,11 +116,12 @@ class HtDemucs private constructor(
         }
     }
 
-    /** Runs the graph on one piece and hands its stems to [use] while they are open (nothing is copied). */
-    private inline fun withStems(input: FloatArray, use: (FloatBuffer) -> Unit) {
+    /** Runs the graph on one piece and copies its stems out once (a Java array beats 2.7 M buffer reads). */
+    private inline fun withStems(input: FloatArray, out: FloatArray, use: () -> Unit) {
         OnnxTensor.createTensor(env, FloatBuffer.wrap(input), longArrayOf(1, 2, N_SAMPLES.toLong())).use { tensor ->
             session.run(mapOf("mix" to tensor)).use { result ->
-                use((result[0] as OnnxTensor).floatBuffer)
+                (result[0] as OnnxTensor).floatBuffer.get(out)
+                use()
             }
         }
     }
@@ -133,13 +138,18 @@ class HtDemucs private constructor(
         /** What each file is called on the phone; the fp32 export is a fallback for a build that can't load halves. */
         const val MODEL = "htdemucs_fp16weights.onnx"
 
-        fun load(env: OrtEnvironment, dir: File, threads: Int = DeviceCores.threads(4)): HtDemucs {
+        /** Every core but one: the player, the screen and the decoder keep theirs. */
+        fun threadsUsed(): Int = (DeviceCores.total - 1).coerceIn(1, 8)
+
+        fun load(env: OrtEnvironment, dir: File, threads: Int = threadsUsed()): HtDemucs {
             val model = File(dir, MODEL).takeIf { it.isFile } ?: File(dir, "htdemucs.onnx")
             require(model.isFile) { "The vocal separation model isn't downloaded" }
+            android.util.Log.i("PrismEnhance", "separator: ${DeviceCores.total} cores, ${DeviceCores.big} fast, ${threads.coerceIn(1, 8)} threads")
             val opts = OrtSession.SessionOptions().apply {
-                setIntraOpNumThreads(threads.coerceIn(1, 4))
-                setInterOpNumThreads(2)
-                setExecutionMode(OrtSession.SessionOptions.ExecutionMode.PARALLEL)
+                setIntraOpNumThreads(threads.coerceIn(1, 8))
+                // One graph, one stream: the inter-op scheduler and parallel execution only add synchronisation to a
+                // waveform model (measured at ~2% slower on a desktop, and it holds cores the intra-op pool wants).
+                setInterOpNumThreads(1)
                 setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
             }
             return HtDemucs(env, env.createSession(model.path, opts))

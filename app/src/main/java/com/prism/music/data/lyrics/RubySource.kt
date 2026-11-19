@@ -39,12 +39,15 @@ internal class SourceFurigana private constructor(
 
     /**
      * Each word with the annotations' characters taken out of its text and its own start and end kept: a reading takes
-     * no sung time, so what's left is sung over the word's whole span. A word that was only a reading stays as an
-     * empty word, so the words after it keep their source starts and the line still ends when it did.
+     * no sung time, so what's left is sung over the word's whole span. A word that was only a reading disappears, its time
+     * going to the word before it (the kanji it reads): the words stay contiguous over the cleaned line, which is what a
+     * sweep, the furigana and the romaji all line up against.
      */
     private fun List<LyricWord>.clean(removed: BooleanArray): List<LyricWord> {
         var at = 0
         val out = ArrayList<LyricWord>(size)
+        /** A reading before any sung text: the first real word starts where the line did. */
+        var leadStart = Long.MAX_VALUE
         for (word in this) {
             val length = word.text.length
             val text = StringBuilder(length)
@@ -55,13 +58,22 @@ internal class SourceFurigana private constructor(
             val kept = if (parts.isEmpty()) emptyList() else cleanParts(parts, removed, at, word.text)
             at += length
             val wordText = text.toString()
-            out += when {
+            val cleaned = when {
                 parts.isEmpty() -> if (wordText.length == length) word else word.copy(text = wordText)
                 wordText.length == length && kept == parts -> word
                 else -> word.copy(
                     text = wordText,
                     parts = kept.takeIf { runs -> runs.sumOf { it.length } == wordText.length }.orEmpty(),
                 )
+            }
+            if (cleaned.text.isNotEmpty()) {
+                out += if (leadStart == Long.MAX_VALUE) cleaned else cleaned.copy(startMs = minOf(cleaned.startMs, leadStart))
+                leadStart = Long.MAX_VALUE
+            } else if (out.isNotEmpty()) {
+                val last = out.removeAt(out.lastIndex)
+                out += last.copy(endMs = maxOf(last.endMs, cleaned.endMs))
+            } else {
+                leadStart = minOf(leadStart, cleaned.startMs)
             }
         }
         return out

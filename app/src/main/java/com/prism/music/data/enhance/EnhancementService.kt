@@ -272,6 +272,8 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         val iTmp = File(c.app.cacheDir, "enhance_sep_${safe(song.id)}.inst.pcm")
         // Both models are told missing before anything is decoded (the engine is started by the slots themselves).
         separatorDir(); runtimeDir()
+        // Stopping the job must stop the decode too, so the gate is kept here where the finally can reach it.
+        val gate = DecodeGate()
         return try {
             val uri = ensureAudio(song)
             val fingerprint = fingerprintOf(uri)
@@ -285,26 +287,35 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
             // Decoding a whole song is a stretch of the job with nothing to count yet: said as its own small step, so the
             // bar leaves zero while it happens.
             report(0.02f)
-            val frames44 = if (adoptPrefetched(song.id, stereo44 = true, source = uri.toString(), target = src44)) {
-                src44.length() / 4
+            val expected = if (song.durationSec > 0) song.durationSec.toLong() * HtDemucs.RATE else 0L
+            // The song is decoded on its own thread while the separator works: the first piece waits for its own bytes
+            // rather than for the whole song. A prefetched decode is already whole, so it needs no gate.
+            if (adoptPrefetched(song.id, stereo44 = true, source = uri.toString(), target = src44)) {
+                gate.publish(src44.length() / 4)
+                gate.done = true
+            } else if (expected > 0) {
+                startDecode(uri, src44, gate, cancel)
             } else {
-                AudioScratch.decode(uri, HtDemucs.RATE, 2, src44, c) { cancel.get() }
+                // No length to run ahead of: decode it whole, as before.
+                gate.publish(AudioScratch.decode(uri, HtDemucs.RATE, 2, src44, c) { cancel.get() })
+                gate.done = true
             }
-            if (frames44 <= 0) throw EnhanceNoAudio()
-            val songFrames = if (songRate == HtDemucs.RATE) frames44 else (frames44.toDouble() * songRate / HtDemucs.RATE).roundToLong()
+            val total44 = if (expected > 0) expected else gate.frames
+            if (total44 <= 0) throw EnhanceNoAudio()
             checkMemory()
             report(0.05f)
+            val inferStart = android.os.SystemClock.elapsedRealtime()
             val demucs = acquireSeparator()
             val vResample = Resampler(2, HtDemucs.RATE, songRate)
             val iResample = Resampler(2, HtDemucs.RATE, songRate)
             java.io.BufferedOutputStream(java.io.FileOutputStream(vTmp), 1 shl 16).use { vOut ->
                 java.io.BufferedOutputStream(java.io.FileOutputStream(iTmp), 1 shl 16).use { iOut ->
-                    demucs.separate(src44, frames44, { cancel.get() }, { f ->
+                    demucs.separate(src44, total44, { cancel.get() }, { f ->
                         report(0.05f + f * 0.9f)
                         // Between pieces, as Sing does: out of sight with nothing playing, the run waits rather
                         // than burning the cores of an idle phone (BackgroundBudget).
                         com.prism.music.playback.BackgroundBudget.pace { !cancel.get() }
-                    }) { vocals, instrumental ->
+                    }, waitFor = { need -> gate.await(need, cancel) }) { vocals, instrumental ->
                         writeSamples(vResample.push(vocals), 2, vOut)
                         writeSamples(iResample.push(instrumental), 2, iOut)
                     }
@@ -312,13 +323,16 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
                     writeSamples(iResample.finish(), 2, iOut)
                 }
             }
+            // The decode's own count once it's finished: the piece loop may have run on the declared length.
+            val real44 = gate.frames.takeIf { it > 0 } ?: total44
+            val songFrames = if (songRate == HtDemucs.RATE) real44 else (real44.toDouble() * songRate / HtDemucs.RATE).roundToLong()
             AudioScratch.fit(vTmp, songFrames, 2)
             AudioScratch.fit(iTmp, songFrames, 2)
             store.vocals.delete(song.id); store.generated.delete(song.id)
             if (!vTmp.renameTo(store.vocals.pcm(song.id))) { vTmp.copyTo(store.vocals.pcm(song.id), overwrite = true); vTmp.delete() }
             if (!iTmp.renameTo(store.generated.pcm(song.id))) { iTmp.copyTo(store.generated.pcm(song.id), overwrite = true); iTmp.delete() }
-            store.vocals.writeMeta(song.id, com.prism.music.playback.sing.StemStore.Meta(songRate, songFrames, complete = true, method = "MELBAND"))
-            store.generated.writeMeta(song.id, com.prism.music.playback.sing.StemStore.Meta(songRate, songFrames, complete = true, method = "MELBAND"))
+            store.vocals.writeMeta(song.id, com.prism.music.playback.sing.StemStore.Meta(songRate, songFrames, complete = true, method = "HTDEMUCS"))
+            store.generated.writeMeta(song.id, com.prism.music.playback.sing.StemStore.Meta(songRate, songFrames, complete = true, method = "HTDEMUCS"))
             val record = SeparationRecord(
                 songId = song.id, audioKey = EnhanceKeys.audioKey(song), audioFingerprint = fingerprint,
                 modelVersion = EnhanceModel.SEPARATOR.version, createdAt = System.currentTimeMillis(),
@@ -331,9 +345,17 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
             val room = c.settings.current.enhanceAudioMb.toLong() * 1_048_576L
             store.trim(room, keepForTrim(song.id))
             report(1f)
-            Log.i("PrismEnhance", "separated ${song.id} (${songRate} Hz, ${songFrames} frames)")
+            val inferMs = android.os.SystemClock.elapsedRealtime() - inferStart
+            val audioSec = total44 / HtDemucs.RATE.toDouble()
+            Log.i(
+                "PrismEnhance",
+                "separated ${song.id}: ${"%.1f".format(audioSec)} s of audio in $inferMs ms " +
+                    "(${"%.2f".format(audioSec / (inferMs / 1000.0))}× realtime, ${HtDemucs.threadsUsed()} threads), " +
+                    "(${songRate} Hz, ${songFrames} frames)",
+            )
             record
         } finally {
+            gate.abandoned = true
             src44.delete(); vTmp.delete(); iTmp.delete()
             File(c.app.cacheDir, "enhance_src_${safe(song.id)}.part").delete()
         }
@@ -635,6 +657,24 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
     }
     @Volatile private var prefetched: Prefetched? = null
     private val prefetching = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    private val decodeThread = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+        Thread(r, "PrismEnhanceDecode").apply { isDaemon = true }
+    }
+
+    /** Decodes [uri] into [target] on its own thread, publishing its progress to [gate] as it goes. */
+    private fun startDecode(uri: Uri, target: File, gate: DecodeGate, cancel: AtomicBoolean) {
+        decodeThread.execute {
+            try {
+                val frames = AudioScratch.decode(uri, HtDemucs.RATE, 2, target, c, { cancel.get() || gate.abandoned }) { f -> gate.publish(f) }
+                gate.publish(frames)
+            } catch (e: Throwable) {
+                gate.error = e
+            } finally {
+                gate.done = true
+            }
+        }
+    }
 
     private fun prefetchNext(current: EnhanceTask) {
         val next = _tasks.value.firstOrNull { it.state == "queued" } ?: return

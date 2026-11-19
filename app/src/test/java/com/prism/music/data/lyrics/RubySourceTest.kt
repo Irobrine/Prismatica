@@ -55,14 +55,16 @@ class RubySourceTest {
     }
 
     @Test
-    fun aWordThatWasOnlyAReadingKeepsTheWordsAfterItOnTime() {
+    fun aWordThatWasOnlyAReadingGivesItsTimeToTheWordBeforeIt() {
         val line = LyricLine(
             100, "君(きみ)の", 700,
             words = listOf(LyricWord(100, 300, "君"), LyricWord(300, 500, "(きみ)"), LyricWord(500, 700, "の")),
         )
         val clean = SourceFurigana.of(line.text)!!.cleanLine(line)
-        assertEquals(listOf("君", "", "の"), clean.words.map { it.text })
-        assertEquals(listOf(100L to 300L, 300L to 500L, 500L to 700L), clean.words.map { it.startMs to it.endMs })
+        // No empty word is left behind: the kanji holds the reading's time, and the words cover the cleaned line.
+        assertEquals(listOf("君", "の"), clean.words.map { it.text })
+        assertEquals(listOf(100L to 500L, 500L to 700L), clean.words.map { it.startMs to it.endMs })
+        assertEquals(clean.text, clean.words.joinToString("") { it.text })
     }
 
     @Test

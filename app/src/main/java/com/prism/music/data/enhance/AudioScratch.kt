@@ -16,18 +16,32 @@ import kotlin.math.roundToInt
  * floats, and the separator needs its gigabyte of graph on top. Everything here is 16-bit PCM, little-endian.
  */
 internal object AudioScratch {
-    /** Decodes [uri] to [channels] at [rate], writing [out]. Returns the frames written. */
-    fun decode(uri: Uri, rate: Int, channels: Int, out: File, container: AppContainer, cancelled: () -> Boolean = { false }): Long {
+    /**
+     * Decodes [uri] to [channels] at [rate], writing [out] and reporting the frames written so far after every chunk: a
+     * reader can start on the first piece while the rest of the song is still being decoded. Returns the frames written.
+     */
+    fun decode(
+        uri: Uri,
+        rate: Int,
+        channels: Int,
+        out: File,
+        container: AppContainer,
+        cancelled: () -> Boolean = { false },
+        progress: (Long) -> Unit = {},
+    ): Long {
         PcmDecoder(container.app, uri).use { dec ->
             val to = Resampler(2, dec.sampleRate, rate)
             var frames = 0L
-            BufferedOutputStream(FileOutputStream(out), 1 shl 16).use { sink ->
+            // Unbuffered on purpose: what [progress] says has been written must be readable at once.
+            FileOutputStream(out).use { sink ->
                 while (true) {
                     if (cancelled()) throw SeparationCancelled()
                     val piece = dec.read() ?: break
                     frames += writeFloats(to.push(piece), channels, sink)
+                    progress(frames)
                 }
                 frames += writeFloats(to.finish(), channels, sink)
+                progress(frames)
             }
             return frames
         }

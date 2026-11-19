@@ -218,7 +218,7 @@ internal fun LyricWord.sungPieces(): List<SungPiece> {
  */
 internal fun LyricLine.withWords(): LyricLine {
     if (isWordSynced || isGap || endMs <= timeMs || text.isBlank()) return this
-    val tokens = Regex("\\S+\\s*").findAll(text).map { it.value }.toList()
+    val tokens = wordTokens(text)
     if (tokens.isEmpty()) return this
     val letters = tokens.sumOf { it.trimEnd().length }.coerceAtLeast(1)
     val span = minOf(endMs - timeMs, letters * 75L + 500L, (endMs - timeMs) * 9 / 10).coerceAtLeast(200L)
@@ -229,6 +229,27 @@ internal fun LyricLine.withWords(): LyricLine {
     }
     // Keep the line's text exactly as its words read, so a sweep lines up.
     return copy(text = words.joinToString("") { it.text }, words = words)
+}
+
+/**
+ * The pieces a line fills by when it has no word timings of its own. Text with spaces gives words; Japanese, Chinese and
+ * Korean are split by the same script runs the aligner times, because they have none — a kanji compound, a kana run, a
+ * particle — so those lines move word by word too, as their romanisation always has.
+ */
+private fun wordTokens(text: String): List<String> {
+    val language = com.prism.music.data.enhance.AlignLanguage.of(text)
+    if (language == null || language == com.prism.music.data.enhance.AlignLanguage.ENGLISH) {
+        return Regex("\\S+\\s*").findAll(text).map { it.value }.toList()
+    }
+    val units = com.prism.music.data.enhance.LyricsUnits.units(text, language)
+    if (units.isEmpty()) return listOf(text)
+    val out = ArrayList<String>(units.size)
+    for ((i, unit) in units.withIndex()) {
+        val from = if (i == 0) 0 else unit.start
+        val to = if (i + 1 < units.size) units[i + 1].start else text.length
+        if (from in 0 until to && to <= text.length) out += text.substring(from, to)
+    }
+    return out.ifEmpty { listOf(text) }
 }
 
 /** How the line being sung is drawn ([sungPlan]): all at once, growing bolder, a light sweeping through, word by word. */
