@@ -1488,9 +1488,22 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     /** The one running sleep session: its clock, fade and BPM gate (see [SleepTimerEngine]). */
-    private val sleepTimer = SleepTimerEngine(sleepAudio, { id -> c.mixTempo.djBpm(id) })
+    private val sleepTimer = SleepTimerEngine(
+        audio = sleepAudio,
+        bpmOf = { id -> c.mixTempo.djBpm(id) },
+        onEnded = { onSleepSessionEnded() },
+    )
     private var sleepJob: Job? = null
     private var sleepRestoreJob: Job? = null
+
+    /**
+     * The BPM filter belonged to the session that just ran out: it goes back off for what plays next. Cancelling keeps
+     * the listener's saved choices (the same as the timer's other settings).
+     */
+    private fun onSleepSessionEnded() {
+        pausedBySleepBpm = false
+        c.sleepPrefs.setMaxBpm(0)
+    }
 
     /** The timer's own pause, so switching the BPM limit off can bring the music back (a listener's pause stays). */
     private var pausedBySleepBpm = false
@@ -1682,9 +1695,10 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-        // Paused at the end of the song for the sleep timer: the finish-current-song overtime is done.
+        // Paused at the end of the song for the sleep timer: the finish-current-song overtime is done (its BPM filter, if
+        // any, was only for this session, so it goes back off).
         if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM && sleepEndOfSong.value) {
-            cancelSleepTimer()
+            sleepTimer.finish()
             return
         }
         if (playWhenReady) onSleepPlaybackChanged()

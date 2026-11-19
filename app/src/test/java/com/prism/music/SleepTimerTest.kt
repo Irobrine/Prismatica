@@ -41,8 +41,8 @@ class SleepTimerTest {
 
     private var now = 1_000_000L
 
-    private fun engine(audio: FakeAudio, bpms: Map<String, Double?> = emptyMap(), wall: () -> Long = { now }): SleepTimerEngine =
-        SleepTimerEngine(audio, { bpms[it] }, { now }, wall)
+    private fun engine(audio: FakeAudio, bpms: Map<String, Double?> = emptyMap(), wall: () -> Long = { now }, onEnded: () -> Unit = {}): SleepTimerEngine =
+        SleepTimerEngine(audio, { bpms[it] }, { now }, wall, onEnded)
 
     private fun config(minutes: Int = 30, fade: Int = 0, maxBpm: Int = 0, finish: Boolean = false, volume: Float = 1f) =
         SleepConfig(minutes, fade, maxBpm, finish, volume)
@@ -286,6 +286,21 @@ class SleepTimerTest {
     }
 
     // ---------------------------------------------------------------- volume
+
+    @Test fun aSessionThatRunsOutEndsButACancelledOneIsNotTreatedAsEnded() {
+        val audio = FakeAudio()
+        var ended = 0
+        val engine = engine(audio, onEnded = { ended++ })
+        engine.start(config(minutes = 1, maxBpm = 120))
+        now += 60_000
+        engine.tick()
+        assertFalse(engine.active.value)
+        assertEquals(1, ended)
+        // Cancelling ends the session too, but it must not look like the timer ran out (its choices are kept).
+        engine.start(config(minutes = 10, maxBpm = 120))
+        engine.cancel()
+        assertEquals(1, ended)
+    }
 
     @Test fun theSessionsVolumeCanBeChangedWhileItRuns() {
         val audio = FakeAudio()

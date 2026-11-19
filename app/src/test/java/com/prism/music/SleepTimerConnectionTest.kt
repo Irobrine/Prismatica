@@ -1,6 +1,7 @@
 package com.prism.music
 
 import android.content.Context
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.test.core.app.ApplicationProvider
 import com.prism.music.data.model.Song
@@ -116,6 +117,41 @@ class SleepTimerConnectionTest {
         assertEquals(5 * 60_000.0, (after - before).toDouble(), 2_000.0)
         c.player.adjustSleepTimer(-5)
         assertEquals(before.toDouble(), c.player.sleepAt.value.toDouble(), 2_000.0)
+    }
+
+    @Test fun theBpmFilterIsOffOnceTheTimerHasRunOut() {
+        queue(song("slow", 100.0))
+        c.sleepPrefs.setMinutes(1)
+        c.sleepPrefs.setMaxBpm(120)
+        c.sleepPrefs.setFinishSong(false)
+        c.sleepPrefs.setVolume(1f)
+        c.player.startSleepTimer()
+        assertEquals(120, c.player.sleepMaxBpm.value)
+        // -5 from the one-minute countdown leaves nothing: the session runs out, and the filter was only for that session.
+        c.player.adjustSleepTimer(-5)
+        assertEquals(0, c.sleepPrefs.choices.value.maxBpm)
+        assertEquals(0, c.player.sleepMaxBpm.value)
+        assertFalse(c.player.sleepBlocksBpm("fast"))
+    }
+
+    @Test fun finishingTheCurrentSongAlsoPutsTheFilterBackOff() {
+        queue(song("slow", 100.0))
+        c.sleepPrefs.setMinutes(10)
+        c.sleepPrefs.setMaxBpm(120)
+        c.sleepPrefs.setFinishSong(true)
+        c.sleepPrefs.setVolume(1f)
+        c.player.startSleepTimer()
+        assertEquals(120, c.player.sleepMaxBpm.value)
+        c.player.onPlayWhenReadyChanged(false, Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM)
+        assertEquals(0L, c.player.sleepAt.value)
+        assertEquals(0, c.sleepPrefs.choices.value.maxBpm)
+    }
+
+    @Test fun cancellingKeepsTheBpmChoiceForNextTime() {
+        queue(song("slow", 100.0))
+        timer(maxBpm = 120)
+        c.player.cancelSleepTimer()
+        assertEquals(120, c.sleepPrefs.choices.value.maxBpm)
     }
 
     @Test fun theEditMenusVolumeChangesTheSessionAndIsRemembered() {

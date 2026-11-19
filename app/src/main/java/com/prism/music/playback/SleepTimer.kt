@@ -123,6 +123,8 @@ class SleepTimerEngine(
     private val bpmOf: (String) -> Double?,
     private val clock: () -> Long = android.os.SystemClock::elapsedRealtime,
     private val wallClock: () -> Long = System::currentTimeMillis,
+    /** A session that ended by itself (not cancelled): what a listener set only for that session can be put back. */
+    private val onEnded: () -> Unit = {},
 ) {
     private val _active = MutableStateFlow(false)
     val active: StateFlow<Boolean> = _active.asStateFlow()
@@ -311,6 +313,9 @@ class SleepTimerEngine(
         return if (fadeMs > 0 && left <= fadeMs) 40L else minOf(500L, left).coerceAtLeast(20L)
     }
 
+    /** Playback stopped at the end of the item the timer was finishing: this session is done (not cancelled). */
+    fun finish() = end()
+
     /** Pauses where the schedule says and clears the session; the caller's tail restores the volume after the buffer. */
     private fun end() {
         if (!_active.value) return
@@ -325,5 +330,8 @@ class SleepTimerEngine(
         overtime = false
         overtimeKey = null
         deadline = 0L
+        // The filter was this session's, not the listener's new default: it's back off for what comes next (cancelling
+        // keeps the choices as they were; this is a session that ran its course).
+        onEnded()
     }
 }
