@@ -56,18 +56,18 @@ class SleepTimerTest {
         assertEquals(1f, SleepFade.gain(-0.3f), 0f)
     }
 
-    @Test fun theFadeFallsEvenlyInTheDecibelDomain() {
-        fun db(g: Float) = 20.0 * kotlin.math.log10(g.toDouble())
-        // Noticeable from the beginning: a tenth of the way in, several dB are already gone (the old power curve was
-        // under 1 dB there).
-        assertTrue("only ${db(SleepFade.gain(0.1f))} dB at a tenth", db(SleepFade.gain(0.1f)) < -3.0)
-        // Each fifth of the main fade takes a similar share (48 dB over 94%, so about 10 dB each), not the last fifth.
-        val fifths = listOf(0f, 0.2f, 0.4f, 0.6f, 0.8f).map { SleepFade.gain(it) }
-        val drops = fifths.zipWithNext { a, b -> db(a) - db(b) }
-        for ((i, drop) in drops.withIndex()) {
-            assertTrue("fifth $i takes $drop dB", drop in 8.0..11.5)
+    @Test fun theFadeFallsInAStraightLineOfPerceivedVolume() {
+        fun perceived(g: Float) = kotlin.math.sqrt(g)
+        assertEquals(1f, perceived(SleepFade.gain(0f)), 1e-4f)
+        // A 60 s fade's requested line: 52% volume halfway, and 20% with ten seconds left.
+        assertEquals(0.52f, perceived(SleepFade.gain(0.5f)), 2e-3f)
+        assertEquals(SleepFade.END_VOLUME, perceived(SleepFade.gain(5f / 6f)), 1e-3f)
+        // Straight from 100% to 20% over the first five sixths, not bunched at the end.
+        for (i in 0..10) {
+            val p = (5f / 6f) * i / 10f
+            val want = 1f - (1f - SleepFade.END_VOLUME) * (i / 10f)
+            assertEquals("at $p", want, perceived(SleepFade.gain(p)), 1e-4f)
         }
-        assertTrue("the first fifth is not the biggest: $drops", drops.max() - drops.min() < 3.0)
         var previous = 1f
         for (i in 0..1000) {
             val g = SleepFade.gain(i / 1000f)
@@ -81,9 +81,20 @@ class SleepTimerTest {
         assertTrue("a step at the very end: ${SleepFade.gain(0.999999f)}", SleepFade.gain(0.999999f) < 1e-5f)
     }
 
+    @Test fun aSixtySecondFadeFollowsTheRequestedLine() {
+        fun atSeconds(seconds: Int) = kotlin.math.sqrt(SleepFade.gain(seconds / 60f))
+        assertEquals(1f, atSeconds(0), 1e-4f)
+        assertEquals(0.52f, atSeconds(30), 1e-2f)
+        assertEquals(0.20f, atSeconds(50), 1e-2f)
+        // The last ten seconds are the taper to silence, so it is quieter than the line but not a cut.
+        assertTrue(atSeconds(55) < 0.16f)
+        assertTrue(atSeconds(59) < 0.05f)
+        assertEquals(0f, SleepFade.gain(1f), 0f)
+    }
+
     @Test fun everyFadeLengthUsesTheSameEvenShape() {
-        // 15, 30, 60 and 120 seconds: a quarter of the way in the volume has already come down clearly, and the rest is
-        // spread over the fade rather than saved for the end.
+        // 15, 30, 60 and 120 seconds: a quarter of the way in the volume is still well above half, and the rest is spread
+        // over the fade rather than saved for the end.
         for (seconds in listOf(15, 30, 60, 120)) {
             now = 1_000_000L
             val audio = FakeAudio()
@@ -96,7 +107,7 @@ class SleepTimerTest {
                 engine.tick()
                 audio.fades.last()
             }
-            assertTrue("${seconds}s: too loud a quarter in (${gains[0]})", gains[0] < 0.5f)
+            assertTrue("${seconds}s: too quiet a quarter in (${gains[0]})", gains[0] > 0.5f)
             assertTrue("${seconds}s: not falling (${gains})", gains[0] > gains[1] && gains[1] > gains[2])
             assertEquals(SleepFade.gain(0.5f), gains[1], 1e-4f)
             assertEquals(0f, SleepFade.gain(1f), 0f)

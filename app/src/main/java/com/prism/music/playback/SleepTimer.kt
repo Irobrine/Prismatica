@@ -3,47 +3,41 @@ package com.prism.music.playback
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.math.pow
 
 /**
- * The fade's shape. Volume is worked out in the decibel domain, where a steady fall is heard as a steady fade: a straight
- * amplitude fall (or a power curve such as p^2.5) keeps the music loud for most of the fade and then drops it all at once.
- * A gentle S-shape over the dB range keeps the very start soft without holding the volume high, and the last [TAPER] of
- * the fade eases the amplitude itself to exactly zero (0 dB's floor is minus infinity, so the end is handled apart).
+ * The fade's shape. The app's volume slider treats its place as perceived loudness and squares it for amplitude
+ * (NormalizerProcessor.volumeFor), so the fade does the same: the perceived volume falls in a straight line from 100% to
+ * [END_VOLUME] over the first part of the fade (50 of a 60-second fade's seconds), then eases from there to exactly zero
+ * in the last [TAPER] (the last 10 seconds of a 60-second fade). A 60-second fade is therefore at 52% volume at its
+ * halfway mark and at 20% with 10 seconds left, instead of being nearly silent by halfway.
  *
  * [gain] only ever looks at [progress], so how often the caller ticks has no effect on the volume; the engine derives
  * progress from the monotonic clock.
  */
 object SleepFade {
-    /** How far the fade falls over its main part, in dB. Below this the music is inaudible on ordinary playback. */
-    const val RANGE_DB = 48.0
+    /** The perceived volume (0 … 1) where the final taper begins, with [TAPER] of the fade left. */
+    const val END_VOLUME = 0.2f
 
-    /** How much of the fade is the final amplitude taper to exactly zero. */
-    const val TAPER = 0.06f
-
-    /** Where the gentle S-curve sits between a straight dB line (0) and a full smoothstep (1). */
-    const val EASE = 0.15f
-
-    /** 0 … 1 of the dB range: mostly even, with a soft start that still begins moving at once. */
-    private fun eased(progress: Float): Float {
-        val smooth = progress * progress * (3f - 2f * progress)
-        return (1f - EASE) * progress + EASE * smooth
-    }
+    /** The final part of the fade: it eases amplitude to exactly zero (silence is minus infinity dB, so handled apart). */
+    const val TAPER = 1f / 6f
 
     /**
-     * The fade's gain at [progress] (0: the fade starts, 1: the music stops). A gentle dB-domain easing over the main
-     * fade, then a smoothstep amplitude taper so it is exactly 0 at 1 with no step at the very end.
+     * The fade's gain at [progress] (0: the fade starts, 1: the music stops). Straight in perceived volume until
+     * [END_VOLUME], then a smoothstep to exactly 0 at 1, with no step at the very end.
      */
     fun gain(progress: Float): Float {
         val p = progress.coerceIn(0f, 1f)
         if (p >= 1f) return 0f
         if (p <= 0f) return 1f
-        val db = -RANGE_DB * eased(p)
-        val amplitude = 10.0.pow(db / 20.0).toFloat()
-        // dB has no zero: in the last moments the amplitude itself eases to 0, its slope reaching 0 with it.
-        if (p <= 1f - TAPER) return amplitude
+        val taperStart = 1f - TAPER
+        if (p <= taperStart) {
+            // Perceived volume: a straight line. The squared place is the amplitude that slider's volume means.
+            val volume = 1f - (1f - END_VOLUME) * (p / taperStart)
+            return (volume * volume).coerceIn(0f, 1f)
+        }
+        // The last moments: from END_VOLUME's amplitude to 0, with the slope reaching 0 with it.
         val t = ((1f - p) / TAPER).coerceIn(0f, 1f)
-        return (amplitude * (t * t * (3f - 2f * t))).coerceIn(0f, 1f)
+        return (END_VOLUME * END_VOLUME * (t * t * (3f - 2f * t))).coerceIn(0f, 1f)
     }
 }
 
