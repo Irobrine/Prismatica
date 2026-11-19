@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.prism.music.data.prefs.AppSettings
+import com.prism.music.ui.player.PlayerInk
 import com.prism.music.ui.player.PlayerMorph
 import com.prism.music.ui.player.PlayerMorphLayer
 import com.prism.music.ui.theme.PrismTheme
@@ -61,6 +64,7 @@ class PlayerMorphLayerTest {
         PlayerMorph.playerArtist = null
         PlayerMorph.playerPlay = null
         PlayerMorph.animationsOff = false
+        PlayerInk.light = false
     }
 
     @Test fun nothingMovesAtEitherEnd() {
@@ -96,6 +100,30 @@ class PlayerMorphLayerTest {
         compose.runOnIdle { PlayerMorph.snap(1f) }
         compose.waitForIdle()
         compose.onNodeWithTag("playerMorphTitle").assertDoesNotExist()
+    }
+
+    /**
+     * Over the White player the real play button is drawn through PlayerInk (a black disc with a white glyph). The copy
+     * has to land on that, not on the white disc it uses on every other background: the hand-over there would otherwise
+     * flip the control's colors in one frame.
+     */
+    @Test fun overTheWhitePlayerTheCopyLandsInked() {
+        PlayerInk.light = true
+        PlayerMorph.snap(0.999f)
+        show()
+        compose.waitForIdle()
+        val image = compose.onNodeWithTag("playerMorphPlay").captureToImage().asAndroidBitmap()
+        var dark = 0
+        var bright = 0
+        for (y in 0 until image.height step 2) for (x in 0 until image.width step 2) {
+            val pixel = image.getPixel(x, y)
+            if (android.graphics.Color.alpha(pixel) <= 200) continue
+            val l = (0.2126f * ((pixel shr 16) and 0xFF) + 0.7152f * ((pixel shr 8) and 0xFF) + 0.0722f * (pixel and 0xFF)) / 255f
+            if (l < 0.2f) dark++
+            if (l > 0.8f) bright++
+        }
+        assertTrue("the disc reads dark over White ($dark dark, $bright bright)", dark > 2_000)
+        assertTrue("and its glyph light ($bright bright)", bright > 20)
     }
 
     @Test fun reduceMotionLeavesThemOut() {

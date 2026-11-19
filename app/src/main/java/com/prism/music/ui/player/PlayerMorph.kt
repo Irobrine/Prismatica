@@ -491,8 +491,10 @@ fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
     val artistStyle = lerpStyle(typography.bodySmall, playerArtistStyle(typography, settings), t)
     // The words turn white sooner than they grow: over the player's dark picture they must stay readable all the way.
     val ink = (t * 1.6f).coerceAtMost(1f)
-    val titleColor = lerp(scheme.onSurface, Color.White, ink)
-    val artistColor = lerp(scheme.onSurfaceVariant, Color.White.copy(alpha = 0.6f), ink)
+    val playerTitle = if (PlayerInk.light) PlayerInk.over(Color.White) else Color.White
+    val playerArtist = if (PlayerInk.light) PlayerInk.over(Color.White.copy(alpha = 0.6f)) else Color.White.copy(alpha = 0.6f)
+    val titleColor = lerp(scheme.onSurface, playerTitle, ink)
+    val artistColor = lerp(scheme.onSurfaceVariant, playerArtist, ink)
     if (fromTitle != null && toTitle != null) {
         MorphLine(title, fromTitle, toTitle, t, titleStyle, titleColor, "playerMorphTitle")
     }
@@ -532,7 +534,6 @@ fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
 @Composable
 private fun MorphPlay(from: Rect, to: Rect, t: Float, isPlaying: Boolean) {
     val settings = LocalAppSettings.current
-    val scheme = MaterialTheme.colorScheme
     val style = settings.transportStyle
     val mini = settings.miniPlayerStyle
     val compact = PlayerMorph.playCompact
@@ -551,16 +552,26 @@ private fun MorphPlay(from: Rect, to: Rect, t: Float, isPlaying: Boolean) {
         MiniPlayerStyle.PILL -> 24.dp
     }
     val miniDisc = if (mini == MiniPlayerStyle.PILL) 40.dp else 0.dp
-    val miniDiscColor = if (mini == MiniPlayerStyle.PILL) scheme.onSurface else Color.Transparent
-    val discColor = when (style) {
-        TransportStyle.GLYPHS -> Color.Transparent
-        TransportStyle.BUTTON -> Color.White
-        TransportStyle.OUTLINE -> Color.White.copy(alpha = 0.10f)
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    // Exactly the two ends the real controls draw (the mini player's and the full player's), so neither hand-over
+    // changes color: [miniPlayColors] and [playDiscColors] are what those two read.
+    val (miniDiscColor, miniTint) = miniPlayColors(mini)
+    val (playerDisc, playerTint) = when (style) {
+        TransportStyle.GLYPHS -> Color.Transparent to Color.White
+        TransportStyle.BUTTON, TransportStyle.OUTLINE -> playDiscColors(filled = style == TransportStyle.BUTTON)
     }
+    // Over the White player (and Material You's light one) the real controls are drawn through [PlayerInk]: the copy
+    // lands on what they read as there, so the hand-over there doesn't invert it in a single frame.
+    val discColor = if (PlayerInk.light) PlayerInk.over(playerDisc) else playerDisc
     // The words turn white sooner than they grow; the control does the same on its way over the player's dark picture.
     val ink = (t * 1.6f).coerceAtMost(1f)
-    val tint = lerp(if (mini == MiniPlayerStyle.PILL) scheme.surface else scheme.onSurface, if (style == TransportStyle.BUTTON) Color.Black else Color.White, ink)
-    val ring = style != TransportStyle.GLYPHS && settings.view.playRing
+    val tint = lerp(miniTint, if (PlayerInk.light) PlayerInk.over(playerTint) else playerTint, ink)
+    val ring = style != TransportStyle.GLYPHS && settings.view.playRing && !material
+    // The ring is the one drawn thing the White player's ink has to be worked out for by hand (a brush, not a color);
+    // without it the copy would land with the ring's colors reading the other way round.
+    val ringBrush = if (ring && PlayerInk.light) androidx.compose.ui.graphics.Brush.sweepGradient(
+        PrismTokens.ringOf(PrismTokens.white, PrismTokens.whiteAccent, PrismTokens.light).map { PlayerInk.over(it) },
+    ) else PrismTokens.spectrumRing()
     val r = lerpRect(from, to, t)
     Box(
         Modifier
@@ -578,7 +589,7 @@ private fun MorphPlay(from: Rect, to: Rect, t: Float, isPlaying: Boolean) {
             Modifier.size(d).clip(CircleShape).background(lerp(miniDiscColor, discColor, t)).drawWithContent {
                 drawContent()
                 // The ring comes in with the disc, not all at once at the end.
-                if (ring) drawCircle(PrismTokens.spectrumRing(), radius = size.minDimension / 2f, style = Stroke(2.dp.toPx()), alpha = t)
+                if (ring) drawCircle(ringBrush, radius = size.minDimension / 2f, style = Stroke(2.dp.toPx()), alpha = t)
             },
         )
         Icon(
@@ -599,7 +610,7 @@ private fun MorphSkip(from: Rect, to: Rect, t: Float, miniIcon: ImageVector, pla
     val size: Dp = (if (compact) 44.dp else 53.dp) * (if (glyphs) 1f else 0.82f)
     val heightScale = if (glyphs) 0.85f else 1f
     val ink = (t * 1.6f).coerceAtMost(1f)
-    val tint = lerp(scheme.onSurface, Color.White, ink)
+    val tint = lerp(scheme.onSurface, if (PlayerInk.light) PlayerInk.over(Color.White) else Color.White, ink)
     // The player dims a control it can't use (the queue's ends); the copy dims with it.
     val weight = 1f + (if (enabled) 0f else -0.7f) * t
     val r = lerpRect(from, to, t)

@@ -757,6 +757,33 @@ private fun ModeGlyph(icon: ImageVector, description: String, active: Boolean, b
 }
 
 /**
+ * The play control's disc fill and its glyph's tint, as the full player draws them: the white disc and black glyph by
+ * default, Material You's roles where that design is on, and the White player's own inversion where its ink applies.
+ * The morph's moving copy lands on these two, so the hand-over at either end doesn't change color in one frame.
+ */
+@Composable
+internal fun playDiscColors(filled: Boolean): Pair<Color, Color> {
+    val scheme = MaterialTheme.colorScheme
+    val material = com.prism.music.ui.theme.LocalUi.current.material
+    val adapted = PlayerInk.accentAdapted
+    val disc = when {
+        material -> PlayerInk.accent(if (filled) scheme.primary else scheme.surfaceContainerHighest)
+        adapted && filled -> PlayerInk.accent(scheme.primary)
+        adapted -> PlayerInk.accent(scheme.surfaceContainerHighest)
+        filled -> Color.White
+        else -> Color.White.copy(alpha = 0.10f)
+    }
+    val tint = when {
+        material -> PlayerInk.accent(if (filled) scheme.onPrimary else scheme.onSurface)
+        adapted && filled -> PlayerInk.accent(scheme.onPrimary)
+        adapted -> PlayerInk.accent(scheme.onSurface)
+        filled -> Color.Black
+        else -> Color.White
+    }
+    return disc to tint
+}
+
+/**
  * Play / pause in a white disc ([filled]) or on glass, edged with one ring of split light: the disc's own edge, so
  * there's never a second ring or a gap that reads as one.
  */
@@ -764,16 +791,8 @@ private fun ModeGlyph(icon: ImageVector, description: String, active: Boolean, b
 private fun PlayDisc(isPlaying: Boolean, isLoading: Boolean, filled: Boolean, size: Dp, onClick: () -> Unit) {
     val haptics = rememberHaptics()
     val pressed = remember { MutableInteractionSource() }
-    val scheme = MaterialTheme.colorScheme
     val material = com.prism.music.ui.theme.LocalUi.current.material
-    val adapted = PlayerInk.accentAdapted
-    val discFill = when {
-        material -> PlayerInk.accent(if (filled) scheme.primary else scheme.surfaceContainerHighest)
-        adapted && filled -> PlayerInk.accent(scheme.primary)
-        adapted -> PlayerInk.accent(scheme.surfaceContainerHighest)
-        filled -> Color.White
-        else -> Color.White.copy(alpha = 0.10f)
-    }
+    val (discFill, tint) = playDiscColors(filled)
     Box(
         Modifier.size(size + 14.dp).testTag("playDisc").clickable(pressed, indication = null) { haptics.click(); onClick() },
         contentAlignment = Alignment.Center,
@@ -784,13 +803,6 @@ private fun PlayDisc(isPlaying: Boolean, isLoading: Boolean, filled: Boolean, si
                 .then(if (!material && com.prism.music.ui.theme.LocalAppSettings.current.view.playRing) Modifier.border(2.dp, com.prism.music.ui.theme.PrismTokens.spectrumRing(), CircleShape) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
-            val tint = when {
-                material -> PlayerInk.accent(if (filled) scheme.onPrimary else scheme.onSurface)
-                adapted && filled -> PlayerInk.accent(scheme.onPrimary)
-                adapted -> PlayerInk.accent(scheme.onSurface)
-                filled -> Color.Black
-                else -> Color.White
-            }
             if (isLoading) CircularProgressIndicator(color = tint, strokeWidth = 1.5.dp, modifier = Modifier.size(size * 0.42f))
             else Crossfade(isPlaying, animationSpec = tween(160), label = "playDisc") { p ->
                 Icon(if (p) PrismIcons.Pause else PrismIcons.Play, if (p) tr(R.string.widget_pause) else tr(R.string.widget_play), tint = tint, modifier = Modifier.size(size * (if (filled) 0.56f else 0.46f)))

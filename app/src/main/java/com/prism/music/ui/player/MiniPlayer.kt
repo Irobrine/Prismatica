@@ -425,19 +425,23 @@ fun MiniPlayer(
             // Play / pause can be left off (Reddit, 1.8.1): a tap still opens the player.
             if (!settings.view.miniPlayButton) {
                 if (!settings.miniSkipButtons) Spacer(Modifier.width(8.dp))
-            } else if (style == MiniPlayerStyle.PILL) {
-                Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(if (material) scheme.primary else scheme.onSurface)
-                        .miniPlayAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesPlay) 0f else 1f }
-                        .clickable { haptics.click(); pc.togglePlay() },
-                    contentAlignment = Alignment.Center,
-                ) { MiniPlayPause(playing, 24.dp, tint = if (material) scheme.onPrimary else scheme.surface) }
             } else {
-                IconButton(
-                    onClick = { haptics.click(); pc.togglePlay() },
-                    modifier = Modifier.size(44.dp).miniPlayAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesPlay) 0f else 1f },
-                ) {
-                    MiniPlayPause(playing, if (style == MiniPlayerStyle.SLIM) 26.dp else 28.dp)
+                // The morph's moving copy starts on exactly these two (PlayerMorph.MorphPlay).
+                val (playDisc, playTint) = miniPlayColors(style)
+                if (style == MiniPlayerStyle.PILL) {
+                    Box(
+                        Modifier.size(40.dp).clip(CircleShape).background(playDisc)
+                            .miniPlayAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesPlay) 0f else 1f }
+                            .clickable { haptics.click(); pc.togglePlay() },
+                        contentAlignment = Alignment.Center,
+                    ) { MiniPlayPause(playing, 24.dp, tint = playTint) }
+                } else {
+                    IconButton(
+                        onClick = { haptics.click(); pc.togglePlay() },
+                        modifier = Modifier.size(44.dp).miniPlayAnchor().graphicsLayer { alpha = if (PlayerMorph.hidesPlay) 0f else 1f },
+                    ) {
+                        MiniPlayPause(playing, if (style == MiniPlayerStyle.SLIM) 26.dp else 28.dp, tint = playTint)
+                    }
                 }
             }
             if (settings.miniSkipButtons) {
@@ -457,6 +461,21 @@ fun MiniPlayer(
                 )
             }
         }
+    }
+}
+
+/**
+ * The mini player's play control as it draws it: the disc's fill (clear where it's a bare glyph) and the glyph's tint.
+ * [PlayerMorph]'s moving copy starts on exactly these two, so opening it doesn't change the control's color in a frame.
+ */
+@Composable
+internal fun miniPlayColors(style: MiniPlayerStyle): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> {
+    val scheme = MaterialTheme.colorScheme
+    val material = LocalUi.current.material
+    return if (style == MiniPlayerStyle.PILL) {
+        (if (material) scheme.primary else scheme.onSurface) to (if (material) scheme.onPrimary else scheme.surface)
+    } else {
+        androidx.compose.ui.graphics.Color.Transparent to androidx.compose.material3.LocalContentColor.current
     }
 }
 
