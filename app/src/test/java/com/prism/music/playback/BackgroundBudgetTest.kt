@@ -94,10 +94,24 @@ class BackgroundBudgetTest {
         assertTrue("a slow phone keeps a core's worth for its screen: ${slow.cpu} ms", slow.cpu < 70_000)
     }
 
+    @Test fun aWalkUnderItsOwnServiceCountsAsWorking() {
+        // On screen, as before, whatever is running.
+        assertEquals(Where.ON_SCREEN, BackgroundBudget.whereOf(onScreen = true, measuring = true, enhancing = true, playing = true))
+        // Out of sight: a walk the listener started may use the cores it needs, music keeps a core's worth.
+        assertEquals(Where.WORKING, BackgroundBudget.whereOf(onScreen = false, measuring = true, enhancing = false, playing = false))
+        assertEquals(Where.WORKING, BackgroundBudget.whereOf(onScreen = false, measuring = false, enhancing = true, playing = false))
+        assertEquals(Where.PLAYING, BackgroundBudget.whereOf(onScreen = false, measuring = false, enhancing = false, playing = true))
+        // Nothing of the listener's: rested to nothing after the grace.
+        assertEquals(Where.AWAY, BackgroundBudget.whereOf(onScreen = false, measuring = false, enhancing = false, playing = false))
+    }
+
     @Test fun theShareForEachPlace() {
         assertEquals(-1.0, BackgroundBudget.share(Where.ON_SCREEN, 0, false), 0.0)
         assertEquals(1.0, BackgroundBudget.share(Where.ON_SCREEN, 0, true), 0.0)
         assertEquals(1.0, BackgroundBudget.share(Where.PLAYING, 0, false), 0.0)
+        // A listener's walk: every core but one, whatever the phone has (and never none).
+        assertEquals(5.0, BackgroundBudget.share(Where.WORKING, 0, false, cores = 6), 0.0)
+        assertEquals(1.0, BackgroundBudget.share(Where.WORKING, 0, false, cores = 1), 0.0)
         assertEquals(BackgroundBudget.AWAY_SHARE, BackgroundBudget.share(Where.AWAY, 0, false), 0.0)
         assertEquals(0.0, BackgroundBudget.share(Where.AWAY, BackgroundBudget.AWAY_GRACE_MS, false), 0.0)
     }

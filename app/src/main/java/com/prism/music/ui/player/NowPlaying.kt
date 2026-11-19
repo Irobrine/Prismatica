@@ -361,6 +361,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     var showSleep by remember { mutableStateOf(false) }
     var showTiming by remember { mutableStateOf(false) }
     var showSing by remember { mutableStateOf(false) }
+    var showEnhance by remember { mutableStateOf(false) }
     // Opened from the player's own buttons (1.7.4): where the sound goes, a playlist to add to, sharing.
     var showOutputs by remember { mutableStateOf(false) }
     var showPlaylists by remember { mutableStateOf(false) }
@@ -717,7 +718,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
 
     // The sheets that open over the player (in immersive mode too).
     val playerSheets = @Composable {
-        if (showProviders) LyricsProviderSheet(lyricsState) { showProviders = false }
+        if (showProviders) LyricsProviderSheet(lyricsState, onEnhance = { showProviders = false; showEnhance = true }) { showProviders = false }
         if (showActions) PlayerOptionsSheet(
             song,
             hasCanvas = songCanvas != null,
@@ -741,10 +742,13 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             // Sing from the menu: the lyrics open with Sing on and its controls up (the download sheet the first time).
             // ⋯ → Sing: its sheet (Sing on or off, the voice, the key; the one-time download first).
             onSing = { showSing = true },
+            // ⋯ → Lyrics enhancement: word timings, separated vocals, generated instrumentals, one at a time.
+            onEnhance = { showEnhance = true },
         ) { showActions = false }
         if (showSleep) SleepTimerSheet { showSleep = false }
         if (showTiming) LyricsTimingSheet { showTiming = false }
-        if (showSing) SingSheet(song) { showSing = false }
+        if (showSing) SingSheet(song, onEnhance = { showEnhance = true }) { showSing = false }
+        if (showEnhance) EnhanceSheet(song) { showEnhance = false }
         // Held Best part button, or ⋯ → Your best part.
         if (BestPartEditor.open) BestPartSheet { BestPartEditor.open = false }
         if (showOutputs) {
@@ -1144,6 +1148,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             onCollapse = onCollapse,
             onSing = { showSing = true },
             onSingNeedsDownload = { showSing = true },
+            onEnhance = { showEnhance = true },
             onButton = onButton,
         ) else
         Column(Modifier.fillMaxSize().windowInsetsPadding(statusBarRoom()).navigationBarsPadding().then(skipGesture), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1665,7 +1670,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             exit = shrinkVertically(tween(320, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Bottom) +
                                 fadeOut(tween(180)),
                         ) {
-                            LyricsButtonsRow(song, lyricsState, onChangeSource = { showProviders = true }, onNeedsDownload = { showSing = true }, modifier = Modifier.padding(bottom = 6.dp))
+                            LyricsButtonsRow(song, lyricsState, onChangeSource = { showProviders = true }, onNeedsDownload = { showSing = true }, onEnhance = { showEnhance = true }, modifier = Modifier.padding(bottom = 6.dp))
                         }
                         // Minimal: play, and gestures for the rest (the lyrics and queue still have the whole deck).
                         if (layout == com.prism.music.data.prefs.PlayerLayout.MINIMAL && !panelsUp) {

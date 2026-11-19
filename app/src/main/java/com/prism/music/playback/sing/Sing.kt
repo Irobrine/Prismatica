@@ -9,6 +9,7 @@ import android.os.Process
 import android.util.Log
 import com.prism.music.AppContainer
 import com.prism.music.data.ModelStore
+import com.prism.music.data.enhance.InstrumentalKind
 import com.prism.music.data.model.Song
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,6 +61,42 @@ class Sing(private val c: AppContainer) : VocalStemProcessor.Source {
         private set
     @Volatile override var onNow = false
         private set
+
+    /**
+     * What Sing's backing is made from: [InstrumentalKind.ORIGINAL] keeps the song as it is and takes the separated
+     * voice out (the way it always worked); GENERATED or EXTERNAL replaces the backing with that whole track. The choice
+     * is per song and defaults to ORIGINAL, even when a generated instrumental exists, so a new instrumental never
+     * silently takes over.
+     */
+    private val instrumentalPrefs by lazy { c.app.getSharedPreferences("sing_instrumental", android.content.Context.MODE_PRIVATE) }
+    private val pickedInstrumental = java.util.concurrent.ConcurrentHashMap<String, InstrumentalKind>()
+
+    fun instrumentalKind(songId: String): InstrumentalKind {
+        // A cache hit is the common case on the playback thread (once a buffer); files are only checked when a store is
+        // first asked about or the listener changes the choice.
+        pickedInstrumental[songId]?.let { return it }
+        val wanted = runCatching { InstrumentalKind.valueOf(instrumentalPrefs.getString(songId, "") ?: "") }.getOrNull()
+        val ready = when (wanted) {
+            InstrumentalKind.GENERATED -> c.enhanceStore.hasGeneratedInstrumental(songId)
+            InstrumentalKind.EXTERNAL -> c.enhanceStore.hasExternalInstrumental(songId)
+            else -> false
+        }
+        val kind = if (ready) wanted!! else InstrumentalKind.ORIGINAL
+        pickedInstrumental[songId] = kind
+        return kind
+    }
+
+    fun setInstrumental(songId: String, kind: InstrumentalKind) {
+        pickedInstrumental[songId] = kind
+        instrumentalPrefs.edit().putString(songId, kind.name).apply()
+    }
+
+    /** The store the playing processor reads for [songId], or null for the original backing. */
+    override fun instrumentalFor(songId: String): VocalStemProcessor.Instrumental? = when (instrumentalKind(songId)) {
+        InstrumentalKind.GENERATED -> VocalStemProcessor.Instrumental(c.enhanceStore.generated, generated = true)
+        InstrumentalKind.EXTERNAL -> VocalStemProcessor.Instrumental(c.enhanceStore.external, generated = false)
+        InstrumentalKind.ORIGINAL -> null
+    }
 
     private val worker = Executors.newSingleThreadExecutor { r ->
         Thread({ Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND); r.run() }, "PrismSing").apply { isDaemon = true }

@@ -129,14 +129,15 @@ class PrismApp : Application(), coil3.SingletonImageLoader.Factory {
         container = AppContainer(this)
         // How much of the processor heavy work may take: see BackgroundBudget.
         com.prism.music.playback.BackgroundBudget.where = {
-            when {
-                container.visible.value -> com.prism.music.playback.BackgroundBudget.Where.ON_SCREEN
-                // A measuring walk the listener started runs under its own foreground service (MeasureService): kept to a
-                // core's worth, as music playing is, rather than rested to nothing out of sight (1.1.3).
-                container.measureSongs.running.value -> com.prism.music.playback.BackgroundBudget.Where.PLAYING
-                container.player.isPlaying.value || container.player.buffering.value -> com.prism.music.playback.BackgroundBudget.Where.PLAYING
-                else -> com.prism.music.playback.BackgroundBudget.Where.AWAY
-            }
+            com.prism.music.playback.BackgroundBudget.whereOf(
+                onScreen = container.visible.value,
+                // A measuring walk or an enhancement batch the listener started runs under its own foreground service
+                // (MeasureService, EnhanceService): kept to a core's worth, as music playing is, rather than rested to
+                // nothing out of sight (1.1.3).
+                measuring = container.measureSongs.running.value,
+                enhancing = container.enhancing,
+                playing = container.player.isPlaying.value || container.player.buffering.value,
+            )
         }
         com.prism.music.playback.BackgroundBudget.slowPhone = { com.prism.music.playback.MixTempo.slowPhone() }
         // Android's own backup restored onto another install: its sign-ins aren't this phone's (RestoredInstall).
@@ -400,6 +401,8 @@ class AppContainer(val app: Application) {
             if (s.isLocal) localMusic.uriFor(s.id) else localLossless.match(s)?.uri
         }
         fileLyrics = { s -> if (settings.current.behavior.embeddedLyrics) files.lyricsOf(s) else null }
+        // Generated word timings are an overlay on whatever the source gave, never a replacement for its text.
+        enhancement = { s, l -> kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { enhance.overlay(s, l) } }
     }
     /** Search by a line of the lyrics, from the box itself (1.7.6). */
     val lyricSearch = com.prism.music.data.lyrics.LyricSearch(http, ytm, db.lyricsSearch(), db.songs(), lyrics::textLines)
@@ -440,19 +443,33 @@ class AppContainer(val app: Application) {
         return cachedAudio(songId, scratch)
     }
 
+    /**
+     * The file on the phone matched to song [id] ([com.prism.music.data.local.LocalLossless.matched]): the player reads
+     * that file for it ([PlaybackService.losslessFileFor]), so its own id ([formId]) is the recording heard — the id the
+     * file is measured under. Null when none is matched, or the phone can't decode it (the stream plays that one).
+     */
+    private fun matchedFileId(id: String): String? {
+        val track = localLossless.matched[id] ?: return null
+        if (track.uri in localLossless.unplayable) return null
+        // The files' ids are their MediaStore ids ([com.prism.music.data.local.LocalMusic]); a file without one isn't
+        // one the library knows, so the song's own recording stands.
+        val media = track.uri.lastPathSegment?.takeIf { it.isNotEmpty() && it.all { c -> c.isDigit() } } ?: return null
+        return com.prism.music.data.model.Song.LOCAL_PREFIX + media
+    }
+
     /** [id]'s own audio on the phone (a file on the phone, its download, its whole-song cache), copied into [scratch]. */
     private fun cachedAudio(id: String, scratch: File): android.net.Uri? {
         if (id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX)) return localMusic.uriFor(id)
         // A file on the phone picked to play in its place is its sound too.
         versions.fileOf(id)?.let(localMusic::uriFor)?.let { return it }
+        // The phone's own file matched to it (OwnFiles, lossless sync): the file is what plays, so its bytes are the ones
+        // to measure — a song backed by a file used to be measured by fetching its stream again.
+        localLossless.matched[id]?.takeIf { it.uri !in localLossless.unplayable }?.let { return it.uri }
         // A finished download is the recording's own bytes here, and Downloads' own state says so — not the cache's
         // content-length metadata: a DownloadManager download records none (only [markWhole] writes it, for the song
         // cache), so asking the cache made every downloaded song look absent and its scan went to the network for the
         // whole song — data spent on bytes already on the phone, seconds a song in (the settings' "Measure songs now").
         if (downloads.isDownloaded(id)) {
-            // A lossless download is a file on the phone: measured where it is, without a copy. One the phone can't
-            // decode is a song whose stream plays instead — so the stream's bytes are the ones to measure.
-            localLossless.matched[id]?.takeIf { it.uri !in localLossless.unplayable }?.let { return it.uri }
             copyCached(downloadCache, id, scratch)?.let { return it }
         }
         // A song the player cached whole ([warmUp]): that cache keeps its length ([markWhole]), so it can be asked.
@@ -489,6 +506,7 @@ class AppContainer(val app: Application) {
             peakOf = { id -> mixTempo.peak(id) },
             measuredCurrentOf = { id -> mixTempo.loudnessCurrent(id) },
             pickedOf = { id -> versions.of(id) },
+            fileMatchedId = { id -> matchedFileId(id) },
             soundFrom = soundFrom,
         )
     }
@@ -744,6 +762,17 @@ class AppContainer(val app: Application) {
 
     /** Sing: karaoke with the song's own backing (vocals separated on the phone). */
     val sing by lazy { com.prism.music.playback.sing.Sing(this) }
+    /** Generated lyrics, vocals and instrumentals (never the original files or an added instrumental). */
+    val enhanceStore by lazy { com.prism.music.data.enhance.EnhanceStore(app.filesDir) }
+    /** Lyrics enhancement: word timings from Qwen3-ForcedAligner, vocals and instrumentals from HTDemucs. */
+    private val enhanceMade = lazy { com.prism.music.data.enhance.EnhancementService(this, enhanceStore) }
+    val enhance: com.prism.music.data.enhance.EnhancementService by enhanceMade
+    /**
+     * Whether the enhancement queue has work, asked without bringing the queue (and its model store) up: the background
+     * budget asks this between every step of every scan.
+     */
+    val enhancing: Boolean get() =
+        enhanceMade.isInitialized() && enhance.tasks.value.any { it.state == "queued" || it.state == "running" }
     val dj = com.prism.music.playback.DjMode()
     val exclusions by lazy { com.prism.music.data.foryou.Exclusions(app) }
     val forYou by lazy { com.prism.music.data.foryou.ForYou(this) }

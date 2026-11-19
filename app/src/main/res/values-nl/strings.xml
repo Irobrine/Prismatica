@@ -5506,4 +5506,122 @@
     <string name="sleep_bpm_under">Onder %1$d BPM</string>
     <string name="sleep_timer_bpm_info">Een sneller nummer, of een waarvan het tempo onbekend is, wordt overgeslagen.</string>
     <string name="sleep_timer_volume_info">De muziek speelt het hele timerduur op dit volume en fadet hiervan naar stilte.</string>
+    <string name="yyyy_mm_dd" translatable="false">yyyy-MM-dd</string>
+    <string name="eeeedmmmm" translatable="false">EEEEdMMMM</string>
+    <string name="eeedmmmyyyy" translatable="false">EEEdMMMyyyy</string>
+    <string name="sudachi_japanese_analyzer" translatable="false">Sudachi (Japanese analyzer)</string>
+    <string name="sudachi_dict_full" translatable="false">SudachiDict full</string>
+    <string name="works_applications" translatable="false">Works Applications Co., Ltd.</string>
+    <string name="oracle" translatable="false">Oracle</string>
+    <string name="javax_json_sudachi_s_settings" translatable="false">javax.json (Sudachi\'s settings)</string>
+    <string name="darts_clone_sudachi_s_trie" translatable="false">Darts-clone (jdartsclone)</string>
+    <string name="cddl_1_1_or_gpl_2_classpath" translatable="false">CDDL 1.1 or GPL 2 with Classpath Exception</string>
+    <string name="document_documentelement_innerhtml_length" translatable="false">document.documentElement.innerHTML.length</string>
+    <string name="ipadic" translatable="false">IPADIC</string>
+    <string name="zh_cn" translatable="false">zh-CN</string>
+    <string name="zh_tw" translatable="false">zh-TW</string>
+    <string name="the_listener_heard_a_stutter_in" translatable="false">the listener heard a stutter in %1$s – %2$s (%3$s) at %%d:%%02d</string>
+    <string name="language_keywords" translatable="false">language translation translated English idioma idiomas langue Sprache lingua język язык dil bahasa भाषा 言語 언어 语言 لغة</string>
+    <string name="licensor_square" translatable="false">Square</string>
+    <string name="sample_stream_quality" translatable="false">AAC · 256</string>
+    <string name="compose_for_tv" translatable="false">Compose for TV (androidx.tv)</string>
+    <string name="prepare_video" translatable="false">Prepare this video</string>
+    <string name="video_ready" translatable="false">Ready to play</string>
+    <string name="prepare_library_videos" translatable="false">Prepare music videos</string>
+    <string name="prepare_library_videos_info" translatable="false">Looks up the song for each music video in your library and saves its stream address, so taps start at once. Downloaded videos are skipped. It also does this by itself once a day, on mobile data only when Load ahead on mobile data is on. No sound is downloaded.</string>
+    <string name="prepare_videos_keywords" translatable="false">music videos song match stream address ready prepare ahead</string>
+    <string name="measure_songs_now" translatable="false">Measure songs now</string>
+    <string name="measure_songs_now_info" translatable="false">Measures in the background, one song at a time; songs already measured are skipped. A song that is not on your phone is downloaded first (a small part of it), unless you are on mobile data and mobile data is not allowed for measuring. Music videos are measured as you watch them. While it runs, a tap here stops it; after that, a tap carries on where it left off.</string>
+    <string name="measure_songs_stopped_at" translatable="false">Stopped at %1$d of %2$d, tap to carry on</string>
+    <string name="material_you" translatable="false">Material You</string>
+    <string name="material_you_note" translatable="false">Tonal color, Roboto, rounded, flat surfaces</string>
+    <string name="design_language" translatable="false">Design language</string>
+    <string name="palette" translatable="false">Palette</string>
+    <string name="expressive" translatable="false">Expressive</string>
+    <string name="monochrome" translatable="false">Monochrome</string>
+    <string name="material_you_info" translatable="false">Material You is Google\'s Material 3 design language: colors from one tonal palette, Material\'s type and shape scales, and flat tonal surfaces instead of glass. The accent comes from your wallpaper when Android 12 or newer can give one, otherwise from the accent below; the palette picks how much color it carries. Light and dark are the same palette at two tones.</string>
+    <string name="enhance_lyrics_enhancement">Lyrics enhancement</string>
+    <string name="enhance_aligner">Qwen3 forced aligner</string>
+    <string name="enhance_aligner_notice">Word start and end times for lyrics, on the phone. Qwen3-ForcedAligner-0.6B (Apache-2.0), Q4 ONNX.</string>
+    <string name="enhance_separator">HTDemucs vocal separation</string>
+    <string name="enhance_separator_notice">Isolated vocals and an instrumental, on the phone. HTDemucs single model, FP16 weights (MIT).</string>
+    <string name="enhance_needs_runtime">This needs ONNX Runtime, Sing\'s engine. Download it first.</string>
+    <string name="enhance_needs_model">This needs the %1$s model. Download it first.</string>
+    <string name="enhance_needs_runtime_and">This needs ONNX Runtime and the %1$s model. Download them first.</string>
+    <string name="enhance_needs_something">This needs a model that isn\'t downloaded.</string>
+    <string name="enhance_song_isn_t_on_the_phone">This song isn\'t on the phone yet. Download it or play it through first.</string>
+    <string name="enhance_no_lyrics">There are no lyrics for this song to align.</string>
+    <string name="enhance_unsupported_language">This aligner supports English, Japanese, Chinese and Korean lyrics.</string>
+    <string name="enhance_failed">Lyrics enhancement failed.</string>
+    <string name="enhance_not_enough_memory">Not enough memory for this song. Close other apps and try again.</string>
+    <string name="enhance_sync_lyrics">Sync lyrics</string>
+    <string name="enhance_resync_lyrics">Sync words again</string>
+    <string name="enhance_separate_voices">Separate vocals</string>
+    <string name="enhance_make_instrumental">Make instrumental</string>
+    <string name="enhance_add_instrumental">Add an instrumental…</string>
+    <string name="enhance_instrumental">Instrumental</string>
+    <string name="enhance_original_backing">Studio backing</string>
+    <string name="enhance_original_backing_detail">The song plays as it is, with Sing taking the voice out.</string>
+    <string name="enhance_generated">Made on this phone</string>
+    <string name="enhance_external">Your own file</string>
+    <string name="enhance_choose_instrumental">What Sing plays without the voice</string>
+    <string name="enhance_download">Download</string>
+    <string name="enhance_download_and_continue">Download and continue</string>
+    <string name="enhance_update">Update</string>
+    <string name="enhance_remove">Remove</string>
+    <string name="enhance_cancel_download">Cancel download</string>
+    <string name="enhance_downloading">Downloading %1$d%%</string>
+    <string name="enhance_ready_on_phone">Ready · %1$s on the phone</string>
+    <string name="enhance_not_downloaded">%1$s download</string>
+    <string name="enhance_batch">Several songs at once</string>
+    <string name="enhance_batch_info">Pick songs from the library. Each operation is separate, and nothing starts on its own.</string>
+    <string name="enhance_batch_lyrics">Sync lyrics</string>
+    <string name="enhance_batch_vocals">Separate vocals</string>
+    <string name="enhance_batch_instrumentals">Make instrumentals</string>
+    <string name="enhance_batch_choose">Choose songs…</string>
+    <string name="enhance_batch_start">Start</string>
+    <string name="enhance_queue">Queue</string>
+    <string name="enhance_queue_empty">Nothing is queued.</string>
+    <string name="enhance_interrupted">Interrupted by a restart</string>
+    <string name="enhance_resume">Resume</string>
+    <string name="enhance_discard">Discard</string>
+    <string name="enhance_clear_finished">Clear finished</string>
+    <string name="enhance_cancel">Cancel</string>
+    <string name="enhance_cancel_task">Stop this?</string>
+    <string name="enhance_cancel_task_info">It stops where it is. Anything it had already made is kept, and you can start it again.</string>
+    <string name="enhance_cancelled">Cancelled</string>
+    <string name="enhance_queued">Queued</string>
+    <string name="enhance_running">Working… %1$d%%</string>
+    <string name="enhance_done">Done</string>
+    <string name="enhance_align_with_vocals">Align against isolated vocals</string>
+    <string name="enhance_align_with_vocals_info">When the vocals have been separated, the aligner hears them instead of the full mix. More accurate with loud backing.</string>
+    <string name="enhance_room_for_generated_audio">Room for generated audio</string>
+    <string name="enhance_clear_generated_audio">Clear generated audio</string>
+    <string name="enhance_use_generated_audio">Using %1$s</string>
+    <string name="enhance_quality_reliable">Timings look reliable</string>
+    <string name="enhance_quality_doubtful">Timings may be unreliable</string>
+    <string name="enhance_quality_reason_low_confidence">The model wasn\'t sure about some words.</string>
+    <string name="enhance_quality_reason_timing_out_of_order">Some timings run backwards.</string>
+    <string name="enhance_quality_reason_empty_words">Some words got no time at all.</string>
+    <string name="enhance_quality_reason_word_lengths_irregular">Word lengths don\'t match the singing.</string>
+    <string name="enhance_quality_reason_words_in_silence">Words were placed where there is no voice.</string>
+    <string name="enhance_quality_reason_no_words">No words could be timed.</string>
+    <string name="enhance_words_timed">%1$d words timed</string>
+    <string name="enhance_use_synced_lyrics">Use synced lyrics</string>
+    <string name="enhance_use_synced_lyrics_info">Off, the song\'s own line timings are shown. The words timed here are kept, and come back when this is on again.</string>
+    <string name="enhance_remove_model_keeps_work">Removing a model keeps the lyrics and audio it made.</string>
+    <string name="enhance_download_consent">%1$s will download %2$s. Nothing leaves your phone, and the model stays until you remove it.</string>
+    <string name="enhance_separation_original_kept">The song\'s own audio and any file you added are left exactly as they are.</string>
+    <string name="enhance_external_imported">%1$s added</string>
+    <string name="enhance_external_import_failed">That file couldn\'t be read as audio.</string>
+    <string name="enhance_vocals_ready">Vocals separated</string>
+    <string name="enhance_instrumental_ready">Instrumental made</string>
+    <string name="enhance_no_songs_picked">Pick at least one song.</string>
+    <string name="enhance_pick_songs">Pick songs</string>
+    <string name="enhance_models">Models</string>
+    <string name="enhance_on_device">Everything runs on this phone. Audio and lyrics are never uploaded.</string>
+    <string name="enhance_qwen_team">Qwen team, Alibaba</string>
+    <string name="enhance_stemsplit_team">Meta AI / StemSplit</string>
+    <string name="enhance_keep_all_audio">Keep all generated audio</string>
+    <string name="enhance_keep_all_audio_info">No limit: generated vocals and instrumentals stay on the phone until you clear them. What\'s playing, or waiting in the queue, is never cleared to make room.</string>
 </resources>

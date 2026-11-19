@@ -79,6 +79,7 @@ fun PlayerOptionsSheet(
     /** The lyrics have lines in a script other than Latin letters: romanizing them is offered. */
     romanizable: Boolean = false,
     onSing: () -> Unit = {},
+    onEnhance: () -> Unit = {},
     // What the player's hidden parts did (1.8.0).
     onOpenLyrics: () -> Unit = {},
     onOpenQueue: () -> Unit = {},
@@ -224,6 +225,8 @@ fun PlayerOptionsSheet(
     // Lyrics
     put(MenuAction.SING, ActionItem(PrismIcons.Mic, tr(R.string.sing), value = if (singOn) tr(R.string.on_2) else null, active = singOn, onClick = onSing))
     put(MenuAction.LYRICS_SOURCE, ActionItem(PrismIcons.Lyrics, tr(R.string.lyrics_source), onClick = onLyricsSource))
+    // Live streams have no file to enhance: the sheet would only ever say the song isn't on the phone.
+    if (!song.isEpisode && !song.isLive) put(MenuAction.ENHANCE, ActionItem(PrismIcons.Lyrics, tr(R.string.enhance_lyrics_enhancement), onClick = onEnhance))
     put(MenuAction.LYRICS_TIMING, ActionItem(PrismIcons.Timer, tr(R.string.lyrics_timing), onClick = onLyricsTiming))
     put(
         MenuAction.TRANSLATE,
@@ -348,6 +351,7 @@ internal fun menuIcon(a: MenuAction): ImageVector = when (a) {
     MenuAction.NOT_FOR_ME -> PrismIcons.ThumbDown
     MenuAction.SING -> PrismIcons.Mic
     MenuAction.LYRICS_SOURCE -> PrismIcons.Lyrics
+    MenuAction.ENHANCE -> PrismIcons.Lyrics
     MenuAction.LYRICS_TIMING -> PrismIcons.Timer
     MenuAction.TRANSLATE -> PrismIcons.Translate
     MenuAction.ROMANIZE -> PrismIcons.Romanize
@@ -388,6 +392,7 @@ internal fun menuLabel(a: MenuAction): String = when (a) {
     MenuAction.NOT_FOR_ME -> tr(R.string.not_for_me)
     MenuAction.SING -> tr(R.string.sing)
     MenuAction.LYRICS_SOURCE -> tr(R.string.lyrics_source)
+    MenuAction.ENHANCE -> tr(R.string.enhance_lyrics_enhancement)
     MenuAction.LYRICS_TIMING -> tr(R.string.lyrics_timing)
     MenuAction.TRANSLATE -> tr(R.string.translate_lyrics)
     MenuAction.ROMANIZE -> tr(R.string.romanize_lyrics)

@@ -111,6 +111,7 @@ internal fun WidePlayerContent(
     onCollapse: () -> Unit,
     onSing: () -> Unit = {},
     onSingNeedsDownload: () -> Unit = onSing,
+    onEnhance: () -> Unit = {},
     /** The bottom row's buttons that open something over the player. */
     onButton: (com.prism.music.data.prefs.PlayerButton) -> Unit = {},
     /** 1.8.5: holding the Snooze button opens the snoozed tracks' list at that song. */
@@ -224,7 +225,7 @@ internal fun WidePlayerContent(
                 when (p) {
                     PlayerPane.LYRICS -> Column(Modifier.fillMaxSize()) {
                         LyricsPanel(lyricsState, isPlaying && !covered, controlsOpen = true, onRevealControls = {}, onHideControls = {}, modifier = Modifier.weight(1f).fillMaxWidth(), lyricsGround = false, onChangeSource = onLyricsSource)
-                        LyricsButtonsRow(song, lyricsState, onChangeSource = onLyricsSource, onNeedsDownload = onSingNeedsDownload)
+                        LyricsButtonsRow(song, lyricsState, onChangeSource = onLyricsSource, onNeedsDownload = onSingNeedsDownload, onEnhance = onEnhance)
                         Spacer(Modifier.height(10.dp))
                     }
                     PlayerPane.QUEUE -> InlineQueue(onRevealPlayer = {}, onHidePlayer = {}, modifier = Modifier.fillMaxSize())

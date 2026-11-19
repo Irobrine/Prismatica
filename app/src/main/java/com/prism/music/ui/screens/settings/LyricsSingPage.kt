@@ -162,6 +162,10 @@ val lyricsSingIndex: List<SettingEntry> by lazy {
             SettingEntry(page, g.sources, tr(R.string.show_furigana), tr(R.string.hiragana_readings_above_kanji) + " " + tr(R.string.furigana_uses_the_japanese_reading_data)),
             SettingEntry(page, g.sources, tr(R.string.furigana_parts), tr(R.string.furigana_parts_info), needs = SettingNeeds.furigana),
             // Sing and music files
+            SettingEntry(page, g.sing, tr(R.string.enhance_lyrics_enhancement), tr(R.string.enhance_aligner_notice) + " " + tr(R.string.enhance_separator_notice)),
+            SettingEntry(page, g.sing, tr(R.string.enhance_align_with_vocals), tr(R.string.enhance_align_with_vocals_info)),
+            SettingEntry(page, g.sing, tr(R.string.enhance_keep_all_audio), tr(R.string.enhance_keep_all_audio_info)),
+            SettingEntry(page, g.sing, tr(R.string.enhance_room_for_generated_audio), tr(R.string.enhance_clear_generated_audio)),
             SettingEntry(page, g.sing, tr(R.string.sing_s_voice_separation), tr(R.string.karaoke_vocals_remove_instrumental_download_mode)),
             SettingEntry(page, g.sing, tr(R.string.get_songs_ready_while_sing_is), tr(R.string.karaoke_prepare_ahead_background_preload_vocals)),
             SettingEntry(page, g.sing, tr(R.string.room_for_sung_songs), tr(R.string.karaoke_storage_space)),

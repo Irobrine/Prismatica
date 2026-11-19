@@ -114,16 +114,36 @@ internal fun lyricsShowSing(singable: Boolean, row: List<com.prism.music.data.pr
  * end) the source at the lower left.
  */
 @Composable
-fun LyricsButtonsRow(song: Song, state: LyricsState, onChangeSource: () -> Unit, onNeedsDownload: () -> Unit, modifier: Modifier = Modifier) {
+fun LyricsButtonsRow(
+    song: Song,
+    state: LyricsState,
+    onChangeSource: () -> Unit,
+    onNeedsDownload: () -> Unit,
+    onEnhance: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val c = LocalContainer.current
     val settings = LocalAppSettings.current
     // Every phone sings (1.8.x): one Sing's engine doesn't run on uses the quick way.
     val singable = lyricsShowSing(c.sing.canSing(song), settings.rowButtons())
     val source = settings.lyricsSourceButton
-    if (!singable && !source) return
+    // A live stream or a podcast has no file to time words against or to separate.
+    val enhance = !song.isLive && !song.isEpisode
+    if (!singable && !source && !enhance) return
+    val disc = (if (enhance) 1 else 0) + (if (singable) 1 else 0)
     Box(modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-        if (source) LyricsSourceButton(state, onChangeSource, Modifier.align(Alignment.CenterStart).padding(end = if (singable) SING_BUTTON + 12.dp else 0.dp))
-        if (singable) Box(Modifier.align(Alignment.CenterEnd)) { SingButton(song, onNeedsDownload) }
+        if (source) LyricsSourceButton(
+            state, onChangeSource,
+            Modifier.align(Alignment.CenterStart).padding(end = if (disc == 0) 0.dp else SING_BUTTON * disc + 8.dp * (disc - 1) + 12.dp),
+        )
+        Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically) {
+            // Enhancement sits beside Sing, on its left: the lyrics' own operations, one tap from the words.
+            if (enhance) {
+                EnhanceButton(song, onEnhance)
+                Spacer(Modifier.width(8.dp))
+            }
+            if (singable) SingButton(song, onNeedsDownload)
+        }
     }
 }
 
@@ -278,6 +298,49 @@ fun SingButton(song: Song, onNeedsDownload: () -> Unit) {
 }
 
 /**
+ * Lyrics enhancement beside Sing: the same glass disc, with the enhancement's mark. A tap opens the song's enhancement
+ * sheet (word timings, separated vocals and the instrumental); nothing starts on its own. While one of the song's jobs
+ * runs, a ring of light goes round it as far as that job is done, as Sing's does while its vocals are worked out.
+ */
+@Composable
+fun EnhanceButton(song: Song, onClick: () -> Unit) {
+    val c = LocalContainer.current
+    val haptics = rememberHaptics()
+    val shape = LocalUi.current.button
+    val tasks by c.enhance.tasks.collectAsState()
+    val live = tasks.filter { it.song.id == song.id && (it.state == "queued" || it.state == "running") }
+    // The furthest along of the song's jobs: a batch's next song shows nothing until it starts.
+    val progress = live.maxOfOrNull { if (it.state == "running") it.progress else 0f }
+    val ring = PrismTokens.spectrum
+    Box(
+        Modifier.size(SING_BUTTON)
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.10f))
+            .border(1.dp, Color.White.copy(alpha = 0.16f), shape)
+            .drawWithContent {
+                drawContent()
+                val f = progress ?: return@drawWithContent
+                val outline = shape.createOutline(this.size, layoutDirection, this)
+                val path = when (outline) {
+                    is androidx.compose.ui.graphics.Outline.Generic -> outline.path
+                    is androidx.compose.ui.graphics.Outline.Rounded -> Path().apply { addRoundRect(outline.roundRect) }
+                    is androidx.compose.ui.graphics.Outline.Rectangle -> Path().apply { addRect(outline.rect) }
+                }
+                val measure = PathMeasure().apply { setPath(path, true) }
+                val part = Path()
+                measure.getSegment(0f, measure.length * f.coerceIn(0.02f, 1f), part, true)
+                drawPath(part, ring, style = Stroke(2.dp.toPx()))
+            }
+            .clickable(onClickLabel = tr(R.string.enhance_lyrics_enhancement)) { haptics.tick(); onClick() }
+            .testTag("enhanceButton")
+            .semantics { contentDescription = tr(R.string.enhance_lyrics_enhancement) },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(PrismIcons.Star, null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(20.dp))
+    }
+}
+
+/**
  * The word under the progress bar (1.7.8, V): what Sing just did, for two seconds, in place of the stream quality.
  * Returns whether it's showing.
  */
@@ -300,7 +363,7 @@ private val SING_SLIDER = 200.dp
  * your range; with how far the song's vocals are worked out, and why if they can't be.
  */
 @Composable
-fun SingSheet(song: Song, onDismiss: () -> Unit) {
+fun SingSheet(song: Song, onEnhance: (() -> Unit)? = null, onDismiss: () -> Unit) {
     val c = LocalContainer.current
     val sing = c.sing
     val scope = rememberCoroutineScope()
@@ -332,7 +395,7 @@ fun SingSheet(song: Song, onDismiss: () -> Unit) {
             }
             Spacer(Modifier.height(16.dp))
             when {
-                !ready && runtime != null -> {
+                !ready -> {
                     Text(
                         tr(R.string.sing_separates_each_song_s_voice, ModelStore.Model.sizeText(ModelStore.Model.SING_MODEL, runtime)),
                         style = MaterialTheme.typography.bodyMedium,
@@ -391,6 +454,12 @@ fun SingSheet(song: Song, onDismiss: () -> Unit) {
                         PrismTextButton(onClick = { sing.setSemitones(semitones + 1) }, enabled = on && semitones < 6) { Text("+", style = MaterialTheme.typography.titleLarge) }
                     }
                     Text(tr(R.string.moves_the_song_up_or_down), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (onEnhance != null) {
+                Spacer(Modifier.height(10.dp))
+                PrismTextButton(onClick = { onDismiss(); onEnhance() }, modifier = Modifier.testTag("singEnhance")) {
+                    Text(tr(R.string.enhance_lyrics_enhancement))
                 }
             }
             Spacer(Modifier.height(8.dp))

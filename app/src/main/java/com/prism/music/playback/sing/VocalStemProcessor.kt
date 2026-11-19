@@ -35,7 +35,12 @@ class VocalStemProcessor(private val sing: Source) : BaseAudioProcessor() {
         val store: StemStore
         /** The quick way's stand-ins, used wherever [store]'s vocals don't reach yet (1.8.x). */
         val quickStore: StemStore? get() = store.quick
+        /** A whole instrumental for the song, when the listener picked one (null: the original backing, as always). */
+        fun instrumentalFor(songId: String): Instrumental? = null
     }
+
+    /** A whole instrumental: [generated] ones came from the same decode as the vocals (so their lag applies). */
+    data class Instrumental(val store: StemStore, val generated: Boolean)
 
     /** One store's vocals for the playing song, opened again every quarter second while they're missing or short. */
     private inner class Stems(private val store: () -> StemStore?) {
@@ -66,8 +71,13 @@ class VocalStemProcessor(private val sing: Source) : BaseAudioProcessor() {
 
     private val full = Stems { sing.store }
     private val quick = Stems { sing.quickStore }
+    private var instStore: StemStore? = null
+    private var instStoreFor: StemStore? = null
+    private val inst = Stems { instStore }
     /** How much of the song's own vocals (rather than the quick way's) is subtracted, gliding between the two. */
     private var blend = 1f
+    /** How much of the chosen whole instrumental replaces the song (0: the original backing). */
+    private var instGain = 0f
 
     /** The player's repeat and shuffle modes, for working out which song follows (set from the playback thread). */
     @Volatile var repeatMode = Player.REPEAT_MODE_OFF
@@ -139,13 +149,15 @@ class VocalStemProcessor(private val sing: Source) : BaseAudioProcessor() {
         position = if (streamMetadata.positionOffsetUs == C.TIME_UNSET) 0 else streamMetadata.positionOffsetUs * rate / 1_000_000
         identify()
         fade = 0f
+        instGain = 0f
         synchronized(ringLock) { ringFilled = 0 }
         recheck = true
         Log.d(TAG, "flush: song=$songId at ${position * 1000 / rate} ms (period ${periodFrames * 1000 / rate.coerceAtLeast(1)} ms)")
     }
 
     override fun onReset() {
-        full.close(); quick.close()
+        full.close(); quick.close(); inst.close()
+        instStore = null; instStoreFor = null
         timeline = null; periodUid = null; songId = null
     }
 
@@ -180,6 +192,7 @@ class VocalStemProcessor(private val sing: Source) : BaseAudioProcessor() {
         periodUid = tl.getUidOfPeriod(next)
         identify()
         fade = 0f
+        instGain = 0f
         synchronized(ringLock) { ringFilled = 0 }
         recheck = true
         Log.d(TAG, "gapless move to $songId")
@@ -214,8 +227,8 @@ class VocalStemProcessor(private val sing: Source) : BaseAudioProcessor() {
         val id = songId
         // Sing is off and nothing is being taken out (or gliding out): the audio goes straight through, untouched, and
         // only the place in the song is kept. It used to go through the whole sample loop for nothing.
-        if (!sing.onNow && gain < 1e-5f && fade < 1e-4f) {
-            gain = 0f; fade = 0f
+        if (!sing.onNow && gain < 1e-5f && fade < 1e-4f && instGain < 1e-5f) {
+            gain = 0f; fade = 0f; instGain = 0f
             val bytes = frames * (if (float) 4 else 2) * channels
             val limit = input.limit()
             input.limit(input.position() + bytes)
@@ -231,8 +244,17 @@ class VocalStemProcessor(private val sing: Source) : BaseAudioProcessor() {
         // Two sets (1.8.x): the song's own (the full or light way) and the quick way's stand-ins, done first in seconds;
         // both come from the same decode, so they line up alike, frame for frame.
         val shift = lag
-        val realFull = if (on) full.read(id!!, position + shift, frames) else 0
-        val realQuick = if (on) quick.read(id!!, position + shift, frames) else 0
+        val realFull = if (on) full.read(id, position + shift, frames) else 0
+        val realQuick = if (on) quick.read(id, position + shift, frames) else 0
+        // A whole instrumental, when the listener picked one. Generated ones came from the same decode as the vocals, so
+        // the vocals' lag applies; an imported one is already the song's own timeline.
+        val instrumental = if (on) sing.instrumentalFor(id) else null
+        if (instrumental?.store !== instStoreFor) {
+            inst.close()
+            instStore = instrumental?.store
+            instStoreFor = instrumental?.store
+        }
+        val realInst = if (instrumental != null) inst.read(id!!, position + (if (instrumental.generated) shift else 0L), frames) else 0
         val haveAny = on && (full.reader != null || quick.reader != null)
         val matched = on && matchedFor == id
         // Subtract only where the vocals are written and known to line up. Mid-song, vocals not written yet (the
@@ -241,6 +263,7 @@ class VocalStemProcessor(private val sing: Source) : BaseAudioProcessor() {
         fun reaches(real: Int) = real == frames || (nearEnd && real > 0)
         val ownHere = reaches(realFull)
         val target = if (matched && (ownHere || reaches(realQuick))) 1f else 0f
+        val instHere = instrumental != null && reaches(realInst)
         // The song's own vocals wherever they reach, the quick way's elsewhere: the change glides over ~30 ms, at the
         // same place in the song (nothing is repeated or skipped; only what's subtracted changes).
         val blendTarget = if (ownHere) 1f else 0f
@@ -256,6 +279,7 @@ class VocalStemProcessor(private val sing: Source) : BaseAudioProcessor() {
             fade += (target - fade) * glide
             gain += ((1f - level) * fade - gain) * glide
             blend += (blendTarget - blend) * glide
+            instGain += ((if (instHere) 1f else 0f) - instGain) * glide
             var sum = 0f
             for (ch in 0 until channels) {
                 val x = if (float) input.float else input.short / 32768f
@@ -266,7 +290,17 @@ class VocalStemProcessor(private val sing: Source) : BaseAudioProcessor() {
                     ch < 2 -> blend * vf[f * 2 + ch] + (1 - blend) * vq[f * 2 + ch]
                     else -> 0f
                 }
-                val y = x - gain * v
+                val backing = x - gain * v
+                val vi = inst.buf
+                val whole = when {
+                    !instHere || instGain < 1e-5f -> 0f
+                    channels == 1 -> (vi[f * 2] + vi[f * 2 + 1]) * 0.5f
+                    ch < 2 -> vi[f * 2 + ch]
+                    else -> 0f
+                }
+                // Crossfade between the song (with the voice taken out) and the chosen whole instrumental; never both
+                // at once, so the backing doesn't get louder while the choice changes.
+                val y = backing * (1f - instGain) + whole * instGain
                 if (float) out.putFloat(y) else out.putShort((y * 32767f).roundToInt().coerceIn(-32768, 32767).toShort())
                 inEnergy += x * x; outEnergy += y * y
             }

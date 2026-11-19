@@ -263,6 +263,16 @@ class LyricsState(
         settled = true
     }
 
+    /** Reads the saved lyrics again after an enhancement was made, so the generated words show at once. */
+    suspend fun reloadSaved() {
+        val l = try { repo.savedOnly(song) } catch (e: CancellationException) { throw e } catch (e: Exception) { null } ?: return
+        lyrics = l
+        source = l.source
+        found[l.source] = l
+        providers[l.source] = l.state()
+        settled = true
+    }
+
     private suspend fun lookup(src: LyricsSource): Lyrics? {
         if (found.containsKey(src)) return found[src]
         val l = repo.fetch(song, src)
@@ -393,6 +403,9 @@ fun rememberLyricsState(song: Song, opened: Boolean = true): LyricsState {
     LaunchedEffect(song.id, opened, hold) {
         if (!state.settled || state.waiting && (opened || !hold)) state.loadAuto(savedOnly = hold && !opened)
     }
+    // A word alignment made while these lyrics are open: the overlay is read again without asking a source.
+    val overlay by c.lyrics.overlayRevision.collectAsState()
+    LaunchedEffect(overlay) { if (overlay > 0) state.reloadSaved() }
     // A version picked while the lyrics are open (or since they were last seen) asks under its own title and artist.
     val picked by c.versions.picks.collectAsState()
     val version = picked[song.id]?.song
@@ -568,7 +581,7 @@ fun CurrentLyricStrip(state: LyricsState, isPlaying: Boolean, overScrubber: Bool
                 val text = when {
                     instrumental && index < firstSung -> tr(R.string.intro)
                     instrumental -> tr(R.string.instrumental)
-                    else -> current!!.text
+                    else -> current.text
                 }
                 // A right-to-left line (Arabic, Hebrew…) runs from the right of the strip, its arrow at its end on the left.
                 val rtl = !instrumental && isRtl(text)
@@ -1558,7 +1571,7 @@ fun LyricsStatusWithChange(state: LyricsState, onChange: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LyricsProviderSheet(state: LyricsState, onDismiss: () -> Unit) {
+fun LyricsProviderSheet(state: LyricsState, onEnhance: (() -> Unit)? = null, onDismiss: () -> Unit) {
     val c = LocalContainer.current
     val settings by c.settings.flow.collectAsState()
     val scope = rememberCoroutineScope()
@@ -1618,6 +1631,15 @@ fun LyricsProviderSheet(state: LyricsState, onDismiss: () -> Unit) {
             }
         }
         SearchAsPane(state, settings.lyricsSources) { close {} }
+        // Its own actions, beside the sources: word timings, separated vocals and the instrumental live in one sheet.
+        if (onEnhance != null) {
+            Spacer(Modifier.height(8.dp))
+            com.prism.music.ui.screens.settings.LinkRow(
+                tr(R.string.enhance_lyrics_enhancement),
+                value = tr(R.string.enhance_sync_lyrics),
+                action = true,
+            ) { onEnhance() }
+        }
     }
 }
 

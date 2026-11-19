@@ -47,6 +47,7 @@ import com.prism.music.R
 import com.prism.music.data.model.Song
 import com.prism.music.tr
 import com.prism.music.trp
+import kotlinx.coroutines.launch
 import com.prism.music.ui.theme.GlassSurface
 import com.prism.music.ui.theme.LocalAppSettings
 import com.prism.music.ui.theme.LocalContainer
@@ -219,6 +220,9 @@ fun SelectionBar(selection: SongSelection, modifier: Modifier = Modifier) {
     var addingTo by remember { mutableStateOf<List<Song>?>(null) }
     var asking by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     var changingCover by remember { mutableStateOf<List<Song>?>(null) }
+    var enhanceAsk by remember { mutableStateOf<com.prism.music.data.enhance.EnhanceModel?>(null) }
+    var enhanceKind by remember { mutableStateOf<com.prism.music.data.enhance.EnhanceKind?>(null) }
+    val enhanceScope = androidx.compose.runtime.rememberCoroutineScope()
     fun toast(text: String) = android.widget.Toast.makeText(context, text, android.widget.Toast.LENGTH_SHORT).show()
     fun downloaded(s: Song) = com.prism.music.download.rowDownloaded(s, downloads, standIns) { c.downloads.playsFromPhone(it) }
 
@@ -239,6 +243,30 @@ fun SelectionBar(selection: SongSelection, modifier: Modifier = Modifier) {
             text = { Text(text) },
             confirmButton = { PrismTextButton(onClick = { go(); asking = null; selection.clear() }) { Text(tr(R.string.remove)) } },
             dismissButton = { PrismTextButton(onClick = { asking = null }) { Text(tr(R.string.cancel)) } },
+        )
+    }
+    enhanceAsk?.let { model ->
+        AlertDialog(
+            onDismissRequest = { enhanceAsk = null },
+            text = { Text(tr(R.string.enhance_download_consent, model.title, com.prism.music.data.enhance.EnhanceModel.sizeText(model))) },
+            confirmButton = {
+                PrismTextButton(onClick = {
+                    val kind = enhanceKind
+                    enhanceAsk = null
+                    enhanceScope.launch {
+                        runCatching { c.enhance.download(model) }
+                            .onSuccess {
+                                if (kind != null) {
+                                    c.enhance.enqueue(songs, setOf(kind))
+                                    toast(tr(R.string.enhance_queued))
+                                }
+                            }
+                            .onFailure { toast(it.message ?: tr(R.string.enhance_failed)) }
+                        selection.clear()
+                    }
+                }) { Text(tr(R.string.enhance_download_and_continue)) }
+            },
+            dismissButton = { PrismTextButton(onClick = { enhanceAsk = null }) { Text(tr(R.string.cancel)) } },
         )
     }
 
@@ -298,6 +326,20 @@ fun SelectionBar(selection: SongSelection, modifier: Modifier = Modifier) {
                 // own picture isn't its cover). Each song keeps its own, so an album's others aren't changed with it.
                 val forCover = songs.filter { !it.isEpisode && !it.isLive }
                 BarButton(PrismIcons.Photo, tr(R.string.change_cover), ink, enabled = forCover.isNotEmpty()) { changingCover = forCover }
+                // Lyrics enhancement: three separate operations, queued one at a time off the main thread.
+                val forEnhance = songs.filter { !it.isLive && !it.isEpisode }
+                BarButton(PrismIcons.Lyrics, tr(R.string.enhance_sync_lyrics), ink, enabled = forEnhance.isNotEmpty()) {
+                    if (c.enhance.alignerReady()) { c.enhance.enqueue(forEnhance, setOf(com.prism.music.data.enhance.EnhanceKind.LYRICS)); toast(tr(R.string.enhance_queued)); selection.clear() }
+                    else { enhanceKind = com.prism.music.data.enhance.EnhanceKind.LYRICS; enhanceAsk = com.prism.music.data.enhance.EnhanceModel.ALIGNER }
+                }
+                BarButton(PrismIcons.Mic, tr(R.string.enhance_separate_voices), ink, enabled = forEnhance.isNotEmpty()) {
+                    if (c.enhance.separatorReady()) { c.enhance.enqueue(forEnhance, setOf(com.prism.music.data.enhance.EnhanceKind.VOCALS)); toast(tr(R.string.enhance_queued)); selection.clear() }
+                    else { enhanceKind = com.prism.music.data.enhance.EnhanceKind.VOCALS; enhanceAsk = com.prism.music.data.enhance.EnhanceModel.SEPARATOR }
+                }
+                BarButton(PrismIcons.Equalizer, tr(R.string.enhance_make_instrumental), ink, enabled = forEnhance.isNotEmpty()) {
+                    if (c.enhance.separatorReady()) { c.enhance.enqueue(forEnhance, setOf(com.prism.music.data.enhance.EnhanceKind.INSTRUMENTAL)); toast(tr(R.string.enhance_queued)); selection.clear() }
+                    else { enhanceKind = com.prism.music.data.enhance.EnhanceKind.INSTRUMENTAL; enhanceAsk = com.prism.music.data.enhance.EnhanceModel.SEPARATOR }
+                }
                 val (likeThem, likeWhich) = SelectionPlan.like(songs, liked)
                 BarButton(
                     if (likeThem) PrismIcons.Heart else PrismIcons.HeartFilled, if (likeThem) tr(R.string.like) else tr(R.string.unlike), ink,

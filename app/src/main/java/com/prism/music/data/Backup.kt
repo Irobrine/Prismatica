@@ -615,6 +615,8 @@ class Backup(private val c: AppContainer) {
                 "lossless_links", "lossless_misses", "lossless_hidden", "lossless_alac",
                 // 1.8.2: songs skipped in lists' downloads (#221), when kept playlists were last read (#298).
                 "download_skips", "kept_playlists",
+                // 1.9: which instrumental each song's Sing plays (the original backing, made here, or the listener's).
+                "sing_instrumental",
             ).forEach { put(it, BackupPart.DOWNLOADS) }
             // The Last.fm session key is sealed to this phone (a key only it has): a restored phone reconnects instead.
             put("lastfm", null)
@@ -639,14 +641,19 @@ class Backup(private val c: AppContainer) {
         /** Folders (and files) right under files/ by part; anything else counts as Settings. */
         private val FILE_PARTS: Map<String, BackupPart?> = buildMap {
             listOf("library", "blends", "covers", "offline", "artwork").forEach { put(it, BackupPart.LIBRARY) }
+            // 1.9: generated word timings and the metadata that ties them to a song and lyrics version.
+            put("lyrics-enhance", BackupPart.LIBRARY)
             // 1.8.1: imports/ holds the library a data download is still bringing over (its plays are in the database).
             listOf("rewind", "waves", "queue.json", "imports").forEach { put(it, BackupPart.HISTORY) }
             put("account", BackupPart.ACCOUNTS)
             // What the Spotify connection read (which Prism playlists show which Spotify ones, the likes' sync state).
             put(com.prism.music.data.spotify.Spotify.DIR, BackupPart.ACCOUNTS)
             listOf("downloads", "canvas_saved").forEach { put(it, BackupPart.DOWNLOADS) }
+            // Generated vocals and instrumentals (and an external instrumental's decoded copy) travel with Downloads:
+            // they are audio made from the song, and the metadata beside them names the song, lyrics and model.
+            listOf("enhance-vocals", "enhance-instrumentals", "enhance-external").forEach { put(it, BackupPart.DOWNLOADS) }
             // Downloaded data files (models/) can always be downloaded again; stems are made again; staging is a restore's.
-            listOf(STAGING, "models", "stems", REDOWNLOAD, RESTORED_SETTINGS).forEach { put(it, null) }
+            listOf(STAGING, "models", "stems", "enhance-models", REDOWNLOAD, RESTORED_SETTINGS).forEach { put(it, null) }
             // The settings store's own file holds the sign-in too: settings travel as values (settings.json), never as
             // this file, or a "Looks only" backup would carry the YouTube session. Android's backup may bring it, and
             // RestoredInstall signs a restored copy out.

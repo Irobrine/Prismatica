@@ -959,9 +959,34 @@ class LyricsRepository(
         return res.field("data").str("lyrics")?.takeIf { it.isNotBlank() }
     }
 
+    /**
+     * The listener's generated word timings for this exact lyrics version, applied as an overlay ([EnhancementService]).
+     * It is read after the source's own lyrics and never rewrites them: the record is only used when its lyrics hash,
+     * audio key and model version match, and a new source or model simply stops being overlaid.
+     */
+    var enhancement: (suspend (Song, Lyrics) -> Lyrics)? = null
+
+    private val _overlayRevision = kotlinx.coroutines.flow.MutableStateFlow(0)
+    /** Bumped when a generated alignment is saved or removed, so open lyrics read the overlay again. */
+    val overlayRevision: kotlinx.coroutines.flow.StateFlow<Int> = _overlayRevision
+
+    fun overlayChanged() { _overlayRevision.value++ }
+
+    private suspend fun enhanced(song: Song, l: Lyrics): Lyrics = enhancement?.invoke(song, l) ?: l
+
     /** [source]'s lyrics for [song] (saved copy first), with any starred-out words filled in ([uncensor]). */
-    suspend fun fetch(song: Song, source: LyricsSource, force: Boolean = false): Lyrics? =
-        fetchRaw(song, source, force)?.let { uncensor(song, it) }?.let { linedUp(song, it) }
+    suspend fun fetch(song: Song, source: LyricsSource, force: Boolean = false, overlay: Boolean = true): Lyrics? =
+        fetchRaw(song, source, force)?.let { uncensor(song, it) }?.let { linedUp(song, it) }?.let { if (overlay) enhanced(song, it) else it }
+
+    /**
+     * The lyrics an enhancement starts from: the source's own text and line timings without any generated words, so the
+     * same original lyrics are the cache key whether or not an earlier alignment exists. Generated words are stripped;
+     * the line stamps a word-timed source brought are kept.
+     */
+    suspend fun enhancementSource(song: Song): Lyrics? {
+        val l = saved(song, overlay = false) ?: auto(song, applyOverlay = false) ?: return null
+        return if (l.wordSynced) l.copy(lines = l.lines.map { it.copy(words = emptyList(), background = emptyList()) }) else l
+    }
 
     /**
      * Where each song's word timings were found early or late against its line-timed lyrics (#301): "<song id>|<source>"
@@ -1175,7 +1200,7 @@ class LyricsRepository(
         choices?.getString(song.id, null)?.let { n -> LyricsSource.entries.firstOrNull { it.name == n } }
 
     /** Lyrics already saved on the phone (downloaded or seen before), without touching the network: karaoke first. */
-    private suspend fun saved(song: Song): Lyrics? = withContext(Dispatchers.IO) {
+    private suspend fun saved(song: Song, overlay: Boolean = true): Lyrics? = withContext(Dispatchers.IO) {
         val s = settings()
         val rows = dao.allFor(song.id).associateBy { it.source }
             .filterNot { (src, row) -> src == LyricsSource.KUGOU.name && Editions.otherEdition(Lrc.metaTag(row.content, "ti"), song.title) }
@@ -1186,8 +1211,8 @@ class LyricsRepository(
         val all = s.lyricsSources.mapNotNull { src -> if (src == LyricsSource.EMBEDDED) inFile(song) else rows[src.name]?.let { build(src, it.content) } }
             .map { if (it.source == LyricsSource.GENIUS) it else Uncensor.fill(it, reference) }
             .filterNot { skipCensored() && it.censored }
-        if (!s.preferSynced) return@withContext all.firstOrNull()
-        all.maxByOrNull { level(it) }
+        val picked = if (!s.preferSynced) all.firstOrNull() else all.maxByOrNull { level(it) }
+        if (picked != null && overlay) enhanced(song, picked) else picked
     }
 
     private fun skipCensored() = settings().skipCensored
@@ -1216,7 +1241,7 @@ class LyricsRepository(
             if (src == LyricsSource.EMBEDDED) withContext(Dispatchers.IO) { inFile(song) }
             else withContext(Dispatchers.IO) { dao.allFor(song.id) }.firstOrNull { it.source == src.name }?.let { build(src, it.content) }
         }
-        return (picked ?: saved(song))?.let { linedUp(song, it, network = false) }
+        return (picked ?: saved(song, overlay = false))?.let { linedUp(song, it, network = false) }?.let { enhanced(song, it) }
     }
 
     /**
@@ -1246,16 +1271,16 @@ class LyricsRepository(
      * already saved (so downloaded songs have lyrics offline, instantly), else
      * sources in the user's order, preferring karaoke (word by word), then time-synced lines, when enabled.
      */
-    suspend fun auto(song: Song, force: Boolean = false): Lyrics? {
+    suspend fun auto(song: Song, force: Boolean = false, applyOverlay: Boolean = true): Lyrics? {
         if (song.isEpisode) return null
         val s = settings()
         var savedBest: Lyrics? = null
         if (!force) {
-            chosen(song)?.let { src -> fetch(song, src)?.let { return it } }
+            chosen(song)?.let { src -> fetch(song, src, overlay = applyOverlay)?.let { return it } }
             // Saved karaoke is as good as it gets. Saved line-synced lyrics used to be kept for good, so a song never
             // found the karaoke a later source had; now the sources are asked (their own saved answers come back
             // instantly), and the saved copy is the fallback, offline too.
-            savedBest = saved(song)?.let { linedUp(song, it, network = false) }
+            savedBest = saved(song, overlay = applyOverlay)?.let { linedUp(song, it, network = false) }
             // Saved karaoke not yet checked against the song's line timing (#301) is checked once, the network allowed.
             savedBest?.takeIf { it.wordSynced || !s.preferSynced }?.let { return if (it.wordSynced && !shiftKnown(song, it)) linedUp(song, it) else it }
         }
@@ -1270,7 +1295,7 @@ class LyricsRepository(
         val asks = kotlinx.coroutines.CoroutineScope(Dispatchers.IO + job)
         try {
             val answers = order.map { src ->
-                asks.async(start = kotlinx.coroutines.CoroutineStart.LAZY) { runCatching { fetch(song, src, force) }.getOrNull() }
+                asks.async(start = kotlinx.coroutines.CoroutineStart.LAZY) { runCatching { fetch(song, src, force, overlay = applyOverlay) }.getOrNull() }
             }
             asks.launch {
                 for (a in answers) {

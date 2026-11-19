@@ -566,6 +566,12 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Lyrics enhancement's queue, likewise: a batch of songs can run for an hour once the screen is off. -->
+        <service
+            android:name=".data.enhance.EnhanceService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!-- Quick Settings: "Prism" plays or pauses what's lined up (1.7.8). -->
         <service
             android:name=".playback.PlayTileService"

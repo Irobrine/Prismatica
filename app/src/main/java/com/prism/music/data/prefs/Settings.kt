@@ -411,6 +411,10 @@ data class BehaviorPrefs(
     val autoplayMaxMinutes: Int = 0,
     /** Japanese lyrics' kanji: read by Kuromoji's IPADIC, or Sudachi with its full dictionary ([AppSettings.japaneseEngine]). */
     val japaneseEngine: com.prism.music.data.lyrics.roman.JapaneseEngine = com.prism.music.data.lyrics.roman.JapaneseEngine.IPADIC,
+    /** Lyrics enhancement aligns against the separated vocals when they're on the phone (cleaner than the mix). */
+    val enhanceAlignWithVocals: Boolean = true,
+    /** How much room generated vocals and instrumentals may take, in MB (256 is the floor, 8192 the ceiling). */
+    val enhanceAudioMb: Int = 2048,
     /** #281 (1.8.2): with Data saver on, no music videos on mobile data ([com.prism.music.playback.VideoOnData]). */
     val noVideoOnData: Boolean = false,
     /** #282 (1.8.2): the cover's gestures work on the controls below the lyrics too, never on the lyrics themselves. */
@@ -761,7 +765,8 @@ enum class MenuAction(val group: MenuGroup, val fromPlayer: Boolean = false, val
     COVER(MenuGroup.SONG),
     NOT_FOR_ME(MenuGroup.SONG),
     SING(MenuGroup.LYRICS), LYRICS_SOURCE(MenuGroup.LYRICS), LYRICS_TIMING(MenuGroup.LYRICS), TRANSLATE(MenuGroup.LYRICS),
-    ROMANIZE(MenuGroup.LYRICS), LYRICS_AGAIN(MenuGroup.LYRICS), LYRICS_INTO_FILE(MenuGroup.LYRICS),
+    /** On-device word timings, separated vocals and generated instrumentals: the per-song enhancement sheet. */
+    ENHANCE(MenuGroup.LYRICS),    ROMANIZE(MenuGroup.LYRICS), LYRICS_AGAIN(MenuGroup.LYRICS), LYRICS_INTO_FILE(MenuGroup.LYRICS),
     /** #345: "Show lyrics" can be folded away while the current lyric (or a cover gesture) opens them too. */
     OPEN_LYRICS(MenuGroup.PLAYING, true, foldable = true), OPEN_QUEUE(MenuGroup.PLAYING, true), VIDEO_SWITCH(MenuGroup.PLAYING, true),
     PREVIOUS(MenuGroup.PLAYING, true), NEXT(MenuGroup.PLAYING, true), DJ(MenuGroup.PLAYING, true), EQUALIZER(MenuGroup.PLAYING, true),
@@ -2020,6 +2025,9 @@ data class AppSettings(
 
     // Which Japanese dictionary reads kanji lives in [behavior] (the constructor is near the JVM's limit); reads as before.
     val japaneseEngine: com.prism.music.data.lyrics.roman.JapaneseEngine get() = behavior.japaneseEngine
+    /** Lyrics enhancement settings live in [behavior] for the same reason. */
+    val enhanceAlignWithVocals: Boolean get() = behavior.enhanceAlignWithVocals
+    val enhanceAudioMb: Int get() = behavior.enhanceAudioMb
 }
 
 /** [writer]: where the settings' writes run, one at a time (tests hold it back to line writes up). */
@@ -2111,6 +2119,8 @@ class SettingsRepository(
         val singOnCellular = booleanPreferencesKey("sing_cellular")
         val singAlwaysReady = booleanPreferencesKey("sing_always_ready")
         val singCacheMb = intPreferencesKey("sing_cache_mb")
+        val enhanceAlignWithVocals = booleanPreferencesKey("enhance_align_with_vocals")
+        val enhanceAudioMb = intPreferencesKey("enhance_audio_mb")
         val djFlow = stringPreferencesKey("dj_flow")
         val releaseNotifications = booleanPreferencesKey("release_notifications")
         val rewindNotification = booleanPreferencesKey("rewind_notification")
@@ -2605,6 +2615,8 @@ class SettingsRepository(
                 "row_swipes", "lyrics_offset_ms", "keep_shuffle", "shuffle_button", "car_lyrics_lines", "locate_playing",
                 // 1.8.5: Replay's notices and game, pausing face down, and the small cover's tap over the lyrics (#464).
                 "recap_notify", "milestone_notify", "finish_lyric", "face_down_pause", "lyrics_cover_plays",
+                // 1.9: how lyrics enhancement runs and how much room its generated audio may take.
+                "enhance_align_with_vocals", "enhance_audio_mb",
             )
         }
     }
@@ -2931,6 +2943,8 @@ class SettingsRepository(
                 ),
                 autoplayMaxMinutes = (p[K.autoplayMaxMinutes] ?: d.behavior.autoplayMaxMinutes).coerceIn(0, com.prism.music.data.AutoplayLength.MAX_MINUTES),
                 japaneseEngine = p.enum(K.japaneseEngine, d.behavior.japaneseEngine),
+                enhanceAlignWithVocals = p[K.enhanceAlignWithVocals] ?: d.behavior.enhanceAlignWithVocals,
+                enhanceAudioMb = (p[K.enhanceAudioMb] ?: d.behavior.enhanceAudioMb).coerceIn(0, 8192),
                 noVideoOnData = p[K.noVideoOnData] ?: d.behavior.noVideoOnData,
                 gesturesUnderLyrics = p[K.gesturesUnderLyrics] ?: d.behavior.gesturesUnderLyrics,
                 holdSeekSeconds = (p[K.holdSeekSeconds] ?: d.behavior.holdSeekSeconds).coerceIn(0, 20),
@@ -3411,6 +3425,8 @@ class SettingsRepository(
     fun setSingOnCellular(v: Boolean) = edit { it[K.singOnCellular] = v }
     fun setSingAlwaysReady(v: Boolean) = edit { it[K.singAlwaysReady] = v }
     fun setSingCacheMb(v: Int) = edit { it[K.singCacheMb] = v }
+    fun setEnhanceAlignWithVocals(v: Boolean) = edit { it[K.enhanceAlignWithVocals] = v }
+    fun setEnhanceAudioMb(v: Int) = edit { it[K.enhanceAudioMb] = v }
     fun setDjFlow(v: com.prism.music.playback.DjFlow) = edit { it[K.djFlow] = v.name }
     fun setReleaseNotifications(v: Boolean) = edit { it[K.releaseNotifications] = v }
     fun setRewindNotification(v: Boolean) = edit { it[K.rewindNotification] = v }

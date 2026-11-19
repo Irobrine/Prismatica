@@ -564,6 +564,31 @@ private fun LsSourceOrder(d: AppSettings) {
 
 // ---------------------------------------------------------------------------- Sing and music files
 
+/**
+ * How lyrics enhancement runs, on the Lyrics & Sing page's enhancement sheet. These rows live here (the page's own
+ * file) so Settings' reach test sees one home for each setting; the sheet is opened from the row above.
+ */
+@Composable
+internal fun LsEnhancementRows(s: AppSettings, prefs: com.prism.music.data.prefs.SettingsRepository) {
+    SwitchRow(
+        tr(R.string.enhance_align_with_vocals), s.enhanceAlignWithVocals,
+        info = tr(R.string.enhance_align_with_vocals_info),
+    ) { prefs.setEnhanceAlignWithVocals(it) }
+    // 0 is "no limit": the listener keeps every generated vocal and instrumental until they clear them.
+    SwitchRow(
+        tr(R.string.enhance_keep_all_audio), s.enhanceAudioMb <= 0,
+        info = tr(R.string.enhance_keep_all_audio_info),
+    ) { prefs.setEnhanceAudioMb(if (it) 0 else DEFAULT_ENHANCE_MB) }
+    if (s.enhanceAudioMb > 0) SliderRow(
+        tr(R.string.enhance_room_for_generated_audio), s.enhanceAudioMb.toFloat(), range = 256f..8192f,
+        valueText = { v -> (v / 1024f).let { gb -> if (gb >= 1) tr(R.string.t_1f_gb).format(gb) else formatMb(v.toLong() * 1_048_576L) } },
+        steps = 31,
+    ) { prefs.setEnhanceAudioMb(it.toInt()) }
+}
+
+/** The room a phone keeps for generated audio unless the listener says otherwise (2 GB). */
+private const val DEFAULT_ENHANCE_MB = 2048
+
 @Composable
 internal fun LsSingRows(d: AppSettings) {
     val c = LocalContainer.current
@@ -575,6 +600,22 @@ internal fun LsSingRows(d: AppSettings) {
     val runtime = ModelStore.Model.singRuntime()
     val model = ModelStore.Model.SING_MODEL
     var used by remember { mutableStateOf(c.sing.store.bytes()) }
+    // Lyrics enhancement (word timings and generated instrumentals): its own models, batch queue and settings.
+    var showEnhance by remember { mutableStateOf(false) }
+    val enhanceStates by c.enhance.models.states.collectAsState()
+    LaunchedEffect(Unit) { c.enhance.models.refresh() }
+    val enhanceReady = enhanceStates[com.prism.music.data.enhance.EnhanceModel.ALIGNER] == com.prism.music.data.enhance.EnhanceModelStore.State.Ready ||
+        enhanceStates[com.prism.music.data.enhance.EnhanceModel.SEPARATOR] == com.prism.music.data.enhance.EnhanceModelStore.State.Ready
+    LinkRow(
+        tr(R.string.enhance_lyrics_enhancement),
+        value = when {
+            c.enhance.alignerReady() && c.enhance.separatorReady() -> tr(R.string.on_2)
+            enhanceReady -> tr(R.string.enhance_ready_on_phone, formatMb(c.enhance.models.sizeOnPhone(com.prism.music.data.enhance.EnhanceModel.ALIGNER) + c.enhance.models.sizeOnPhone(com.prism.music.data.enhance.EnhanceModel.SEPARATOR)))
+            else -> tr(R.string.enhance_not_downloaded, com.prism.music.data.enhance.EnhanceModel.sizeText(com.prism.music.data.enhance.EnhanceModel.ALIGNER))
+        },
+        info = tr(R.string.enhance_on_device), action = true,
+    ) { showEnhance = true }
+    if (showEnhance) com.prism.music.ui.player.EnhanceSettingsSheet { showEnhance = false }
     if (runtime == null) {
         // Sing's full separation doesn't run on this phone's processor: the row says so, the why behind its ⓘ.
         LinkRow(tr(R.string.sing_s_voice_separation), value = tr(R.string.ls_sing_quick_way), info = tr(R.string.sing_doesn_t_run_on_this), enabled = false) {}

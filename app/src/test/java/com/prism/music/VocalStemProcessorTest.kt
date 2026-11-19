@@ -127,6 +127,48 @@ class VocalStemProcessorTest {
         root.deleteRecursively()
     }
 
+    /** A whole instrumental the listener picked: it replaces the song's backing, voice and all. */
+    @Test
+    fun aChosenInstrumentalPlaysInsteadOfTheSong() {
+        val seconds = 8
+        val n = rate * seconds
+        val backing = FloatArray(n * 2) { i -> val t = (i / 2).toDouble() / rate; (0.15 * sin(2 * PI * 220 * t) + 0.08 * sin(2 * PI * 330 * t)).toFloat() }
+        val voice = FloatArray(n * 2) { i -> val t = (i / 2).toDouble() / rate; (0.25 * sin(2 * PI * 440 * t)).toFloat() }
+        val music = FloatArray(n * 2) { backing[it] + voice[it] }
+        val root = kotlin.io.path.createTempDirectory("sing").toFile()
+        val vocals = StemStore(root, "vocals")
+        val instrumental = StemStore(root, "instrumental")
+        writeStem(instrumental, "song1", n, complete = true) { backing[it] }
+        val source = object : VocalStemProcessor.Source {
+            override val onNow = true
+            override val levelNow = 0f
+            override val store = vocals
+            override fun instrumentalFor(songId: String) = VocalStemProcessor.Instrumental(instrumental, generated = false)
+        }
+        val p = VocalStemProcessor(source)
+        p.configure(AudioProcessor.AudioFormat(rate, 2, C.ENCODING_PCM_FLOAT))
+        p.flush(AudioProcessor.StreamMetadata.Builder().setTimeline(OneSong("song1", seconds * 1_000_000L)).setPeriodUid("song1").setPositionOffsetUs(0).build())
+        val out = FloatArray(n * 2)
+        var at = 0
+        while (at < n) {
+            val frames = minOf(1024, n - at)
+            val buf = ByteBuffer.allocateDirect(frames * 8).order(ByteOrder.nativeOrder())
+            for (i in 0 until frames * 2) buf.putFloat(music[at * 2 + i])
+            buf.flip()
+            p.queueInput(buf)
+            p.output.order(ByteOrder.nativeOrder()).asFloatBuffer().get(out, at * 2, frames * 2)
+            at += frames
+        }
+        fun rms(a: FloatArray, from: Int, to: Int) = sqrt((from * 2 until to * 2).sumOf { (a[it] * a[it]).toDouble() } / ((to - from) * 2))
+        val err = FloatArray(n * 2) { out[it] - backing[it] }
+        val voiceErr = FloatArray(n * 2) { out[it] - music[it] }
+        val tail = n - rate * 2
+        println("[sing] instrumental: backing error ${"%.3f".format(rms(err, tail, n) / rms(backing, tail, n))}, voice left ${"%.3f".format(rms(voiceErr, tail, n) / rms(voice, tail, n))}")
+        assertTrue("the backing changed", rms(err, tail, n) / rms(backing, tail, n) < 0.02)
+        assertTrue("the voice is still there", rms(voiceErr, tail, n) / rms(voice, tail, n) > 0.9)
+        root.deleteRecursively()
+    }
+
     private fun writeStem(store: StemStore, id: String, frames: Int, complete: Boolean, sample: (Int) -> Float) {
         store.writeMeta(id, StemStore.Meta(rate, frames.toLong(), complete = complete))
         store.pcm(id).outputStream().buffered().use { out ->

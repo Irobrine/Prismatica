@@ -22,17 +22,41 @@ import android.util.Log
  * Only the pacing is here; each kind of work calls [pace] between its steps (never holding the main thread).
  */
 object BackgroundBudget {
-    enum class Where { ON_SCREEN, PLAYING, AWAY }
+    enum class Where {
+        ON_SCREEN,
+        /** Music playing: a core's worth is plenty, and a pocketed phone shouldn't burn more. */
+        PLAYING,
+        /** A walk the listener started, under its own foreground service (measuring, enhancing): all but one core. */
+        WORKING,
+        AWAY,
+    }
 
     /** Android's own limits: (in the background for at most this long) to (share of a core over a five-minute look). */
     internal val ANDROID_LIMITS = listOf(10 * 60_000L to 0.25, 15 * 60_000L to 0.10, Long.MAX_VALUE to 0.02)
     internal const val ANDROID_LOOK_MS = 5 * 60_000L
 
-    /** Share of one core the whole process may be using for work to go on; negative: no limit. */
-    internal fun share(where: Where, awayForMs: Long, slowPhone: Boolean): Double = when (where) {
+    /**
+     * Share of one core the whole process may be using for work to go on; negative: no limit. A walk the listener
+     * started may use every core but one (the one left for the player and the screen), because it is exactly the work
+     * they asked for and it holds the app up in the foreground.
+     */
+    internal fun share(where: Where, awayForMs: Long, slowPhone: Boolean, cores: Int = Runtime.getRuntime().availableProcessors()): Double = when (where) {
         Where.ON_SCREEN -> if (slowPhone) ONE_CORE else -1.0
         Where.PLAYING -> ONE_CORE
+        Where.WORKING -> (cores - 1).coerceAtLeast(1).toDouble()
         Where.AWAY -> if (awayForMs < AWAY_GRACE_MS) AWAY_SHARE else 0.0
+    }
+
+    /**
+     * Where Prism is, from what it is doing: the container's rule, on its own so the rule can be read (and tested)
+     * without one. A walk the listener started (measuring, enhancing) is [Where.WORKING]: it runs under its own
+     * foreground service and may have the cores it needs. Music alone is [Where.PLAYING].
+     */
+    internal fun whereOf(onScreen: Boolean, measuring: Boolean, enhancing: Boolean, playing: Boolean): Where = when {
+        onScreen -> Where.ON_SCREEN
+        measuring || enhancing -> Where.WORKING
+        playing -> Where.PLAYING
+        else -> Where.AWAY
     }
 
     /**
