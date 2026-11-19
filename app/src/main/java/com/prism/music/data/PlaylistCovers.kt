@@ -62,7 +62,16 @@ class PlaylistCovers(private val context: Context) {
      * else the cover of the version picked to play in its place (#328), else its own. Read in a composable, it follows a
      * change at once.
      */
-    fun art(song: com.prism.music.data.model.Song): String? = picked(song) ?: SongVersions.shared?.coverOf(song.id) ?: song.thumbnail
+    fun art(song: com.prism.music.data.model.Song): String? =
+        picked(song) ?: SongVersions.shared?.coverOf(song.id) ?: song.thumbnail ?: localArt(song)
+
+    /**
+     * A file's own cover from the scan, for a song that came back without one: the player's songs are read off their
+     * media item, whose check (Song.trusted, in the playback package) drops every cover address but YouTube's. Read by
+     * the id alone, never from such an item.
+     */
+    private fun localArt(song: com.prism.music.data.model.Song): String? =
+        if (song.isLocal) com.prism.music.data.local.LocalMusic.shared?.track(song.id)?.song?.thumbnail else null
 
     /** The cover picked for [song] (or its album), if any; a file's album is looked up by its MediaStore album id. */
     fun picked(song: com.prism.music.data.model.Song): String? =

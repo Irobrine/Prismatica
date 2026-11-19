@@ -46,6 +46,7 @@ class NormalizationVersionSwitchTest {
         peakOf = { null },
         measuredCurrentOf = { it in current },
         pickedOf = { picks[it] },
+        fileMatchedId = { null },
         soundFrom = emptyMap(),
     )
 

@@ -112,6 +112,19 @@ class LocalCoverEverywhereTest {
         }
     }
 
+    /** The player and the mini player draw the song off its item: a file's cover is still there after that round trip. */
+    @Test fun aFilesOwnCoverReachesThePlayer() {
+        scanned()
+        val c = Fixture.container
+        val song = c.localMusic.tracks.value.first { it.song.title == "Prism cover one" }.song
+        assertNotNull("the scan gave the file no cover", song.thumbnail)
+        instrumentation.runOnMainSync { c.player.playQueue(listOf(song), 0, QueueSource(QueueKind.OTHER, "Cover test")) }
+        compose.waitUntil(30_000) { c.player.currentSong.value?.id == song.id }
+        val playing = c.player.currentSong.value!!
+        assertEquals("the player's song lost the file's cover on the way", song.thumbnail, playing.thumbnail)
+        assertEquals(song.thumbnail, com.prism.music.data.PlaylistCovers.artOf(playing))
+    }
+
     /** A file Android keeps album art for: that art, through the provider too, and on the notification. */
     @Test fun androidsAlbumArtReachesTheNotification() {
         Fixture.ready()

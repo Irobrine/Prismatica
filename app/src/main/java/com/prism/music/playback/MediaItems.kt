@@ -59,14 +59,26 @@ fun Song.toMediaItem(videoId: String? = null): MediaItem {
  */
 fun MediaItem.toSong(): Song? {
     val text = mediaMetadata.extras?.getString(EXTRA_SONG) ?: return null
-    decodedSongs[text]?.let { return it }
+    decodedSongs[text]?.let { return it.withLocalArt() }
     val song = runCatching { InnerTube.json.decodeFromString(Song.serializer(), text) }.getOrNull()?.trusted() ?: return null
     decodedSongs[text] = song
-    return song
+    return song.withLocalArt()
 }
 
 /** Decoded songs by their own JSON, the text a media item keeps ([toSong]). */
 private val decodedSongs = java.util.concurrent.ConcurrentHashMap<String, Song>()
+
+/**
+ * A file's own cover, taken from the scan by the song's id. [trusted] drops every cover address but YouTube's, since
+ * another app may have set the item: a local song's (Android's album art, or the cover read out of the file) went with
+ * them, so the player and the mini player — which draw the song off its item — had none, while the lists (which draw the
+ * scan's own songs) showed it. The address comes from Prism's own scan, never from the item, so nothing new is trusted.
+ */
+private fun Song.withLocalArt(): Song {
+    if (thumbnail != null || !isLocal) return this
+    val own = com.prism.music.data.local.LocalMusic.shared?.track(id)?.song?.thumbnail ?: return this
+    return copy(thumbnail = own)
+}
 
 private val SONG_IMAGE_HOSTS = listOf("ytimg.com", "ggpht.com", "googleusercontent.com", "gstatic.com")
 

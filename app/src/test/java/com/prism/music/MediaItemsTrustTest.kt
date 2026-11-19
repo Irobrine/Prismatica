@@ -38,4 +38,10 @@ class MediaItemsTrustTest {
         assertEquals("dQw4w9WgXcQ", song("dQw4w9WgXcQ").toMediaItem().toSong()?.id)
         assertEquals("local:42", song("local:42").toMediaItem().toSong()?.id)
     }
+
+    /** A file's cover address set by another app isn't taken either: the scan's own is what the player gets. */
+    @Test fun aFilesCoverAddressIsntTakenFromTheItem() {
+        assertNull(song("local:42", "content://media/external/audio/albumart/42").toMediaItem().toSong()?.thumbnail)
+        assertNull(song("local:42", "file:///data/user/0/com.prism.music/files/artwork/local/s42.jpg").toMediaItem().toSong()?.thumbnail)
+    }
 }

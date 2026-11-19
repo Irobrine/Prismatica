@@ -33,6 +33,7 @@ class LoudnessFigureTest {
         current: Set<String> = measured.keys.toSet(),
         peaks: Map<String, Float> = emptyMap(),
         picks: Map<String, String> = emptyMap(),
+        matched: Map<String, String> = emptyMap(),
         soundFrom: Map<String, String> = emptyMap(),
         youtube: Map<String, Float> = emptyMap(),
         name: String = "loudness_figures",
@@ -46,6 +47,7 @@ class LoudnessFigureTest {
             peakOf = { peaks[it] },
             measuredCurrentOf = { it in current },
             pickedOf = { picks[it] },
+            fileMatchedId = { matched[it] },
             soundFrom = soundFrom,
         )
     }
@@ -106,6 +108,37 @@ class LoudnessFigureTest {
     @Test fun aVideoWhoseSoundPlaysInASongsPlaceIsTheForm() {
         // #93: the song wouldn't play here, so its video's sound does.
         assertEquals("vid", loudness(soundFrom = mapOf("song" to "vid")).formId("song"))
+    }
+
+    /**
+     * A song whose sound comes from a file on the phone matched to it (OwnFiles, lossless sync) is heard as that file:
+     * its form is the file's id — the id the file is measured under, by the scan and by "Measure songs now"'s "On this
+     * phone" alike. A streamed id's figure was never measured, so such songs played at 0 dB, louder than everything else
+     * (1.2.1).
+     */
+    @Test fun aSongPlayedFromAFileOnThePhoneIsThatFile() {
+        val l = loudness(measured = mutableMapOf("local:9" to -16f), matched = mapOf("song" to "local:9"))
+        assertEquals("the file's own id", "local:9", l.formId("song"))
+        val f = l.figure("song", null, -14f)
+        assertEquals(Loudness.Source.MEASURED, f.source)
+        assertEquals("the file's own level: lifted 2 dB", 2f, f.gainDb, 0.01f)
+    }
+
+    /**
+     * The played recording, as playback picks it: a file picked for the song first, then the file matched to it (which
+     * beats a version that would stream, since the file is what plays), then everything else.
+     */
+    @Test fun theFileThatPlaysIsTheForm() {
+        assertEquals(
+            "the matched file beats a version that would stream",
+            "local:9",
+            loudness(picks = mapOf("song" to "cover"), matched = mapOf("song" to "local:9")).formId("song"),
+        )
+        assertEquals(
+            "a file picked for the song is the file that plays",
+            "local:7",
+            loudness(picks = mapOf("song" to "local:7"), matched = mapOf("song" to "local:9")).formId("song"),
+        )
     }
 
     @Test fun aVideoWinsOverAPick() {

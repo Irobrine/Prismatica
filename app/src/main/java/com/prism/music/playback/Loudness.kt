@@ -36,14 +36,23 @@ class Loudness(
      * figures, and the song's at the file's.
      */
     private val pickedOf: (songId: String) -> String?,
+    /**
+     * The file on the phone matched to a song ([com.prism.music.data.local.LocalLossless.matched]): when one is, the
+     * player reads that file for the song ([PlaybackService.losslessFileFor]), so the file's own id is the form — the id
+     * it's measured under. Without this arm a song playing from a matched file resolved to its streamed id, whose figure
+     * was never measured (the "Measure songs now" walk measures files under their own ids): it played at 0 dB, louder
+     * than everything else.
+     */
+    private val fileMatchedId: (songId: String) -> String?,
     /** [com.prism.music.AppContainer.soundFrom]: the music video whose sound plays in a song's place (#93). */
     private val soundFrom: Map<String, String>,
 ) {
     /**
      * The id of the audio actually heard when [songId] plays with [videoId] armed (its music video, as the item carries it:
-     * [MediaItem.videoModeId]): exactly what playback resolves ([com.prism.music.AppContainer.resolveAudio] and
-     * [com.prism.music.AppContainer.songCacheKey]): the video, else the video whose sound plays in its place, else the
-     * recording picked for it — a version, or a file on the phone — else the song itself.
+     * [MediaItem.videoModeId]): exactly what playback resolves ([com.prism.music.AppContainer.resolveAudio],
+     * [com.prism.music.AppContainer.songCacheKey] and [PlaybackService.losslessFileFor]): the video, else the file picked
+     * for it, else the phone's own file matched to it, else the video whose sound plays in its place, else the recording
+     * picked for it — a version, or a file on the phone — else the song itself.
      *
      * A video wins over a pick: watching a song's video plays the video's own sound (its audio leg is the video's), not
      * the version picked for the song.
@@ -53,7 +62,14 @@ class Loudness(
      * describes what's heard. Following the pick made the file play at the picked stream's level.
      */
     fun formId(songId: String, videoId: String? = null): String =
-        videoId ?: soundFrom[songId] ?: (if (isLocal(songId)) songId else pickedOf(songId)) ?: songId
+        videoId
+            // A file picked for the song plays from the file, whatever its version would stream.
+            ?: pickedOf(songId)?.takeIf { isLocal(it) }
+            // The phone's own file matched to it: the file is what plays, so its id is the form ([fileMatchedId]).
+            ?: fileMatchedId(songId)
+            ?: soundFrom[songId]
+            ?: (if (isLocal(songId)) songId else pickedOf(songId))
+            ?: songId
 
     /** Whether [id] names one of the phone's own files ([Song.LOCAL_PREFIX]): measured from the file, never asked of YouTube. */
     fun isLocal(id: String): Boolean = id.startsWith(Song.LOCAL_PREFIX)

@@ -212,11 +212,18 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         effects = AudioEffects(this)
         // D62: each song's gain from its very first sample, not the last song's until the main thread catches up.
         normalizer.songGainDb = ::startingGain
-        // Lossless mode keeps hi-res files (24-bit FLAC) at full resolution instead of rounding to 16-bit.
         val renderers = object : DefaultRenderersFactory(this) {
-            override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
-                DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(enableFloatOutput || c.settings.current.lossless)
+            override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
+                return DefaultAudioSink.Builder(context)
+                    // Lossless mode used to ask for float output so 24-bit files kept their resolution — but Media3
+                    // drops the whole processor chain whenever it outputs float (its own docs: "Audio processing ...
+                    // will not be available when float output is in use"), and a 24-bit file is exactly what gets
+                    // float. Normalize, the equalizer, Prism Spatial, Sing, silence trimming, the visualizer and
+                    // Prism's own volume all live in that chain, so every hi-res file played raw: the 24-bit FLACs
+                    // were "much louder than everything else" while the figures said they were cut. They now go
+                    // through the chain at 16-bit, like every other file (and like any player with effects); they're
+                    // still FLAC, decoded losslessly.
+                    .setEnableFloatOutput(enableFloatOutput)
                     .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                     // The visualizer's tap last (1.7.4): what you hear; it passes the sound through untouched and
                     // only copies it while a visualizer is on screen. Songs' silence is trimmed after Sing (which
@@ -228,6 +235,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                         )
                     )
                     .build()
+            }
 
             override fun buildAudioRenderers(
                 context: Context, extensionRendererMode: Int, mediaCodecSelector: androidx.media3.exoplayer.mediacodec.MediaCodecSelector,
@@ -554,7 +562,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val renderers = object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
                 DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(enableFloatOutput || s.lossless)
+                    .setEnableFloatOutput(enableFloatOutput)
                     .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                     .setAudioProcessors(arrayOf(shift, tailEq, tailSpatial, tailNormalizer))
                     .build()
