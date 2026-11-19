@@ -56,20 +56,76 @@ class SleepTimerTest {
         assertEquals(1f, SleepFade.gain(-0.3f), 0f)
     }
 
-    @Test fun fadeIsPowerEaseInAndNeverGoesBackUp() {
-        // Ease-in: half way through, most of the volume is still there (1 - 0.5^2.5 = 0.82).
-        assertTrue(SleepFade.gain(0.5f) > 0.7f)
-        assertTrue(SleepFade.gain(0.25f) > 0.9f)
+    @Test fun theFadeFallsEvenlyInTheDecibelDomain() {
+        fun db(g: Float) = 20.0 * kotlin.math.log10(g.toDouble())
+        // Noticeable from the beginning: a tenth of the way in, several dB are already gone (the old power curve was
+        // under 1 dB there).
+        assertTrue("only ${db(SleepFade.gain(0.1f))} dB at a tenth", db(SleepFade.gain(0.1f)) < -3.0)
+        // Each fifth of the main fade takes a similar share (48 dB over 94%, so about 10 dB each), not the last fifth.
+        val fifths = listOf(0f, 0.2f, 0.4f, 0.6f, 0.8f).map { SleepFade.gain(it) }
+        val drops = fifths.zipWithNext { a, b -> db(a) - db(b) }
+        for ((i, drop) in drops.withIndex()) {
+            assertTrue("fifth $i takes $drop dB", drop in 8.0..11.5)
+        }
+        assertTrue("the first fifth is not the biggest: $drops", drops.max() - drops.min() < 3.0)
         var previous = 1f
         for (i in 0..1000) {
             val g = SleepFade.gain(i / 1000f)
             assertTrue("gain went back up at $i", g <= previous + 1e-6f)
             previous = g
         }
-        // The smooth taper: the last hundredth of the fade drops less than the middle does.
+        // The final taper: the last hundredth is much smaller than the middle, and the end is exactly zero with no step.
         val last = SleepFade.gain(0.99f) - SleepFade.gain(1f)
         val middle = SleepFade.gain(0.50f) - SleepFade.gain(0.51f)
         assertTrue("the end should taper, not cut: $last against $middle", last < middle)
+        assertTrue("a step at the very end: ${SleepFade.gain(0.999999f)}", SleepFade.gain(0.999999f) < 1e-5f)
+    }
+
+    @Test fun everyFadeLengthUsesTheSameEvenShape() {
+        // 15, 30, 60 and 120 seconds: a quarter of the way in the volume has already come down clearly, and the rest is
+        // spread over the fade rather than saved for the end.
+        for (seconds in listOf(15, 30, 60, 120)) {
+            now = 1_000_000L
+            val audio = FakeAudio()
+            val engine = engine(audio)
+            engine.start(config(minutes = 10, fade = seconds))
+            val deadline = engine.deadlineElapsed
+            val fadeStart = deadline - seconds * 1_000L
+            val gains = listOf(0.25f, 0.5f, 0.75f).map { fraction ->
+                now = fadeStart + (seconds * 1_000L * fraction).toLong()
+                engine.tick()
+                audio.fades.last()
+            }
+            assertTrue("${seconds}s: too loud a quarter in (${gains[0]})", gains[0] < 0.5f)
+            assertTrue("${seconds}s: not falling (${gains})", gains[0] > gains[1] && gains[1] > gains[2])
+            assertEquals(SleepFade.gain(0.5f), gains[1], 1e-4f)
+            assertEquals(0f, SleepFade.gain(1f), 0f)
+        }
+    }
+
+    @Test fun theFadeDoesNotDependOnHowOftenItIsTicked() {
+        now = 1_000_000L
+        val seldomAudio = FakeAudio()
+        val seldom = engine(seldomAudio)
+        seldom.start(config(minutes = 1, fade = 10))
+        val deadline = seldom.deadlineElapsed
+        now = deadline - 5_000
+        seldom.tick()
+        val atHalf = seldomAudio.fades.last()
+
+        now = 1_000_000L
+        val oftenAudio = FakeAudio()
+        val often = engine(oftenAudio)
+        often.start(config(minutes = 1, fade = 10))
+        var t = now
+        while (t < deadline - 5_000) {
+            now = t
+            often.tick()
+            t += 100
+        }
+        now = deadline - 5_000
+        often.tick()
+        assertEquals(atHalf, oftenAudio.fades.last(), 1e-6f)
     }
 
     @Test fun fadeIsStrictlyShorterThanTheCountdown() {

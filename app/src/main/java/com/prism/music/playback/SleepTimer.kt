@@ -6,38 +6,44 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.pow
 
 /**
- * The sleep timer (A5, extended for the full timer): the countdown, the fade and the BPM gate of one bedtime session.
+ * The fade's shape. Volume is worked out in the decibel domain, where a steady fall is heard as a steady fade: a straight
+ * amplitude fall (or a power curve such as p^2.5) keeps the music loud for most of the fade and then drops it all at once.
+ * A gentle S-shape over the dB range keeps the very start soft without holding the volume high, and the last [TAPER] of
+ * the fade eases the amplitude itself to exactly zero (0 dB's floor is minus infinity, so the end is handled apart).
  *
- * The session is threaded together by [SleepTimerEngine], which is told what the player is doing through [SleepAudio] and
- * works everything out from the (monotonic) clock: the time left, when the current song really ends when "finish current
- * song" is on, and how loud the fade should be at this instant. Nothing is counted down by UI refreshes and no volume is
- * stepped down a little at a time: every tick reads the clock and works the gain out from it, so a late tick (a busy main
- * thread, a paused app) lands on the right volume rather than behind it.
- *
- * What the listener set is kept apart from this: the choices (time, fade, BPM limit, finish current song, volume) live in
- * the sleep timer's own preferences (SleepTimerPrefs and Settings' fade); only the running session's deadline, overtime and
- * temporary BPM override live here.
+ * [gain] only ever looks at [progress], so how often the caller ticks has no effect on the volume; the engine derives
+ * progress from the monotonic clock.
  */
 object SleepFade {
-    /** The ease-in's exponent: the first part of the fade barely moves, the last part does most of the work. */
-    const val EXPONENT = 2.5
+    /** How far the fade falls over its main part, in dB. Below this the music is inaudible on ordinary playback. */
+    const val RANGE_DB = 48.0
 
-    /** The last part of the fade, where a smoothstep brings the gain to exactly zero. */
-    const val TAPER = 0.15f
+    /** How much of the fade is the final amplitude taper to exactly zero. */
+    const val TAPER = 0.06f
+
+    /** Where the gentle S-curve sits between a straight dB line (0) and a full smoothstep (1). */
+    const val EASE = 0.15f
+
+    /** 0 … 1 of the dB range: mostly even, with a soft start that still begins moving at once. */
+    private fun eased(progress: Float): Float {
+        val smooth = progress * progress * (3f - 2f * progress)
+        return (1f - EASE) * progress + EASE * smooth
+    }
 
     /**
-     * The fade's gain at [progress] (0: the fade starts, 1: the music stops). A power ease-in (exponent [EXPONENT]),
-     * multiplied by a smoothstep over the last [TAPER] so the very end tapers instead of cutting to zero; it is exactly
-     * 0 at 1 and exactly 1 at 0, and never goes back up.
+     * The fade's gain at [progress] (0: the fade starts, 1: the music stops). A gentle dB-domain easing over the main
+     * fade, then a smoothstep amplitude taper so it is exactly 0 at 1 with no step at the very end.
      */
     fun gain(progress: Float): Float {
         val p = progress.coerceIn(0f, 1f)
         if (p >= 1f) return 0f
-        val power = 1f - p.toDouble().pow(EXPONENT).toFloat()
-        val left = (1f - p) / TAPER
-        if (left >= 1f) return power.coerceIn(0f, 1f)
-        val t = left.coerceIn(0f, 1f)
-        return (power * (t * t * (3f - 2f * t))).coerceIn(0f, 1f)
+        if (p <= 0f) return 1f
+        val db = -RANGE_DB * eased(p)
+        val amplitude = 10.0.pow(db / 20.0).toFloat()
+        // dB has no zero: in the last moments the amplitude itself eases to 0, its slope reaching 0 with it.
+        if (p <= 1f - TAPER) return amplitude
+        val t = ((1f - p) / TAPER).coerceIn(0f, 1f)
+        return (amplitude * (t * t * (3f - 2f * t))).coerceIn(0f, 1f)
     }
 }
 
