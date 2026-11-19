@@ -1576,6 +1576,15 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     /**
+     * The active timer's volume slider: heard at once. [remember] also makes it the menu's saved choice for next time
+     * (the slider saves when the finger lifts, so a drag doesn't write to the store at every step).
+     */
+    fun setSleepVolume(volume: Float, remember: Boolean = false) {
+        sleepTimer.setVolume(volume)
+        if (remember) c.sleepPrefs.setVolume(volume)
+    }
+
+    /**
      * The active menu's temporary "allow every BPM" switch: off, songs the limit held back play again; on again, the
      * current song and the queue are checked immediately. The saved limit is never changed.
      */

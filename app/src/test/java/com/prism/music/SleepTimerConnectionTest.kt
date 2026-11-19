@@ -118,8 +118,21 @@ class SleepTimerConnectionTest {
         assertEquals(before.toDouble(), c.player.sleepAt.value.toDouble(), 2_000.0)
     }
 
-    @Test fun theSleepVolumeIsAppliedAndTheListenersOwnComesBack() {
+    @Test fun theEditMenusVolumeChangesTheSessionAndIsRemembered() {
         queue(song("slow", 100.0))
+        timer(volume = 1f)
+        c.player.setSleepVolume(0.25f)
+        assertEquals(NormalizerProcessor.volumeFor(0.25f), NormalizerProcessor.sleepVolume, 1e-5f)
+        // A drag is heard at once but saved when the finger lifts.
+        assertEquals(1f, c.sleepPrefs.choices.value.volume, 0f)
+        c.player.setSleepVolume(0.25f, remember = true)
+        assertEquals(0.25f, c.sleepPrefs.choices.value.volume, 0f)
+        c.player.cancelSleepTimer()
+        assertEquals(1f, NormalizerProcessor.sleepVolume, 0f)
+        assertEquals(0.25f, c.sleepPrefs.choices.value.volume, 0f)
+    }
+
+    @Test fun theSleepVolumeIsAppliedAndTheListenersOwnComesBack() {        queue(song("slow", 100.0))
         timer(volume = 0.3f)
         assertEquals(NormalizerProcessor.volumeFor(0.3f), NormalizerProcessor.sleepVolume, 1e-5f)
         // Cancelling is not the volume slider: the saved choices (and the saved volume) are untouched.

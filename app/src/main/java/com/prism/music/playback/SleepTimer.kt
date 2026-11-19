@@ -222,6 +222,17 @@ class SleepTimerEngine(
         _bpmDisabled.value = disabled
     }
 
+    /**
+     * Changes the running session's volume at once (the active timer's own slider). The fade on top of it is unchanged,
+     * and the volume the listener had before the session is still what comes back when it ends.
+     */
+    fun setVolume(volume: Float) {
+        if (!_active.value) return
+        val v = volume.coerceIn(0f, 1f)
+        config = config.copy(volume = v)
+        audio.setSessionVolume(v)
+    }
+
     /** Whether the session's BPM limit rules [songId] out right now (the override and a missing limit allow everything). */
     fun blocksBpm(songId: String?): Boolean {
         if (!_active.value || _bpmDisabled.value || config.maxBpm <= 0) return false

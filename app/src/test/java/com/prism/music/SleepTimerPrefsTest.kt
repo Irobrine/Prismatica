@@ -4,6 +4,7 @@ import android.content.Context
 import com.prism.music.data.prefs.SleepTimerChoices
 import com.prism.music.data.prefs.SleepTimerPrefs
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,6 +59,15 @@ class SleepTimerPrefsTest {
         assertEquals(0f, prefs.choices.value.volume, 0f)
         prefs.setVolume(3f)
         assertEquals(1f, prefs.choices.value.volume, 0f)
+    }
+
+    @Test fun aTypedNumberOfMinutesIsKeptInsideTheMenusRange() {
+        assertEquals(45, SleepTimerPrefs.parseMinutes("45"))
+        assertEquals(45, SleepTimerPrefs.parseMinutes(" 45 "))
+        assertEquals(SleepTimerPrefs.MIN_MINUTES, SleepTimerPrefs.parseMinutes("0"))
+        assertEquals(SleepTimerPrefs.MAX_MINUTES, SleepTimerPrefs.parseMinutes("999"))
+        assertNull(SleepTimerPrefs.parseMinutes(""))
+        assertNull(SleepTimerPrefs.parseMinutes("soon"))
     }
 
     @Test fun changingAChoicePublishesItAtOnce() {

@@ -287,6 +287,22 @@ class SleepTimerTest {
 
     // ---------------------------------------------------------------- volume
 
+    @Test fun theSessionsVolumeCanBeChangedWhileItRuns() {
+        val audio = FakeAudio()
+        val engine = engine(audio)
+        engine.start(config(minutes = 10, fade = 10, volume = 0.2f))
+        assertEquals(0.2f, audio.sessionLevel, 0f)
+        engine.setVolume(0.7f)
+        assertEquals(0.7f, audio.sessionLevel, 0f)
+        // The fade is still on top of the new volume, and the listener's own volume comes back at the end.
+        val deadline = engine.deadlineElapsed
+        now = deadline - 5_000
+        engine.tick()
+        assertEquals(SleepFade.gain(0.5f), audio.fades.last(), 1e-4f)
+        engine.cancel()
+        assertEquals(1f, audio.sessionLevel, 0f)
+    }
+
     @Test fun theVolumeIsTheSessionVolumeTimesTheFade() {
         val audio = FakeAudio()
         val engine = engine(audio)

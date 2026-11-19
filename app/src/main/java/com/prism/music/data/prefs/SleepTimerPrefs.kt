@@ -60,6 +60,9 @@ class SleepTimerPrefs(context: Context) {
         /** The BPM slider's top; 0 is off. */
         const val MAX_BPM_LIMIT = 220
 
+        /** A typed number of minutes, kept inside the menu's range; null when it isn't a whole number. */
+        fun parseMinutes(text: String): Int? = text.trim().toIntOrNull()?.coerceIn(MIN_MINUTES, MAX_MINUTES)
+
         private const val KEY_MINUTES = "minutes"
         private const val KEY_MAX_BPM = "max_bpm"
         private const val KEY_FINISH_SONG = "finish_song"

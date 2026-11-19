@@ -9,13 +9,14 @@ import com.prism.music.ui.components.PrismTextButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -32,7 +33,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -43,6 +48,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SliderDefaults
 import com.prism.music.playback.VideoSyncState
+import com.prism.music.data.prefs.SleepTimerPrefs
+import com.prism.music.ui.components.PrismTextField
 import com.prism.music.ui.theme.LocalContainer
 import com.prism.music.ui.theme.MonoStyle
 import com.prism.music.ui.components.tickWhileShown
@@ -318,17 +325,56 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
     var fadeTouched by remember { mutableStateOf(false) }
     var bpmValue by remember(choices.maxBpm) { mutableFloatStateOf(choices.maxBpm.toFloat()) }
     var volumeValue by remember(choices.volume) { mutableFloatStateOf(choices.volume) }
+    // The countdown is typed in as a whole number of minutes, and remembered when it's committed (Done, or leaving the
+    // field). A blank or non-number goes back to what was there; 0 and numbers past the menu's top are kept in range.
+    val focus = LocalFocusManager.current
+    val minuteUnit = tr(R.string.min, "").trim()
+    var minutesText by remember(choices.minutes) { mutableStateOf(choices.minutes.toString()) }
+    var minutesCommitted by remember(choices.minutes) { mutableStateOf(choices.minutes.toString()) }
+    var minutesInvalid by remember { mutableStateOf(false) }
+    var minutesFocused by remember { mutableStateOf(false) }
+    fun commitMinutes() {
+        if (minutesText == minutesCommitted) return
+        val parsed = SleepTimerPrefs.parseMinutes(minutesText)
+        if (parsed == null) {
+            minutesInvalid = true
+            minutesText = minutesCommitted
+            return
+        }
+        minutesInvalid = false
+        minutesText = parsed.toString()
+        minutesCommitted = minutesText
+        if (parsed != choices.minutes) c.sleepPrefs.setMinutes(parsed)
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(tr(R.string.sleep_timer)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text(tr(R.string.time_until_sleep), style = MaterialTheme.typography.titleSmall)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(5, 10, 15, 30, 45, 60, 90, 120).forEach { m ->
-                        FilterChip(choices.minutes == m, { c.sleepPrefs.setMinutes(m) }, { Text(tr(R.string.min, m)) })
-                    }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr(R.string.time_until_sleep), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    PrismTextField(
+                        minutesText,
+                        { minutesText = it.take(3); minutesInvalid = false },
+                        Modifier.width(76.dp).onFocusChanged {
+                            if (!it.isFocused && minutesFocused) commitMinutes()
+                            minutesFocused = it.isFocused
+                        },
+                        singleLine = true, isError = minutesInvalid,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { commitMinutes(); focus.clearFocus() }),
+                    )
+                    Text(
+                        minuteUnit, Modifier.padding(start = 6.dp),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+                if (minutesInvalid) Text(
+                    tr(R.string.invalid_number), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Spacer(Modifier.height(8.dp))
+                FilterChip(choices.finishSong, { c.sleepPrefs.setFinishSong(!choices.finishSong) }, { Text(tr(R.string.end_of_song)) })
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(tr(R.string.fade_out_duration), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
@@ -352,8 +398,6 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                 Text(tr(R.string.sleep_timer_bpm_info), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
-                FilterChip(choices.finishSong, { c.sleepPrefs.setFinishSong(!choices.finishSong) }, { Text(tr(R.string.end_of_song)) })
-                Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(tr(R.string.sleep_timer_volume), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                     Text(tr(R.string.tv_percent, (volumeValue * 100).roundToInt()), style = MaterialTheme.typography.bodyMedium,
@@ -368,6 +412,7 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
         },
         confirmButton = {
             PrismTextButton(onClick = {
+                commitMinutes()
                 if (fadeTouched) c.settings.setSleepFade(fadeValue.roundToInt())
                 pc.startSleepTimer(fadeValue.roundToInt())
                 onDismiss()
@@ -378,16 +423,20 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
 }
 
 /**
- * The active timer's own menu (a separate one from the choices above): the countdown, -5 / +5 minutes, and the temporary
- * BPM override. Changes apply to the running session at once; the saved choices stay exactly as they were.
+ * The active timer's own menu (a separate one from the choices above): the countdown, -5 / +5 minutes, the temporary
+ * BPM override and the volume the session plays at. Changes apply to the running session at once; the saved choices stay
+ * exactly as they were.
  */
 @Composable
 fun SleepTimerEditDialog(onDismiss: () -> Unit) {
-    val pc = LocalContainer.current.player
+    val c = LocalContainer.current
+    val pc = c.player
+    val choices by c.sleepPrefs.choices.collectAsState()
     val sleepAt by pc.sleepAt.collectAsState()
     val endOfSong by pc.sleepEndOfSong.collectAsState()
     val bpmDisabled by pc.sleepBpmDisabled.collectAsState()
     val maxBpm by pc.sleepMaxBpm.collectAsState()
+    var volumeValue by remember(choices.volume) { mutableFloatStateOf(choices.volume) }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(sleepAt, endOfSong, lifecycle) { lifecycle.tickWhileShown(1_000) { now = System.currentTimeMillis() } }
@@ -416,6 +465,15 @@ fun SleepTimerEditDialog(onDismiss: () -> Unit) {
                     tr(R.string.sleep_bpm_under, maxBpm), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr(R.string.sleep_timer_volume), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    Text(tr(R.string.tv_percent, (volumeValue * 100).roundToInt()), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary)
+                }
+                PrismSlider(volumeValue, { volumeValue = it; pc.setSleepVolume(it) }, valueRange = 0f..1f, steps = 9) {
+                    pc.setSleepVolume(volumeValue, remember = true)
+                }
             }
         },
         confirmButton = { PrismTextButton(onClick = onDismiss) { Text(tr(R.string.close)) } },
