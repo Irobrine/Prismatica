@@ -407,6 +407,9 @@ internal fun ReplayContent(
     val list = androidx.compose.foundation.lazy.rememberLazyListState()
     val scrolled by remember { androidx.compose.runtime.derivedStateOf { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 24 } }
     val edge by androidx.compose.animation.core.animateFloatAsState(if (scrolled) 1f else 0f, tween(220), label = "edge")
+    // Read here, outside the list: the page redraws as soon as the numbers arrive. Read only inside the LazyColumn, the
+    // state can change without the list being rebuilt (the spinner stayed until something else recomposed the page).
+    val d = data
     Box(Modifier.fillMaxSize()) {
     LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(bottom = bottomPadding + 24.dp)) {
         item {
@@ -428,7 +431,6 @@ internal fun ReplayContent(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
             ) { if (it == PICK_DATES) pickingDates = true else periodKey = it.key }
         }
-        val d = data
         // Keyed, so the hero never takes over the spinner's slot (seen under Robolectric: the spinner stayed).
         if (d == null) { item(key = "loading") { LoadingState() }; return@LazyColumn }
         if (d.plays == 0) {
