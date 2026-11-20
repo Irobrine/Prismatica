@@ -213,29 +213,25 @@ class EnhanceStore(private val filesDir: File) {
             if (line.isGap != gen.isGap || line.text != gen.text) { mismatched++; return@mapIndexed line }
             // Line-synced lyrics keep their own line stamps; a plain line takes the generated span.
             val time = if (line.timeMs >= 0) line.timeMs else gen.timeMs.coerceAtLeast(0)
-            val end = if (line.endMs > line.timeMs) line.endMs else gen.endMs.coerceAtLeast(time)
+            var end = if (line.endMs > line.timeMs) line.endMs else gen.endMs.coerceAtLeast(time)
+            // An unreliable alignment can leave a line with no span at all (every word at one instant, and a source
+            // with start times only taking that instant as its own). The room up to the next line is used instead —
+            // decided *before* the words are fitted, or every word clamps to that one instant and none of them moves.
+            if (end <= time) {
+                // The source may have no stamps at all (plain lyrics): the next *generated* line is what follows it.
+                val next = record.lines.filter { it.index > i && !it.isGap }.map { it.timeMs }.filter { it > time }.minOrNull()
+                end = (next ?: (time + 4_000L)).coerceAtLeast(time + 400L)
+            }
             val words = fitWords(gen.words, line.text, time, end)
             if (words.isEmpty()) return@mapIndexed line
             applied++
             // Generated words are a change to the words only; every other field (background vocals, alignment side,
             // source readings, the line's own text and stamps) stays exactly as the source had it.
             line.copy(timeMs = time, endMs = end, words = words)
-        }.toMutableList()
+        }
         if (applied == 0) return lyrics
         // A line the record doesn't know stays as it was; a different text for the same index is a stale result.
         if (mismatched > maxOf(2, lyrics.lines.size / 10)) return lyrics
-
-        // An unreliable alignment can leave a line with no span at all (every word at one instant, and a plain source
-        // line taking that instant as its own). Such a line gets the room up to the next line, so its words have
-        // somewhere to move instead of sitting still: a doubtful sweep is still better than a frozen one (the quality
-        // line already says the timings are doubtful).
-        for (i in out.indices) {
-            val l = out[i]
-            if (l.isGap || l.words.isEmpty() || l.endMs > l.timeMs) continue
-            val next = out.subList(i + 1, out.size).firstOrNull { !it.isGap && it.timeMs > l.timeMs }?.timeMs
-            val end = (next ?: (l.timeMs + 4_000L)).coerceAtLeast(l.timeMs + 400L)
-            out[i] = l.copy(endMs = end)
-        }
         return if (lyrics.synced) lyrics.copy(lines = out) else lyrics.copy(synced = true, lines = out)
     }
 

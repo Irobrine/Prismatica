@@ -9,6 +9,17 @@ import org.junit.Test
 
 /** Long songs are split into pieces the aligner can take, with every line in exactly one piece and useful offsets. */
 class ChunkPlannerTest {
+    @Test fun theRetryLadderIsRelativeToTheSongAndItsFirstPlan() {
+        // A short song whose lyrics fit one piece: 2, 4 and 5 pieces (an 8 s floor for the last).
+        assertEquals(listOf(20_000L, 10_000L, 8_000L), ChunkPlanner.retrySizes(durationMs = 40_000, pieces = 1))
+        // A four-minute song in three pieces: 6, 12 and 24 pieces.
+        assertEquals(listOf(40_000L, 20_000L, 10_000L), ChunkPlanner.retrySizes(durationMs = 240_000, pieces = 3))
+        // Never finer than the floor, never the same size twice.
+        val many = ChunkPlanner.retrySizes(durationMs = 30_000, pieces = 6)
+        assertEquals(1, many.size)
+        assertEquals(8_000L, many.single())
+    }
+
     @Test fun aTenMinuteSongIsSplitAndEveryLineIsCoveredOnce() {
         // 200 lines, three seconds apart, ten minutes long: more than the aligner's four-minute pieces.
         val lines = (0 until 200).map { i -> LyricLine(i * 3_000L, "line $i words here", i * 3_000L + 2_500L) }
