@@ -299,32 +299,20 @@ class EnhanceStore(private val filesDir: File) {
             val e = w.endMs.coerceIn(s, lineEnd.coerceAtLeast(s))
             w.copy(startMs = s, endMs = e).toLyricWord()
         }
-        // A line that opens with words the model couldn't time is a line it lost: its later stamps for it aren't worth
-        // more than a share of the line's own time, and spreading only up to the next stamp makes three words light at
-        // once and the rest crawl. Such a line is filled naively, as a plain one is, so it sweeps smoothly throughout.
-        if (fitted.takeWhile { it.endMs <= it.startMs }.size >= 2) return naiveLine(fitted, lineStart, lineEnd)
+        // A line that opens with words the model couldn't time is filled up to the first word it could: the timed ones
+        // keep their stamps, and the untimed run before them is placed backwards from that stamp at a natural pace, so
+        // the line doesn't light its opening all at once. Nothing the model timed is rewritten.
         return repairInstants(fitted, lineEnd)
     }
 
-    /** The line's words spread evenly over its own span by text length: a karaoke fill for a line with no usable stamps. */
-    private fun naiveLine(words: List<LyricWord>, lineStart: Long, lineEnd: Long): List<LyricWord> {
-        val letters = words.sumOf { maxOf(1, it.text.trimEnd().length) }.coerceAtLeast(1)
-        val room = (lineEnd - lineStart).coerceAtLeast(0)
-        if (room <= 0) return words
-        // At most what the words take to say, and never the line's whole span when it runs on through a pause.
-        val span = minOf(room, letters * 100L + 500L, room * 9 / 10).coerceAtLeast(minOf(room, 200L))
-        var at = lineStart
-        return words.map { w ->
-            val d = span * maxOf(1, w.text.trimEnd().length) / letters
-            w.copy(startMs = at, endMs = at + d).also { at += d }
-        }
-    }
+    /** Roughly how long a character takes to sing, when a word's own time has to be guessed. */
+    private val perCharacterMs = 130L
 
     /**
-     * A word the model gave no duration to (its start and end are the same instant) is given the room up to the next
-     * word that has one, or to the line's end: a word that lights and vanishes within one instant can't be followed
-     * while everything around it moves. A run of such words left at one instant shares that room naively, by text
-     * length, from where the first one sits to where the next timed word starts. The record itself is left as the model
+     * A word the model gave no duration to (its start and end are the same instant) is given a time that respects every
+     * stamp around it: a run at the start of a line ends where the first timed word starts and is packed backwards at
+     * [perCharacterMs] a character (never before the line's start); a run at the end starts where the last timed word
+     * ended; a run in the middle fills the gap between them by text length. The record itself is left as the model
      * answered (its quality line already says the timings are doubtful).
      */
     private fun repairInstants(words: List<LyricWord>, lineEnd: Long): List<LyricWord> {
@@ -336,14 +324,31 @@ class EnhanceStore(private val filesDir: File) {
             if (first.endMs > first.startMs) { i++; continue }
             var last = i
             while (last + 1 < out.size && out[last + 1].endMs <= out[last + 1].startMs) last++
-            val next = (last + 1 until out.size).firstOrNull { out[it].startMs > first.startMs }
-            val room = (if (next != null) out[next].startMs else lineEnd) - first.startMs
-            if (room <= 0) { i = last + 1; continue }
+            val nextStart = (last + 1 until out.size).firstOrNull { out[it].startMs > first.startMs }?.let { out[it].startMs }
             val run = i..last
             val letters = run.sumOf { maxOf(1, out[it].text.trimEnd().length) }
-            var at = first.startMs
+            val natural = perCharacterMs * letters
+            val previousEnd = if (i > 0) out[i - 1].endMs else first.startMs
+            val from: Long
+            val to: Long
+            when {
+                nextStart == null -> {
+                    from = maxOf(first.startMs, previousEnd)
+                    to = from + minOf(natural, (lineEnd - from).coerceAtLeast(0))
+                }
+                i == 0 -> {
+                    to = nextStart
+                    from = to - minOf(natural, (to - first.startMs).coerceAtLeast(0))
+                }
+                else -> {
+                    from = maxOf(first.startMs, previousEnd)
+                    to = nextStart
+                }
+            }
+            if (to <= from) { i = last + 1; continue }
+            var at = from
             for (k in run) {
-                val share = room * maxOf(1, out[k].text.trimEnd().length) / letters
+                val share = (to - from) * maxOf(1, out[k].text.trimEnd().length) / letters
                 out[k] = out[k].copy(startMs = at, endMs = (at + share).coerceAtLeast(at + 1))
                 at += share
             }

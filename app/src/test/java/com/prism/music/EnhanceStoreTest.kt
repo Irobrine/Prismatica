@@ -105,7 +105,7 @@ class EnhanceStoreTest {
         assertEquals("the line still reads as written", lyrics.lines[1].text, out.lines[1].text)
     }
 
-    @Test fun aLineThatOpensWithUntimedWordsIsFilledAcrossItsWholeSpan() {
+    @Test fun aLineThatOpensWithUntimedWordsKeepsTheStampsItDidGet() {
         val store = EnhanceStore(temp())
         val lyrics = timed()
         // The model lost the line's opening: its first two words sit on the line's start, the last one has a stamp.
@@ -119,14 +119,15 @@ class EnhanceStoreTest {
         val out = store.apply(lyrics, r)
         val words = out.lines[1].words
         assertEquals(3, words.size)
-        // Every word moves, in order, and the line is shared out over its span rather than three words lighting at once.
-        assertTrue(words.all { it.endMs > it.startMs })
-        assertTrue(words[1].startMs >= words[0].endMs)
-        assertTrue(words[2].startMs >= words[1].endMs)
-        assertEquals(2_500L, words[0].startMs)
-        // The stamp the model gave the last word no longer decides the sweep on its own.
-        assertTrue("the line was filled to its own span", words.last().endMs > 3_600)
-        assertTrue(words.last().endMs <= lyrics.lines[1].endMs)
+        // The word the model did time keeps its own stamp, exactly.
+        assertEquals(3_400L, words[2].startMs)
+        assertEquals(4_000L, words[2].endMs)
+        // The two it didn't are packed backwards from that stamp at a natural pace, ending where it starts…
+        assertEquals(words[2].startMs, words[1].endMs)
+        assertTrue(words[0].endMs > words[0].startMs)
+        assertTrue(words[1].endMs > words[1].startMs)
+        // …and not from the line's first instant: the opening doesn't light all at once.
+        assertTrue("the first word waits for its own time", words[0].startMs > 2_500)
         assertEquals(lyrics.lines[1].text, out.lines[1].text)
     }
 
