@@ -429,7 +429,13 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         report: (Float) -> Unit = {},
     ): AlignmentRecord {
         val durationMs = if (song.durationSec > 0) song.durationSec * 1000L else audio.size.toLong() * 1000 / 16_000
-        val plans = ChunkPlanner.plans(lyrics.lines, durationMs, language)
+        // A file's credit lines ("词：…", "Lyrics by …") aren't sung: left in, the aligner is asked to find them in the
+        // intro and their unplaceable words drag the whole result's score down. They stay in the lyrics; only the
+        // aligner's input is cleaned.
+        val source = CreditLines.strip(lyrics.lines)
+        val credits = CreditLines.count(lyrics.lines)
+        if (credits > 0) Log.i("PrismEnhance", "aligned ${song.id}: left out $credits credit line(s)")
+        val plans = ChunkPlanner.plans(source, durationMs, language)
         if (plans.isEmpty()) throw EnhanceNoLyrics()
         // Told missing before the session is built (its own factory checks too).
         runtimeDir(); alignerDir()
@@ -439,7 +445,7 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         // ChunkPlanner.fineSize), and a pass costs the same whatever the size, so starting here is not the expensive
         // choice — repeating it over a ladder was.
         val fine = ChunkPlanner.fineSize(durationMs, plans.size)
-        val finePlans = if (fine < ChunkPlanner.MAX_CHUNK_MS) ChunkPlanner.plans(lyrics.lines, durationMs, language, fine) else plans
+        val finePlans = if (fine < ChunkPlanner.MAX_CHUNK_MS) ChunkPlanner.plans(source, durationMs, language, fine) else plans
         var allAligned = alignPass(finePlans, audio, durationMs, aligner, cancel, report, 0.05f, 0.6f)
         var quality = AlignmentQualityCheck.evaluate(allAligned.units, audio, allAligned.confidence)
         logPass(song, "${fine} ms", finePlans.size, allAligned, quality)
