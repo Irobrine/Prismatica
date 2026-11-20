@@ -262,6 +262,17 @@ internal enum class SungKind { PLAIN, GROW, SWEEP, TYPEWRITER }
  */
 internal data class SungPlan(val kind: SungKind, val weight: Int?, val dim: Color = Color.Unspecified, val halo: Boolean = false)
 
+/**
+ * The line as a look that times words draws it: word-timed as it is when its words can move, and filled word by word
+ * when they can't (a line timed as a whole, or an alignment that came back as a block). Both the Japanese line and its
+ * romanization go through this, so one never moves word by word while the other stands still.
+ */
+internal fun LyricLine.wordTimedFor(look: LyricsLook): LyricLine = when {
+    !look.timesWords -> this
+    movesByWord -> this
+    else -> withWords(force = true)
+}
+
 /** Lines timed only as a whole get words of their own first ([withWords]): the look moves them word by word. */
 internal val LyricsLook.timesWords: Boolean get() = wordByWord && motion != LyricsMotion.NONE
 
@@ -312,15 +323,7 @@ fun SungLine(
     var layout by remember(line) { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     val room = rememberRubyRoom(ruby, style)
     val st = (if (room != null) style.withRubyRoom(room) else style).copy(shadow = look.shadow ?: style.shadow)
-    val timed = when {
-        !look.timesWords -> line
-        // Words of its own that can move (two or more, and some of them with a duration): a real word timing, from a
-        // source or from the aligner.
-        line.words.count { it.text.isNotBlank() } > 1 && line.words.any { it.endMs > it.startMs } -> line
-        // One word, or words with no time in them at all (a line timed as a whole, or an alignment that came back as a
-        // block): fill the line word by word, which is also what keeps a Japanese line moving when it had no words.
-        else -> remember(line) { line.withWords(force = true) }
-    }
+    val timed = remember(line, look.timesWords) { line.wordTimedFor(look) }
     val plan = look.sungPlan(timed.isWordSynced, onCard, strip, axis != null, dimAlpha)
     val set = if (plan.weight != null) st.copy(fontWeight = FontWeight(plan.weight)) else st
     // The readings take the look's fill too, so Color fills colors them as it colors the kanji.

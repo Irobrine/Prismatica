@@ -1394,9 +1394,10 @@ fun LyricsPanel(
                         )
                         val pad = Modifier.fillMaxWidth().padding(top = if (padTop) 4.dp else 0.dp, bottom = if (padTop) 0.dp else 4.dp)
                         val r = look.shown(romanLine)
-                        // With the Japanese line word by word, so is its romaji; when the line only moves by line, the
-                        // romaji does the same rather than sweeping on timings of its own.
-                        if (isActive && r.isWordSynced && line.movesByWord) SweptLine(r, clock, romanStyle, pad, dimAlpha = UNSUNG_ALPHA * 0.9f, litBrush = look.sung)
+                        // The romaji moves exactly as the Japanese under it does: word by word when its words can move,
+                        // else filled line-first the same way — never sweeping on timings of its own.
+                        val rTimed = remember(r, look.timesWords) { r.wordTimedFor(look) }
+                        if (isActive && rTimed.isWordSynced) SweptLine(rTimed, clock, romanStyle, pad, dimAlpha = UNSUNG_ALPHA * 0.9f, litBrush = look.sung)
                         else Text(r.text, style = romanStyle, color = (if (onCard) Color.Black else look.extraColor).copy(alpha = if (isActive) 0.85f else lineAlpha * 0.8f), modifier = pad)
                     }
                 }
