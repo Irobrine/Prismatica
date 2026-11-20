@@ -202,21 +202,8 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
                 "(${timedLines.size} of ${record.lines.size} lines timed, ${lyrics.lines.size} lines; " +
                 "$words words, $empty zero-length${sample?.let { "; first: $it" } ?: ""})",
         )
-        // One line per song, once: every line's words exactly as the drawing is handed them.
-        if (applied !== lyrics && blockLogged.add(song.id)) {
-            for (chunk in applied.lines.withIndex().chunked(6)) Log.i(
-                "PrismEnhance",
-                "overlay ${song.id} lines ${chunk.first().index}..${chunk.last().index}: " +
-                    chunk.joinToString(" | ") { (i, l) ->
-                        "$i ${l.timeMs}..${l.endMs} '${l.text.take(12)}' " +
-                            l.words.joinToString(" ") { "${it.text}[${it.startMs}..${it.endMs}]" }
-                    },
-            )
-        }
         return applied
     }
-
-    private val blockLogged: MutableSet<String> = java.util.Collections.synchronizedSet(HashSet())
 
     // ------------------------------------------------------------------ public operations
 
