@@ -5197,6 +5197,9 @@
     <string name="playback_face_down_pause">توقف هنگام وارونه گذاشتن</string>
     <string name="playback_face_down_pause_info">گوشی را با صفحه رو به پایین بگذارید تا موسیقی متوقف شود. اگر ظرف پنج دقیقه آن را بردارید، موسیقی ادامه می‌یابد.</string>
     <string name="playback_face_down_keywords">وارونه صفحه رو به پایین برگرداندن حسگر توقف ادامه برداشتن</string>
+    <string name="playback_resume_on_return">ادامه هنگام بازگشت بلوتوث</string>
+    <string name="playback_resume_on_return_info">وقتی هدفون بلوتوث قطع و دوباره وصل می‌شود، موسیقی از همان‌جا که متوقف شد ادامه می‌یابد: مثلاً هندزفری‌هایی که به اتصال 2.4 گیگاهرتز خودشان می‌روند و برمی‌گردند. فقط توقفی که از دست رفتن خروجی ایجاد کرده ادامه داده می‌شود؛ توقفی که خودتان زده‌اید می‌ماند.</string>
+    <string name="playback_resume_on_return_keywords">ادامه اتصال مجدد بلوتوث هندزفری هدفون tws مبدل 2.4ghz خروجی بازگشت خودکار</string>
     <string name="playback_shuffle_keywords">پخش تصادفی هوشمند ترتیب تصادفی درهم تصادفی بماند smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">از یک آهنگ به آهنگ بعدی</string>
     <string name="playback_speed_and_pitch">سرعت و زیر و بمی</string>

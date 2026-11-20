@@ -5269,6 +5269,9 @@
     <string name="playback_face_down_pause">Pause écran retourné</string>
     <string name="playback_face_down_pause_info">Posez votre téléphone écran vers le bas pour mettre en pause. Reprenez-le dans les cinq minutes et la musique continue.</string>
     <string name="playback_face_down_keywords">retourner écran vers le bas face capteur pause reprendre</string>
+    <string name="playback_resume_on_return">Reprendre quand le Bluetooth revient</string>
+    <string name="playback_resume_on_return_info">Quand des écouteurs Bluetooth se déconnectent puis se reconnectent, la musique reprend là où elle s’est arrêtée : des écouteurs qui passent sur leur propre connexion 2,4 GHz, par exemple. Seule une pause causée par la perte de sortie est reprise ; une pause que vous avez faite reste.</string>
+    <string name="playback_resume_on_return_keywords">reprendre reconnexion bluetooth écouteurs oreillettes tws dongle 2,4ghz sortie retour continuer auto</string>
     <string name="playback_shuffle_keywords">lecture aléatoire intelligente ordre aléatoire mélangé rester en aléatoire smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">D’un titre au suivant</string>
     <string name="playback_speed_and_pitch">Vitesse et tonalité</string>

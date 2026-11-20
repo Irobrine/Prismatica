@@ -5125,6 +5125,9 @@
     <string name="playback_face_down_pause">螢幕朝下時暫停</string>
     <string name="playback_face_down_pause_info">把手機螢幕朝下放就會暫停。五分鐘內拿起來，音樂會接著播放。</string>
     <string name="playback_face_down_keywords">螢幕朝下 翻轉 蓋放 感應器 暫停 繼續 拿起</string>
+    <string name="playback_resume_on_return">藍牙恢復後繼續播放</string>
+    <string name="playback_resume_on_return_info">當藍牙耳機中斷又重新連線時，音樂會從暫停處繼續：例如耳機切換到自己的 2.4 GHz 連線後再回來。只有因輸出中斷造成的暫停才會繼續；你手動暫停的仍會保持暫停。</string>
+    <string name="playback_resume_on_return_keywords">繼續 重新連線 藍牙 耳機 tws 轉接器 2.4ghz 輸出 恢復 自動</string>
     <string name="playback_shuffle_keywords">智慧隨機播放 隨機順序 打亂 保持隨機</string>
     <string name="playback_song_to_song">從一首歌到下一首</string>
     <string name="playback_speed_and_pitch">速度和音調</string>

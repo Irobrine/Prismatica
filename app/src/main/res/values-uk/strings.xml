@@ -5341,6 +5341,9 @@
     <string name="playback_face_down_pause">Пауза екраном донизу</string>
     <string name="playback_face_down_pause_info">Поклади телефон екраном донизу, щоб поставити паузу. Підніми його протягом п’яти хвилин, і музика гратиме далі.</string>
     <string name="playback_face_down_keywords">екраном донизу перевернути датчик пауза продовжити підняти</string>
+    <string name="playback_resume_on_return">Продовжувати, коли Bluetooth повертається</string>
+    <string name="playback_resume_on_return_info">Коли Bluetooth-навушники від’єднуються й підключаються знову, музика продовжує з того місця, де спинилася: наприклад, навушники переходять на власне з’єднання 2,4 ГГц і назад. Продовжується лише пауза, яку спричинила втрата виводу; твоя власна пауза лишається.</string>
+    <string name="playback_resume_on_return_keywords">продовжити перепідключення bluetooth навушники вкладиші tws адаптер 2,4ггц вивід назад авто</string>
     <string name="playback_shuffle_keywords">розумне перемішування випадковий порядок упереміш лишатися перемішаним</string>
     <string name="playback_song_to_song">Від пісні до пісні</string>
     <string name="playback_speed_and_pitch">Швидкість і тональність</string>

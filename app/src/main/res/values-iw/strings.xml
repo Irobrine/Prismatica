@@ -5269,6 +5269,9 @@
     <string name="playback_face_down_pause">השהיה כשהטלפון הפוך</string>
     <string name="playback_face_down_pause_info">הנח את הטלפון עם המסך כלפי מטה כדי להשהות. הרם אותו תוך חמש דקות והמוזיקה ממשיכה.</string>
     <string name="playback_face_down_keywords">הפוך מסך כלפי מטה הפיכה חיישן השהיה המשך הרמה</string>
+    <string name="playback_resume_on_return">המשך כשהבלוטות חוזר</string>
+    <string name="playback_resume_on_return_info">כשהאוזניות בלוטות מתנתקות ומתחברות שוב, המוזיקה ממשיכה מהמקום שבו נעצרה: למשל אוזניות שעוברות לחיבור 2.4 GHz שלהן וחוזרות. רק השהיה שנגרמה מאובדן היציאה ממשיכה; השהיה שעשית בעצמך נשארת.</string>
+    <string name="playback_resume_on_return_keywords">המשך התחברות מחדש בלוטות אוזניות tws מתאם 2.4ghz יציאה חזרה אוטומטי</string>
     <string name="playback_shuffle_keywords">ערבוב חכם סדר אקראי מעורבב להישאר בערבוב smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">משיר לשיר הבא</string>
     <string name="playback_speed_and_pitch">מהירות וגובה צליל</string>

@@ -5197,6 +5197,9 @@
     <string name="playback_face_down_pause">Szünet képernyővel lefelé</string>
     <string name="playback_face_down_pause_info">Tedd le a telefont képernyővel lefelé a szüneteltetéshez. Ha öt percen belül felveszed, a zene szól tovább.</string>
     <string name="playback_face_down_keywords">képernyővel lefelé megfordít érzékelő szünet folytatás felvesz</string>
+    <string name="playback_resume_on_return">Folytatás, ha visszatér a Bluetooth</string>
+    <string name="playback_resume_on_return_info">Amikor a Bluetooth-fejhallgató kiesik és újra csatlakozik, a zene onnan folytatódik, ahol abbamaradt: például a fülhallgató a saját 2,4 GHz-es kapcsolatára vált és visszatér. Csak az elveszett kimenet miatti szünet folytatódik; a saját szünet megmarad.</string>
+    <string name="playback_resume_on_return_keywords">folytatás újracsatlakozás bluetooth fülhallgató füles tws adapter 2,4ghz kimenet vissza automatikus</string>
     <string name="playback_shuffle_keywords">okos keverés véletlen sorrend összekevert kevert marad smart shuffle random order</string>
     <string name="playback_song_to_song">Egyik dalról a másikra</string>
     <string name="playback_speed_and_pitch">Sebesség és hangmagasság</string>

@@ -5197,6 +5197,9 @@
     <string name="playback_face_down_pause">उल्टा रखने पर रोकें</string>
     <string name="playback_face_down_pause_info">रोकने के लिए फ़ोन को स्क्रीन नीचे करके रखें। पाँच मिनट के अंदर उठा लें तो संगीत फिर चलने लगेगा।</string>
     <string name="playback_face_down_keywords">उल्टा स्क्रीन नीचे पलटें सेंसर रोकें फिर चलाएं उठाएं</string>
+    <string name="playback_resume_on_return">ब्लूटूथ लौटने पर फिर चलाएँ</string>
+    <string name="playback_resume_on_return_info">जब ब्लूटूथ हेडफ़ोन कट जाते हैं और फिर जुड़ते हैं, तो संगीत वहीं से चलता है जहाँ रुका था: जैसे ईयरबड्स अपने 2.4 GHz कनेक्शन पर जाकर लौट आते हैं। सिर्फ़ आउटपुट छूटने से हुई पॉज़ फिर चलती है; आपकी खुद की पॉज़ वैसी ही रहती है।</string>
+    <string name="playback_resume_on_return_keywords">फिर चलाएँ दोबारा जोड़ें ब्लूटूथ ईयरबड्स हेडफ़ोन tws डोंगल 2.4ghz आउटपुट वापस जारी ऑटो</string>
     <string name="playback_shuffle_keywords">स्मार्ट शफ़ल रैंडम क्रम मिला-जुला शफ़ल रहे smart shuffle random order mixed stay shuffled</string>
     <string name="playback_song_to_song">एक गाने से अगले तक</string>
     <string name="playback_speed_and_pitch">स्पीड और पिच</string>

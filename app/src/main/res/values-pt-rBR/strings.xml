@@ -5269,6 +5269,9 @@
     <string name="playback_face_down_pause">Pausar com a tela para baixo</string>
     <string name="playback_face_down_pause_info">Vire o celular com a tela para baixo para pausar. Pegue-o de volta em até cinco minutos e a música continua.</string>
     <string name="playback_face_down_keywords">virar tela para baixo emborcar sensor pausar retomar pegar</string>
+    <string name="playback_resume_on_return">Retomar quando o Bluetooth voltar</string>
+    <string name="playback_resume_on_return_info">Quando os fones Bluetooth caem e se conectam de novo, a música continua de onde parou: por exemplo, fones que mudam para a própria conexão de 2,4 GHz e voltam. Só uma pausa causada pela perda da saída é retomada; uma pausa feita por você continua.</string>
+    <string name="playback_resume_on_return_keywords">retomar reconectar bluetooth fones fone tws adaptador 2,4ghz saída voltar continuar auto</string>
     <string name="playback_shuffle_keywords">aleatório inteligente ordem aleatória embaralhar misturado continuar aleatório smart shuffle random order</string>
     <string name="playback_song_to_song">De uma música para a próxima</string>
     <string name="playback_speed_and_pitch">Velocidade e tom</string>

@@ -5485,6 +5485,9 @@
     <string name="playback_face_down_pause">الإيقاف المؤقت عند قلب الهاتف</string>
     <string name="playback_face_down_pause_info">ضع هاتفك والشاشة للأسفل لإيقاف الموسيقى مؤقتًا. ارفعه خلال خمس دقائق وتستمر الموسيقى.</string>
     <string name="playback_face_down_keywords">قلب الهاتف الشاشة للأسفل وجه مقلوب مستشعر إيقاف مؤقت استئناف رفع</string>
+    <string name="playback_resume_on_return">المتابعة عند عودة البلوتوث</string>
+    <string name="playback_resume_on_return_info">عندما تنقطع سماعات البلوتوث وتتصل من جديد، تستأنف الموسيقى من حيث توقفت: مثل سماعات تنتقل إلى اتصالها الخاص بتردد 2.4 غيغاهرتز ثم تعود. لا تُستأنف إلا الإيقافات الناتجة عن فقدان الإخراج؛ أما الإيقاف الذي قمت به أنت فيبقى.</string>
+    <string name="playback_resume_on_return_keywords">متابعة إعادة اتصال بلوتوث سماعات أذن سماعة tws محول 2.4ghz إخراج عودة تلقائي</string>
     <string name="playback_shuffle_keywords">ترتيب عشوائي ذكي ترتيب عشوائي خلط البقاء عشوائيًا smart shuffle random</string>
     <string name="playback_song_to_song">من أغنية إلى التالية</string>
     <string name="playback_speed_and_pitch">السرعة وطبقة الصوت</string>

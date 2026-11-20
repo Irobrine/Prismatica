@@ -5125,6 +5125,9 @@
     <string name="playback_face_down_pause">屏幕朝下时暂停</string>
     <string name="playback_face_down_pause_info">把手机屏幕朝下放即可暂停。五分钟内拿起来，音乐会接着播放。</string>
     <string name="playback_face_down_keywords">屏幕朝下 翻转 扣放 传感器 暂停 继续 拿起</string>
+    <string name="playback_resume_on_return">蓝牙恢复后继续播放</string>
+    <string name="playback_resume_on_return_info">当蓝牙耳机断开又重新连接时，音乐会从暂停处继续：例如耳机切换到自己的 2.4 GHz 连接后再回来。只有因输出丢失导致的暂停才会继续；你手动暂停的仍会保持暂停。</string>
+    <string name="playback_resume_on_return_keywords">继续 重新连接 蓝牙 耳机 tws 适配器 2.4ghz 输出 恢复 自动</string>
     <string name="playback_shuffle_keywords">智能随机播放 随机顺序 打乱 保持随机</string>
     <string name="playback_song_to_song">从一首歌到下一首</string>
     <string name="playback_speed_and_pitch">速度和音调</string>

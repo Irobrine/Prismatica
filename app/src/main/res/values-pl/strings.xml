@@ -5341,6 +5341,9 @@
     <string name="playback_face_down_pause">Wstrzymuj ekranem w dół</string>
     <string name="playback_face_down_pause_info">Połóż telefon ekranem w dół, żeby wstrzymać. Podnieś go w ciągu pięciu minut, a muzyka zagra dalej.</string>
     <string name="playback_face_down_keywords">ekranem w dół odwróć obróć czujnik wstrzymaj wznów podnieś</string>
+    <string name="playback_resume_on_return">Wznów, gdy Bluetooth wróci</string>
+    <string name="playback_resume_on_return_info">Gdy słuchawki Bluetooth rozłączą się i połączą ponownie, muzyka wraca tam, gdzie się zatrzymała: na przykład słuchawki przełączające się na własne połączenie 2,4 GHz i z powrotem. Wznawiana jest tylko pauza spowodowana utratą wyjścia; pauza zrobiona przez ciebie zostaje.</string>
+    <string name="playback_resume_on_return_keywords">wznów połącz ponownie bluetooth słuchawki douszne tws adapter 2,4ghz wyjście wróć kontynuuj auto</string>
     <string name="playback_shuffle_keywords">inteligentne losowanie losowa kolejność wymieszane zostaw losowo smart shuffle random order</string>
     <string name="playback_song_to_song">Z utworu na utwór</string>
     <string name="playback_speed_and_pitch">Prędkość i wysokość</string>

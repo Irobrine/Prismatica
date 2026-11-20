@@ -5197,6 +5197,9 @@
     <string name="playback_face_down_pause">Pauzeren met scherm omlaag</string>
     <string name="playback_face_down_pause_info">Leg je telefoon met het scherm omlaag om te pauzeren. Pak je hem binnen vijf minuten op, dan speelt de muziek verder.</string>
     <string name="playback_face_down_keywords">omdraaien scherm omlaag ondersteboven sensor pauzeren hervatten oppakken</string>
+    <string name="playback_resume_on_return">Hervatten als bluetooth terugkomt</string>
+    <string name="playback_resume_on_return_info">Als bluetooth-koptelefoons wegvallen en weer verbinden, gaat de muziek verder waar hij stopte: oordopjes die naar hun eigen 2,4GHz-verbinding overschakelen en terug, bijvoorbeeld. Alleen een pauze die het verloren apparaat veroorzaakte wordt hervat; een pauze die je zelf nam blijft.</string>
+    <string name="playback_resume_on_return_keywords">hervatten opnieuw verbinden bluetooth oordopjes koptelefoon tws dongle 2,4ghz uitvoer terug doorgaan automatisch</string>
     <string name="playback_shuffle_keywords">slimme shuffle willekeurige volgorde door elkaar geshuffeld blijven smart shuffle random order</string>
     <string name="playback_song_to_song">Van het ene nummer naar het volgende</string>
     <string name="playback_speed_and_pitch">Snelheid en toonhoogte</string>

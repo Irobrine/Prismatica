@@ -5197,6 +5197,9 @@
     <string name="playback_face_down_pause">Pausa med skärmen nedåt</string>
     <string name="playback_face_down_pause_info">Lägg telefonen med skärmen nedåt för att pausa. Plocka upp den inom fem minuter så spelar musiken vidare.</string>
     <string name="playback_face_down_keywords">skärmen nedåt vända upp och ner sensor pausa återuppta plocka upp</string>
+    <string name="playback_resume_on_return">Återuppta när Bluetooth kommer tillbaka</string>
+    <string name="playback_resume_on_return_info">När Bluetooth-hörlurar tappar anslutningen och sedan ansluter igen fortsätter musiken där den slutade: hörlurar som byter till sin egen 2,4 GHz-anslutning och tillbaka, till exempel. Bara en paus som det förlorade ljudet orsakade återupptas; en paus du själv gjorde ligger kvar.</string>
+    <string name="playback_resume_on_return_keywords">återuppta återanslut bluetooth hörlurar öronsnäckor tws dongel 2,4ghz ut och tillbaka fortsätt automatiskt</string>
     <string name="playback_shuffle_keywords">smart blandning slumpvis ordning blandat förbli blandad</string>
     <string name="playback_song_to_song">Från en låt till nästa</string>
     <string name="playback_speed_and_pitch">Hastighet och tonhöjd</string>
