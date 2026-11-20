@@ -84,6 +84,27 @@ class EnhanceStoreTest {
         assertTrue("the last line still has no span", applied.lines[1].endMs > applied.lines[1].timeMs)
     }
 
+    @Test fun aWordWithNoDurationIsGivenTheRoomUpToTheNextOne() {
+        val store = EnhanceStore(temp())
+        val lyrics = timed()
+        // The model placed "a " at one instant while the words around it have real times inside the line.
+        val r = record(lyrics).let { rec ->
+            rec.copy(lines = rec.lines.map { l ->
+                if (l.index != 1) l else l.copy(words = l.words.map { w ->
+                    if (w.text == "a ") w.copy(startMs = 3_000, endMs = 3_000) else w
+                })
+            })
+        }
+        val out = store.apply(lyrics, r)
+        val words = out.lines[1].words
+        val a = words.first { it.text == "a " }
+        assertEquals(3_000L, a.startMs)
+        assertTrue("the word has a duration", a.endMs > a.startMs)
+        // It takes the room up to the word after it and never runs into it.
+        assertEquals(words.first { it.text == "test." }.startMs, a.endMs)
+        assertEquals("the line still reads as written", lyrics.lines[1].text, out.lines[1].text)
+    }
+
     private fun plain() = Lyrics(LyricsSource.LRCLIB, false, listOf(
         LyricLine(-1, "Hello, world!"),
         LyricLine(-1, "It's a test."),

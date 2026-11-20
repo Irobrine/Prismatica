@@ -290,15 +290,49 @@ class EnhanceStore(private val filesDir: File) {
                 found += w.toLyricWord()
                 at = i + w.text.trim().length
             }
-            return if (found.isEmpty()) emptyList() else found
+            return if (found.isEmpty()) emptyList() else repairInstants(found, lineEnd)
         }
         // Timings never leave their line: a generated word two seconds outside it is clamped, and the quality check has
         // already flagged the result. The line's own stamp stays the source's.
-        return words.map { w ->
+        val fitted = words.map { w ->
             val s = w.startMs.coerceIn(lineStart, lineEnd.coerceAtLeast(lineStart))
             val e = w.endMs.coerceIn(s, lineEnd.coerceAtLeast(s))
             w.copy(startMs = s, endMs = e).toLyricWord()
         }
+        return repairInstants(fitted, lineEnd)
+    }
+
+    /**
+     * A word the model gave no duration to (its start and end are the same instant) is given the room up to the next
+     * word that has one, or to the line's end: a word that lights and vanishes within one instant can't be followed
+     * while everything around it moves. A run of such words left at the same instant shares that room by text length,
+     * and the room is capped roughly at what the words take to say, so a collapsed last word doesn't sweep for a verse.
+     * The record itself is left as the model answered (its quality line already says the timings are doubtful).
+     */
+    private fun repairInstants(words: List<LyricWord>, lineEnd: Long): List<LyricWord> {
+        if (words.none { it.endMs <= it.startMs }) return words
+        val out = words.toMutableList()
+        var i = 0
+        while (i < out.size) {
+            val first = out[i]
+            if (first.endMs > first.startMs) { i++; continue }
+            var last = i
+            while (last + 1 < out.size && out[last + 1].startMs <= first.startMs && out[last + 1].endMs <= out[last + 1].startMs) last++
+            val next = (last + 1 until out.size).firstOrNull { out[it].startMs > first.startMs }
+            val room = if (next != null) out[next].startMs - first.startMs else lineEnd - first.startMs
+            if (room <= 0) { i = last + 1; continue }
+            val run = i..last
+            val letters = run.sumOf { maxOf(1, out[it].text.trimEnd().length) }
+            val span = minOf(room, 500L + 130L * letters)
+            var at = first.startMs
+            for (k in run) {
+                val share = span * maxOf(1, out[k].text.trimEnd().length) / letters
+                out[k] = out[k].copy(startMs = at, endMs = (at + share).coerceAtLeast(at + 1))
+                at += share
+            }
+            i = last + 1
+        }
+        return out
     }
 
     private inline fun <reified T> read(f: File): T? = runCatching { json.decodeFromString<T>(f.readText()) }.getOrNull()
