@@ -115,6 +115,9 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
     var redoAsk by remember { mutableStateOf<Set<EnhanceKind>?>(null) }
     var preview by remember(song.id) { mutableStateOf<android.media.MediaPlayer?>(null) }
     var previewing by remember(song.id) { mutableStateOf(false) }
+    var previewPos by remember(song.id) { androidx.compose.runtime.mutableIntStateOf(0) }
+    var previewLen by remember(song.id) { androidx.compose.runtime.mutableIntStateOf(0) }
+    var previewDrag by remember(song.id) { mutableStateOf(false) }
     var downloaded by remember { mutableStateOf(0f) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) scope.launch {
@@ -179,6 +182,7 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
         preview?.let { mp -> runCatching { mp.stop() }; runCatching { mp.release() } }
         preview = null
         previewing = false
+        previewPos = 0
     }
 
     /** Plays the separated vocals on their own (the song pauses meanwhile), so bad separation can be heard for what it is. */
@@ -196,6 +200,8 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
                 mp.setDataSource(wav.absolutePath)
                 mp.prepare()
                 mp.setOnCompletionListener { previewing = false }
+                previewLen = mp.duration
+                previewPos = 0
                 mp.start()
             }.isSuccess
             if (!ok) { runCatching { mp.release() }; problem = tr(R.string.enhance_external_import_failed); return@launch }
@@ -206,6 +212,13 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
 
     androidx.compose.runtime.DisposableEffect(song.id) {
         onDispose { stopPreview() }
+    }
+    // Where the vocals have got to while they play: the slider follows, unless the listener is dragging it.
+    LaunchedEffect(previewing, preview) {
+        while (previewing) {
+            if (!previewDrag) preview?.let { mp -> runCatching { previewPos = mp.currentPosition } }
+            kotlinx.coroutines.delay(200)
+        }
     }
     var kind by remember(song.id, hasGenerated, hasExternal) { mutableStateOf(c.sing.instrumentalKind(song.id)) }
     fun choose(k: InstrumentalKind) { c.sing.setInstrumental(song.id, k); kind = k }
@@ -346,11 +359,27 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
                 tag = "enhance:vocals",
                 onCancel = { taskOf(EnhanceKind.VOCALS)?.let { cancelAsk = it } },
             ) { separateAgain(EnhanceKind.VOCALS, separation != null) }
-            if (separation != null) PrismTextButton(
-                onClick = { togglePreview() },
-                modifier = Modifier.testTag("enhance:vocals:play"),
+            if (separation != null) Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (previewing) tr(R.string.enhance_stop_vocals) else tr(R.string.enhance_play_vocals))
+                PrismTextButton(
+                    onClick = { togglePreview() },
+                    modifier = Modifier.testTag("enhance:vocals:play"),
+                ) {
+                    Text(if (previewing) tr(R.string.enhance_stop_vocals) else tr(R.string.enhance_play_vocals))
+                }
+                // Scrubbing the vocals: a sung phrase that sounds wrong can be heard again on its own, at its own time.
+                androidx.compose.material3.Slider(
+                    value = previewPos.toFloat(),
+                    onValueChange = { v -> previewPos = v.toInt(); previewDrag = true },
+                    onValueChangeFinished = {
+                        preview?.let { mp -> runCatching { mp.seekTo(previewPos) } }
+                        previewDrag = false
+                    },
+                    valueRange = 0f..previewLen.coerceAtLeast(1).toFloat(),
+                    modifier = Modifier.weight(1f).testTag("enhance:vocals:seek"),
+                )
             }
             Spacer(Modifier.height(10.dp))
             // 3. Instrumental, independent of the external one.

@@ -32,7 +32,7 @@ internal object ChunkPlanner {
      */
     fun retrySizes(durationMs: Long, pieces: Int): List<Long> {
         val span = durationMs.coerceAtLeast(1)
-        return listOf(2, 4, 8)
+        return listOf(2, 4, 8, 16)
             .map { factor -> (span / (pieces.coerceAtLeast(1) * factor)).coerceIn(MIN_RETRY_CHUNK_MS, MAX_CHUNK_MS) }
             .filter { it < MAX_CHUNK_MS }
             .distinct()

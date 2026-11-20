@@ -121,6 +121,22 @@ class RomanizerTest {
         assertEquals(3_000L, spread[1].endMs)
     }
 
+    /** The romaji moves only as far as its Japanese does: a line-timed line is not handed timings it doesn't have. */
+    @Test
+    fun romajiMovesOnlyWhereTheJapaneseDoes() {
+        val moving = LyricLine(0, "君の", words = listOf(w(0, 400, "君"), w(400, 800, "の")))
+        val spelled = romanizer.rebuild(moving, Romanizer.Stored("kimi no", listOf("ki", "mi")))
+        assertEquals(listOf("ki", "mi"), spelled.words.map { it.text })
+        assertEquals(listOf(0L, 400L), spelled.words.map { it.startMs })
+
+        // Every word at one instant: the line is timed as a whole, so the romaji stays one line with it instead of
+        // sweeping over timings the alignment never gave.
+        val still = LyricLine(3_000, "君の", words = listOf(w(3_000, 3_000, "君"), w(3_000, 3_000, "の")))
+        val whole = romanizer.rebuild(still, Romanizer.Stored("kimi no", listOf("ki", "mi")))
+        assertEquals("kimi no", whole.text)
+        assertTrue(whole.words.isEmpty())
+    }
+
     @org.junit.experimental.categories.Category(LiveNetwork::class)
     @Test
     fun googleSpellsOutChineseAndHindi() = runBlocking {

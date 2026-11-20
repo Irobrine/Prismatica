@@ -12,8 +12,8 @@ class ChunkPlannerTest {
     @Test fun theRetryLadderIsRelativeToTheSongAndItsFirstPlan() {
         // A short song whose lyrics fit one piece: 2, 4 and 5 pieces (an 8 s floor for the last).
         assertEquals(listOf(20_000L, 10_000L, 8_000L), ChunkPlanner.retrySizes(durationMs = 40_000, pieces = 1))
-        // A four-minute song in three pieces: 6, 12 and 24 pieces.
-        assertEquals(listOf(40_000L, 20_000L, 10_000L), ChunkPlanner.retrySizes(durationMs = 240_000, pieces = 3))
+        // A four-minute song in three pieces: 6, 12, 24 and 48 pieces (the last at the 8 s floor).
+        assertEquals(listOf(40_000L, 20_000L, 10_000L, 8_000L), ChunkPlanner.retrySizes(durationMs = 240_000, pieces = 3))
         // Never finer than the floor, never the same size twice.
         val many = ChunkPlanner.retrySizes(durationMs = 30_000, pieces = 6)
         assertEquals(1, many.size)

@@ -105,7 +105,7 @@ class Romanizer(
     val furiganaReady: Boolean get() = japaneseReady
 
     @Serializable
-    private data class Stored(val t: String, val w: List<String>? = null, val b: String? = null, val bw: List<String>? = null)
+    internal data class Stored(val t: String, val w: List<String>? = null, val b: String? = null, val bw: List<String>? = null)
 
     private val json = Json { ignoreUnknownKeys = true }
     private val memory = object : LinkedHashMap<String, List<LyricLine?>>(16, 0.75f, true) {
@@ -345,9 +345,12 @@ class Romanizer(
     }
 
     /** Builds the romanized line from what's stored, with the original's timings. */
-    private fun rebuild(line: LyricLine, s: Stored): LyricLine {
+    internal fun rebuild(line: LyricLine, s: Stored): LyricLine {
+        // Word by word only when the line it romanizes moves word by word: a line timed as a whole (or whose words carry
+        // no time) gets no invented timings here, so the romaji stays line by line with it instead of sweeping alone.
+        val moves = line.movesByWord
         val words = when {
-            line.words.isEmpty() -> emptyList()
+            !moves -> emptyList()
             s.w != null && s.w.size == line.words.size -> line.words.mapIndexed { k, w -> w.copy(text = s.w[k]) }.filter { it.text.isNotEmpty() }
             else -> spread(s.t, line.words)
         }

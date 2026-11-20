@@ -86,6 +86,13 @@ data class LyricLine(
 ) {
     val isWordSynced: Boolean get() = words.isNotEmpty()
 
+    /**
+     * Whether the line itself moves word by word: more than one word with text, and at least one carrying a duration. A
+     * line timed only as a whole (every word at one instant, or a single word) doesn't, and anything derived from it —
+     * its romanization, a sweep — mustn't pretend it does and drift away from it.
+     */
+    val movesByWord: Boolean get() = words.count { it.text.isNotBlank() } > 1 && words.any { it.endMs > it.startMs }
+
     /** The background vocals as a line of their own, for drawing; null when there are none. */
     val backgroundLine: LyricLine? get() = if (background.isEmpty()) null else
         LyricLine(background.first().startMs, background.joinToString("") { it.text }.trim(), background.last().endMs, background, alignEnd)
