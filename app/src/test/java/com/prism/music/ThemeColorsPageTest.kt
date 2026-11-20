@@ -69,7 +69,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         assertEquals(defaultGroups, groups.map { it.first })
         assertEquals(
             listOf(
-                listOf("Theme", "Changing screens", "Design language", "Reduce motion"),
+                listOf("Color scheme", "Theme", "Changing screens", "Design language", "Reduce motion"),
                 listOf("Preset", "Smooth or bands"),
                 listOf("Accent from", "Accent color", "How it's used", "Light mode accent"),
                 listOf("Page background", "Text contrast", "Page colors", "Playing song in the page's color", "Screen backgrounds"),
@@ -80,9 +80,10 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         assertBudgets()
         // Each row is one of the five types, and says where it stands.
         assertEquals(
-            listOf(SettingsTags.ROW_CHOICE, SettingsTags.ROW_CHOICE, SettingsTags.ROW_CHOICE, SettingsTags.ROW_SWITCH),
+            listOf(SettingsTags.ROW_PICK, SettingsTags.ROW_CHOICE, SettingsTags.ROW_CHOICE, SettingsTags.ROW_CHOICE, SettingsTags.ROW_SWITCH),
             groups[0].second.map { tagOf(it) },
         )
+        assertEquals("Prism", valueOf("Color scheme"))
         assertEquals("System", valueOf("Theme"))
         assertEquals("Fade", valueOf("Changing screens"))
         assertEquals(tr(R.string.app_name), valueOf("Preset"))
@@ -127,7 +128,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         await { stored.themeMode == ThemeMode.DARK }
         page()
         assertEquals(defaultGroups, groups().map { it.first })
-        assertEquals(19, rows().size)
+        assertEquals(20, rows().size)
         assertEquals("Dark", valueOf("Theme"))
         assertBudgets()
     }
@@ -137,7 +138,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         await { stored.themeMode == ThemeMode.LIGHT }
         page()
         assertEquals(defaultGroups, groups().map { it.first })
-        assertEquals(19, rows().size)
+        assertEquals(20, rows().size)
         assertEquals("Light", valueOf("Theme"))
         assertBudgets()
     }
@@ -150,7 +151,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         assertEquals("Frosted Glass", valueOf("Glass"))
         assertEquals(listOf("") + defaultGroups, groups().map { it.first })
         assertEquals("Some of these effects are paused for now", valueOf("Performance mode is on"))
-        assertEquals(20, rows().size)
+        assertEquals(21, rows().size)
         tap("Performance mode is on")
         await { !stored.performanceMode }
         assertFalse(hasRow("Performance mode is on"))
@@ -158,7 +159,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
 
     @Test fun atLargeTextNothingIsCutOff() {
         show(fontScale = 1.5f) { ThemeColorsPage(0.dp, onSearch = {}) }
-        assertEquals(19, rows().size)
+        assertEquals(20, rows().size)
         assertNoRowTextIsCutOff()
     }
 
@@ -186,6 +187,32 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
 
         tap("Reduce motion")
         await { stored.reduceMotion }
+    }
+
+    /** The named color schemes: a pick wears its palette, offers its flavors for the mode, and Prism gives yours back. */
+    @Test fun theSchemeRowWearsAPaletteAndOffersItsFlavors() {
+        prefs.setThemeMode(ThemeMode.DARK)
+        await { stored.themeMode == ThemeMode.DARK }
+        page()
+        pick("Color scheme", "Catppuccin")
+        await { stored.shapes.scheme == com.prism.music.data.prefs.SchemeFamily.CATPPUCCIN }
+        // A dark palette wears its dark flavor, and its signature accent goes on the Accent row (yours to change after).
+        assertEquals("Catppuccin · Mocha", valueOf("Color scheme"))
+        assertEquals(0xFFCBA6F7.toInt(), stored.accent)
+        // Its dark flavors are picked in place, and the accent follows the pick.
+        chip("Variant", "Frappé")
+        await { stored.shapes.schemeVariant == "frappe" }
+        assertEquals("Catppuccin · Frappé", valueOf("Color scheme"))
+        assertEquals(0xFFCA9EE6.toInt(), stored.accent)
+        // Light pages wear Latte; Catppuccin has one light flavor, so there is nothing to pick.
+        chip("Theme", "Light")
+        await { stored.themeMode == ThemeMode.LIGHT }
+        assertEquals("Catppuccin · Latte", valueOf("Color scheme"))
+        assertFalse(hasRow("Variant"))
+        // Prism's own colors come back, and every setting on this page still works as it did.
+        pick("Color scheme", "Prism")
+        await { stored.shapes.scheme == com.prism.music.data.prefs.SchemeFamily.PRISM }
+        assertEquals("Prism", valueOf("Color scheme"))
     }
 
     /** light_style, spectrum_preset, spectrum_stops, spectrum_bands. */
@@ -329,14 +356,14 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
     /** The ledger's rows for the page: each key is written by one of the tests above, and is in the page's reset or its own. */
     @Test fun everyLedgerKeyIsThePages() {
         val ledger = listOf(
-            "theme_mode", "pure_black", "reduce_motion", "design_language", "material_palette", "page_slide", "screen_fades",
+            "theme_mode", "pure_black", "scheme_family", "scheme_variant", "reduce_motion", "design_language", "material_palette", "page_slide", "screen_fades",
             "light_style", "spectrum_preset", "spectrum_stops", "spectrum_bands",
             "color_source", "accent", "accent_exact", "accent_light", "artwork_swatch", "artwork_vivid", "artwork_change",
             "surface_tint", "surface_color", "surface_tint_strength", "contrast_level", "page_picture_accent", "playing_page_color",
             "backdrops", "backdrop_dim", "backdrop_motion", "backdrop_fade",
             "liquid_glass", "glass_kind", "frosted_glass", "glass_blur", "glass_frost", "glass_more", "frosted_pages",
         )
-        assertEquals(35, ledger.size)
+        assertEquals(37, ledger.size)
         // All but the two that aren't look settings (how screens change), which the page's reset puts back by their setter.
         assertEquals((ledger - setOf("page_slide", "screen_fades")).toSet(), themeColorsLookKeys.toSet())
         assertTrue(ledger.all { it in prefs.allKeyNames })
@@ -399,6 +426,11 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         assertEquals(listOf("Reduce motion"), titles(d.copy(reduceMotion = true)))
         assertEquals(listOf("Design language"), titles(d.copy(shapes = d.shapes.copy(design = com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU))))
         assertEquals(listOf("Palette"), titles(d.copy(shapes = d.shapes.copy(palette = com.prism.music.data.prefs.MaterialPalette.VIBRANT))))
+        assertEquals(listOf("Color scheme"), titles(d.copy(shapes = d.shapes.copy(scheme = com.prism.music.data.prefs.SchemeFamily.CATPPUCCIN))))
+        assertEquals(
+            listOf("Color scheme"),
+            titles(d.copy(shapes = d.shapes.copy(scheme = com.prism.music.data.prefs.SchemeFamily.CATPPUCCIN, schemeVariant = "frappe"))),
+        )
         assertEquals(listOf("Preset"), titles(d.copy(lightStyle = LightStyle.WHITE)))
         assertEquals(listOf("Preset"), titles(d.copy(spectrumStops = listOf(1, 2))))
         assertEquals(listOf("Smooth or bands"), titles(d.copy(spectrumBands = true)))
@@ -423,6 +455,10 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         // Material You names itself rather than Prism's glass (which it doesn't use).
         val m3 = AppSettings(shapes = AppSettings().shapes.copy(design = com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU))
         assertEquals("Material You · System", themeColorsValue(m3, true))
+        // A named scheme names itself first ("Catppuccin · Mocha"), its variant for the mode Prism is in.
+        val cat = AppSettings(shapes = AppSettings().shapes.copy(scheme = com.prism.music.data.prefs.SchemeFamily.CATPPUCCIN))
+        assertEquals("Catppuccin · Mocha · Frosted Glass · System", themeColorsValue(cat, true))
+        assertEquals("Catppuccin · Latte · Frosted Glass · System", themeColorsValue(cat, false))
     }
 
     @Test fun oldLinksLandOnTheGroupsThatHoldThemNow() {
@@ -448,6 +484,7 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
         fun finds(query: String, title: String) = assertTrue("\"$query\" finds $title", SettingsIndex.search(query).any { it.page == p && it.title == title })
         finds("pure black", "Theme"); finds("amoled", "Theme"); finds("frosted pages", "Glass also on"); finds("artist album pages", "Page colors")
         finds("spectrum", "Preset"); finds("motion", "Reduce motion")
+        finds("catppuccin", "Color scheme"); finds("mocha", "Variant")
     }
 
     // ------------------------------------------------------------------ Drawn for real (PNGs in app/build/settings-pages/theme-colors/)
@@ -463,6 +500,15 @@ class ThemeColorsPageTest : ThemeLooksPageHarness() {
     @Test fun renderLight() {
         prefs.setThemeMode(ThemeMode.LIGHT); await { stored.themeMode == ThemeMode.LIGHT }
         shot("light", glass = true)
+    }
+
+    @Config(qualifiers = "w360dp-h760dp-xxhdpi")
+    @Test fun renderCatppuccinMocha() {
+        prefs.setThemeMode(ThemeMode.DARK); await { stored.themeMode == ThemeMode.DARK }
+        val cat = com.prism.music.data.prefs.SchemeFamily.CATPPUCCIN
+        prefs.setScheme(cat, cat.variant("mocha")!!)
+        await { stored.shapes.scheme == cat && stored.shapes.schemeVariant == "mocha" }
+        shot("catppuccin-mocha", glass = true)
     }
 
     @Config(qualifiers = "w360dp-h760dp-xxhdpi")

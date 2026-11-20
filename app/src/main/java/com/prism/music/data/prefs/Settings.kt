@@ -307,6 +307,13 @@ data class ShapeLook(
     val design: DesignLanguage = DesignLanguage.PRISM,
     /** Material You's palette variant (the seed's hue and how much color its palettes carry). */
     val palette: MaterialPalette = MaterialPalette.TONAL_SPOT,
+    /**
+     * The named color scheme worn over Prism's own ([SchemeFamily.PRISM] keeps every color setting on the Theme &
+     * colors page working exactly as before): its pages, ink and split light, as each project publishes them.
+     */
+    val scheme: SchemeFamily = SchemeFamily.PRISM,
+    /** The variant picked in [scheme] ("mocha"); blank = the family's default for the mode. */
+    val schemeVariant: String = "",
 )
 
 /** The current tab's icon color (1.7.7). */
@@ -2050,6 +2057,8 @@ class SettingsRepository(
         val accountAvatar = stringPreferencesKey("account_avatar")
         val themeMode = stringPreferencesKey("theme_mode")
         val pureBlack = booleanPreferencesKey("pure_black")
+        val schemeFamily = stringPreferencesKey("scheme_family")
+        val schemeVariant = stringPreferencesKey("scheme_variant")
         val colorSource = stringPreferencesKey("color_source")
         val accent = intPreferencesKey("accent")
         val liquidGlass = booleanPreferencesKey("liquid_glass")
@@ -2076,6 +2085,8 @@ class SettingsRepository(
             listOf(
                 colorSource, accent, lightStyle, accentExact, accentLight, spectrumPreset, spectrumStops, spectrumBands,
                 surfaceTint, surfaceTintStrength, surfaceColor, contrast, artworkSwatch, artworkVivid, artworkChange, pageColors, playingInPageColor,
+                // A named scheme is colors too: "Reset colors" puts Prism's own back.
+                schemeFamily, schemeVariant,
             )
         }
         val frostedGlass = booleanPreferencesKey("frosted_glass")
@@ -2516,7 +2527,7 @@ class SettingsRepository(
          */
         val lookSpec: List<Pair<Preferences.Key<*>, Char>> by lazy {
             listOf(
-                themeMode to 's', pureBlack to 'b',
+                themeMode to 's', pureBlack to 'b', schemeFamily to 's', schemeVariant to 's',
                 colorSource to 's', accent to 'i', lightStyle to 's', accentExact to 'b', accentLight to 'i', spectrumPreset to 's',
                 spectrumStops to 's', spectrumBands to 'b', surfaceTint to 's', surfaceTintStrength to 'f', surfaceColor to 'i', contrast to 's',
                 artworkSwatch to 's', artworkVivid to 'b', artworkChange to 's', pageColors to 'b',
@@ -2845,6 +2856,8 @@ class SettingsRepository(
                 tabTint = p.enum(K.tabTint, d.shapes.tabTint),
                 design = p.enum(K.designLanguage, d.shapes.design),
                 palette = p.enum(K.materialPalette, d.shapes.palette),
+                scheme = p.enum(K.schemeFamily, d.shapes.scheme),
+                schemeVariant = p[K.schemeVariant] ?: d.shapes.schemeVariant,
             ),
             type = TypeLook(
                 weight = p.enum(K.typeWeight, d.type.weight),
@@ -3351,6 +3364,28 @@ class SettingsRepository(
 
     fun setThemeMode(v: ThemeMode) = edit { it[K.themeMode] = v.name }
     fun setPureBlack(v: Boolean) = edit { it[K.pureBlack] = v }
+
+    /**
+     * A named scheme in one write: its family and variant, its signature accent (the scheme's own, which the Accent
+     * row can change afterwards) and the mode that shows it. Undo takes all of it back together. Prism's "System" is
+     * kept: the scheme then follows the phone (Latte by day, Mocha by night) instead of pinning one mode.
+     */
+    fun setScheme(family: SchemeFamily, variant: SchemeVariant) = edit {
+        it[K.schemeFamily] = family.name
+        it[K.schemeVariant] = variant.id
+        it[K.colorSource] = ColorSource.CUSTOM.name
+        it[K.accent] = variant.accent.toInt()
+        it[K.accentLight] = 0
+        if (it[K.themeMode] != ThemeMode.SYSTEM.name) {
+            it[K.themeMode] = (if (variant.dark) ThemeMode.DARK else ThemeMode.LIGHT).name
+        }
+    }
+
+    /** Back to Prism's own colors: the variant is forgotten, and the accent and mode stay as they are. */
+    fun setScheme(family: SchemeFamily) = edit {
+        it[K.schemeFamily] = family.name
+        it.remove(K.schemeVariant)
+    }
     fun setColorSource(v: ColorSource) = edit { it[K.colorSource] = v.name }
     fun setAccent(v: Int) = edit { it[K.accent] = v }
     fun setLiquidGlass(v: Boolean) = edit { it[K.liquidGlass] = v; if (v) it[K.frostedGlass] = false }

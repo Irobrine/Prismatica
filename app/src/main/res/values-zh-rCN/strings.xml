@@ -5558,4 +5558,7 @@
     <string name="enhance_stemsplit_team">Meta AI / StemSplit</string>
     <string name="enhance_keep_all_audio">Keep all generated audio</string>
     <string name="enhance_keep_all_audio_info">No limit: generated vocals and instrumentals stay on the phone until you clear them. What\'s playing, or waiting in the queue, is never cleared to make room.</string>
+    <string name="color_scheme">配色方案</string>
+    <string name="scheme_variant">变体</string>
+    <string name="color_scheme_info">熟悉的主题的页面、墨色与光线，采用其制作者发布的颜色。Prism 选项会保持此页面上的所有设置不变。</string>
 </resources>

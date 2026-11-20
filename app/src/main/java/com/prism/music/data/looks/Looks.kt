@@ -286,7 +286,8 @@ object LookLabels {
     private val titles = mapOf(
         "glass_blur" to tr(R.string.glass_blur), "glass_frost" to tr(R.string.glass_frost), "glass_more" to tr(R.string.glass_on_more_of_the_screen), "player_gradient_depth" to tr(R.string.gradient_depth),
         "design_language" to tr(R.string.design_language), "material_palette" to tr(R.string.palette),
-        "theme_mode" to tr(R.string.theme), "pure_black" to tr(R.string.pure_black), "color_source" to tr(R.string.accent_from), "accent" to tr(R.string.accent_color),
+        "theme_mode" to tr(R.string.theme), "pure_black" to tr(R.string.pure_black), "scheme_family" to tr(R.string.color_scheme), "scheme_variant" to tr(R.string.scheme_variant),
+        "color_source" to tr(R.string.accent_from), "accent" to tr(R.string.accent_color),
         "light_style" to tr(R.string.light), "accent_exact" to tr(R.string.exactly_as_picked), "accent_light" to tr(R.string.light_mode_accent), "spectrum_preset" to tr(R.string.spectrum),
         "spectrum_stops" to tr(R.string.your_light_s_colors), "spectrum_bands" to tr(R.string.spectrum_in_bands), "surface_tint" to tr(R.string.page_background),
         "surface_tint_strength" to tr(R.string.background_strength), "surface_color" to tr(R.string.background_color), "contrast_level" to tr(R.string.contrast),
@@ -458,6 +459,9 @@ object LookLabels {
             'i' -> v.toIntOrNull()?.let { if (name in colors) "#%06X".format(it and 0xFFFFFF) else if (name == "player_art_corners") tr(R.string.dp, it) else v } ?: v
             else -> when (name) {
                 "backdrops" -> tr(R.string.changed)
+                "scheme_family" -> com.prism.music.data.prefs.SchemeFamily.entries.firstOrNull { it.name == v }?.label ?: v
+                "scheme_variant" -> com.prism.music.data.prefs.SchemeFamily.entries.asSequence()
+                    .mapNotNull { f -> f.variant(v) }.firstOrNull()?.name ?: v
                 "nav_tabs" -> v.split(',').joinToString(", ") { t -> choices["start_tab"]?.get(t) ?: t }
                 "library_views" -> com.prism.music.data.prefs.parseLibraryViews(v).entries.joinToString(", ") { (t, view) ->
                     "${t.lowercase().replaceFirstChar { it.uppercase() }}: ${view.label}"
@@ -476,7 +480,7 @@ object LookLabels {
 
     /** The parts of Prism's look, in the order they're named, and the settings each is made of. */
     private val areaOf: List<Pair<String, Set<String>>> = listOf(
-        "theme" to setOf("theme_mode", "pure_black", "design_language"),
+        "theme" to setOf("theme_mode", "pure_black", "design_language", "scheme_family", "scheme_variant"),
         "colors" to setOf(
             "color_source", "accent", "light_style", "accent_exact", "accent_light", "spectrum_preset", "spectrum_stops", "spectrum_bands",
             "surface_tint", "surface_tint_strength", "surface_color", "contrast_level", "artwork_swatch", "artwork_vivid", "artwork_change", "page_picture_accent", "playing_page_color",

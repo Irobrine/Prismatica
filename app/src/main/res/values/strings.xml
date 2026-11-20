@@ -1455,6 +1455,9 @@
     <string name="about_this">About this</string>
     <string name="discord_terms_risk">discord terms risk</string>
     <string name="theme">Theme</string>
+    <string name="color_scheme">Color scheme</string>
+    <string name="scheme_variant">Variant</string>
+    <string name="color_scheme_info">The pages, ink and light of a theme you know, in the colors its makers publish. The Prism option keeps every setting on this page as it is.</string>
     <string name="dark_light_system_mode_night">dark light system mode night</string>
     <string name="pure_black">Pure black</string>
     <string name="amoled_oled">amoled oled</string>

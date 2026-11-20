@@ -5633,4 +5633,7 @@
     <string name="enhance_stemsplit_team">Meta AI / StemSplit</string>
     <string name="enhance_keep_all_audio">Keep all generated audio</string>
     <string name="enhance_keep_all_audio_info">No limit: generated vocals and instrumentals stay on the phone until you clear them. What\'s playing, or waiting in the queue, is never cleared to make room.</string>
+    <string name="color_scheme">রঙের স্কিম</string>
+    <string name="scheme_variant">ভ্যারিয়েন্ট</string>
+    <string name="color_scheme_info">আপনার চেনা একটি থিমের পাতা, কালি ও আলো, তার নির্মাতাদের প্রকাশ করা রঙে। Prism বিকল্প এই পাতার প্রতিটি সেটিং যেমন আছে তেমনই রাখে।</string>
 </resources>

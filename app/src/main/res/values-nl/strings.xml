@@ -5633,4 +5633,7 @@
     <string name="enhance_stemsplit_team">Meta AI / StemSplit</string>
     <string name="enhance_keep_all_audio">Keep all generated audio</string>
     <string name="enhance_keep_all_audio_info">No limit: generated vocals and instrumentals stay on the phone until you clear them. What\'s playing, or waiting in the queue, is never cleared to make room.</string>
+    <string name="color_scheme">Kleurenschema</string>
+    <string name="scheme_variant">Variant</string>
+    <string name="color_scheme_info">De pagina\'s, inkt en het licht van een thema dat je kent, in de kleuren die de makers ervan publiceren. Met de optie Prism blijft elke instelling op deze pagina zoals hij is.</string>
 </resources>

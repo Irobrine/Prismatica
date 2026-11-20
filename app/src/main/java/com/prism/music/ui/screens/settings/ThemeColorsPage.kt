@@ -49,6 +49,7 @@ import com.prism.music.data.prefs.GlassKind
 import com.prism.music.data.prefs.GlassLook
 import com.prism.music.data.prefs.LightStyle
 import com.prism.music.data.prefs.MaterialPalette
+import com.prism.music.data.prefs.SchemeFamily
 import com.prism.music.data.prefs.SurfaceTint
 import com.prism.music.data.prefs.ThemeMode
 import com.prism.music.tr
@@ -83,6 +84,7 @@ import com.prism.music.ui.theme.LocalAppSettings
 import com.prism.music.ui.theme.LocalContainer
 import com.prism.music.ui.theme.LocalIsDark
 import com.prism.music.ui.theme.PrismIcons
+import com.prism.music.ui.theme.Schemes
 import com.prism.music.ui.theme.SpectrumPresets
 import com.prism.music.ui.theme.ThemeColors
 import com.prism.music.ui.theme.glassSnap
@@ -187,6 +189,7 @@ fun themeColorsChanges(s: AppSettings, dark: Boolean): List<String> {
     val out = ArrayList<String>()
     fun line(changed: Boolean, title: Int, now: String, default: String) { if (changed) out += resetLine(tr(title), now, default) }
     line(s.themeMode != d.themeMode || s.pureBlack != d.pureBlack, R.string.theme, themeToMerged(s.themeMode, s.pureBlack).label, themeToMerged(d.themeMode, d.pureBlack).label)
+    line(s.shapes.scheme != d.shapes.scheme || s.shapes.schemeVariant != d.shapes.schemeVariant, R.string.color_scheme, Schemes.name(s, dark), Schemes.name(d, dark))
     line(s.shapes.design != d.shapes.design, R.string.design_language, s.shapes.design.label, d.shapes.design.label)
     line(s.shapes.palette != d.shapes.palette, R.string.palette, s.shapes.palette.label, d.shapes.palette.label)
     line(LookChoices.screenChange(s) != LookChoices.screenChange(d), R.string.changing_screens, LookChoices.screenChange(s).label, LookChoices.screenChange(d).label)
@@ -269,6 +272,28 @@ fun ThemeColorsPage(bottomPadding: Dp, find: String? = null, showBack: Boolean =
         if (s.performanceMode) item("performance") { PerformanceNote() }
 
         group(tr(R.string.tl_theme_and_motion)) {
+            // A named color scheme (Catppuccin, Tokyo Night…): colors only, worn over Prism's own.
+            PickCardsRow(
+                tr(R.string.color_scheme), SchemeFamily.entries, s.shapes.scheme, { it.label },
+                changed = Schemes.name(s, dark) != Schemes.name(d, dark),
+                info = tr(R.string.color_scheme_info),
+                // The row says which palette is worn ("Catppuccin · Mocha"); Prism is its own colors, unchanged.
+                value = Schemes.name(s, dark),
+                thumbnail = { family -> SchemeThumb(family, s, dark) },
+                onPick = { family ->
+                    if (family == SchemeFamily.PRISM) prefs.setScheme(family)
+                    else prefs.setScheme(family, family.forMode(dark, s.shapes.schemeVariant) ?: family.variants.first())
+                },
+            ) { family -> SchemePreview(family, s, dark) }
+            // The palettes with more than one for the mode Prism is in (flavors, storms): picked in place.
+            val variants = s.shapes.scheme.variants.filter { it.dark == dark }
+            if (variants.size > 1) {
+                val now = Schemes.current(s, dark) ?: variants.first()
+                ChoiceRow(
+                    tr(R.string.scheme_variant), variants, now, { it.name },
+                    changed = now.id != s.shapes.scheme.forMode(dark, null)?.id,
+                ) { prefs.setScheme(s.shapes.scheme, it) }
+            }
             val theme = themeToMerged(s.themeMode, s.pureBlack)
             ChoiceRow(
                 tr(R.string.theme), ThemeChoice.entries, theme, { it.label }, info = tr(R.string.tl_theme_info),
@@ -559,6 +584,70 @@ fun ThemeColorsPage(bottomPadding: Dp, find: String? = null, showBack: Boolean =
     }
 }
 
+/** A scheme's own little page: its three accents over its background, two lines of its ink. Prism shows what it wears now. */
+@Composable
+private fun SchemePreview(family: SchemeFamily, s: AppSettings, dark: Boolean) {
+    val shape = RoundedCornerShape(10.dp)
+    if (family == SchemeFamily.PRISM) {
+        // Prism's own card shows Prism's colors, even while another scheme is worn.
+        val c = rememberColors(s.withoutScheme(), dark)
+        val light = if (dark) c.light.colors else c.light.deep
+        Column(
+            Modifier.fillMaxWidth().height(64.dp).clip(shape).background(c.scheme.background)
+                .border(1.dp, c.scheme.outlineVariant, shape).padding(8.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                light.take(4).forEach { Box(Modifier.size(10.dp).clip(CircleShape).background(it.second)) }
+            }
+            Spacer(Modifier.weight(1f))
+            Box(Modifier.fillMaxWidth(0.82f).height(5.dp).clip(CircleShape).background(c.scheme.onBackground.copy(alpha = 0.85f)))
+            Spacer(Modifier.height(4.dp))
+            Box(Modifier.fillMaxWidth(0.55f).height(4.dp).clip(CircleShape).background(c.scheme.onBackground.copy(alpha = 0.45f)))
+        }
+    } else {
+        val v = family.forMode(dark, s.shapes.schemeVariant.takeIf { family == s.shapes.scheme }) ?: return
+        Column(
+            Modifier.fillMaxWidth().height(64.dp).clip(shape).background(Color(v.background.toInt()))
+                .border(1.dp, Color(v.outline.toInt()), shape).padding(8.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(v.accent, v.accent2, v.accent3).forEach {
+                    Box(Modifier.size(10.dp).clip(CircleShape).background(Color(it.toInt())))
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            Box(Modifier.fillMaxWidth(0.82f).height(5.dp).clip(CircleShape).background(Color(v.foreground.toInt()).copy(alpha = 0.9f)))
+            Spacer(Modifier.height(4.dp))
+            Box(Modifier.fillMaxWidth(0.55f).height(4.dp).clip(CircleShape).background(Color(v.subtext.toInt()).copy(alpha = 0.8f)))
+        }
+    }
+}
+
+/** The scheme row's 44 × 30 picture: its page, its accent and its second accent. */
+@Composable
+private fun SchemeThumb(family: SchemeFamily, s: AppSettings, dark: Boolean) {
+    if (family == SchemeFamily.PRISM) {
+        // Prism's own card shows Prism's colors, even while another scheme is worn.
+        val c = rememberColors(s.withoutScheme(), dark)
+        Row(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(1f).fillMaxSize().background(c.scheme.background))
+            Box(Modifier.weight(1f).fillMaxSize().background(c.scheme.primary))
+            Box(Modifier.weight(1f).fillMaxSize().background(c.scheme.tertiary))
+        }
+    } else {
+        val v = family.forMode(dark, s.shapes.schemeVariant.takeIf { family == s.shapes.scheme }) ?: return
+        Row(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(1f).fillMaxSize().background(Color(v.background.toInt())))
+            Box(Modifier.weight(1f).fillMaxSize().background(Color(v.accent.toInt())))
+            Box(Modifier.weight(1f).fillMaxSize().background(Color(v.accent2.toInt())))
+        }
+    }
+}
+
+/** These settings with Prism's own colors, for the card that shows what Prism looks like without a scheme. */
+private fun AppSettings.withoutScheme(): AppSettings =
+    if (shapes.scheme == SchemeFamily.PRISM) this else copy(shapes = shapes.copy(scheme = SchemeFamily.PRISM, schemeVariant = ""))
+
 /**
  * The pinned preview: your Prism as it is now, in dark and in light side by side, the three parts numbered (① the
  * light, ② the accent, ③ the background); as a strip, one row of it in the mode Prism is in.
@@ -665,19 +754,22 @@ private fun placedWidgets(): List<PlacedWidget> {
 
 // ---------------------------------------------------------------------------- The page's parts for the map
 
-/** The root's line for Theme & colors: the glass and the theme ("Frosted Glass · Black"). */
-fun themeColorsValue(s: AppSettings, dark: Boolean): String = listOf(
-    if (s.shapes.design == DesignLanguage.MATERIAL_YOU) tr(R.string.material_you)
-    else when { s.liquidGlass -> tr(R.string.liquid_glass); s.frostedGlass -> tr(R.string.frosted_glass); else -> tr(R.string.solid_bars) },
-    themeToMerged(s.themeMode, s.pureBlack).label,
-).joinToString(" · ")
+/** The root's line for Theme & colors: the scheme, the glass and the theme ("Catppuccin · Mocha · Frosted Glass · Black"). */
+fun themeColorsValue(s: AppSettings, dark: Boolean): String = buildList {
+    if (s.shapes.scheme != SchemeFamily.PRISM) add(Schemes.name(s, dark))
+    add(
+        if (s.shapes.design == DesignLanguage.MATERIAL_YOU) tr(R.string.material_you)
+        else when { s.liquidGlass -> tr(R.string.liquid_glass); s.frostedGlass -> tr(R.string.frosted_glass); else -> tr(R.string.solid_bars) },
+    )
+    add(themeToMerged(s.themeMode, s.pureBlack).label)
+}.joinToString(" · ")
 
 /**
  * The look settings "Reset this page" puts back: every look setting the page's rows write, with the backgrounds the
  * Screen backgrounds row leads to. (How screens change isn't a look setting: the page's reset puts it back itself.)
  */
 val themeColorsLookKeys: List<String> = listOf(
-    "theme_mode", "pure_black", "reduce_motion", "design_language", "material_palette",
+    "theme_mode", "pure_black", "scheme_family", "scheme_variant", "reduce_motion", "design_language", "material_palette",
     "light_style", "spectrum_preset", "spectrum_stops", "spectrum_bands",
     "color_source", "accent", "accent_exact", "accent_light", "artwork_swatch", "artwork_vivid", "artwork_change",
     "surface_tint", "surface_color", "surface_tint_strength", "contrast_level", "page_picture_accent", "playing_page_color",
@@ -710,6 +802,18 @@ val themeColorsIndex: List<SettingEntry> by lazy {
     with(SettingNeeds) {
         listOf(
             SettingEntry(page, motion, tr(R.string.theme), tr(R.string.dark_light_system_mode_night) + " " + tr(R.string.pure_black) + " " + tr(R.string.black) + " " + tr(R.string.amoled_oled)),
+            // A named color scheme: the families and their flavors, as search words (their names are data, not text).
+            SettingEntry(
+                page, motion, tr(R.string.color_scheme),
+                SchemeFamily.entries.joinToString(" ") { it.label } + " " +
+                    SchemeFamily.entries.flatMap { f -> f.variants.map { it.name } }.joinToString(" ") + " " +
+                    tr(R.string.palette) + " " + tr(R.string.theme),
+            ),
+            SettingEntry(
+                page, motion, tr(R.string.scheme_variant),
+                SchemeFamily.entries.flatMap { f -> f.variants.map { it.name } }.joinToString(" ") + " " + tr(R.string.color_scheme),
+                needs = Needs(tr(R.string.color_scheme)) { s -> s.shapes.scheme.variants.count { it.dark == (s.themeMode != ThemeMode.LIGHT) } > 1 },
+            ),
             SettingEntry(
                 page, motion, tr(R.string.design_language), tr(R.string.material_you) + " " + tr(R.string.palette) + " " + tr(R.string.theme),
             ),

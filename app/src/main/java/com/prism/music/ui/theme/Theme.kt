@@ -418,10 +418,21 @@ fun themeColors(s: AppSettings, dark: Boolean, seed: Color, dynamic: ((Boolean) 
     // Material You: a Material 3 tonal scheme, and its primary where Prism draws its split light. The light, the page
     // tint and White light are Prism's own color system: Material 3's palette replaces them.
     if (s.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU) {
-        val scheme = MaterialYou.scheme(s, dark, seed, dynamic)
-        val primary = scheme.primary
+        val base = MaterialYou.scheme(s, dark, seed, dynamic)
+        // A named scheme is colors, not a design language: it wears Material's shapes and type, with its own
+        // pages, ink and light (the wallpaper's palette takes over again when the scheme is Prism's own).
+        val named = Schemes.current(s, dark)
+        if (named != null) return ThemeColors(
+            scheme = Schemes.apply(base, named, seed, s.contrast.minRatio),
+            whiteAccent = null,
+            light = Schemes.light(named),
+            white = false, dark = dark,
+            contrast = s.contrast.ordinal.coerceIn(0, 2),
+            settings = s, material = true,
+        )
+        val primary = base.primary
         return ThemeColors(
-            scheme = scheme,
+            scheme = base,
             whiteAccent = PrismTokens.Accent(primary, primary, primary),
             light = SpectrumPresets.PRISM_LIGHT,
             white = true, dark = dark,
@@ -462,7 +473,16 @@ fun themeColors(s: AppSettings, dark: Boolean, seed: Color, dynamic: ((Boolean) 
     // accent: it's one of the Spectrum's lights, named for what it shows. (Until then White light put the accent there.)
     // The accent stays on the accent's own things (②).
     val whiteAccent: PrismTokens.Accent? = null
-    return ThemeColors(scheme, whiteAccent, light, white, dark, s.contrast.ordinal.coerceIn(0, 2), s)
+    // A named color scheme (Settings → Theme & colors): its pages, ink, borders and accents over Prism's own, and
+    // its palette as the split light. Prism's own colors (SchemeFamily.PRISM) leave both exactly as they were.
+    val named = Schemes.current(s, dark)
+    return ThemeColors(
+        scheme = named?.let { Schemes.apply(scheme, it, seed, minRatio) } ?: scheme,
+        whiteAccent,
+        named?.let { Schemes.light(it) } ?: light,
+        // A named scheme's own light lights progress and rings: the White light's greys give way to it.
+        white && named == null, dark, s.contrast.ordinal.coerceIn(0, 2), s,
+    )
 }
 
 /**
@@ -502,17 +522,18 @@ fun PrismTheme(settings: AppSettings, artworkColor: Color?, content: @Composable
     val context = LocalContext.current
     val material = settings.shapes.design == com.prism.music.data.prefs.DesignLanguage.MATERIAL_YOU
     if (PrismTokens.material != material) PrismTokens.material = material
-    // White light: neutral surfaces (no tint from the accent) and, where the spectrum would be, the accent color as in
-    // Prism's earlier look; with a white accent, greys and ink only (PrismTokens). Written before anything below reads
-    // it, so the first frame is already right.
-    val white = material || settings.lightStyle == com.prism.music.data.prefs.LightStyle.WHITE
-    if (PrismTokens.white != white) PrismTokens.white = white
     // Your light (1.7.2): the split light's own colors, worked out once per change.
     // From the cover (#123): a new light with each cover (no fade: the whole app would redraw every frame of one).
     val coverStops = if (settings.spectrumPreset == SpectrumPresets.COVER) SpectrumPresets.coverStops else null
-    val light = remember(settings.spectrumPreset, settings.spectrumStops, settings.spectrumBands, coverStops) {
+    // A named color scheme (Settings → Theme & colors) lights progress and the play ring in its own palette; Prism's
+    // presets otherwise. Both are worked out here (not in themeColors) because the cover's colors change per song.
+    val schemeLight = remember(settings.shapes.scheme, settings.shapes.schemeVariant, settings.themeMode, dark) {
+        Schemes.current(settings, dark)?.let { Schemes.light(it) }
+    }
+    val presetLight = remember(settings.spectrumPreset, settings.spectrumStops, settings.spectrumBands, coverStops) {
         SpectrumPresets.light(settings.spectrumPreset, settings.spectrumStops, settings.spectrumBands)
     }
+    val light = schemeLight ?: presetLight
     if (PrismTokens.light !== light) PrismTokens.light = light
     val contrastStep = settings.contrast.ordinal
     if (PrismTokens.contrast != contrastStep) PrismTokens.contrast = contrastStep
@@ -521,6 +542,9 @@ fun PrismTheme(settings: AppSettings, artworkColor: Color?, content: @Composable
     val dynamic = dynamicSchemes(settings, context)
     val colors = remember(settings, seed, dark) { themeColors(settings, dark, seed, dynamic) }
     val scheme = colors.scheme
+    // White light: neutral surfaces and, where the spectrum would be, the accent (or greys and ink only with a white
+    // accent). A named color scheme is colors of its own, so it lights progress and rings instead of the white light.
+    if (PrismTokens.white != colors.white) PrismTokens.white = colors.white
     val whiteAccent = colors.whiteAccent
     if (PrismTokens.whiteAccent?.now != whiteAccent?.now || (PrismTokens.whiteAccent == null) != (whiteAccent == null)) PrismTokens.whiteAccent = whiteAccent
     if (material) {
