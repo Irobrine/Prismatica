@@ -220,10 +220,22 @@ class EnhanceStore(private val filesDir: File) {
             // Generated words are a change to the words only; every other field (background vocals, alignment side,
             // source readings, the line's own text and stamps) stays exactly as the source had it.
             line.copy(timeMs = time, endMs = end, words = words)
-        }
+        }.toMutableList()
         if (applied == 0) return lyrics
         // A line the record doesn't know stays as it was; a different text for the same index is a stale result.
         if (mismatched > maxOf(2, lyrics.lines.size / 10)) return lyrics
+
+        // An unreliable alignment can leave a line with no span at all (every word at one instant, and a plain source
+        // line taking that instant as its own). Such a line gets the room up to the next line, so its words have
+        // somewhere to move instead of sitting still: a doubtful sweep is still better than a frozen one (the quality
+        // line already says the timings are doubtful).
+        for (i in out.indices) {
+            val l = out[i]
+            if (l.isGap || l.words.isEmpty() || l.endMs > l.timeMs) continue
+            val next = out.subList(i + 1, out.size).firstOrNull { !it.isGap && it.timeMs > l.timeMs }?.timeMs
+            val end = (next ?: (l.timeMs + 4_000L)).coerceAtLeast(l.timeMs + 400L)
+            out[i] = l.copy(endMs = end)
+        }
         return if (lyrics.synced) lyrics.copy(lines = out) else lyrics.copy(synced = true, lines = out)
     }
 

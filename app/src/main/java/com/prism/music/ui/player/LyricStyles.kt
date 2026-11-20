@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -314,13 +315,22 @@ fun SungLine(
     val st = (if (room != null) style.withRubyRoom(room) else style).copy(shadow = look.shadow ?: style.shadow)
     val timed = when {
         !look.timesWords -> line
-        // Words of its own that can move (two or more): a real word timing, from a source or from the aligner.
-        line.words.count { it.text.isNotBlank() } > 1 -> line
-        // One word or none (a line timed as a whole, or an alignment that came back as a block): fill the line word by
-        // word, which is also what keeps a Japanese line moving when it had no words at all.
+        // Words of its own that can move (two or more, and some of them with a duration): a real word timing, from a
+        // source or from the aligner.
+        line.words.count { it.text.isNotBlank() } > 1 && line.words.any { it.endMs > it.startMs } -> line
+        // One word, or words with no time in them at all (a line timed as a whole, or an alignment that came back as a
+        // block): fill the line word by word, which is also what keeps a Japanese line moving when it had no words.
         else -> remember(line) { line.withWords(force = true) }
     }
     val plan = look.sungPlan(timed.isWordSynced, onCard, strip, axis != null, dimAlpha)
+    // Diagnostic (one line per sung line): what the drawing is handed, and which animation it chose.
+    LaunchedEffect(timed, plan.kind) {
+        android.util.Log.i(
+            "PrismLyrics",
+            "sung: kind=${plan.kind} words=${timed.words.size} timed=${timed.isWordSynced} " +
+                "fill=${timed.words.joinToString(" ") { "${it.text}[${it.startMs}..${it.endMs}]" }.take(120)}",
+        )
+    }
     val set = if (plan.weight != null) st.copy(fontWeight = FontWeight(plan.weight)) else st
     // The readings take the look's fill too, so Color fills colors them as it colors the kanji.
     val readingColor = if (look.sung != null || onCard) look.sungSolid else Color.White.copy(alpha = 0.9f)

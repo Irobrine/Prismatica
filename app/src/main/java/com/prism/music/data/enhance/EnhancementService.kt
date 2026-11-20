@@ -190,10 +190,17 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         val installed = models.versionOnPhone(EnhanceModel.ALIGNER)
         if (installed != null && installed != record.modelVersion) return lyrics.also { Log.i("PrismEnhance", "overlay ${song.id}: other model") }
         val applied = store.apply(lyrics, record)
+        // What the drawing will get: a sample line's words and how many carry no duration at all (a block-like answer).
+        val timedLines = record.lines.filter { it.words.isNotEmpty() }
+        val words = timedLines.sumOf { it.words.size }
+        val empty = timedLines.sumOf { l -> l.words.count { it.endMs <= it.startMs } }
+        val sample = timedLines.firstOrNull { it.words.size > 1 }
+            ?.let { l -> l.words.take(4).joinToString(" ") { "${it.text}[${it.startMs}..${it.endMs}]" } }
         Log.i(
             "PrismEnhance",
             "overlay ${song.id}: ${if (applied === lyrics) "not taken" else "applied"} " +
-                "(${record.lines.count { it.words.isNotEmpty() }} of ${record.lines.size} lines timed, ${lyrics.lines.size} lines)",
+                "(${timedLines.size} of ${record.lines.size} lines timed, ${lyrics.lines.size} lines; " +
+                "$words words, $empty zero-length${sample?.let { "; first: $it" } ?: ""})",
         )
         return applied
     }

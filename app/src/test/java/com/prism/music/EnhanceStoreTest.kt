@@ -64,6 +64,26 @@ class EnhanceStoreTest {
         assertTrue(again.lyricsEnabled("song"))
     }
 
+    @Test fun aLineWhoseWordsCarryNoTimeGetsRoomToMoveIn() {
+        val store = EnhanceStore(temp())
+        val lyrics = plain()
+        // An unreliable alignment: every word of every line sits on one instant, and a plain line takes that as its span.
+        val blocky = record(lyrics).let { r ->
+            r.copy(
+                lines = r.lines.mapIndexed { i, l ->
+                    val at = 1_000L + i * 1_000L
+                    l.copy(timeMs = at, endMs = at, words = l.words.map { it.copy(startMs = at, endMs = at) })
+                },
+            )
+        }
+        val applied = store.apply(lyrics, blocky)
+        assertTrue("the first line still has no span", applied.lines[0].endMs > applied.lines[0].timeMs)
+        // It runs up to the next line, so the two don't overlap.
+        assertEquals(applied.lines[1].timeMs, applied.lines[0].endMs)
+        // The last line has no next one: it gets a little room of its own rather than none.
+        assertTrue("the last line still has no span", applied.lines[1].endMs > applied.lines[1].timeMs)
+    }
+
     private fun plain() = Lyrics(LyricsSource.LRCLIB, false, listOf(
         LyricLine(-1, "Hello, world!"),
         LyricLine(-1, "It's a test."),
