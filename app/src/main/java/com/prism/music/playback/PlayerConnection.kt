@@ -1687,6 +1687,23 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     /**
+     * The configuration menu's volume while it's being set up: heard at once, though no timer runs yet. Closing the menu
+     * calls [clearSleepVolumePreview], so the listener's own volume comes back (the chosen value stays remembered).
+     */
+    fun previewSleepVolume(volume: Float) {
+        if (sleepTimer.active.value) return
+        NormalizerProcessor.fadeVolume = 1f
+        NormalizerProcessor.sleepVolume = NormalizerProcessor.volumeFor(volume)
+    }
+
+    /** Ends the configuration menu's volume preview, unless a timer started meanwhile (its own volume stays). */
+    fun clearSleepVolumePreview() {
+        if (sleepTimer.active.value) return
+        NormalizerProcessor.fadeVolume = 1f
+        NormalizerProcessor.sleepVolume = 1f
+    }
+
+    /**
      * The active menu's temporary "allow every BPM" switch: off, songs the limit held back play again; on again, the
      * current song and the queue are checked immediately. The saved limit is never changed.
      */

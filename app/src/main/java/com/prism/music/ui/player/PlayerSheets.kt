@@ -24,11 +24,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -346,8 +348,21 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
         minutesCommitted = minutesText
         if (parsed != choices.minutes) c.sleepPrefs.setMinutes(parsed)
     }
+    // The volume is heard while the menu is open; leaving it puts the listener's own volume back, but the choice stays.
+    val latestVolume by rememberUpdatedState(volumeValue)
+    fun close() {
+        c.sleepPrefs.setVolume(latestVolume)
+        pc.clearSleepVolumePreview()
+        onDismiss()
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            c.sleepPrefs.setVolume(latestVolume)
+            pc.clearSleepVolumePreview()
+        }
+    }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { close() },
         title = { Text(tr(R.string.sleep_timer)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -403,8 +418,9 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                     Text(tr(R.string.tv_percent, (volumeValue * 100).roundToInt()), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary)
                 }
-                PrismSlider(volumeValue, { volumeValue = it }, valueRange = 0f..1f, steps = 9) {
+                PrismSlider(volumeValue, { volumeValue = it; pc.previewSleepVolume(it) }, valueRange = 0f..1f, steps = 9) {
                     c.sleepPrefs.setVolume(volumeValue)
+                    pc.previewSleepVolume(volumeValue)
                 }
                 Text(tr(R.string.sleep_timer_volume_info), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -413,12 +429,13 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
         confirmButton = {
             PrismTextButton(onClick = {
                 commitMinutes()
+                c.sleepPrefs.setVolume(volumeValue)
                 if (fadeTouched) c.settings.setSleepFade(fadeValue.roundToInt())
                 pc.startSleepTimer(fadeValue.roundToInt())
                 onDismiss()
             }) { Text(tr(R.string.start)) }
         },
-        dismissButton = { PrismTextButton(onClick = onDismiss) { Text(tr(R.string.close)) } },
+        dismissButton = { PrismTextButton(onClick = { close() }) { Text(tr(R.string.close)) } },
     )
 }
 

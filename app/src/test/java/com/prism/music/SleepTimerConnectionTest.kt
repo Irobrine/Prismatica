@@ -154,6 +154,26 @@ class SleepTimerConnectionTest {
         assertEquals(120, c.sleepPrefs.choices.value.maxBpm)
     }
 
+    @Test fun theConfigMenusVolumeIsHeardAtOnceAndClosingPutsItBack() {
+        queue(song("slow", 100.0))
+        c.player.previewSleepVolume(0.3f)
+        assertEquals(NormalizerProcessor.volumeFor(0.3f), NormalizerProcessor.sleepVolume, 1e-5f)
+        c.player.clearSleepVolumePreview()
+        assertEquals(1f, NormalizerProcessor.sleepVolume, 0f)
+        assertEquals(1f, NormalizerProcessor.fadeVolume, 0f)
+    }
+
+    @Test fun aConfigPreviewNeverOverridesARunningSessionsVolume() {
+        queue(song("slow", 100.0))
+        timer(volume = 0.5f)
+        c.player.previewSleepVolume(0.1f)
+        assertEquals(NormalizerProcessor.volumeFor(0.5f), NormalizerProcessor.sleepVolume, 1e-5f)
+        c.player.clearSleepVolumePreview()
+        assertEquals(NormalizerProcessor.volumeFor(0.5f), NormalizerProcessor.sleepVolume, 1e-5f)
+        c.player.cancelSleepTimer()
+        assertEquals(1f, NormalizerProcessor.sleepVolume, 0f)
+    }
+
     @Test fun theEditMenusVolumeChangesTheSessionAndIsRemembered() {
         queue(song("slow", 100.0))
         timer(volume = 1f)
