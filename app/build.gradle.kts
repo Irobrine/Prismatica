@@ -65,6 +65,10 @@ android {
 
     buildTypes {
         debug {
+            // Signed with the same key as release (keystore.properties): the debug Prism then installs over the official
+            // one on a phone, which a debug-key build can't (the signatures don't match). Without a keystore.properties
+            // — or with -PdebugSign — it falls back to the debug key.
+            signingConfig = signingConfigs.getByName(if (useReleaseKey) "release" else "debug")
             // en-XA (stretched, accented English) and ar-XB (mirrored, right to left) in the phone's language list: text
             // that gets cut off, or a layout that doesn't turn around, shows up before any translation does.
             isPseudoLocalesEnabled = true
