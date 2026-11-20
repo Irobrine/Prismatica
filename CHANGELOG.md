@@ -2,6 +2,57 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.3.0
+
+Named color schemes, word timings and vocal separation on the phone, a full sleep timer, swipe-up panels from either side, and a batch of library and volume fixes.
+
+### Theme & colors
+
+- **Ten named color schemes**: Catppuccin, Tokyo Night, Rosé Pine, Everforest, Gruvbox, Nord, Dracula, Kanagawa, Solarized and Ayu, each with its own light and dark palettes. They change the pages, ink and split light only; the accent comes from the scheme and stays editable.
+- Settings → Theme & colors → Color scheme, with a variant row per family and a live preview; a scheme picked in one mode keeps its pick through a switch to the other.
+
+### Lyrics enhancement
+
+- **Word timings on the phone** for English, Japanese, Chinese and Korean lyrics, kept as an overlay keyed to the lyrics, the recording and the model; the song's own lyrics are never rewritten.
+- **Vocal separation and instrumentals on the phone** (HTDemucs), with a queue that survives restarts, a foreground service that keeps working with the screen off, and Cancel in its notification.
+- **A Lyrics enhancement sheet** in the player, Sing and the lyrics source sheet, with a batch picker, model downloads on consent and a limit on generated audio.
+- **Sync lyrics can be timed against the separated vocals**, and "Play the vocals" auditions the stem.
+- **Redos ask first**, so an existing result is only replaced when confirmed.
+- **Credit lines are kept out of alignment**, so "Lyrics by…" no longer counts as untimed words.
+- **Japanese is timed by its readings** (the kana the voice sings), and romaji now follows the line's word animation exactly.
+- **A word with no duration takes the room to the next one**, instead of flashing and vanishing.
+- **A line whose spacing the model got wrong is shared out by text length**, keeping its first and last stamps.
+- **A line collapsed to one instant still animates**, over the room up to the next line.
+- **An untimed opening is packed around the model's own stamps**, at a natural reading pace.
+- **Fewer alignment passes**: fine pieces first, the whole-verse plan only if the result isn't trusted.
+- **Faster separation**: the audio is decoded while the model infers, seven threads by default, and sessions are reused between songs.
+
+### Sleep timer
+
+- **A full sleep timer**: countdown typed in minutes, fade-out length, maximum BPM, session volume and end of song, with ±5 minutes and the session volume adjustable while it runs.
+- **The fade follows perceived volume**: a straight fall with a final taper to silence, worked out from the clock so a late tick lands on the right level.
+- **The BPM limit turns itself off when a session ends**, and songs over the limit (or with no tempo) are skipped, with a message when none are left.
+
+### The player
+
+- **Swipe up on the player opens the queue or the lyrics from either side**, each side picked on its own in Settings → Gestures & buttons.
+- **The morph's play button lands in the player's colors** on the White and Material You players.
+- **Tabs draw without a ripple** on the bar, the rail and minimal tabs.
+
+### Library & playlists
+
+- **Library → Songs shows its kept copy at once** and refreshes behind it.
+- **A failed kept-playlist read no longer costs the hour**, and kept lists are rechecked every 30 minutes.
+- **A playlist read in Library downloads a kept playlist's new songs too.**
+- **Playlist copies expire after 30 minutes**, and mixes and radios are no longer offered in From.
+
+### Volume & covers
+
+- **A file on the phone plays at its own level**: the sound being heard is measured first, and local files are grouped into their album by artist and title.
+- **With Lossless on, 24-bit files keep the whole chain** (Normalize, the equalizer, Spatial, Sing and the rest) at 16-bit instead of skipping it.
+- **A local file's own cover shows** in the player and the mini player.
+- **A failed measurement is retried after five minutes**, and a loudness that couldn't be worked out isn't kept as measured.
+
 ## 1.2.0
 
 Material You joins Prism's own design, a set of songs can be measured on demand, every recording plays at its own level, opening the player no longer crashes, and Prismatica 1.8.7.5/1.8.7.6's speed-ups and fixes arrive.
