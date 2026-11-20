@@ -105,6 +105,31 @@ class EnhanceStoreTest {
         assertEquals("the line still reads as written", lyrics.lines[1].text, out.lines[1].text)
     }
 
+    @Test fun aLineThatOpensWithUntimedWordsIsFilledAcrossItsWholeSpan() {
+        val store = EnhanceStore(temp())
+        val lyrics = timed()
+        // The model lost the line's opening: its first two words sit on the line's start, the last one has a stamp.
+        val r = record(lyrics).let { rec ->
+            rec.copy(lines = rec.lines.map { l ->
+                if (l.index != 1) l else l.copy(words = l.words.mapIndexed { i, w ->
+                    if (i < 2) w.copy(startMs = 2_500, endMs = 2_500) else w
+                })
+            })
+        }
+        val out = store.apply(lyrics, r)
+        val words = out.lines[1].words
+        assertEquals(3, words.size)
+        // Every word moves, in order, and the line is shared out over its span rather than three words lighting at once.
+        assertTrue(words.all { it.endMs > it.startMs })
+        assertTrue(words[1].startMs >= words[0].endMs)
+        assertTrue(words[2].startMs >= words[1].endMs)
+        assertEquals(2_500L, words[0].startMs)
+        // The stamp the model gave the last word no longer decides the sweep on its own.
+        assertTrue("the line was filled to its own span", words.last().endMs > 3_600)
+        assertTrue(words.last().endMs <= lyrics.lines[1].endMs)
+        assertEquals(lyrics.lines[1].text, out.lines[1].text)
+    }
+
     private fun plain() = Lyrics(LyricsSource.LRCLIB, false, listOf(
         LyricLine(-1, "Hello, world!"),
         LyricLine(-1, "It's a test."),

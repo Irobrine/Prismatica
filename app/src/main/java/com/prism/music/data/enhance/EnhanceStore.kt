@@ -299,7 +299,25 @@ class EnhanceStore(private val filesDir: File) {
             val e = w.endMs.coerceIn(s, lineEnd.coerceAtLeast(s))
             w.copy(startMs = s, endMs = e).toLyricWord()
         }
+        // A line that opens with words the model couldn't time is a line it lost: its later stamps for it aren't worth
+        // more than a share of the line's own time, and spreading only up to the next stamp makes three words light at
+        // once and the rest crawl. Such a line is filled naively, as a plain one is, so it sweeps smoothly throughout.
+        if (fitted.takeWhile { it.endMs <= it.startMs }.size >= 2) return naiveLine(fitted, lineStart, lineEnd)
         return repairInstants(fitted, lineEnd)
+    }
+
+    /** The line's words spread evenly over its own span by text length: a karaoke fill for a line with no usable stamps. */
+    private fun naiveLine(words: List<LyricWord>, lineStart: Long, lineEnd: Long): List<LyricWord> {
+        val letters = words.sumOf { maxOf(1, it.text.trimEnd().length) }.coerceAtLeast(1)
+        val room = (lineEnd - lineStart).coerceAtLeast(0)
+        if (room <= 0) return words
+        // At most what the words take to say, and never the line's whole span when it runs on through a pause.
+        val span = minOf(room, letters * 100L + 500L, room * 9 / 10).coerceAtLeast(minOf(room, 200L))
+        var at = lineStart
+        return words.map { w ->
+            val d = span * maxOf(1, w.text.trimEnd().length) / letters
+            w.copy(startMs = at, endMs = at + d).also { at += d }
+        }
     }
 
     /**
