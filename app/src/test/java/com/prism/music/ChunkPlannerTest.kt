@@ -9,15 +9,14 @@ import org.junit.Test
 
 /** Long songs are split into pieces the aligner can take, with every line in exactly one piece and useful offsets. */
 class ChunkPlannerTest {
-    @Test fun theRetryLadderIsRelativeToTheSongAndItsFirstPlan() {
-        // A short song whose lyrics fit one piece: 2, 4 and 5 pieces (an 8 s floor for the last).
-        assertEquals(listOf(20_000L, 10_000L, 8_000L), ChunkPlanner.retrySizes(durationMs = 40_000, pieces = 1))
-        // A four-minute song in three pieces: 6, 12, 24 and 48 pieces (the last at the 8 s floor).
-        assertEquals(listOf(40_000L, 20_000L, 10_000L, 8_000L), ChunkPlanner.retrySizes(durationMs = 240_000, pieces = 3))
-        // Never finer than the floor, never the same size twice.
-        val many = ChunkPlanner.retrySizes(durationMs = 30_000, pieces = 6)
-        assertEquals(1, many.size)
-        assertEquals(8_000L, many.single())
+    @Test fun theFirstPlanIsFineAndRelativeToTheSong() {
+        // A 291 s song in three pieces: 24 pieces of ~12 s, the size that placed words best on a doubtful song.
+        assertEquals(12_125L, ChunkPlanner.fineSize(durationMs = 291_000, pieces = 3))
+        // A four-minute song: 3 x 8 = 24 pieces of 10 s.
+        assertEquals(10_000L, ChunkPlanner.fineSize(durationMs = 240_000, pieces = 3))
+        // Never finer than the floor, whatever the song's length or its first plan's count.
+        assertEquals(8_000L, ChunkPlanner.fineSize(durationMs = 40_000, pieces = 1))
+        assertEquals(8_000L, ChunkPlanner.fineSize(durationMs = 30_000, pieces = 6))
     }
 
     @Test fun aTenMinuteSongIsSplitAndEveryLineIsCoveredOnce() {

@@ -23,23 +23,22 @@ internal object ChunkPlanner {
      * moves and a Cancel lands while a piece is being worked out, not after a four-minute forward pass. A piece is
      * still split at line boundaries.
      */
-    private const val MAX_CHUNK_MS = 117_000L
+    internal const val MAX_CHUNK_MS = 117_000L
 
     /**
-     * The piece sizes an untrusted alignment is tried again at: enough to roughly double, quadruple and octuple the
-     * default plan's piece count, whatever the song's length. A ladder of fixed sizes isn't fair — on a short song two
-     * rungs give the same plan (the same answer twice), and on a long one the same rungs refine it differently.
+     * The size a song is timed at first: about eight times the default plan's piece count (never under
+     * [MIN_FINE_CHUNK_MS]). A song where the alignment is doubtful is where this matters; on one it did measurably
+     * better than every coarser size (0.46 at the default plan, 0.52, 0.60, 0.62 here, 0.61 at the floor). Each pass
+     * costs about the same whatever the size — the model's throughput is fixed and small pieces only add padding — so
+     * the ladder's real cost was the number of passes, not their size.
      */
-    fun retrySizes(durationMs: Long, pieces: Int): List<Long> {
+    fun fineSize(durationMs: Long, pieces: Int): Long {
         val span = durationMs.coerceAtLeast(1)
-        return listOf(2, 4, 8, 16)
-            .map { factor -> (span / (pieces.coerceAtLeast(1) * factor)).coerceIn(MIN_RETRY_CHUNK_MS, MAX_CHUNK_MS) }
-            .filter { it < MAX_CHUNK_MS }
-            .distinct()
+        return (span / (pieces.coerceAtLeast(1) * 8)).coerceIn(MIN_FINE_CHUNK_MS, MAX_CHUNK_MS)
     }
 
-    /** No piece shorter than this in a retry: a lyric line or two is as small as alignment stays meaningful. */
-    private const val MIN_RETRY_CHUNK_MS = 8_000L
+    /** No piece shorter than this: a lyric line or two is as small as alignment stays meaningful. */
+    private const val MIN_FINE_CHUNK_MS = 8_000L
 
     private const val LEAD_MS = 1_200L
     private const val TAIL_MS = 1_500L

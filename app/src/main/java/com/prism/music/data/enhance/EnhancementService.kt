@@ -435,36 +435,22 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         runtimeDir(); alignerDir()
         checkMemory()
         val aligner = acquireAligner()
-        var allAligned = alignPass(plans, audio, durationMs, aligner, cancel, report, 0.05f, 0.4f)
+        // Fine pieces first: on a doubtful song they placed words better than the default plan at every step (see
+        // ChunkPlanner.fineSize), and a pass costs the same whatever the size, so starting here is not the expensive
+        // choice — repeating it over a ladder was.
+        val fine = ChunkPlanner.fineSize(durationMs, plans.size)
+        val finePlans = if (fine < ChunkPlanner.MAX_CHUNK_MS) ChunkPlanner.plans(lyrics.lines, durationMs, language, fine) else plans
+        var allAligned = alignPass(finePlans, audio, durationMs, aligner, cancel, report, 0.05f, 0.6f)
         var quality = AlignmentQualityCheck.evaluate(allAligned.units, audio, allAligned.confidence)
-        logPass(song, "default", plans.size, allAligned, quality)
-        // A result the quality check doesn't trust is tried again in shorter pieces: a two-minute piece gives the model
-        // far more to place at once, and a dense or fast song is where its timestamp buckets collapse. Each finer pass is
-        // logged with its own score, and the best one is kept; only an untrusted result pays for them.
-        val bands = listOf(0.4f to 0.6f, 0.6f to 0.8f, 0.8f to 0.95f)
-        var bestPieces = plans.size
-        // The last pass's score, not the best: a size that does worse than the size before it is a warning, but a finer
-        // size has more pieces (more local estimates) and deserves its own try — so one dip is allowed, two in a row stop
-        // the walk. The best pass so far is what gets kept.
-        var lastScore = quality.score
-        var dips = 0
-        for ((n, size) in ChunkPlanner.retrySizes(durationMs, plans.size).withIndex()) {
-            if (quality.reliable) break
-            val finer = ChunkPlanner.plans(lyrics.lines, durationMs, language, size)
-            if (finer.size <= bestPieces) continue
-            val (from, to) = bands.getOrElse(n) { 0.8f to 0.95f }
-            val pass = alignPass(finer, audio, durationMs, aligner, cancel, report, from, to)
+        logPass(song, "${fine} ms", finePlans.size, allAligned, quality)
+        // The whole song's lines in bigger pieces is the one other thing worth trying: a piece that holds a verse gives
+        // the model the context the fine ones lack, so it can still win where the words themselves are the problem. It
+        // runs only when the fine pass isn't trusted, and the better of the two is what's kept.
+        if (!quality.reliable && finePlans.size > plans.size) {
+            val pass = alignPass(plans, audio, durationMs, aligner, cancel, report, 0.6f, 0.95f)
             val q = AlignmentQualityCheck.evaluate(pass.units, audio, pass.confidence)
-            logPass(song, "${size} ms", finer.size, pass, q)
-            if (q.score < lastScore) {
-                dips++
-                Log.i("PrismEnhance", "aligned ${song.id}: ${size} ms pieces scored lower (${"%.2f".format(q.score)}), $dips of 2")
-                if (dips >= 2) break
-            } else {
-                dips = 0
-            }
-            lastScore = q.score
-            if (q.score > quality.score) { allAligned = pass; quality = q; bestPieces = finer.size }
+            logPass(song, "default", plans.size, pass, q)
+            if (q.score > quality.score) { allAligned = pass; quality = q }
         }
         val lines = overlayLines(lyrics.lines, allAligned.units, quality)
         return AlignmentRecord(
@@ -512,12 +498,19 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
 
     /** One line per pass: what the model did at this piece size, so a doubtful song can be compared pass by pass. */
     private fun logPass(song: Song, label: String, pieces: Int, pass: Pass, quality: AlignmentQuality) {
-        val empty = pass.units.count { it.endMs <= it.startMs }
+        val empty = pass.units.filter { it.endMs <= it.startMs }
         Log.i(
             "PrismEnhance",
             "aligned ${song.id} ($label, $pieces pieces): score ${"%.2f".format(quality.score)}, " +
-                "confidence ${"%.2f".format(pass.confidence)}, zero-length $empty/${pass.units.size}, " +
+                "confidence ${"%.2f".format(pass.confidence)}, zero-length ${empty.size}/${pass.units.size}, " +
                 "reliable ${quality.reliable}${if (quality.reasons.isEmpty()) "" else " ${quality.reasons}"}",
+        )
+        // The words with no time are what a doubtful result is made of: their text and line say whether it's the model,
+        // the lyric version, or how the text was split into words.
+        if (empty.isNotEmpty()) Log.i(
+            "PrismEnhance",
+            "aligned ${song.id} ($label): no time for " +
+                empty.take(12).joinToString(" ") { "${it.clean}[line ${it.line}@${it.startMs}]" },
         )
     }
 
