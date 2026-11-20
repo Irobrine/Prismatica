@@ -44,7 +44,7 @@ class PreviousAlwaysBackTest {
         player.setMediaItems((0 until 4).map { MediaItem.fromUri(tone(it).toUri()) }, 0, 0)
         player.prepare()
         c.player.testPlayer = player
-        idle { player.playbackState == Player.STATE_READY }
+        idle("player ready") { player.playbackState == Player.STATE_READY }
     }
 
     @After fun tearDown() {
@@ -73,26 +73,36 @@ class PreviousAlwaysBackTest {
         return f
     }
 
-    private fun idle(what: () -> Boolean) {
+    private fun idle(label: String = "condition", what: () -> Boolean) {
+        val started = System.currentTimeMillis()
         val main = shadowOf(android.os.Looper.getMainLooper())
-        val until = System.currentTimeMillis() + 20_000
+        val until = started + 20_000
         while (!what() && System.currentTimeMillis() < until) {
             main.idle()
+            // Robolectric pauses every looper. Media3 loads the queue's files on its playback thread and then waits out a
+            // short delay on that thread's own looper, which only moves when the test moves it: left alone, the player
+            // sat BUFFERING for the whole wait. Give each looper the few milliseconds a phone's clock would.
+            org.robolectric.shadows.ShadowLooper.getAllLoopers().forEach { looper ->
+                if (looper !== android.os.Looper.getMainLooper()) {
+                    runCatching { shadowOf(looper).idleFor(5, java.util.concurrent.TimeUnit.MILLISECONDS) }
+                }
+            }
             Thread.sleep(2)
         }
         main.idle()
-        assertTrue("never happened", what())
+        val ok = what()
+        assertTrue("never happened: $label", ok)
     }
 
     private fun alwaysBack(on: Boolean) {
         c.settings.setPreviousAlwaysBack(on)
-        idle { c.settings.current.behavior.previousAlwaysBack == on }
+        idle("setting previousAlwaysBack=$on") { c.settings.current.behavior.previousAlwaysBack == on }
     }
 
     /** Into [index] at [ms]: past the point where Media3's Previous restarts instead of going back (3 s). */
     private fun intoTheSong(index: Int, ms: Long = 5_000) {
         player.seekTo(index, ms)
-        idle { player.currentMediaItemIndex == index && player.currentPosition >= ms }
+        idle("into song $index at $ms") { player.currentMediaItemIndex == index && player.currentPosition >= ms }
     }
 
     @Test fun itIsOffAsPrismComes() {
@@ -103,7 +113,7 @@ class PreviousAlwaysBackTest {
         alwaysBack(false)
         intoTheSong(1)
         c.player.previous()
-        idle { player.currentPosition == 0L }
+        idle("this song from its start") { player.currentPosition == 0L }
         assertEquals("still the same song", 1, player.currentMediaItemIndex)
         assertEquals("from its start", 0, player.currentPosition)
     }
@@ -112,7 +122,7 @@ class PreviousAlwaysBackTest {
         alwaysBack(false)
         intoTheSong(1, ms = 1_000)
         c.player.previous()
-        idle { player.currentMediaItemIndex == 0 }
+        idle("the song before") { player.currentMediaItemIndex == 0 }
         assertEquals("the song before", 0, player.currentMediaItemIndex)
     }
 
@@ -120,7 +130,7 @@ class PreviousAlwaysBackTest {
         alwaysBack(true)
         intoTheSong(2)
         c.player.previous()
-        idle { player.currentMediaItemIndex == 1 }
+        idle("the song before, again") { player.currentMediaItemIndex == 1 }
         assertEquals("the song before, not this one from its start", 1, player.currentMediaItemIndex)
     }
 
@@ -128,7 +138,7 @@ class PreviousAlwaysBackTest {
         alwaysBack(true)
         intoTheSong(0)
         c.player.previous()
-        idle { player.currentPosition == 0L }
+        idle("this song from its start") { player.currentPosition == 0L }
         assertEquals("nothing before it", 0, player.currentMediaItemIndex)
         assertEquals("so this one from its start", 0, player.currentPosition)
     }
@@ -138,12 +148,12 @@ class PreviousAlwaysBackTest {
         val session = LyricsOverlayPlayer(player) { c.settings.current.behavior.previousAlwaysBack }
         intoTheSong(2)
         session.seekToPrevious()
-        idle { player.currentPosition == 0L }
+        idle("this song from its start") { player.currentPosition == 0L }
         assertEquals("off, as before: this one from its start", 2, player.currentMediaItemIndex)
         alwaysBack(true)
         intoTheSong(2)
         session.seekToPrevious()
-        idle { player.currentMediaItemIndex == 1 }
+        idle("the song before, again") { player.currentMediaItemIndex == 1 }
         assertEquals("on: the song before", 1, player.currentMediaItemIndex)
     }
 }
