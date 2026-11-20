@@ -28,6 +28,8 @@ class SeparationCancelled : RuntimeException("Separation cancelled")
 class HtDemucs private constructor(
     private val env: OrtEnvironment,
     private val session: OrtSession,
+    /** The intra-op threads this session was built with (logged beside the run's realtime figure). */
+    val threads: Int,
 ) : AutoCloseable {
     /**
      * [source] is the whole song at 44.1 kHz stereo, little-endian 16-bit, [frames] long. [emit] gets contiguous pieces
@@ -152,7 +154,7 @@ class HtDemucs private constructor(
                 setInterOpNumThreads(1)
                 setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
             }
-            return HtDemucs(env, env.createSession(model.path, opts))
+            return HtDemucs(env, env.createSession(model.path, opts), threads.coerceIn(1, 8))
         }
 
         /**

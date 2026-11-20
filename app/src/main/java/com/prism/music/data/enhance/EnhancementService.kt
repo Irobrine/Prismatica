@@ -98,10 +98,8 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         )
     }
     private val separators = EngineSlot {
-        HtDemucs.load(
-            OrtLoader.environment(runtimeDir()), separatorDir(),
-            threads = minOf(4, Runtime.getRuntime().availableProcessors() - 1).coerceAtLeast(1),
-        )
+        // Every core but one, by the model's own default: the run's threads are logged beside its realtime figure.
+        HtDemucs.load(OrtLoader.environment(runtimeDir()), separatorDir())
     }
 
     private val cancelled = java.util.concurrent.ConcurrentHashMap<String, AtomicBoolean>()
@@ -179,17 +177,25 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
      * deletes or hides what it made), is applied. A source's own words are never changed when the record doesn't fit.
      */
     fun overlay(song: Song, lyrics: Lyrics): Lyrics {
-        val record = store.alignment(song.id) ?: return lyrics
+        val record = store.alignment(song.id) ?: return lyrics.also { Log.i("PrismEnhance", "overlay ${song.id}: no record") }
         // The listener may have turned this song's generated words off: the source's own timings are shown instead.
-        if (!store.lyricsEnabled(song.id)) return lyrics
-        if (record.lyricsHash != EnhanceKeys.lyricsHash(lyrics)) return lyrics
-        if (record.audioKey != EnhanceKeys.audioKey(song)) return lyrics
+        if (!store.lyricsEnabled(song.id)) return lyrics.also { Log.i("PrismEnhance", "overlay ${song.id}: turned off") }
+        if (record.lyricsHash != EnhanceKeys.lyricsHash(lyrics)) return lyrics.also { Log.i("PrismEnhance", "overlay ${song.id}: other lyrics") }
+        if (record.audioKey != EnhanceKeys.audioKey(song)) return lyrics.also { Log.i("PrismEnhance", "overlay ${song.id}: other recording") }
         // The fingerprint is checked when one has been measured for this song; before the first enhancement there is none.
         val known = store.currentFingerprint(song.id)
-        if (known != null && record.audioFingerprint.isNotEmpty() && known != record.audioFingerprint) return lyrics
+        if (known != null && record.audioFingerprint.isNotEmpty() && known != record.audioFingerprint) {
+            return lyrics.also { Log.i("PrismEnhance", "overlay ${song.id}: audio changed") }
+        }
         val installed = models.versionOnPhone(EnhanceModel.ALIGNER)
-        if (installed != null && installed != record.modelVersion) return lyrics
-        return store.apply(lyrics, record)
+        if (installed != null && installed != record.modelVersion) return lyrics.also { Log.i("PrismEnhance", "overlay ${song.id}: other model") }
+        val applied = store.apply(lyrics, record)
+        Log.i(
+            "PrismEnhance",
+            "overlay ${song.id}: ${if (applied === lyrics) "not taken" else "applied"} " +
+                "(${record.lines.count { it.words.isNotEmpty() }} of ${record.lines.size} lines timed, ${lyrics.lines.size} lines)",
+        )
+        return applied
     }
 
     // ------------------------------------------------------------------ public operations
@@ -308,6 +314,9 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
             val demucs = acquireSeparator()
             val vResample = Resampler(2, HtDemucs.RATE, songRate)
             val iResample = Resampler(2, HtDemucs.RATE, songRate)
+            // Time spent turning the model's pieces into the stems (resampling to the song's rate and writing them), so
+            // the logged rate says what the inference itself costs.
+            var stemsNs = 0L
             java.io.BufferedOutputStream(java.io.FileOutputStream(vTmp), 1 shl 16).use { vOut ->
                 java.io.BufferedOutputStream(java.io.FileOutputStream(iTmp), 1 shl 16).use { iOut ->
                     demucs.separate(src44, total44, { cancel.get() }, { f ->
@@ -316,11 +325,15 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
                         // than burning the cores of an idle phone (BackgroundBudget).
                         com.prism.music.playback.BackgroundBudget.pace { !cancel.get() }
                     }, waitFor = { need -> gate.await(need, cancel) }) { vocals, instrumental ->
+                        val t = System.nanoTime()
                         writeSamples(vResample.push(vocals), 2, vOut)
                         writeSamples(iResample.push(instrumental), 2, iOut)
+                        stemsNs += System.nanoTime() - t
                     }
+                    val t = System.nanoTime()
                     writeSamples(vResample.finish(), 2, vOut)
                     writeSamples(iResample.finish(), 2, iOut)
+                    stemsNs += System.nanoTime() - t
                 }
             }
             // The decode's own count once it's finished: the piece loop may have run on the declared length.
@@ -346,12 +359,13 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
             store.trim(room, keepForTrim(song.id))
             report(1f)
             val inferMs = android.os.SystemClock.elapsedRealtime() - inferStart
+            val stemsMs = stemsNs / 1_000_000
             val audioSec = total44 / HtDemucs.RATE.toDouble()
             Log.i(
                 "PrismEnhance",
                 "separated ${song.id}: ${"%.1f".format(audioSec)} s of audio in $inferMs ms " +
-                    "(${"%.2f".format(audioSec / (inferMs / 1000.0))}× realtime, ${HtDemucs.threadsUsed()} threads), " +
-                    "(${songRate} Hz, ${songFrames} frames)",
+                    "(${"%.2f".format(audioSec / (inferMs / 1000.0))}× realtime, ${demucs.threads} threads, " +
+                    "stem resample+write $stemsMs ms), (${songRate} Hz, ${songFrames} frames)",
             )
             record
         } finally {
@@ -665,9 +679,12 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
     /** Decodes [uri] into [target] on its own thread, publishing its progress to [gate] as it goes. */
     private fun startDecode(uri: Uri, target: File, gate: DecodeGate, cancel: AtomicBoolean) {
         decodeThread.execute {
+            val started = android.os.SystemClock.elapsedRealtime()
             try {
                 val frames = AudioScratch.decode(uri, HtDemucs.RATE, 2, target, c, { cancel.get() || gate.abandoned }) { f -> gate.publish(f) }
                 gate.publish(frames)
+                val ms = android.os.SystemClock.elapsedRealtime() - started
+                Log.i("PrismEnhance", "decoded ${target.name}: $frames frames in $ms ms (${"%.1f".format(frames / HtDemucs.RATE.toDouble() / (ms / 1000.0))}× realtime)")
             } catch (e: Throwable) {
                 gate.error = e
             } finally {

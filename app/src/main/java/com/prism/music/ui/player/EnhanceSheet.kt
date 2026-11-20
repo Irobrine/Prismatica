@@ -112,6 +112,7 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
     var pending by remember { mutableStateOf<PendingEnhance?>(null) }
     var cancelAsk by remember { mutableStateOf<EnhanceTask?>(null) }
     var askVocalsFirst by remember(song.id) { mutableStateOf(false) }
+    var redoAsk by remember { mutableStateOf<Set<EnhanceKind>?>(null) }
     var downloaded by remember { mutableStateOf(0f) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) scope.launch {
@@ -155,8 +156,10 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
      * Sync lyrics. When the words would be timed against separated vocals but none are here, the listener is asked
      * whether to separate them first — the pipeline is theirs to choose, not a silent extra few minutes (or a silent
      * drop back to the mix). A separation already waiting or running is used without asking: the queue runs it first.
+     * Words that were already timed ask first too ([redoAsk]): doing it again replaces the result.
      */
     fun sync() {
+        if (alignment != null) { redoAsk = setOf(EnhanceKind.LYRICS); return }
         val vocalsHere = c.enhance.store.hasVocals(song.id)
         if (settings.enhanceAlignWithVocals && !vocalsHere && !live(EnhanceKind.VOCALS) && c.enhance.separatorReady()) {
             askVocalsFirst = true
@@ -164,11 +167,32 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
         }
         start(EnhanceKind.LYRICS)
     }
+
+    /** Vocals and the instrumental also ask before replacing what they made. */
+    fun separateAgain(kind: EnhanceKind, already: Boolean) {
+        if (already) redoAsk = setOf(kind) else start(kind)
+    }
     var kind by remember(song.id, hasGenerated, hasExternal) { mutableStateOf(c.sing.instrumentalKind(song.id)) }
     fun choose(k: InstrumentalKind) { c.sing.setInstrumental(song.id, k); kind = k }
     val external = c.enhance.store.externalInstrumental(song.id)
 
     LaunchedEffect(Unit) { c.enhance.models.refresh(); c.models.refresh() }
+    // Doing an operation again replaces its result: asked first, like stopping one.
+    redoAsk?.let { kinds ->
+        AlertDialog(
+            onDismissRequest = { redoAsk = null },
+            title = { Text(tr(R.string.enhance_redo_question)) },
+            text = { Text(tr(R.string.enhance_redo_info)) },
+            confirmButton = {
+                PrismTextButton(onClick = {
+                    val again = kinds
+                    redoAsk = null
+                    start(*again.toTypedArray())
+                }) { Text(tr(R.string.enhance_redo)) }
+            },
+            dismissButton = { PrismTextButton(onClick = { redoAsk = null }) { Text(tr(R.string.cancel)) } },
+        )
+    }
     // Separate first, or time the words against the mix: the listener's call, made once per song.
     if (askVocalsFirst) {
         AlertDialog(
@@ -286,7 +310,7 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
                 state = taskState(taskOf(EnhanceKind.VOCALS)),
                 tag = "enhance:vocals",
                 onCancel = { taskOf(EnhanceKind.VOCALS)?.let { cancelAsk = it } },
-            ) { start(EnhanceKind.VOCALS) }
+            ) { separateAgain(EnhanceKind.VOCALS, separation != null) }
             Spacer(Modifier.height(10.dp))
             // 3. Instrumental, independent of the external one.
             ActionLine(
@@ -297,7 +321,7 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
                 state = taskState(taskOf(EnhanceKind.INSTRUMENTAL)),
                 tag = "enhance:instrumental",
                 onCancel = { taskOf(EnhanceKind.INSTRUMENTAL)?.let { cancelAsk = it } },
-            ) { start(EnhanceKind.INSTRUMENTAL) }
+            ) { separateAgain(EnhanceKind.INSTRUMENTAL, hasGenerated) }
             if (problem != null) {
                 Spacer(Modifier.height(6.dp))
                 Text(problem!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)

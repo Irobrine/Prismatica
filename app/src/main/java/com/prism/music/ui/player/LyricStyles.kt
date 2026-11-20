@@ -216,8 +216,9 @@ internal fun LyricWord.sungPieces(): List<SungPiece> {
  * line, over at most the time the words take to say (a line's time can run on through a pause). Word-timed lines,
  * breaks and lines without an end are as they are.
  */
-internal fun LyricLine.withWords(): LyricLine {
-    if (isWordSynced || isGap || endMs <= timeMs || text.isBlank()) return this
+internal fun LyricLine.withWords(force: Boolean = false): LyricLine {
+    if (isGap || endMs <= timeMs || text.isBlank()) return this
+    if (isWordSynced && !force) return this
     val tokens = wordTokens(text)
     if (tokens.isEmpty()) return this
     val letters = tokens.sumOf { it.trimEnd().length }.coerceAtLeast(1)
@@ -311,7 +312,14 @@ fun SungLine(
     var layout by remember(line) { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     val room = rememberRubyRoom(ruby, style)
     val st = (if (room != null) style.withRubyRoom(room) else style).copy(shadow = look.shadow ?: style.shadow)
-    val timed = if (look.timesWords) remember(line) { line.withWords() } else line
+    val timed = when {
+        !look.timesWords -> line
+        // Words of its own that can move (two or more): a real word timing, from a source or from the aligner.
+        line.words.count { it.text.isNotBlank() } > 1 -> line
+        // One word or none (a line timed as a whole, or an alignment that came back as a block): fill the line word by
+        // word, which is also what keeps a Japanese line moving when it had no words at all.
+        else -> remember(line) { line.withWords(force = true) }
+    }
     val plan = look.sungPlan(timed.isWordSynced, onCard, strip, axis != null, dimAlpha)
     val set = if (plan.weight != null) st.copy(fontWeight = FontWeight(plan.weight)) else st
     // The readings take the look's fill too, so Color fills colors them as it colors the kanji.
