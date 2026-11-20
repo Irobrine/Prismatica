@@ -202,6 +202,43 @@ class EnhanceStore(private val filesDir: File) {
         }
     }
 
+    /**
+     * The separated vocals as a WAV in [out], for the sheet's own preview (the store's PCM has no header, so no player
+     * could open it). Null when there are no vocals.
+     */
+    fun vocalsWav(songId: String, out: File): File? {
+        val meta = vocals.meta(songId) ?: return null
+        val reader = vocals.reader(songId) ?: return null
+        val frames = meta.totalFrames
+        return try {
+            java.io.BufferedOutputStream(out.outputStream(), 1 shl 16).use { sink ->
+                val data = frames * 4
+                val header = java.nio.ByteBuffer.allocate(44).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                header.put("RIFF".toByteArray()).putInt((36 + data).toInt()).put("WAVE".toByteArray())
+                header.put("fmt ".toByteArray()).putInt(16).putShort(1).putShort(2)
+                header.putInt(meta.rate).putInt(meta.rate * 4).putShort(4).putShort(16)
+                header.put("data".toByteArray()).putInt(data.toInt())
+                sink.write(header.array())
+                val samples = FloatArray(24_000 * 2)
+                val bytes = java.nio.ByteBuffer.allocate(samples.size * 2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                var at = 0L
+                while (at < frames) {
+                    val n = minOf(24_000L, frames - at).toInt()
+                    reader.read(at, n, samples)
+                    bytes.clear()
+                    for (i in 0 until n * 2) bytes.putShort((samples[i].coerceIn(-1f, 1f) * 32767f).toInt().toShort())
+                    sink.write(bytes.array(), 0, n * 4)
+                    at += n
+                }
+            }
+            out
+        } catch (e: Throwable) {
+            null
+        } finally {
+            runCatching { reader.close() }
+        }
+    }
+
     /** The overlay on [lyrics]: the generated words applied to the original lines, or [lyrics] when they don't fit. */
     fun apply(lyrics: Lyrics, record: AlignmentRecord): Lyrics {
         if (record.lines.isEmpty()) return lyrics

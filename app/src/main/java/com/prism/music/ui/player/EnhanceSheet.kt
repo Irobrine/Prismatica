@@ -113,6 +113,8 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
     var cancelAsk by remember { mutableStateOf<EnhanceTask?>(null) }
     var askVocalsFirst by remember(song.id) { mutableStateOf(false) }
     var redoAsk by remember { mutableStateOf<Set<EnhanceKind>?>(null) }
+    var preview by remember(song.id) { mutableStateOf<android.media.MediaPlayer?>(null) }
+    var previewing by remember(song.id) { mutableStateOf(false) }
     var downloaded by remember { mutableStateOf(0f) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) scope.launch {
@@ -171,6 +173,39 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
     /** Vocals and the instrumental also ask before replacing what they made. */
     fun separateAgain(kind: EnhanceKind, already: Boolean) {
         if (already) redoAsk = setOf(kind) else start(kind)
+    }
+
+    fun stopPreview() {
+        preview?.let { mp -> runCatching { mp.stop() }; runCatching { mp.release() } }
+        preview = null
+        previewing = false
+    }
+
+    /** Plays the separated vocals on their own (the song pauses meanwhile), so bad separation can be heard for what it is. */
+    fun togglePreview() {
+        if (previewing) { stopPreview(); return }
+        scope.launch {
+            val wav = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { c.enhance.store.vocalsWav(song.id, java.io.File(c.app.cacheDir, "preview_${song.id}.wav")) }.getOrNull()
+            }
+            if (wav == null || !wav.isFile) { problem = tr(R.string.enhance_vocals_ready); return@launch }
+            stopPreview()
+            c.player.setPlaying(false)
+            val mp = android.media.MediaPlayer()
+            val ok = runCatching {
+                mp.setDataSource(wav.absolutePath)
+                mp.prepare()
+                mp.setOnCompletionListener { previewing = false }
+                mp.start()
+            }.isSuccess
+            if (!ok) { runCatching { mp.release() }; problem = tr(R.string.enhance_external_import_failed); return@launch }
+            preview = mp
+            previewing = true
+        }
+    }
+
+    androidx.compose.runtime.DisposableEffect(song.id) {
+        onDispose { stopPreview() }
     }
     var kind by remember(song.id, hasGenerated, hasExternal) { mutableStateOf(c.sing.instrumentalKind(song.id)) }
     fun choose(k: InstrumentalKind) { c.sing.setInstrumental(song.id, k); kind = k }
@@ -311,6 +346,12 @@ fun EnhanceSheet(song: Song, onDismiss: () -> Unit) {
                 tag = "enhance:vocals",
                 onCancel = { taskOf(EnhanceKind.VOCALS)?.let { cancelAsk = it } },
             ) { separateAgain(EnhanceKind.VOCALS, separation != null) }
+            if (separation != null) PrismTextButton(
+                onClick = { togglePreview() },
+                modifier = Modifier.testTag("enhance:vocals:play"),
+            ) {
+                Text(if (previewing) tr(R.string.enhance_stop_vocals) else tr(R.string.enhance_play_vocals))
+            }
             Spacer(Modifier.height(10.dp))
             // 3. Instrumental, independent of the external one.
             ActionLine(

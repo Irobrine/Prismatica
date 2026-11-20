@@ -10,7 +10,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -323,14 +322,6 @@ fun SungLine(
         else -> remember(line) { line.withWords(force = true) }
     }
     val plan = look.sungPlan(timed.isWordSynced, onCard, strip, axis != null, dimAlpha)
-    // Diagnostic (one line per sung line): what the drawing is handed, and which animation it chose.
-    LaunchedEffect(timed, plan.kind) {
-        android.util.Log.i(
-            "PrismLyrics",
-            "sung: kind=${plan.kind} words=${timed.words.size} timed=${timed.isWordSynced} " +
-                "fill=${timed.words.joinToString(" ") { "${it.text}[${it.startMs}..${it.endMs}]" }.take(120)}",
-        )
-    }
     val set = if (plan.weight != null) st.copy(fontWeight = FontWeight(plan.weight)) else st
     // The readings take the look's fill too, so Color fills colors them as it colors the kanji.
     val readingColor = if (look.sung != null || onCard) look.sungSolid else Color.White.copy(alpha = 0.9f)

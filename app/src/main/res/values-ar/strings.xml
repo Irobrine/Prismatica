@@ -5916,6 +5916,8 @@
     <string name="enhance_redo_question">Do it again?</string>
     <string name="enhance_redo_info">This replaces the result on this phone with a fresh one. The song\'s own lyrics and audio are never touched.</string>
     <string name="enhance_redo">Do it again</string>
+    <string name="enhance_play_vocals">Play the vocals</string>
+    <string name="enhance_stop_vocals">Stop</string>
     <string name="enhance_remove_model_keeps_work">Removing a model keeps the lyrics and audio it made.</string>
     <string name="enhance_download_consent">%1$s will download %2$s. Nothing leaves your phone, and the model stays until you remove it.</string>
     <string name="enhance_separation_original_kept">The song\'s own audio and any file you added are left exactly as they are.</string>
