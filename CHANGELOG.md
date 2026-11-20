@@ -2,6 +2,12 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.3.1
+
+### The player
+
+- **Resume when Bluetooth comes back**: earbuds that drop out and connect again pick the music up where it stopped — a TWS switching to its own 2.4 GHz connection and back, say. Only a pause the lost output caused is picked up, and only by the same pair, within two minutes; a pause you made yourself, a call, the end of the queue or the sleep timer stays paused. Settings → Playback → Stopping and pausing → "Resume when Bluetooth comes back" (off, as Prism comes).
+
 ## 1.3.0
 
 Named color schemes, word timings and vocal separation on the phone, a full sleep timer, swipe-up panels from either side, and a batch of library and volume fixes.

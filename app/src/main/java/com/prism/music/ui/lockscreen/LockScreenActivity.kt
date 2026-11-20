@@ -54,13 +54,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.prism.music.PrismActivity
 import com.prism.music.container
 import com.prism.music.data.PlaylistCovers
+import com.prism.music.data.currentOutput
 import com.prism.music.data.model.Song
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.FontChoice
 import com.prism.music.ui.components.Artwork
 import com.prism.music.ui.components.rememberFrost
 import com.prism.music.ui.components.tickWhileShown
-import com.prism.music.ui.player.currentOutput
 import com.prism.music.ui.player.outputLabel
 import com.prism.music.ui.player.rememberFurigana
 import com.prism.music.ui.player.rememberLyricClock

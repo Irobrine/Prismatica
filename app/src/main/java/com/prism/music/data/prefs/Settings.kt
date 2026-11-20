@@ -489,6 +489,11 @@ data class BehaviorPrefs(
     val finishLyric: Boolean = false,
     /** 1.8.5: laying the phone screen-down pauses; picking it up within a few minutes plays on. */
     val faceDownPause: Boolean = false,
+    /**
+     * 1.8.5: a Bluetooth output that goes away and comes back picks the music up where it stopped (a TWS switching to
+     * its own 2.4 GHz connection and back, say). Only a pause the lost output caused is picked up. Off, as Prism comes.
+     */
+    val resumeOnReturn: Boolean = false,
     /** #464 (1.8.5): with the lyrics open, a tap on the small cover plays or pauses and a long press closes them; off, a tap closes them. */
     val lyricsCoverPlays: Boolean = false,
 ) {
@@ -2472,6 +2477,7 @@ class SettingsRepository(
         val milestoneNotify = booleanPreferencesKey("milestone_notify")
         val finishLyric = booleanPreferencesKey("finish_lyric")
         val faceDownPause = booleanPreferencesKey("face_down_pause")
+        val resumeOnReturn = booleanPreferencesKey("resume_on_return")
         val lyricsCoverPlays = booleanPreferencesKey("lyrics_cover_plays")
         val lockScreenPlayerLook = booleanPreferencesKey("lock_screen_player_look")
         val albumHeroCover = booleanPreferencesKey("album_hero_cover")
@@ -2624,8 +2630,9 @@ class SettingsRepository(
                 "japanese_engine",
                 // 1.8.4 (#406, #404, #416, D57, PR #400, D54): how Prism behaves, not how it looks.
                 "row_swipes", "lyrics_offset_ms", "keep_shuffle", "shuffle_button", "car_lyrics_lines", "locate_playing",
-                // 1.8.5: Replay's notices and game, pausing face down, and the small cover's tap over the lyrics (#464).
-                "recap_notify", "milestone_notify", "finish_lyric", "face_down_pause", "lyrics_cover_plays",
+                // 1.8.5: Replay's notices and game, pausing face down, the resume when Bluetooth comes back, and the small
+                // cover's tap over the lyrics (#464).
+                "recap_notify", "milestone_notify", "finish_lyric", "face_down_pause", "resume_on_return", "lyrics_cover_plays",
                 // 1.9: how lyrics enhancement runs and how much room its generated audio may take.
                 "enhance_align_with_vocals", "enhance_audio_mb",
             )
@@ -2986,6 +2993,7 @@ class SettingsRepository(
                 milestoneNotify = p[K.milestoneNotify] ?: d.behavior.milestoneNotify,
                 finishLyric = p[K.finishLyric] ?: d.behavior.finishLyric,
                 faceDownPause = p[K.faceDownPause] ?: d.behavior.faceDownPause,
+                resumeOnReturn = p[K.resumeOnReturn] ?: d.behavior.resumeOnReturn,
                 lyricsCoverPlays = p[K.lyricsCoverPlays] ?: d.behavior.lyricsCoverPlays,
             ),
             tv = TvPrefs(
@@ -3772,6 +3780,7 @@ class SettingsRepository(
     fun setMilestoneNotify(v: Boolean) = edit { it[K.milestoneNotify] = v }
     fun setFinishLyric(v: Boolean) = edit { it[K.finishLyric] = v }
     fun setFaceDownPause(v: Boolean) = edit { it[K.faceDownPause] = v }
+    fun setResumeOnReturn(v: Boolean) = edit { it[K.resumeOnReturn] = v }
     fun setLyricsCoverPlays(v: Boolean) = edit { it[K.lyricsCoverPlays] = v }
     fun setShuffleButton(v: ShuffleButton) = edit { it[K.shuffleButton] = v.name }
     fun setCarLyricsLines(v: CarLyricsLines) = edit { it[K.carLyricsLines] = v.name }

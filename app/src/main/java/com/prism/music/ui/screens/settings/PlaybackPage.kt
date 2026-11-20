@@ -92,6 +92,7 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
     val stopOnSwipeChanged = reset.add(tr(R.string.stop_when_swiped_away), s.stopOnSwipeAway, d.stopOnSwipeAway, onOff) { prefs.setStopOnSwipeAway(it) }
     val pauseOnMuteChanged = reset.add(tr(R.string.pause_when_muted), s.behavior.pauseOnMute, d.behavior.pauseOnMute, onOff) { prefs.setPauseOnMute(it) }
     val faceDownChanged = reset.add(tr(R.string.playback_face_down_pause), s.behavior.faceDownPause, d.behavior.faceDownPause, onOff) { prefs.setFaceDownPause(it) }
+    val resumeOnReturnChanged = reset.add(tr(R.string.playback_resume_on_return), s.behavior.resumeOnReturn, d.behavior.resumeOnReturn, onOff) { prefs.setResumeOnReturn(it) }
 
     SettingsPageScaffold(page.title, bottomPadding, showBack = showBack, onSearch = onSearch, find = find, reset = reset.pageReset()) {
         group(tr(R.string.what_plays_next)) {
@@ -176,6 +177,8 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
             SwitchRow(tr(R.string.pause_when_muted), s.behavior.pauseOnMute, info = tr(R.string.only_the_phone_s_media_volume), changed = pauseOnMuteChanged) { prefs.setPauseOnMute(it) }
             // 1.8.5: the accelerometer, only while this is on and music plays (playback/FaceDown.kt).
             SwitchRow(tr(R.string.playback_face_down_pause), s.behavior.faceDownPause, info = tr(R.string.playback_face_down_pause_info), changed = faceDownChanged) { prefs.setFaceDownPause(it) }
+            // 1.8.5: a Bluetooth output that goes and comes back (playback/OutputReturn.kt).
+            SwitchRow(tr(R.string.playback_resume_on_return), s.behavior.resumeOnReturn, info = tr(R.string.playback_resume_on_return_info), changed = resumeOnReturnChanged) { prefs.setResumeOnReturn(it) }
         }
     }
 }
@@ -271,6 +274,7 @@ val playbackIndex: List<SettingEntry> by lazy {
             SettingEntry(page, stopping, tr(R.string.stop_when_swiped_away), tr(R.string.recents_background)),
             SettingEntry(page, stopping, tr(R.string.pause_when_muted), tr(R.string.volume_zero_mute_pause_resume)),
             SettingEntry(page, stopping, tr(R.string.playback_face_down_pause), tr(R.string.playback_face_down_keywords)),
+            SettingEntry(page, stopping, tr(R.string.playback_resume_on_return), tr(R.string.playback_resume_on_return_keywords)),
         )
     }
 }

@@ -83,7 +83,7 @@ class HeadphoneEq(
         launch(Dispatchers.Main) { flow.collect { block(it) } }
 
     private fun detect(): Output? {
-        val d = runCatching { com.prism.music.ui.player.currentOutput(context, preferred.value) }.getOrNull() ?: return null
+        val d = runCatching { currentOutput(context, preferred.value) }.getOrNull() ?: return null
         return Output(keyOf(d), nameOf(d), isHeadphones(d)).also { o ->
             if (o != lastDetected) com.prism.music.playback.AudioDiagnostics.log(
                 "correction", "output is now ${com.prism.music.playback.AudioDiagnostics.describe(d)}; correction ${_bindings.value[o.key]?.profile?.name ?: "none"}",

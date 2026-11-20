@@ -105,7 +105,9 @@ import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import androidx.compose.foundation.border
-import com.prism.music.data.addressOrBlank
+import com.prism.music.data.currentOutput
+import com.prism.music.data.isBluetooth
+import com.prism.music.data.outputOptions
 import com.prism.music.data.prefs.PlayerButton
 import com.prism.music.data.prefs.ScrubberStyle
 import com.prism.music.data.prefs.TransportStyle
@@ -1440,43 +1442,6 @@ fun SleepBadge(modifier: Modifier = Modifier) {
         Text(left, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
     }
     if (open) SleepTimerSheet { open = false }
-}
-
-private val OUTPUT_TYPES = setOf(
-    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER, AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET,
-    AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE, AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
-    AudioDeviceInfo.TYPE_BLE_HEADSET, AudioDeviceInfo.TYPE_BLE_SPEAKER, AudioDeviceInfo.TYPE_HEARING_AID,
-    AudioDeviceInfo.TYPE_HDMI, AudioDeviceInfo.TYPE_LINE_ANALOG, AudioDeviceInfo.TYPE_DOCK,
-)
-
-private fun isBluetooth(t: Int) = t == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || t == AudioDeviceInfo.TYPE_BLE_HEADSET ||
-    t == AudioDeviceInfo.TYPE_BLE_SPEAKER || t == AudioDeviceInfo.TYPE_HEARING_AID
-
-/** Outputs music can play through right now: this phone, wired/USB, and connected Bluetooth devices. */
-fun outputOptions(context: Context): List<AudioDeviceInfo> {
-    val am = context.getSystemService(AudioManager::class.java) ?: return emptyList()
-    return am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-        .filter { it.type in OUTPUT_TYPES }
-        // One row per physical device (LE Audio and A2DP can both show for the same earbuds).
-        .distinctBy { if (isBluetooth(it.type)) "bt:" + (it.addressOrBlank().ifBlank { it.productName.toString() }) else "t:${it.type}:${it.productName}" }
-        .sortedBy { if (it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) 0 else if (isBluetooth(it.type)) 2 else 1 }
-}
-
-/** Where audio is going: the device picked in Prism if still there, otherwise the system's media route. */
-fun currentOutput(context: Context, preferred: AudioDeviceInfo?): AudioDeviceInfo? {
-    val options = outputOptions(context)
-    if (preferred != null) options.firstOrNull { it.id == preferred.id }?.let { return it }
-    val am = context.getSystemService(AudioManager::class.java)
-    if (android.os.Build.VERSION.SDK_INT >= 33 && am != null) {
-        runCatching {
-            val attrs = android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).build()
-            am.getAudioDevicesForAttributes(attrs).firstOrNull()?.let { routed ->
-                options.firstOrNull { it.type == routed.type && (routed.address.isBlank() || it.address == routed.address) }
-                    ?.let { return it }
-            }
-        }
-    }
-    return options.maxByOrNull { if (isBluetooth(it.type)) 3 else if (it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) 0 else 2 }
 }
 
 fun outputLabel(d: AudioDeviceInfo, phoneName: String): String = when (d.type) {

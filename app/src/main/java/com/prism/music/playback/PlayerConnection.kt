@@ -19,7 +19,9 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.prism.music.AppContainer
 import com.prism.music.data.Backup
+import com.prism.music.data.currentOutput
 import com.prism.music.data.db.VideoSongEntity
+import com.prism.music.data.outputOptions
 import com.prism.music.data.innertube.InnerTube
 import com.prism.music.data.model.Song
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -199,6 +202,9 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** The output picked in Prism's device sheet; null follows the system (e.g. newly connected headphones). */
     val preferredOutput: StateFlow<AudioDeviceInfo?> = _output
 
+    /** Picks the music up when the Bluetooth output a becoming-noisy pause lost comes back (Settings → Playback). */
+    private val outputReturn = OutputReturn()
+
     init {
         context.getSystemService(AudioManager::class.java)?.registerAudioDeviceCallback(object : AudioDeviceCallback() {
             private var primed = false
@@ -213,11 +219,25 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 if (primed && _output.value != null && addedDevices.any { it.isSink && it.type in NEW_OUTPUTS }) {
                     setOutput(null, "a new output was connected")
                 }
+                if (!primed || addedDevices.any { it.isSink }) rememberOutput()
+                // The same pair connecting again after a pause the lost output caused: the music carries on by itself
+                // (off, Settings → Playback → "Resume when Bluetooth comes back").
+                if (primed) {
+                    if (!c.settings.current.behavior.resumeOnReturn) outputReturn.played()
+                    else if (canPlayReturnedOutput() &&
+                        outputReturn.returned(addedDevices.filter { it.isSink }.map { it.toSink() }, android.os.SystemClock.elapsedRealtime())
+                    ) {
+                        resumeOnReturnedOutput()
+                    }
+                }
                 primed = true
             }
 
             override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
                 AudioDiagnostics.log("device", "removed: ${removedDevices.joinToString { AudioDiagnostics.describe(it) }}")
+                outputReturn.removed(removedDevices.filter { it.isSink }.map { it.toSink() }, android.os.SystemClock.elapsedRealtime())
+                // The pause came before the device list: the output it lost may already be back (a quick mode switch).
+                if (outputReturn.waitingFor) checkOutputBack()
                 if (removedDevices.any { it.id == _output.value?.id }) setOutput(null, "the picked output went away")
             }
         }, android.os.Handler(android.os.Looper.getMainLooper()))
@@ -357,6 +377,73 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         AudioDiagnostics.log("route", "player pointed at ${AudioDiagnostics.describe(device)} ($reason; was ${AudioDiagnostics.describe(_output.value)})")
         _output.value = device
         player?.setPreferredAudioDevice(device)
+        if (device != null) {
+            // A read started before the pick must not land after it.
+            outputRead++
+            outputReturn.current(device.toSink())
+            // A pick of its own ends any wait for the output that went: the listener chose where the sound goes.
+            outputReturn.played()
+        }
+    }
+
+    /** The last output read off the main thread, newest wins (several reads can be in flight at once). */
+    @Volatile private var outputRead = 0
+
+    /**
+     * Notes the output playing now, for [outputReturn] (a becoming-noisy pause asks which output it was). Android is
+     * asked off the main thread: these are audio-service calls, and earbuds add and drop entries constantly.
+     */
+    private fun rememberOutput() {
+        if (player == null) return
+        val read = ++outputRead
+        val preferred = _output.value
+        scope.launch(Dispatchers.IO) {
+            val sink = runCatching { currentOutput(context, preferred) }.getOrNull()?.toSink()
+            withContext(Dispatchers.Main) { if (read == outputRead) outputReturn.current(sink) }
+        }
+    }
+
+    /** Whether the music may start again by itself now: a queue is ready, nothing else is playing it, no call. */
+    private fun canPlayReturnedOutput(): Boolean {
+        if (!c.settings.current.behavior.resumeOnReturn) return false
+        val p = player ?: return false
+        if (c.cast.casting) return false
+        if (p.mediaItemCount == 0) return false
+        if (p.playbackState != Player.STATE_READY && p.playbackState != Player.STATE_BUFFERING) return false
+        // Not while a call is coming, ringing or being talked on: the focus request would either be refused or play under
+        // the call, both a surprise. The wait stays as it is (and runs out), so nothing starts later by itself.
+        val mode = context.getSystemService(AudioManager::class.java)?.mode
+        if (mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION || mode == AudioManager.MODE_RINGTONE) return false
+        if (sleepAt.value > 0 && sleepAt.value <= System.currentTimeMillis()) return false
+        return true
+    }
+
+    /**
+     * A becoming-noisy pause whose output is already back when the pause lands (the device was added before the
+     * broadcast reached us) has no add left to act on: look at the route once it has settled, and pick the music up.
+     */
+    private fun checkOutputBack() {
+        if (!outputReturn.waitingFor) return
+        scope.launch(Dispatchers.IO) {
+            delay(400)
+            val sinks = runCatching { outputOptions(context) }.getOrNull().orEmpty().map { it.toSink() }
+            withContext(Dispatchers.Main) {
+                if (canPlayReturnedOutput() && outputReturn.returned(sinks, android.os.SystemClock.elapsedRealtime())) {
+                    resumeOnReturnedOutput()
+                }
+            }
+        }
+    }
+
+    /**
+     * A Bluetooth output came back after a becoming-noisy pause took the music: play on where it stopped. The service's
+     * own gentle play fades it in when "Fade on pause and play" is on.
+     */
+    private fun resumeOnReturnedOutput() {
+        if (!canPlayReturnedOutput()) return
+        val p = player ?: return
+        AudioDiagnostics.log("route", "the output came back: playing again")
+        if (service?.gentle(true) != true) p.play()
     }
 
     fun connect() {
@@ -372,6 +459,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         s.musicPitch = _musicPitch.value
         s.player.addListener(this)
         refresh(rebuildQueue = true)
+        rememberOutput()
         pending.toList().forEach { it(s.player) }
         pending.clear()
     }
@@ -379,6 +467,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     internal fun detach() {
         // A recreated service (or a stopped one) has no playback for a timer to belong to: end it. Always put the volume
         // back, even between a timer's natural end and its silent tail, so a recreated service never comes back silent.
+        outputReturn.played()
         cancelSleepTimer()
         service?.player?.removeListener(this)
         service = null
@@ -1695,6 +1784,18 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+        // Output return (Settings → Playback): remember only a pause the audio output itself caused, so the same
+        // Bluetooth output coming back can pick the music up; any other pause, and any play, ends the wait.
+        if (playWhenReady) {
+            outputReturn.played()
+            rememberOutput()
+        } else if (c.settings.current.behavior.resumeOnReturn) {
+            outputReturn.paused(reason, android.os.SystemClock.elapsedRealtime())
+            if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY) {
+                AudioDiagnostics.log("route", "paused because the output went away: waiting for it to come back")
+                checkOutputBack()
+            }
+        } else outputReturn.played()
         // Paused at the end of the song for the sleep timer: the finish-current-song overtime is done (its BPM filter, if
         // any, was only for this session, so it goes back off).
         if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM && sleepEndOfSong.value) {

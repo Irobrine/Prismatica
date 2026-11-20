@@ -21,7 +21,7 @@ import org.junit.Test
 @org.junit.runner.RunWith(org.robolectric.RobolectricTestRunner::class)
 @org.robolectric.annotation.Config(sdk = [34], application = android.app.Application::class)
 class Settings185Test {
-    private val names = setOf("recap_notify", "milestone_notify", "finish_lyric", "face_down_pause", "lyrics_cover_plays")
+    private val names = setOf("recap_notify", "milestone_notify", "finish_lyric", "face_down_pause", "resume_on_return", "lyrics_cover_plays")
 
     private fun withStore(block: suspend (SettingsRepository) -> Unit): Unit = runBlocking {
         val r = SettingsRepository(org.robolectric.RuntimeEnvironment.getApplication(), CoroutineScope(SupervisorJob() + Dispatchers.Default))
@@ -38,6 +38,7 @@ class Settings185Test {
         assertFalse(b.milestoneNotify)
         assertFalse(b.finishLyric)
         assertFalse(b.faceDownPause)
+        assertFalse(b.resumeOnReturn)
         assertFalse(b.lyricsCoverPlays)
     }
 
@@ -48,8 +49,10 @@ class Settings185Test {
         r.setMilestoneNotify(true)
         r.setFinishLyric(true)
         r.setFaceDownPause(true)
+        r.setResumeOnReturn(true)
         r.setLyricsCoverPlays(true)
-        val s = r.storedWhen { it.behavior.recapNotify && it.behavior.milestoneNotify && it.behavior.finishLyric && it.behavior.faceDownPause && it.behavior.lyricsCoverPlays }
+        val s = r.storedWhen { it.behavior.recapNotify && it.behavior.milestoneNotify && it.behavior.finishLyric && it.behavior.faceDownPause && it.behavior.resumeOnReturn && it.behavior.lyricsCoverPlays }
+        assertTrue(s.behavior.resumeOnReturn)
         assertTrue(s.behavior.faceDownPause)
         r.setFaceDownPause(false)
         assertTrue("the others stay", r.storedWhen { !it.behavior.faceDownPause }.behavior.recapNotify)
@@ -64,8 +67,9 @@ class Settings185Test {
         r.setMilestoneNotify(true)
         r.setFinishLyric(true)
         r.setFaceDownPause(true)
+        r.setResumeOnReturn(true)
         r.setLyricsCoverPlays(true)
-        r.storedWhen { it.behavior.faceDownPause && it.behavior.recapNotify && it.behavior.milestoneNotify && it.behavior.finishLyric && it.behavior.lyricsCoverPlays }
+        r.storedWhen { it.behavior.faceDownPause && it.behavior.resumeOnReturn && it.behavior.recapNotify && it.behavior.milestoneNotify && it.behavior.finishLyric && it.behavior.lyricsCoverPlays }
         val backup = r.forBackup(settings = true, accounts = false)
         assertEquals(names.associateWith { "b:true" }, backup.filterKeys { it in names })
         // A Look applied over them leaves them as they are.
