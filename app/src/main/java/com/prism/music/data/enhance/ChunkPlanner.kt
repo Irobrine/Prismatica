@@ -49,10 +49,14 @@ internal object ChunkPlanner {
         durationMs: Long,
         language: AlignLanguage,
         maxChunkMs: Long = MAX_CHUNK_MS,
+        /** Line for line with [lines]: the readings the words are sung as, when a Japanese dictionary is on the phone. */
+        ruby: List<List<com.prism.music.data.lyrics.RubySpan>>? = null,
     ): List<Plan> {
         val nonGap = lines.indices.filter { !lines[it].isGap && lines[it].text.isNotBlank() }
         if (nonGap.isEmpty()) return emptyList()
-        val unitsByLine = nonGap.associateWith { i -> LyricsUnits.units(lines[i].text, language).onEach { it.line = i } }
+        val unitsByLine = nonGap.associateWith { i ->
+            LyricsUnits.units(lines[i].text, language, ruby?.getOrNull(i).orEmpty()).onEach { it.line = i }
+        }
         val timed = nonGap.all { lines[it].timeMs >= 0 }
         val plans = ArrayList<Plan>()
         if (timed) {

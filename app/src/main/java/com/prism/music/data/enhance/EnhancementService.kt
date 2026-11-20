@@ -241,8 +241,13 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
             if (cancel.get()) throw CancellationException("cancelled")
             val audio = AudioScratch.readMono16k(alignScratch)
             if (audio.isEmpty()) throw EnhanceNoAudio()
+            // Japanese is sung as its readings: with the dictionary on the phone the aligner is given わだち for 轍,
+            // which is what the voice actually says. The display keeps the kanji; the units keep their offsets.
+            val ruby = if (language == AlignLanguage.JAPANESE && c.romanizer.furiganaReady) {
+                runCatching { c.romanizer.furigana(lyrics.lines) }.getOrNull()
+            } else null
             val record = withContext(heavy) {
-                alignLyrics(lyrics, lyricsHash, audio, language, audioKey, fingerprint, useVocals, settingsKey, song, cancel, report)
+                alignLyrics(lyrics, lyricsHash, audio, language, audioKey, fingerprint, useVocals, settingsKey, song, cancel, report, ruby)
             }
             store.putAlignment(record)
             c.lyrics.overlayChanged()
@@ -427,6 +432,7 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         song: Song,
         cancel: AtomicBoolean,
         report: (Float) -> Unit = {},
+        ruby: List<List<com.prism.music.data.lyrics.RubySpan>>? = null,
     ): AlignmentRecord {
         val durationMs = if (song.durationSec > 0) song.durationSec * 1000L else audio.size.toLong() * 1000 / 16_000
         // A file's credit lines ("词：…", "Lyrics by …") aren't sung: left in, the aligner is asked to find them in the
@@ -435,7 +441,8 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         val source = CreditLines.strip(lyrics.lines)
         val credits = CreditLines.count(lyrics.lines)
         if (credits > 0) Log.i("PrismEnhance", "aligned ${song.id}: left out $credits credit line(s)")
-        val plans = ChunkPlanner.plans(source, durationMs, language)
+        if (ruby != null) Log.i("PrismEnhance", "aligned ${song.id}: ${ruby.count { it.isNotEmpty() }} lines timed as read")
+        val plans = ChunkPlanner.plans(source, durationMs, language, ruby = ruby)
         if (plans.isEmpty()) throw EnhanceNoLyrics()
         // Told missing before the session is built (its own factory checks too).
         runtimeDir(); alignerDir()
@@ -445,7 +452,9 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
         // ChunkPlanner.fineSize), and a pass costs the same whatever the size, so starting here is not the expensive
         // choice — repeating it over a ladder was.
         val fine = ChunkPlanner.fineSize(durationMs, plans.size)
-        val finePlans = if (fine < ChunkPlanner.MAX_CHUNK_MS) ChunkPlanner.plans(source, durationMs, language, fine) else plans
+        val finePlans = if (fine < ChunkPlanner.MAX_CHUNK_MS) {
+            ChunkPlanner.plans(source, durationMs, language, fine, ruby)
+        } else plans
         var allAligned = alignPass(finePlans, audio, durationMs, aligner, cancel, report, 0.05f, 0.6f)
         var quality = AlignmentQualityCheck.evaluate(allAligned.units, audio, allAligned.confidence)
         logPass(song, "${fine} ms", finePlans.size, allAligned, quality)

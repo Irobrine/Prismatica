@@ -50,6 +50,11 @@ data class AlignUnit(
     var group: Int = -1,
     /** The line this unit came from. */
     var line: Int = -1,
+    /**
+     * What the voice actually says for this unit: the same text, or its reading when a Japanese dictionary is on the
+     * phone (轍 → わだち). The model times the sounds; the display keeps [clean].
+     */
+    var spoken: String = clean,
 )
 
 /**
@@ -58,9 +63,18 @@ data class AlignUnit(
  * words again afterwards), Japanese by script runs (kuromoji-like words without needing a dictionary: a kanji compound,
  * a katakana word, a hiragana run), numbers as one unit, and Latin words inside CJK text as one. Punctuation is not a
  * unit; [buildWords] attaches it to the word before it so the line still reads exactly as written.
+ *
+ * [ruby] are the line's readings ([com.prism.music.data.lyrics.RubySpan], over [text]'s offsets): where there is one,
+ * the unit is given it as [AlignUnit.spoken], so the model times what the voice says rather than the kanji.
  */
 object LyricsUnits {
-    fun units(text: String, language: AlignLanguage): List<AlignUnit> {
+    fun units(text: String, language: AlignLanguage, ruby: List<com.prism.music.data.lyrics.RubySpan> = emptyList()): List<AlignUnit> {
+        val out = unitsOf(text, language)
+        if (ruby.isNotEmpty()) spoken(out, text, ruby)
+        return out
+    }
+
+    private fun unitsOf(text: String, language: AlignLanguage): List<AlignUnit> {
         val out = ArrayList<AlignUnit>()
         when (language) {
             AlignLanguage.ENGLISH, AlignLanguage.KOREAN -> {
@@ -138,6 +152,30 @@ object LyricsUnits {
         if (language == AlignLanguage.CHINESE) groupChinese(out, text)
         else out.forEachIndexed { i, u -> u.group = i }
         return out
+    }
+
+    /**
+     * Gives each unit the reading of the characters it covers: 轍 becomes わだち for the model while the line, and so the
+     * display, keeps the kanji. A reading is spread across the characters it replaces in proportion, so a unit whose text
+     * ends inside one still gets a share instead of nothing.
+     */
+    private fun spoken(units: List<AlignUnit>, text: String, ruby: List<com.prism.music.data.lyrics.RubySpan>) {
+        val parts = Array(text.length) { text.substring(it, it + 1) }
+        for (span in ruby) {
+            val from = span.start.coerceIn(0, text.length)
+            val to = span.end.coerceIn(from, text.length)
+            val reading = span.reading
+            if (to <= from || reading.isBlank()) continue
+            val n = to - from
+            for (k in 0 until n) {
+                parts[from + k] = reading.substring(reading.length * k / n, reading.length * (k + 1) / n)
+            }
+        }
+        for (u in units) {
+            if (u.start < 0 || u.end > text.length || u.start >= u.end) continue
+            val read = (u.start until u.end).joinToString("") { parts[it] }
+            if (read.isNotBlank()) u.spoken = read
+        }
     }
 
     /**

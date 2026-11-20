@@ -3,6 +3,7 @@ package com.prism.music
 import com.prism.music.data.enhance.AlignLanguage
 import com.prism.music.data.enhance.AlignedUnit
 import com.prism.music.data.enhance.LyricsUnits
+import com.prism.music.data.lyrics.RubySpan
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -27,6 +28,20 @@ class LyricsUnitsTest {
         val timed = units.mapIndexed { i, u -> AlignedUnit(u.clean, u.start, u.end, u.group, i * 400L, i * 400L + 350, u.line) }
         val words = LyricsUnits.buildWords(timed, text)
         assertEquals(text, words.joinToString("") { it.text })
+    }
+
+    @Test fun aReadingIsWhatTheModelSeesAndTheKanjiWhatIsShown() {
+        val text = "轍の道"
+        val ruby = listOf(RubySpan(0, 1, "わだち"))
+        val units = LyricsUnits.units(text, AlignLanguage.JAPANESE, ruby)
+        // Display and offsets are exactly as without readings.
+        assertEquals(listOf("轍", "の", "道"), units.map { it.clean })
+        assertEquals(listOf(0, 1, 2), units.map { it.start })
+        // The model is given what is sung instead.
+        assertEquals(listOf("わだち", "の", "道"), units.map { it.spoken })
+        // A line with no readings is untouched, unit for unit.
+        val plain = LyricsUnits.units(text, AlignLanguage.JAPANESE)
+        assertEquals(plain.map { it.clean }, plain.map { it.spoken })
     }
 
     @Test fun chineseIsTimedByCharacterAndGroupedIntoWords() {

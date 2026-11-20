@@ -52,7 +52,7 @@ internal class QwenAligner private constructor(
         val slots = IntArray(units.size)
         val tokensPerUnit = IntArray(units.size)
         for ((i, u) in units.withIndex()) {
-            val tok = tokenizer.encode(u.clean)
+            val tok = tokenizer.encode(u.spoken)
             if (tok.isEmpty()) { tokensPerUnit[i] = 0; continue }
             for (id in tok) ids.add(id.toLong())
             slots[i] = ids.size
