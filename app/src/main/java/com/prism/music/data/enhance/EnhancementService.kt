@@ -202,15 +202,15 @@ class EnhancementService(private val c: AppContainer, val store: EnhanceStore) {
                 "(${timedLines.size} of ${record.lines.size} lines timed, ${lyrics.lines.size} lines; " +
                 "$words words, $empty zero-length${sample?.let { "; first: $it" } ?: ""})",
         )
-        // One line per song for the lines that are lit fastest after they start: what the drawing is actually handed.
+        // One line per song, once: every line's words exactly as the drawing is handed them.
         if (applied !== lyrics && blockLogged.add(song.id)) {
-            val front = applied.lines.filter { !it.isGap && it.endMs > it.timeMs && it.words.size > 1 }.map { l ->
-                l to l.words.count { w -> w.endMs <= l.timeMs + (l.endMs - l.timeMs) * 2 / 5 }
-            }.sortedByDescending { it.second }.take(3)
-            for ((l, n) in front) if (n >= 2) Log.i(
+            for (chunk in applied.lines.withIndex().chunked(6)) Log.i(
                 "PrismEnhance",
-                "overlay ${song.id}: '${l.text.take(18)}' ${l.timeMs}..${l.endMs}, $n of ${l.words.size} words in " +
-                    "its first 40%: " + l.words.joinToString(" ") { "${it.text}[${it.startMs}..${it.endMs}]" },
+                "overlay ${song.id} lines ${chunk.first().index}..${chunk.last().index}: " +
+                    chunk.joinToString(" | ") { (i, l) ->
+                        "$i ${l.timeMs}..${l.endMs} '${l.text.take(12)}' " +
+                            l.words.joinToString(" ") { "${it.text}[${it.startMs}..${it.endMs}]" }
+                    },
             )
         }
         return applied

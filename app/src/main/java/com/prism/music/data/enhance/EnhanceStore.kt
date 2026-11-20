@@ -302,7 +302,36 @@ class EnhanceStore(private val filesDir: File) {
         // A line that opens with words the model couldn't time is filled up to the first word it could: the timed ones
         // keep their stamps, and the untimed run before them is placed backwards from that stamp at a natural pace, so
         // the line doesn't light its opening all at once. Nothing the model timed is rewritten.
-        return repairInstants(fitted, lineEnd)
+        val repaired = repairInstants(fitted, lineEnd)
+        // …unless the model's answer for the line is simply broken: a few words squeezed into an instant while one
+        // swallows the rest, words out of order, or one left at a single point. Then its start and end are worth keeping
+        // and its spacing is not, so the line is shared out between them by text length. That is what "ここにはボクが"
+        // in 160 ms and "いて" over 1.76 s comes to.
+        return if (brokenSpacing(repaired)) spreadBetween(repaired) else repaired
+    }
+
+    /** Whether the line's word timings can't be a real answer: out of order, an instant word, or one taking all of it. */
+    private fun brokenSpacing(words: List<LyricWord>): Boolean {
+        if (words.size < 2) return words.any { it.endMs <= it.startMs }
+        if (words.zipWithNext().any { (a, b) -> b.startMs < a.startMs }) return true
+        if (words.any { it.endMs <= it.startMs }) return true
+        if (words.size < 3) return false
+        val spans = words.map { it.endMs - it.startMs }.sorted()
+        if (spans.first() >= 60) return false
+        return spans.last() > spans[spans.size / 2].coerceAtLeast(1) * 3
+    }
+
+    /** The words shared out by text length between the line's own first and last word, so both ends stay where they were. */
+    private fun spreadBetween(words: List<LyricWord>): List<LyricWord> {
+        val from = words.first().startMs
+        val to = words.last().endMs
+        if (to <= from) return words
+        val letters = words.sumOf { maxOf(1, it.text.trimEnd().length) }
+        var at = from
+        return words.map { w ->
+            val share = (to - from) * maxOf(1, w.text.trimEnd().length) / letters
+            w.copy(startMs = at, endMs = (at + share).coerceAtLeast(at + 1)).also { at += share }
+        }
     }
 
     /** Roughly how long a character takes to sing, when a word's own time has to be guessed. */
@@ -324,7 +353,7 @@ class EnhanceStore(private val filesDir: File) {
             if (first.endMs > first.startMs) { i++; continue }
             var last = i
             while (last + 1 < out.size && out[last + 1].endMs <= out[last + 1].startMs) last++
-            val nextStart = (last + 1 until out.size).firstOrNull { out[it].startMs > first.startMs }?.let { out[it].startMs }
+            val nextStart = (last + 1 until out.size).firstOrNull { out[it].endMs > out[it].startMs }?.let { out[it].startMs }
             val run = i..last
             val letters = run.sumOf { maxOf(1, out[it].text.trimEnd().length) }
             val natural = perCharacterMs * letters

@@ -131,6 +131,55 @@ class EnhanceStoreTest {
         assertEquals(lyrics.lines[1].text, out.lines[1].text)
     }
 
+    @Test fun aLineSqueezedIntoOneInstantIsSharedOutEvenly() {
+        val store = EnhanceStore(temp())
+        val lyrics = timed()
+        // The model's answer for a lost line: three words inside 160 ms (one overlapping them) and the last taking 1.76 s.
+        val r = record(lyrics).let { rec ->
+            rec.copy(lines = rec.lines.map { l ->
+                if (l.index != 1) l else l.copy(words = listOf(
+                    AlignedWord(2_500, 2_500, "It's "),
+                    AlignedWord(2_500, 2_500, "a "),
+                    AlignedWord(2_500, 2_660, "test"),
+                    AlignedWord(2_660, 4_000, "."),
+                ))
+            })
+        }
+        val out = store.apply(lyrics, r)
+        val words = out.lines[1].words
+        assertEquals(4, words.size)
+        // Both ends of the line stay where the model put them, and the words between them move in order.
+        assertEquals(2_500L, words.first().startMs)
+        assertEquals(4_000L, words.last().endMs)
+        assertTrue(words.all { it.endMs > it.startMs })
+        assertTrue(words.zipWithNext().all { (a, b) -> b.startMs >= a.endMs })
+        // Nothing is left in a 160 ms burst at the start.
+        assertTrue("the opening is not a burst", words[0].endMs - words[0].startMs >= 200)
+        assertEquals(lyrics.lines[1].text, out.lines[1].text)
+    }
+
+    @Test fun wordsOutOfOrderInTheModelAnswerAreSpreadInOrder() {
+        val store = EnhanceStore(temp())
+        val lyrics = timed()
+        // が is stamped over its predecessors: the model put the line's words at the same bucket.
+        val r = record(lyrics).let { rec ->
+            rec.copy(lines = rec.lines.map { l ->
+                if (l.index != 1) l else l.copy(words = listOf(
+                    AlignedWord(2_500, 2_900, "It's "),
+                    AlignedWord(2_900, 3_250, "a "),
+                    AlignedWord(2_500, 3_300, "test"),
+                    AlignedWord(3_300, 3_600, "."),
+                ))
+            })
+        }
+        val out = store.apply(lyrics, r)
+        val words = out.lines[1].words
+        assertTrue("every word moves", words.all { it.endMs > it.startMs })
+        assertTrue("and in order", words.zipWithNext().all { (a, b) -> b.startMs >= a.endMs })
+        assertEquals(2_500L, words.first().startMs)
+        assertEquals(lyrics.lines[1].text, out.lines[1].text)
+    }
+
     private fun plain() = Lyrics(LyricsSource.LRCLIB, false, listOf(
         LyricLine(-1, "Hello, world!"),
         LyricLine(-1, "It's a test."),
