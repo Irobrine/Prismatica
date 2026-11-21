@@ -469,7 +469,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         // A recreated service (or a stopped one) has no playback for a timer to belong to: end it. Always put the volume
         // back, even between a timer's natural end and its silent tail, so a recreated service never comes back silent.
         outputReturn.played()
-        cancelSleepTimer()
+        cancelSleepTimer(resume = false)
         service?.player?.removeListener(this)
         service = null
         controllerFuture?.let { MediaController.releaseFuture(it) }
@@ -1783,15 +1783,23 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         enforceSleepBpm()
     }
 
-    /** Turns the timer off and puts the listener's own volume back (the saved choices stay as they are). */
-    fun cancelSleepTimer() {
+    /**
+     * Turns the timer off and puts the listener's own volume back (the saved choices stay as they are). If the filters
+     * themselves had paused the music (no allowed song was left), they let it play again: turning the timer off is the
+     * listener asking for their music back, and nothing was ever taken out of the queue to restore. A pause the listener
+     * made stays a pause, and so does one at the deadline. [resume] is false where playback is going away anyway (a
+     * recreated service), so a rebind never starts music by itself.
+     */
+    fun cancelSleepTimer(resume: Boolean = true) {
         sleepJob?.cancel()
         sleepJob = null
         sleepRestoreJob?.cancel()
         sleepRestoreJob = null
+        val filterPaused = pausedBySleepBpm
         pausedBySleepBpm = false
         stopAfterTimer()
         sleepTimer.cancel()
+        if (resume && filterPaused && player?.isPlaying == false) player?.play()
     }
 
     /** -5 / +5 on the active timer: the deadline and the fade schedule move at once. */

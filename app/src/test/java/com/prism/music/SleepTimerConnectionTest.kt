@@ -352,6 +352,26 @@ class SleepTimerConnectionTest {
         assertEquals("the override never touches the saved limit", 60, c.sleepPrefs.choices.value.minScore)
     }
 
+    @Test fun turningOffATimerItsFilterPausedBringsTheMusicBack() {
+        queue(scored("loud", 10), song("unscored", null))
+        player.play()
+        scoreTimer(minScore = 60)
+        assertFalse("no allowed song was left, so the filter stopped the music", player.playWhenReady)
+        c.player.cancelSleepTimer()
+        assertTrue("turning the timer off restores the playback its filter stopped", player.playWhenReady)
+        assertEquals("and the queue was never touched", 2, player.mediaItemCount)
+    }
+
+    @Test fun aSessionItsBpmFilterPausedIsRestoredTheSameWay() {
+        queue(song("fast", 150.0), song("unknown", null))
+        player.play()
+        timer()
+        assertFalse(player.playWhenReady)
+        c.player.cancelSleepTimer()
+        assertTrue("the BPM filter's pause ends with the timer too", player.playWhenReady)
+        assertEquals(2, player.mediaItemCount)
+    }
+
     @Test fun cancellingKeepsTheScoreChoiceForNextTime() {
         queue(scored("calm", 90))
         scoreTimer(minScore = 70)
