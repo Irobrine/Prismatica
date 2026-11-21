@@ -62,16 +62,10 @@ object SleepAnalysis {
      * and where the song misbehaves. [expectedMs] is the length the song should have (its known duration) when that is
      * known: a decode that stops well short of it is judged with less confidence, never more.
      *
-     * [levelGainDb] shifts every frame's level by that many decibels first: the normalized-audio mode passes the gain
-     * playback's Normalize applies, so absolute loudness is judged as the song is actually heard. Everything that is a
-     * ratio — dynamics, transients, flux, brightness, clipping of the recording itself — is unchanged by a gain.
-     *
-     * Deterministic: the same samples, rate, gain, version and [analyzedAtMs] give the same figure.
+     * Deterministic: the same samples, rate, version and [analyzedAtMs] give the same figure.
      */
-    fun analyze(
-        pcm: FloatArray, count: Int, rate: Int, analyzedAtMs: Long, expectedMs: Long = 0L, levelGainDb: Double = 0.0,
-    ): SleepScore {
-        val analyzer = Analyzer(rate, expectedMs, levelGainDb)
+    fun analyze(pcm: FloatArray, count: Int, rate: Int, analyzedAtMs: Long, expectedMs: Long = 0L): SleepScore {
+        val analyzer = Analyzer(rate, expectedMs)
         var at = 0
         val n = count.coerceIn(0, pcm.size)
         while (at < n) {
@@ -84,10 +78,9 @@ object SleepAnalysis {
 
     /**
      * One song's analysis, fed its samples as they are decoded. [rate] is their sample rate (mono), [expectedMs] the
-     * length the song is known to have (0 when unknown), and [levelGainDb] a gain applied to the measured levels (the
-     * normalized mode's). [feed] may be called any number of times; [finish] once.
+     * length the song is known to have (0 when unknown). [feed] may be called any number of times; [finish] once.
      */
-    class Analyzer(private val rate: Int, private val expectedMs: Long = 0L, private val levelGainDb: Double = 0.0) {
+    class Analyzer(private val rate: Int, private val expectedMs: Long = 0L) {
         private val size = nextPowerOfTwo((rate * WINDOW_SECONDS).roundToInt().coerceAtLeast(256))
         private val hop = size / 2
         private val fft = Fft(size)
@@ -147,8 +140,8 @@ object SleepAnalysis {
                 im[i] = 0.0
             }
             val level = 20.0 * log10(sqrt(sumSq / size).coerceAtLeast(1e-7))
-            rmsDb.add(level + levelGainDb)
-            peakDb.add(20.0 * log10(peak.coerceAtLeast(1e-7)) + levelGainDb)
+            rmsDb.add(level)
+            peakDb.add(20.0 * log10(peak.coerceAtLeast(1e-7)))
             // A silent frame's spectrum is the window's own leakage, not the music: it isn't "noisy" or "bright", and
             // counting it as either would punish the rests a gentle piece is made of.
             val quietFrame = level < SILENCE_DB

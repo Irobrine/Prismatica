@@ -30,11 +30,10 @@ class SleepScoreStoreTest {
 
     private fun fresh(): SleepScores {
         context().getSharedPreferences("sleep_scores", Context.MODE_PRIVATE).edit().clear().commit()
-        context().getSharedPreferences("sleep_scores_normalized", Context.MODE_PRIVATE).edit().clear().commit()
         return SleepScores(context())
     }
 
-    private fun figure(score: Int, version: Int = SleepAnalysis.MODEL_VERSION, normalized: Boolean = false) = SleepScore(
+    private fun figure(score: Int, version: Int = SleepAnalysis.MODEL_VERSION) = SleepScore(
         score = score,
         confidence = 81,
         components = SleepComponents(quietness = 90, dynamics = 70, transients = 60, rhythm = 50, complexity = 40, mood = 30, model = 20, worstSection = 65),
@@ -45,7 +44,6 @@ class SleepScoreStoreTest {
         modelVersion = version,
         durationMs = 231_000,
         analyzedAtMs = 1_700_000_000_000,
-        normalized = normalized,
     )
 
     @Test fun everyPartOfAFigureSurvivesAndOneRecordingIsItsOwn() {
@@ -96,66 +94,6 @@ class SleepScoreStoreTest {
         assertEquals(77, store.current("late")!!.score)
     }
 
-    @Test fun aNormalizedFigureLivesInItsOwnModeAndOverridesThePlainOneThere() {
-        val store = fresh()
-        store.put("a", figure(40))
-        // The same recording, judged on the sound as Normalize plays it: its own file, and the one that counts when the
-        // mode is on. It doesn't destroy the plain figure, which is what the mode off goes back to.
-        store.put("a", figure(90, normalized = true))
-        assertEquals(40, store.score("a", normalized = false))
-        assertEquals(90, store.score("a", normalized = true))
-        assertEquals(40, store.stored("a", normalized = false)!!.score)
-        assertEquals(90, store.stored("a", normalized = true)!!.score)
-        assertEquals(1, store.calculated.value)
-        assertEquals(1, store.calculatedNormalized.value)
-        // Both survive a restart, in their own files.
-        val again = SleepScores(context())
-        assertEquals(40, again.score("a", normalized = false))
-        assertEquals(90, again.score("a", normalized = true))
-    }
-
-    @Test fun onlyTheFigureOfTheModeInUseIsCurrent() {
-        val store = fresh()
-        store.put("plain", figure(80))
-        store.put("norm", figure(70, normalized = true))
-        assertEquals(80, store.score("plain", normalized = false))
-        assertNull("a plain figure doesn't count in normalized mode", store.score("plain", normalized = true))
-        assertFalse(store.isCurrent("plain", normalized = true))
-        assertNull("a normalized figure doesn't count in plain mode", store.score("norm", normalized = false))
-        assertFalse(store.isCurrent("norm", normalized = false))
-        assertEquals(70, store.score("norm", normalized = true))
-        // The counts are each mode's own.
-        assertEquals(1, store.calculated.value)
-        assertEquals(1, store.calculatedNormalized.value)
-        // An old version in either file is not current there either.
-        store.put("oldnorm", figure(95, version = SleepAnalysis.MODEL_VERSION - 1, normalized = true))
-        assertNull(store.current("oldnorm", normalized = true))
-        assertEquals(1, store.calculatedNormalized.value)
-    }
-
-    @Test fun clearingDropsBothModes() {
-        val store = fresh()
-        store.put("a", figure(80))
-        store.put("a", figure(85, normalized = true))
-        store.clear()
-        assertNull(store.current("a", normalized = false))
-        assertNull(store.current("a", normalized = true))
-        assertEquals(0, store.calculated.value)
-        assertEquals(0, store.calculatedNormalized.value)
-    }
-
-    @Test fun clearingNormalizedKeepsThePlainFigures() {
-        val store = fresh()
-        store.put("a", figure(60))
-        store.put("a", figure(80, normalized = true))
-        // A new Normalize target makes the normalized gain wrong; the plain figure doesn't depend on it.
-        store.clearNormalized()
-        assertEquals(60, store.score("a", normalized = false))
-        assertNull(store.score("a", normalized = true))
-        assertEquals(1, store.calculated.value)
-        assertEquals(0, store.calculatedNormalized.value)
-    }
-
     @Test fun forgettingOneAndClearingAll() {
         val store = fresh()
         store.put("a", figure(80))
@@ -178,8 +116,7 @@ class SleepScoreStoreTest {
     }
 
     @Test fun theStoredTextRoundTripsAndIgnoresUnknownFields() {
-        val figure = figure(63, normalized = true)
-        assertTrue("the mode travels with the figure", figure.normalized)
+        val figure = figure(63)
         assertEquals(figure, SleepScore.decode(SleepScore.encode(figure)))
         val withExtra = SleepScore.encode(figure).dropLast(1) + ",\"aFieldFromALaterVersion\":true}"
         assertEquals(figure, SleepScore.decode(withExtra))
@@ -189,32 +126,20 @@ class SleepScoreStoreTest {
 
     @Test fun aWalkSkipsCurrentFiguresAndTakesUpMissingOrOutdatedOnesOnce() {
         val store = fresh()
-        store.put("plain", figure(80))
-        store.put("norm", figure(70, normalized = true))
+        store.put("current", figure(80))
         store.put("outdated", figure(30, version = SleepAnalysis.MODEL_VERSION - 1))
-        fun walkFor(normalized: Boolean) = com.prism.music.data.MeasureSongs(
+        val walk = com.prism.music.data.MeasureSongs(
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default),
             { _, _, _ -> },
-            { form -> store.isCurrent(form, normalized) },
+            { form -> store.isCurrent(form) },
             { it },
             { 1 },
             { false },
         )
-        // Each mode walks what it has no figure for: switching the mode changes the work, and the progress with it.
         assertEquals(
-            "plain mode: the normalized figure is not a plain one; missing and outdated are walked",
-            listOf("norm" to "norm", "outdated" to "outdated"),
-            walkFor(false).pending(listOf("plain", "norm", "outdated")),
-        )
-        assertEquals(
-            "normalized mode: the plain figure is not a normalized one; missing and outdated are walked",
-            listOf("plain" to "plain", "outdated" to "outdated"),
-            walkFor(true).pending(listOf("plain", "norm", "outdated")),
-        )
-        // A duplicate is one recording, and a current figure of the mode is left out.
-        assertEquals(
-            listOf("missing" to "missing"),
-            walkFor(true).pending(listOf("norm", "missing", "missing")),
+            "missing and outdated are walked; a duplicate is one recording",
+            listOf("missing" to "missing", "outdated" to "outdated"),
+            walk.pending(listOf("current", "missing", "outdated", "missing")),
         )
     }
 }

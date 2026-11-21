@@ -5584,6 +5584,4 @@
     <string name="sleep_scores_scored_n">%1$d 件スコア済み</string>
     <string name="sleep_scores_info">各曲の音声を、睡眠を妨げにくさの観点でスコア化し、スリープタイマーの下限に使います。スコア済みの曲は除外され、再計算するかスコアリングが変わるまで数値は保持されます。</string>
     <string name="sleep_scores_stopped_at">%2$d 件中 %1$d 件で停止しました。タップして続行</string>
-    <string name="use_normalized_audio">均一化した音声を使用</string>
-    <string name="use_normalized_audio_info">スコアは「音量を均一化」が再生する音から計算されます。各録音で測定したラウドネスとピークが、再生時に適用されるゲインを決めます。これがオンの間は、この方法で計算したスコアだけが対象になります。</string>
 </resources>

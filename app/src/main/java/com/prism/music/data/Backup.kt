@@ -604,9 +604,8 @@ class Backup(private val c: AppContainer) {
             listOf(
                 "dislikes", "exclusions", "for_you", "for_you_feedback", com.prism.music.data.foryou.Discover.PREFS, "release_radar", "search", "episode_progress", "episode_played", "best_part_mine",
                 "mix_tempo", "song_loudness", "song_loudness_version", "song_peak", "song_key", "dj_quick", "loudness", "lyric_offsets", "lyrics_choice", "lyrics_search_as",
-                // 1.9: what each recording's audio measured as sleep suitability (recalculated when the scoring changes),
-                // in both audio modes (plain and as Normalize plays it).
-                "sleep_scores", "sleep_scores_normalized",
+                // 1.9: what each recording's audio measured as sleep suitability (recalculated when the scoring changes).
+                "sleep_scores",
                 "romanize_songs", "video_sync", "local_album_tags", "local_lengths", "local_no_art", "lyrics_word_shift",
                 // 1.8.1: Bring your history's choices (what Replay counts, what shapes the mixes).
                 "imports",

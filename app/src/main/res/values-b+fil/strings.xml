@@ -5659,6 +5659,4 @@
     <string name="sleep_scores_scored_n">%1$d ang naiskor</string>
     <string name="sleep_scores_info">Sinusuri ang sariling audio ng bawat kanta para sa kung gaano ito kadalas makagambala sa pagtulog, para sa minimum ng sleep timer. Hindi kasama ang mga kantang may score na; itinatago ang bilang hanggang muling kalkulahin ito o magbago ang scoring.</string>
     <string name="sleep_scores_stopped_at">Huminto sa %1$d sa %2$d, i-tap para magpatuloy</string>
-    <string name="use_normalized_audio">Gamitin ang naka-normalize na audio</string>
-    <string name="use_normalized_audio_info">Kinakalkula ang mga score mula sa tunog na pinatutugtog ng I-normalize ang volume: ang nasukat na lakas at peak ng bawat recording ang nagtatakda ng gain na inilalapat ng playback. Ang mga score lang na nakalkula sa ganitong paraan ang bibilangin habang naka-on ito.</string>
 </resources>

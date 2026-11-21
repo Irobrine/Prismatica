@@ -13,9 +13,6 @@ import com.prism.music.playback.HistoryShuffleOrder
 import com.prism.music.playback.NormalizerProcessor
 import com.prism.music.playback.toMediaItem
 import com.prism.music.playback.toSong
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -53,8 +50,6 @@ class SleepTimerConnectionTest {
         app.getSharedPreferences("dj_quick", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("mix_tempo", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("sleep_scores", Context.MODE_PRIVATE).edit().clear().commit()
-        app.getSharedPreferences("sleep_scores_normalized", Context.MODE_PRIVATE).edit().clear().commit()
-        enableNormalized(false)
         NormalizerProcessor.fadeVolume = 1f
         NormalizerProcessor.sleepVolume = 1f
         player = ExoPlayer.Builder(app).build()
@@ -72,7 +67,6 @@ class SleepTimerConnectionTest {
         app.getSharedPreferences("dj_quick", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("mix_tempo", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("sleep_scores", Context.MODE_PRIVATE).edit().clear().commit()
-        app.getSharedPreferences("sleep_scores_normalized", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     private fun queue(vararg songs: Song) {
@@ -265,26 +259,15 @@ class SleepTimerConnectionTest {
 
     // ---------------------------------------------------------------- the minimum sleep score (1.9)
 
-    /**
-     * A song with a sleep score already calculated (stored under its own id, the form a plain song plays as), in the
-     * audio mode asked for: each mode has its own file, as [com.prism.music.data.sleep.SleepScores] keeps them.
-     */
-    private fun scored(id: String, value: Int, normalized: Boolean = false): Song = Song(id, "Scored $id").also {
+    /** A song with a sleep score already calculated (stored under its own id, the form a plain song plays as). */
+    private fun scored(id: String, value: Int): Song = Song(id, "Scored $id").also {
         val figure = SleepScore(
             score = value, confidence = 90,
             components = SleepComponents(0, 0, 0, 0, 0, 0, 0, 0),
             warnings = emptyList(), modelVersion = SleepAnalysis.MODEL_VERSION, durationMs = 180_000, analyzedAtMs = 1L,
-            normalized = normalized,
         )
-        val file = if (normalized) "sleep_scores_normalized" else "sleep_scores"
-        app.getSharedPreferences(file, Context.MODE_PRIVATE).edit()
+        app.getSharedPreferences("sleep_scores", Context.MODE_PRIVATE).edit()
             .putString(id, SleepScore.encode(figure)).commit()
-    }
-
-    /** Turns the normalized-audio mode on or off and waits for the setting to land (the store writes off the main thread). */
-    private fun enableNormalized(on: Boolean) = runBlocking {
-        c.settings.setSleepScoresNormalized(on)
-        withTimeout(5_000) { c.settings.flow.first { it.sound.sleepScoresNormalized == on } }
     }
 
     private fun scoreTimer(minScore: Int = 60, maxBpm: Int = 0) {
@@ -367,47 +350,6 @@ class SleepTimerConnectionTest {
         c.player.setSleepScoreDisabled(false)
         assertEquals(1, player.currentMediaItemIndex)
         assertEquals("the override never touches the saved limit", 60, c.sleepPrefs.choices.value.minScore)
-    }
-
-    @Test fun onlyTheActiveModesFiguresCountAndANormalizedOneOverridesThePlainOne() {
-        // The normalized figure is at index 0 and the plain one at 1: each mode lets exactly one of them through.
-        queue(scored("norm", 90, normalized = true), scored("plain", 90))
-        scoreTimer(minScore = 60)
-        assertEquals("plain mode passes the plain figure over the normalized one", 1, player.currentMediaItemIndex)
-        assertTrue("a normalized figure doesn't count in plain mode", c.player.sleepBlocksScore("norm"))
-        assertFalse(c.player.sleepBlocksScore("plain"))
-        // Normalized mode: the normalized figure is the valid one (and overrides the plain figure of the same recording).
-        enableNormalized(true)
-        assertFalse(c.player.sleepBlocksScore("norm"))
-        assertTrue("a plain figure doesn't count in normalized mode", c.player.sleepBlocksScore("plain"))
-        c.player.skipTo(0)
-        c.player.enforceSleepBpm()
-        assertEquals(0, player.currentMediaItemIndex)
-        // Off again: the plain figure is valid again and the normalized one is not.
-        enableNormalized(false)
-        assertTrue(c.player.sleepBlocksScore("norm"))
-        assertFalse(c.player.sleepBlocksScore("plain"))
-        c.player.enforceSleepBpm()
-        assertEquals(1, player.currentMediaItemIndex)
-        assertEquals("nothing was removed in either mode", 2, player.mediaItemCount)
-    }
-
-    @Test fun switchingTheModeRechecksWhatPlaysNow() {
-        queue(scored("plain", 90), scored("norm", 90, normalized = true))
-        player.play()
-        scoreTimer(minScore = 60)
-        assertEquals("plain mode starts on the plain figure", 0, player.currentMediaItemIndex)
-        assertTrue(player.playWhenReady)
-        // Turning normalized mode on makes the song playing invalid; the one after it, measured in that mode, is next.
-        enableNormalized(true)
-        c.player.enforceSleepBpm()
-        assertEquals(1, player.currentMediaItemIndex)
-        // And turning it off makes the normalized song invalid again: nothing allowed is left ahead, so it stops rather
-        // than wrapping (the BPM limit's rule too).
-        enableNormalized(false)
-        c.player.enforceSleepBpm()
-        assertFalse(player.playWhenReady)
-        assertEquals(2, player.mediaItemCount)
     }
 
     @Test fun turningOffATimerItsFilterPausedBringsTheMusicBack() {

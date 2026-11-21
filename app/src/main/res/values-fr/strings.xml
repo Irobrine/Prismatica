@@ -5734,6 +5734,4 @@
     <string name="sleep_scores_scored_n">%1$d évalués</string>
     <string name="sleep_scores_info">Évalue l’audio de chaque morceau selon sa probabilité de ne pas perturber le sommeil, pour le minimum du minuteur. Les morceaux déjà évalués sont ignorés ; la valeur est conservée jusqu’à un nouveau calcul ou un changement de l’évaluation.</string>
     <string name="sleep_scores_stopped_at">Arrêté à %1$d sur %2$d, appuyez pour continuer</string>
-    <string name="use_normalized_audio">Utiliser l\'audio normalisé</string>
-    <string name="use_normalized_audio_info">Les scores sont calculés à partir du son tel que le lit Normaliser le volume : la loudness mesurée et le niveau de crête de chaque enregistrement déterminent le gain que la lecture applique. Seuls les scores calculés ainsi comptent tant que cette option est activée.</string>
 </resources>

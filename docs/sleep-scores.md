@@ -80,10 +80,9 @@ what the UI can point at.
 
 `SleepAnalysis.MODEL_VERSION` is stored in every figure. A figure from an older version is treated as missing: the
 filter passes the song over (never trusting a stale number) and the next calculation rewrites it. Detection is
-deterministic: the same samples, rate, gain, version and timestamp produce the same figure, and the analysis does not
-depend on how the samples were fed (tested with odd chunk sizes). A recording's audio is identified by its form id, so a
-picked version, a music video or a file is scored as itself, not as the song's stream; and each audio mode keeps its
-own figure, so switching modes never throws away the other's work.
+deterministic: the same samples, rate, version and timestamp produce the same figure, and the analysis does not depend
+on how the samples were fed (tested with odd chunk sizes). A recording's audio is identified by its form id, so a picked
+version, a music video or a file is scored as itself, not as the song's stream.
 
 ## Calibration
 
@@ -158,28 +157,17 @@ hours shows up as a failing benchmark.
 Honest limits, so the figure is not asked to do more than it can: there is no speech or vocal detector in v1 (a quiet
 song with a spoken-word passage is judged by its levels and spectrum, not by recognising a voice); lyrics and their
 meaning are not read; an intentionally quiet master of a loud, busy mix is judged by what its spectrum does, not by how
-it was mastered; normalized mode applies the gain but not the runtime limiter's transient taming, so hits stay as
-prominent as in the raw sound (conservative, never the other way); and only the first fifteen minutes of a very long
-recording are read (the confidence says so). These are exactly the gaps a permissively licensed audio tagger would fill
-behind the model component, which is why its weights live in one place.
+it was mastered; and only the first fifteen minutes of a very long recording are read (the confidence says so). These
+are exactly the gaps a permissively licensed audio tagger would fill behind the model component, which is why its
+weights live in one place.
 
 ## Using it
 
-* **Settings → Playback → Sleep scores** (in the Sleep group, above the audio-mode toggle) picks a set (library,
-  downloads, on this phone, liked) and walks it; progress, Stop and resume are the same as "Measure songs now", with a
-  silent foreground notification while the screen is off.
+* **Settings → Playback → Sleep scores** (in "Stopping and pausing", beside the sleep timer's fade) picks a set
+  (library, downloads, on this phone, liked) and walks it;
+  progress, Stop and resume are the same as "Measure songs now", with a silent foreground notification while the screen
+  is off.
 * **Select many → Sleep scores** does the same for the picked songs.
-* **Settings → Playback → Sleep → Use normalized audio** scores the sound as Normalize plays it: the recording's
-  already-measured loudness and peak give exactly the gain playback's Normalize applies (its target, lift room and cut),
-  and the analysis shifts its measured levels by that gain. Every ratio — dynamics, hits, spectral change, brightness —
-  is unchanged by a gain, so only the absolute-loudness verdict moves, which is precisely what normalization changes. A
-  recording not measured yet is measured first (the same scan Normalize uses). Plain and normalized figures are stored
-  separately for each recording: while the mode is on only normalized figures count, and they override the plain ones
-  without destroying them; while it is off only plain figures count, so the row's "N scored", the sets a walk has left
-  and the timer's queue counts all follow the mode, a running walk stops and starts over with the new mode's missing
-  songs, and what is playing is rechecked at once. Changing the Normalize target changes the gain, so normalized figures
-  are dropped and calculated again for the new target (their count and a running walk follow, as with the mode). The
-  toggle is an ordinary setting: it travels in backups and "Reset this page" puts it back off.
 * **Sleep timer → Minimum sleep score** (0 = off) draws the line. Songs below it, and songs with no figure yet, are
   passed over exactly as the BPM limit passes songs over: play order, no wrapping, and when nothing fits the music stops
   and says why. Nothing is ever removed from the queue, so edits made while the filter runs survive turning it off, and

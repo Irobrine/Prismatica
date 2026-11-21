@@ -5659,6 +5659,4 @@
     <string name="sleep_scores_scored_n">%1$d puanlandı</string>
     <string name="sleep_scores_info">Her şarkının kendi sesini uykuyu bozma olasılığının düşüklüğüne göre puanlar, uyku zamanlayıcısının alt sınırı için. Puanı olan şarkılar atlanır; değer yeniden hesaplanana ya da puanlama değişene kadar saklanır.</string>
     <string name="sleep_scores_stopped_at">%1$d / %2$d konumunda durdu, devam etmek için dokun</string>
-    <string name="use_normalized_audio">Dengelenmiş sesi kullan</string>
-    <string name="use_normalized_audio_info">Puanlar, Ses düzeyini dengele seçeneğinin çaldığı sesten hesaplanır: her kaydın ölçülen ses yüksekliği ve tepe değeri, oynatmanın uyguladığı kazancı belirler. Bu açıkken yalnızca bu şekilde hesaplanan puanlar sayılır.</string>
 </resources>

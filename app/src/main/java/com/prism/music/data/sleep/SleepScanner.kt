@@ -41,14 +41,8 @@ class SleepScanner(
      * The recording's score, or null when its audio isn't reachable now (not on the phone, and [network] doesn't allow
      * fetching it). [formId] is the recording heard ([com.prism.music.playback.Loudness.formId]); [sourceSongId] is the
      * queue's song it plays for, when that's another id, where its audio may be found on the phone.
-     *
-     * [levelGainDb] is the normalized mode's gain: the one playback's Normalize applies to this recording, from its
-     * measured loudness and peak ([com.prism.music.playback.NormalizerProcessor.gainFor]). The figure is then stored as
-     * [SleepScore.normalized] = [normalized], so it only counts again in the mode it was made for.
      */
-    suspend fun analyze(
-        formId: String, sourceSongId: String?, network: Boolean, levelGainDb: Double = 0.0, normalized: Boolean = false,
-    ): SleepScore? {
+    suspend fun analyze(formId: String, sourceSongId: String?, network: Boolean): SleepScore? {
         val scratch = File(context.cacheDir, "sleep_${Integer.toHexString(formId.hashCode())}.part")
         return try {
             withContext(Dispatchers.IO) {
@@ -60,7 +54,7 @@ class SleepScanner(
                 val before = android.os.Process.getThreadPriority(android.os.Process.myTid())
                 android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
                 try {
-                    decodeAndAnalyze(uri, levelGainDb, normalized)
+                    decodeAndAnalyze(uri)
                 } finally {
                     android.os.Process.setThreadPriority(before)
                 }
@@ -79,7 +73,7 @@ class SleepScanner(
         return Uri.fromFile(into)
     }
 
-    private suspend fun decodeAndAnalyze(uri: Uri, levelGainDb: Double, normalized: Boolean): SleepScore? {
+    private suspend fun decodeAndAnalyze(uri: Uri): SleepScore? {
         PcmDecoder(context, uri).use { dec ->
             val rate = dec.sampleRate
             if (rate <= 0) return null
@@ -87,7 +81,7 @@ class SleepScanner(
             val expectedMs = if (dec.totalFrames > 0) dec.totalFrames * 1000L / rate else 0L
             // At the decoder's own rate: resampling to a fixed one would cost more than the analysis itself, and the
             // features are all worked out in Hz, so 44.1 kHz, 48 kHz and 96 kHz files are judged alike.
-            val analyzer = SleepAnalysis.Analyzer(rate, expectedMs, levelGainDb)
+            val analyzer = SleepAnalysis.Analyzer(rate, expectedMs)
             var fed = 0L
             val limit = MAX_SECONDS.toLong() * rate
             while (true) {
@@ -96,7 +90,7 @@ class SleepScanner(
                 fed += downmix(piece, analyzer)
                 if (fed >= limit) break
             }
-            return analyzer.finish(System.currentTimeMillis()).copy(normalized = normalized)
+            return analyzer.finish(System.currentTimeMillis())
         }
     }
 

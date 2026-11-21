@@ -5659,6 +5659,4 @@
     <string name="sleep_scores_scored_n">%1$d pontozva</string>
     <string name="sleep_scores_info">Minden szám saját hangját értékeli aszerint, mennyire valószínűtlen, hogy megzavarja az alvást, az elalváskapcsoló minimumához. A már pontozott számok kimaradnak; az érték megmarad, amíg újra nem számítják, vagy a pontozás nem változik.</string>
     <string name="sleep_scores_stopped_at">Megállt itt: %1$d / %2$d, koppints a folytatáshoz</string>
-    <string name="use_normalized_audio">Normalizált hang használata</string>
-    <string name="use_normalized_audio_info">A pontszámok abból a hangból számolódnak, amelyet a Hangerő kiegyenlítése lejátszik: minden felvétel mért hangossága és csúcsa adja a lejátszás által alkalmazott erősítést. Amíg ez be van kapcsolva, csak az így számolt pontszámok számítanak.</string>
 </resources>

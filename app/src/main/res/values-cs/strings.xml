@@ -5809,6 +5809,4 @@
     <string name="sleep_scores_scored_n">%1$d ohodnoceno</string>
     <string name="sleep_scores_info">Hodnotí zvuk každé skladby podle toho, jak nepravděpodobně ruší spánek, pro minimum časovače spánku. Skladby, které už skóre mají, se vynechávají; hodnota zůstává, dokud se znovu nevypočítá nebo se hodnocení nezmění.</string>
     <string name="sleep_scores_stopped_at">Zastaveno na %1$d z %2$d, klepnutím pokračuj</string>
-    <string name="use_normalized_audio">Použít normalizovaný zvuk</string>
-    <string name="use_normalized_audio_info">Skóre se počítá ze zvuku přehrávaného funkcí Normalizovat hlasitost: naměřená hlasitost a špička každé nahrávky určují zesílení, které přehrávání použije. Při zapnutí se počítají jen skóre vypočítaná tímto způsobem.</string>
 </resources>

@@ -5734,6 +5734,4 @@
     <string name="sleep_scores_scored_n">%1$d דורגו</string>
     <string name="sleep_scores_info">מדרג את האודיו של כל שיר לפי כמה סביר שלא יפריע לשינה, עבור המינימום של טיימר השינה. שירים שכבר דורגו מדולגים; הנתון נשמר עד לחישוב מחדש או עד ששיטת הדירוג משתנה.</string>
     <string name="sleep_scores_stopped_at">נעצר ב-%1$d מתוך %2$d, הקש להמשך</string>
-    <string name="use_normalized_audio">שימוש באודיו מאוזן</string>
-    <string name="use_normalized_audio_info">הציונים מחושבים מהצליל כפי שאיזון עוצמת הקול משמיע אותו: העוצמה והשיא הנמדדים של כל הקלטה קובעים את ההגבר שההשמעה מיישמת. כשזה פעיל, נספרים רק ציונים שחושבו כך.</string>
 </resources>
