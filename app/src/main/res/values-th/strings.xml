@@ -5595,4 +5595,5 @@
     <string name="sleep_label_unsuitable">ไม่เหมาะสม</string>
     <string name="sleep_scores_calibrated">ปรับจากการตัดสินของคุณ %1$d รายการ</string>
     <string name="sleep_scores_calibration_hint">ทำเครื่องหมายเพลงเพื่อปรับคะแนนให้เข้ากับหูของคุณ</string>
+    <string name="continue_scores">ดำเนินการต่อ</string>
 </resources>

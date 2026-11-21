@@ -5595,4 +5595,5 @@
     <string name="sleep_label_unsuitable">부적합</string>
     <string name="sleep_scores_calibrated">%1$d개의 판단을 바탕으로 조정됨</string>
     <string name="sleep_scores_calibration_hint">노래에 표시해 점수를 당신의 귀에 맞게 조정하세요</string>
+    <string name="continue_scores">계속</string>
 </resources>

@@ -5670,4 +5670,5 @@
     <string name="sleep_label_unsuitable">Ungeeignet</string>
     <string name="sleep_scores_calibrated">Anhand von %1$d deiner Bewertungen angepasst</string>
     <string name="sleep_scores_calibration_hint">Songs markieren, um die Scores an dein Gehör anzupassen</string>
+    <string name="continue_scores">Fortsetzen</string>
 </resources>

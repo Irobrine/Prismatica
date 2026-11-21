@@ -5745,4 +5745,5 @@
     <string name="sleep_label_unsuitable">Nepotrivit</string>
     <string name="sleep_scores_calibrated">Potrivită pe baza a %1$d dintre aprecierile tale</string>
     <string name="sleep_scores_calibration_hint">Marchează melodii ca să potrivești scorurile cu urechea ta</string>
+    <string name="continue_scores">Continuă</string>
 </resources>

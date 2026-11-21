@@ -5595,4 +5595,5 @@
     <string name="sleep_label_unsuitable">Tidak cocok</string>
     <string name="sleep_scores_calibrated">Disesuaikan dari %1$d penilaian Anda</string>
     <string name="sleep_scores_calibration_hint">Tandai lagu untuk menyesuaikan skor dengan telinga Anda</string>
+    <string name="continue_scores">Lanjutkan</string>
 </resources>

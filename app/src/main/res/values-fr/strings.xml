@@ -5745,4 +5745,5 @@
     <string name="sleep_label_unsuitable">Inadapté</string>
     <string name="sleep_scores_calibrated">Ajusté à partir de %1$d de vos jugements</string>
     <string name="sleep_scores_calibration_hint">Marquez des titres pour adapter les scores à votre oreille</string>
+    <string name="continue_scores">Continuer</string>
 </resources>

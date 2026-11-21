@@ -5709,4 +5709,5 @@
     <string name="sleep_label_unsuitable">Unsuitable</string>
     <string name="sleep_scores_calibrated">Fitted from %1$d of your judgments</string>
     <string name="sleep_scores_calibration_hint">Mark songs to fit scores to your ears</string>
+    <string name="continue_scores">Continue</string>
 </resources>

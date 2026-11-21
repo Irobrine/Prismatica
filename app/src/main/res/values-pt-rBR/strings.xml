@@ -5745,4 +5745,5 @@
     <string name="sleep_label_unsuitable">Inadequada</string>
     <string name="sleep_scores_calibrated">Ajustado a partir de %1$d dos seus julgamentos</string>
     <string name="sleep_scores_calibration_hint">Marque músicas para ajustar as pontuações ao seu ouvido</string>
+    <string name="continue_scores">Continuar</string>
 </resources>

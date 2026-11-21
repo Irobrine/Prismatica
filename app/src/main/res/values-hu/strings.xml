@@ -5670,4 +5670,5 @@
     <string name="sleep_label_unsuitable">Nem alkalmas</string>
     <string name="sleep_scores_calibrated">%1$d megítélésed alapján igazítva</string>
     <string name="sleep_scores_calibration_hint">Jelölj meg dalokat, hogy a pontszámokat a füledhez igazítsd</string>
+    <string name="continue_scores">Folytatás</string>
 </resources>

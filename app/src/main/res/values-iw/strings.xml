@@ -5745,4 +5745,5 @@
     <string name="sleep_label_unsuitable">לא מתאים</string>
     <string name="sleep_scores_calibrated">הותאם מ־%1$d מהשיפוטים שלך</string>
     <string name="sleep_scores_calibration_hint">סמן שירים כדי להתאים את הציונים לאוזן שלך</string>
+    <string name="continue_scores">המשך</string>
 </resources>

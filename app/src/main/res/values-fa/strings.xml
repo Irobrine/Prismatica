@@ -5670,4 +5670,5 @@
     <string name="sleep_label_unsuitable">نامناسب</string>
     <string name="sleep_scores_calibrated">متناسب با %1$d از قضاوتهای شما</string>
     <string name="sleep_scores_calibration_hint">آهنگها را علامت بزنید تا امتیازها متناسب با گوشتان شوند</string>
+    <string name="continue_scores">ادامه</string>
 </resources>

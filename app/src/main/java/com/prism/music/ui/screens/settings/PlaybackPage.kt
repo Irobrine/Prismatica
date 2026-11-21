@@ -53,6 +53,7 @@ import com.prism.music.ui.screens.VideoPolicy
 import com.prism.music.ui.screens.pitchText
 import com.prism.music.ui.screens.speedText
 import com.prism.music.ui.theme.LocalAppSettings
+import com.prism.music.ui.components.PrismTextButton
 import com.prism.music.ui.components.SearchField
 import com.prism.music.data.sleep.SleepLabel
 import com.prism.music.ui.theme.LocalContainer
@@ -67,8 +68,8 @@ private val page = SettingsPageId.PLAYBACK
 /**
  * "Calculate sleep scores" (1.9): the sleep timer's minimum score reads figures that have to be worked out from each
  * song's own audio, and this row walks a set of songs (the same sets "Measure songs now" offers) through that analysis.
- * It's the same walk and the same three-state row: tap to pick a set, tap again to stop, and a stopped walk carries on
- * where it stopped; its count says how far it got. Unlike measuring, it doesn't need Normalize: the scores stand alone.
+ * Tapping it opens the songs' scores, which is also where a walk is stopped or continued and a new set is picked; the
+ * row's own value says how far the walk got. Unlike measuring, it doesn't need Normalize: the scores stand alone.
  */
 @Composable
 private fun SleepScoreRow() {
@@ -95,12 +96,7 @@ private fun SleepScoreRow() {
         } ?: tr(R.string.sleep_scores_scored_n, scored),
         info = tr(R.string.sleep_scores_info), action = true,
     ) {
-        when {
-            running -> c.sleepScoreSongs.stop()
-            // A stopped walk carries on where it stopped, and what it already scored isn't walked again.
-            calculating != null -> c.sleepScoreSongs.resume()
-            else -> open = true
-        }
+        showScores = true
     }
     if (open) {
         LaunchedEffect(open, normalized) {
@@ -140,7 +136,19 @@ private fun SleepScoreRow() {
             }
         }
     }
-    if (showScores) SleepScoresSheet(normalized, scored) { showScores = false }
+    if (showScores) SleepScoresSheet(
+        normalized = normalized,
+        scored = scored,
+        running = running,
+        calculating = calculating,
+        onStop = { c.sleepScoreSongs.stop() },
+        onContinue = { c.sleepScoreSongs.resume() },
+        onCalculate = {
+            showScores = false
+            open = true
+        },
+        onDismiss = { showScores = false },
+    )
 }
 
 /**
@@ -149,7 +157,16 @@ private fun SleepScoreRow() {
  * that scored zero; the list follows the mode and refreshes as scores are calculated.
  */
 @Composable
-private fun SleepScoresSheet(normalized: Boolean, scored: Int, onDismiss: () -> Unit) {
+private fun SleepScoresSheet(
+    normalized: Boolean,
+    scored: Int,
+    running: Boolean,
+    calculating: Pair<Int, Int>?,
+    onStop: () -> Unit,
+    onContinue: () -> Unit,
+    onCalculate: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     val c = LocalContainer.current
     val labels by c.sleepLabels.labels.collectAsState()
     val calibration by c.sleepCalibration.weights.collectAsState()
@@ -182,6 +199,21 @@ private fun SleepScoresSheet(normalized: Boolean, scored: Int, onDismiss: () -> 
         tr(R.string.calculate_sleep_scores), onDismiss, info = tr(R.string.sleep_scores_list_info),
     ) {
         item {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PrismTextButton(onClick = onCalculate) { Text(tr(R.string.calculate_sleep_scores)) }
+                Spacer(Modifier.weight(1f))
+                if (running) PrismTextButton(onClick = onStop) { Text(tr(R.string.stop)) }
+                else if (calculating != null) PrismTextButton(onClick = onContinue) { Text(tr(R.string.continue_scores)) }
+            }
+            if (calculating != null) Text(
+                tr(if (running) R.string.calculating_n_of_n else R.string.sleep_scores_stopped_at, calculating.first, calculating.second),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 22.dp, vertical = 4.dp),
+            )
             SearchField(
                 query, tr(R.string.search), { query = it },
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),

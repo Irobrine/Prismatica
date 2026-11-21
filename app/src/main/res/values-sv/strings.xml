@@ -5670,4 +5670,5 @@
     <string name="sleep_label_unsuitable">Olämplig</string>
     <string name="sleep_scores_calibrated">Anpassad utifrån %1$d av dina bedömningar</string>
     <string name="sleep_scores_calibration_hint">Markera låtar för att anpassa poängen efter dina öron</string>
+    <string name="continue_scores">Fortsätt</string>
 </resources>

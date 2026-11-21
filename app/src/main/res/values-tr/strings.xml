@@ -5670,4 +5670,5 @@
     <string name="sleep_label_unsuitable">Uygun değil</string>
     <string name="sleep_scores_calibrated">%1$d yargınızdan uyarlandı</string>
     <string name="sleep_scores_calibration_hint">Puanları kulağınıza uyarlamak için şarkıları işaretleyin</string>
+    <string name="continue_scores">Devam et</string>
 </resources>

@@ -2,6 +2,9 @@ package com.prism.music
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.prism.music.data.AutoplayLength
 import com.prism.music.data.model.ArtistRef
 import com.prism.music.data.model.Song
@@ -333,6 +336,23 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
     @Test @Config(qualifiers = "w360dp-h2200dp-xxhdpi") fun drawnWithCrossfadeOn() =
         drawn("playback-dark-crossfade-on", true) { it.copy(themeMode = ThemeMode.DARK, mix = true, mixAuto = false, mixSeconds = 8) }
 
+    /** Stop and Continue live in the scores menu, not on the row that opens it. */
+    @Test fun theScoresMenuStopsAndContinuesWithoutClosingTheRow() {
+        show()
+        container.sleepScoreSongs.progress.value = 2 to 5
+        container.sleepScoreSongs.running.value = true
+        tap(t(R.string.calculate_sleep_scores))
+        assertEquals(1, sheets())
+        assertTrue(compose.onAllNodesWithText(t(R.string.stop)).fetchSemanticsNodes().isNotEmpty())
+        assertEquals(false, compose.onAllNodesWithText(t(R.string.continue_scores)).fetchSemanticsNodes().isNotEmpty())
+        compose.onNodeWithText(t(R.string.stop)).performClick()
+        compose.waitForIdle()
+        assertFalse("stopping from the menu stops the walk", container.sleepScoreSongs.running.value)
+        assertEquals(Pair(2, 5), container.sleepScoreSongs.progress.value)
+        assertTrue(compose.onAllNodesWithText(t(R.string.continue_scores)).fetchSemanticsNodes().isNotEmpty())
+        assertEquals(1, sheets())
+    }
+
     /** The calculation sheet's menu lists which songs have a figure, each one's score, and who has none. */
     @Test fun theScoresMenuListsEverySongWithItsFigureOrNone() {
         val scored = Song("local:9051", "Scored song", listOf(ArtistRef("First artist")))
@@ -351,9 +371,9 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
             )
         }
         show()
+        // Tapping the row always opens the songs' list, even while a walk is running.
         tap(t(R.string.calculate_sleep_scores))
         assertEquals(1, sheets())
-        tap(t(R.string.show_sleep_scores))
         compose.waitUntil(5_000) { hasRow("Scored song") }
         assertEquals(tr(R.string.sleep_score_out_of, 82), valueOf("Scored song"))
         assertEquals(t(R.string.sleep_score_not_calculated), valueOf("Unscored song"))

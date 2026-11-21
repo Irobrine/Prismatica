@@ -5670,4 +5670,5 @@
     <string name="sleep_label_unsuitable">অনুপযুক্ত</string>
     <string name="sleep_scores_calibrated">%1$dটি আপনার বিচার থেকে মানানো</string>
     <string name="sleep_scores_calibration_hint">স্কোরগুলো আপনার শোনার মতো মানাতে গানে চিহ্ন দিন</string>
+    <string name="continue_scores">চালিয়ে যান</string>
 </resources>

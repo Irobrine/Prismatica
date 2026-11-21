@@ -5595,4 +5595,5 @@
     <string name="sleep_label_unsuitable">不適切</string>
     <string name="sleep_scores_calibrated">%1$d件のあなたの判定から調整しました</string>
     <string name="sleep_scores_calibration_hint">曲に印をつけてスコアをあなたの耳に合わせましょう</string>
+    <string name="continue_scores">続ける</string>
 </resources>
