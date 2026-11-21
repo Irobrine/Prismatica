@@ -5661,8 +5661,4 @@
     <string name="sleep_scores_stopped_at">Stannade vid %1$d av %2$d, tryck för att fortsätta</string>
     <string name="use_normalized_audio">Använd normaliserat ljud</string>
     <string name="use_normalized_audio_info">Poäng beräknas från ljudet så som Normalisera volym spelar upp det: varje inspelnings uppmätta ljudstyrka och topp ger den förstärkning som uppspelningen tillämpar. Med detta på räknas bara poäng som beräknats så här.</string>
-    <string name="show_sleep_scores">Visa beräknade poäng</string>
-    <string name="sleep_scores_list_info">Poäng i aktivt ljudläge. Låtar utan poäng hoppas över av insomningstimern.</string>
-    <string name="sleep_scores_none_calculated">Inga låtar har någon sömnpoäng än</string>
-    <string name="sleep_score_not_calculated">Inte beräknad</string>
 </resources>

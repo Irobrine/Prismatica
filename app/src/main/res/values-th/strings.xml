@@ -5586,8 +5586,4 @@
     <string name="sleep_scores_stopped_at">หยุดที่ %1$d จาก %2$d แตะเพื่อทำต่อ</string>
     <string name="use_normalized_audio">ใช้เสียงที่ปรับระดับเสียงแล้ว</string>
     <string name="use_normalized_audio_info">คะแนนคำนวณจากเสียงที่ปรับระดับเสียงให้เท่ากันเล่น: ความดังและพีคที่วัดได้ของแต่ละไฟล์เป็นตัวกำหนดเกนที่การเล่นใช้ เมื่อเปิดอยู่ จะนับเฉพาะคะแนนที่คำนวณแบบนี้เท่านั้น</string>
-    <string name="show_sleep_scores">แสดงคะแนนที่คำนวณแล้ว</string>
-    <string name="sleep_scores_list_info">คะแนนในโหมดเสียงที่ใช้งานอยู่ เพลงที่ไม่มีคะแนนจะถูกข้ามโดยการตั้งเวลาปิด</string>
-    <string name="sleep_scores_none_calculated">ยังไม่มีเพลงใดมีคะแนนการนอน</string>
-    <string name="sleep_score_not_calculated">ยังไม่ได้คำนวณ</string>
 </resources>

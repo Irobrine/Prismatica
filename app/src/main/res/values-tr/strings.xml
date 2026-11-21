@@ -5661,8 +5661,4 @@
     <string name="sleep_scores_stopped_at">%1$d / %2$d konumunda durdu, devam etmek için dokun</string>
     <string name="use_normalized_audio">Dengelenmiş sesi kullan</string>
     <string name="use_normalized_audio_info">Puanlar, Ses düzeyini dengele seçeneğinin çaldığı sesten hesaplanır: her kaydın ölçülen ses yüksekliği ve tepe değeri, oynatmanın uyguladığı kazancı belirler. Bu açıkken yalnızca bu şekilde hesaplanan puanlar sayılır.</string>
-    <string name="show_sleep_scores">Hesaplanan puanları göster</string>
-    <string name="sleep_scores_list_info">Etkin ses modundaki puanlar. Puanı olmayan şarkılar uyku zamanlayıcısı tarafından atlanır.</string>
-    <string name="sleep_scores_none_calculated">Henüz hiçbir şarkının uyku puanı yok</string>
-    <string name="sleep_score_not_calculated">Hesaplanmadı</string>
 </resources>

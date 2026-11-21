@@ -5811,8 +5811,4 @@
     <string name="sleep_scores_stopped_at">Zastaveno na %1$d z %2$d, klepnutím pokračuj</string>
     <string name="use_normalized_audio">Použít normalizovaný zvuk</string>
     <string name="use_normalized_audio_info">Skóre se počítá ze zvuku přehrávaného funkcí Normalizovat hlasitost: naměřená hlasitost a špička každé nahrávky určují zesílení, které přehrávání použije. Při zapnutí se počítají jen skóre vypočítaná tímto způsobem.</string>
-    <string name="show_sleep_scores">Zobrazit vypočtená skóre</string>
-    <string name="sleep_scores_list_info">Skóre v aktivním zvukovém režimu. Skladby bez skóre časovač spánku přeskakuje.</string>
-    <string name="sleep_scores_none_calculated">Zatím žádné skladby nemají skóre spánku</string>
-    <string name="sleep_score_not_calculated">Nevypočteno</string>
 </resources>

@@ -2,17 +2,10 @@ package com.prism.music.ui.screens.settings
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,15 +17,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.prism.music.R
 import com.prism.music.data.AutoplayLength
-import com.prism.music.data.LibrarySearch
-import com.prism.music.data.model.Song
 import com.prism.music.data.model.songCount
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.CrossfadeCurve
@@ -50,11 +38,8 @@ import com.prism.music.ui.screens.VideoPolicy
 import com.prism.music.ui.screens.pitchText
 import com.prism.music.ui.screens.speedText
 import com.prism.music.ui.theme.LocalAppSettings
-import com.prism.music.ui.components.SearchField
 import com.prism.music.ui.theme.LocalContainer
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 private val page = SettingsPageId.PLAYBACK
@@ -80,7 +65,6 @@ private fun SleepScoreRow() {
     val scored = if (normalized) normalizedScored else plainScored
     val title = tr(R.string.calculate_sleep_scores)
     var open by rememberSaveable(title, "sleep-scores") { mutableStateOf(false) }
-    var showScores by rememberSaveable(title, "sleep-scores-list") { mutableStateOf(false) }
     // How many of each set's songs still need a score in this mode: empty until the sheet has counted them.
     var left by remember(title, normalized) { mutableStateOf<Map<MeasureScope, Int>>(emptyMap()) }
     LinkRow(
@@ -105,15 +89,6 @@ private fun SleepScoreRow() {
             for (set in sets) left = left + (set to c.sleepScoreSongs.pending(set.ids(c)).size)
         }
         RowsSheet(title, { open = false }) {
-            LinkRow(
-                tr(R.string.show_sleep_scores),
-                value = songCount(scored),
-                info = tr(R.string.sleep_scores_list_info),
-                action = true,
-            ) {
-                open = false
-                showScores = true
-            }
             MeasureScope.entries.forEach { set ->
                 val count = left[set]
                 LinkRow(
@@ -134,81 +109,6 @@ private fun SleepScoreRow() {
                 }
             }
         }
-    }
-    if (showScores) SleepScoresSheet(normalized, scored) { showScores = false }
-}
-
-/**
- * The songs the sleep timer can judge, with the figure each one has in the active audio mode ("Show calculated scores"
- * in the calculation sheet). A song with no figure in this mode says so, so an unmeasured song doesn't look like one
- * that scored zero; the list follows the mode and refreshes as scores are calculated.
- */
-@Composable
-private fun SleepScoresSheet(normalized: Boolean, scored: Int, onDismiss: () -> Unit) {
-    val c = LocalContainer.current
-    var query by rememberSaveable { mutableStateOf("") }
-    var entries by remember { mutableStateOf<List<Pair<Song, Int?>>>(emptyList()) }
-    LaunchedEffect(normalized, scored) {
-        val found = withContext(Dispatchers.IO) {
-            // The library's own songs from Room, plus phone files (which Room doesn't index).
-            val known = c.smart.knownIds().toSet()
-            val phone = c.localMusic.tracks.value.map { it.song }
-            // Include the store's own ids too: a figure can belong to a recording the library no longer lists.
-            val withFigures = c.sleepScores.ids(normalized)
-            val fromDb = (known + phone.map { it.id } + withFigures).distinct().chunked(500)
-                .flatMap { c.db.songs().getAll(it) }.map { it.toSong() }
-            (fromDb + phone).distinctBy { it.id }.map { song -> song to c.sleepScoreOf(song.id)?.toInt() }
-                .sortedWith(compareByDescending<Pair<Song, Int?>> { it.second ?: -1 }.thenBy { it.first.title })
-        }
-        entries = found
-    }
-    val shown = remember(entries, query) {
-        if (query.isBlank()) entries
-        else {
-            val words = LibrarySearch.norm(query).split(' ').filter { it.isNotBlank() }
-            entries.filter { (song, _) ->
-                LibrarySearch.norm("${song.title} ${song.artistText}").let { text -> words.all { it in text } }
-            }
-        }
-    }
-    LazyRowsSheet(
-        tr(R.string.calculate_sleep_scores), onDismiss, info = tr(R.string.sleep_scores_list_info),
-    ) {
-        item {
-            SearchField(
-                query, tr(R.string.search), { query = it },
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-            if (shown.isEmpty()) Text(
-                tr(R.string.sleep_scores_none_calculated), style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp),
-            )
-        }
-        items(shown.size, key = { shown[it].first.id }) { i -> SleepScoreRow(shown[i]) }
-    }
-}
-
-/** One song and its figure in the active mode, or "not calculated" instead of a misleading zero. */
-@Composable
-private fun SleepScoreRow(entry: Pair<Song, Int?>) {
-    val (song, score) = entry
-    val value = score?.let { tr(R.string.sleep_score_out_of, it) } ?: tr(R.string.sleep_score_not_calculated)
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 10.dp)
-            .testTag(SettingsTags.ROW_LINK).semantics { settingsRowValue = value },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                song.artistText, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Text(
-            value, style = MaterialTheme.typography.bodyMedium,
-            color = if (score == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-        )
     }
 }
 

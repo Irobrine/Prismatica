@@ -5811,8 +5811,4 @@
     <string name="sleep_scores_stopped_at">Zatrzymano na %1$d z %2$d, dotknij, aby kontynuować</string>
     <string name="use_normalized_audio">Używaj znormalizowanego dźwięku</string>
     <string name="use_normalized_audio_info">Oceny są obliczane z dźwięku odtwarzanego przez Normalizuj głośność: zmierzona głośność i szczyt każdego nagrania określają wzmocnienie stosowane przez odtwarzanie. Gdy ta opcja jest włączona, liczą się tylko oceny obliczone w ten sposób.</string>
-    <string name="show_sleep_scores">Pokaż obliczone oceny</string>
-    <string name="sleep_scores_list_info">Oceny w aktywnym trybie audio. Utwory bez oceny są pomijane przez wyłącznik czasowy.</string>
-    <string name="sleep_scores_none_calculated">Jeszcze żaden utwór nie ma oceny snu</string>
-    <string name="sleep_score_not_calculated">Nieobliczone</string>
 </resources>

@@ -5736,8 +5736,4 @@
     <string name="sleep_scores_stopped_at">Oprit la %1$d din %2$d, atinge pentru a continua</string>
     <string name="use_normalized_audio">Folosește audio normalizat</string>
     <string name="use_normalized_audio_info">Scorurile sunt calculate din sunetul redat de Normalizează volumul: intensitatea și vârful măsurate ale fiecărei înregistrări dau câștigul pe care îl aplică redarea. Cât timp e activată, contează doar scorurile calculate astfel.</string>
-    <string name="show_sleep_scores">Afișează scorurile calculate</string>
-    <string name="sleep_scores_list_info">Scorurile în modul audio activ. Piesele fără scor sunt sărite de temporizatorul de somn.</string>
-    <string name="sleep_scores_none_calculated">Nicio piesă nu are încă un scor de somn</string>
-    <string name="sleep_score_not_calculated">Necalulat</string>
 </resources>

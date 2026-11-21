@@ -5736,8 +5736,4 @@
     <string name="sleep_scores_stopped_at">Fermato a %1$d su %2$d, tocca per continuare</string>
     <string name="use_normalized_audio">Usa audio normalizzato</string>
     <string name="use_normalized_audio_info">I punteggi vengono calcolati dal suono così come lo riproduce Normalizza volume: la loudness e il picco misurati di ogni registrazione determinano il guadagno applicato dalla riproduzione. Con questa opzione attiva contano solo i punteggi calcolati in questo modo.</string>
-    <string name="show_sleep_scores">Mostra i punteggi calcolati</string>
-    <string name="sleep_scores_list_info">Punteggi nella modalità audio attiva. Il timer di spegnimento salta i brani che non ne hanno uno.</string>
-    <string name="sleep_scores_none_calculated">Nessun brano ha ancora un punteggio del sonno</string>
-    <string name="sleep_score_not_calculated">Non calcolato</string>
 </resources>

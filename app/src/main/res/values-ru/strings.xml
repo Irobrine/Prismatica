@@ -5811,8 +5811,4 @@
     <string name="sleep_scores_stopped_at">Остановлено на %1$d из %2$d, нажми, чтобы продолжить</string>
     <string name="use_normalized_audio">Использовать нормализованный звук</string>
     <string name="use_normalized_audio_info">Оценки рассчитываются из звука таким, каким его воспроизводит «Выравнивание громкости»: измеренные громкость и пик каждой записи задают усиление, которое применяет воспроизведение. Пока этот параметр включён, учитываются только оценки, рассчитанные так.</string>
-    <string name="show_sleep_scores">Показать рассчитанные оценки</string>
-    <string name="sleep_scores_list_info">Оценки в активном звуковом режиме. Песни без оценки пропускаются таймером сна.</string>
-    <string name="sleep_scores_none_calculated">Ни у одной песни пока нет оценки сна</string>
-    <string name="sleep_score_not_calculated">Не рассчитано</string>
 </resources>

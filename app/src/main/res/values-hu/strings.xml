@@ -5661,8 +5661,4 @@
     <string name="sleep_scores_stopped_at">Megállt itt: %1$d / %2$d, koppints a folytatáshoz</string>
     <string name="use_normalized_audio">Normalizált hang használata</string>
     <string name="use_normalized_audio_info">A pontszámok abból a hangból számolódnak, amelyet a Hangerő kiegyenlítése lejátszik: minden felvétel mért hangossága és csúcsa adja a lejátszás által alkalmazott erősítést. Amíg ez be van kapcsolva, csak az így számolt pontszámok számítanak.</string>
-    <string name="show_sleep_scores">Kiszámolt pontszámok megjelenítése</string>
-    <string name="sleep_scores_list_info">Pontszámok az aktív hangmódban. Az elalváskapcsoló kihagyja azokat a számokat, amelyeknek nincs pontszáma.</string>
-    <string name="sleep_scores_none_calculated">Egyik számnak sincs még alvási pontszáma</string>
-    <string name="sleep_score_not_calculated">Nincs kiszámolva</string>
 </resources>

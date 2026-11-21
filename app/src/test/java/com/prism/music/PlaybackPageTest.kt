@@ -3,12 +3,6 @@ package com.prism.music
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasTestTag
 import com.prism.music.data.AutoplayLength
-import com.prism.music.data.model.ArtistRef
-import com.prism.music.data.model.Song
-import com.prism.music.data.db.toEntity
-import com.prism.music.data.sleep.SleepAnalysis
-import com.prism.music.data.sleep.SleepComponents
-import com.prism.music.data.sleep.SleepScore
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.AutoplaySource
 import com.prism.music.data.prefs.CrossfadeCurve
@@ -33,7 +27,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import kotlinx.coroutines.runBlocking
 import kotlin.math.abs
 
 /**
@@ -332,31 +325,4 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
     /** With crossfade on at a fixed length (the page's longest state). */
     @Test @Config(qualifiers = "w360dp-h2200dp-xxhdpi") fun drawnWithCrossfadeOn() =
         drawn("playback-dark-crossfade-on", true) { it.copy(themeMode = ThemeMode.DARK, mix = true, mixAuto = false, mixSeconds = 8) }
-
-    /** The calculation sheet's menu lists which songs have a figure, each one's score, and who has none. */
-    @Test fun theScoresMenuListsEverySongWithItsFigureOrNone() {
-        val scored = Song("local:9051", "Scored song", listOf(ArtistRef("First artist")))
-        val unscored = Song("local:9052", "Unscored song", listOf(ArtistRef("Second artist")))
-        runBlocking {
-            container.db.songs().upsertAll(
-                listOf(scored.toEntity().copy(liked = true, likedAt = 2L), unscored.toEntity().copy(liked = true, likedAt = 1L)),
-            )
-            container.sleepScores.put(
-                scored.id,
-                SleepScore(
-                    score = 82, confidence = 90,
-                    components = SleepComponents(0, 0, 0, 0, 0, 0, 0, 0),
-                    modelVersion = SleepAnalysis.MODEL_VERSION, durationMs = 180_000, analyzedAtMs = 1L,
-                ),
-            )
-        }
-        show()
-        tap(t(R.string.calculate_sleep_scores))
-        assertEquals(1, sheets())
-        tap(t(R.string.show_sleep_scores))
-        compose.waitUntil(5_000) { hasRow("Scored song") }
-        assertEquals(tr(R.string.sleep_score_out_of, 82), valueOf("Scored song"))
-        assertEquals(t(R.string.sleep_score_not_calculated), valueOf("Unscored song"))
-        assertEquals(1, sheets())
-    }
 }

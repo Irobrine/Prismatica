@@ -5661,8 +5661,4 @@
     <string name="sleep_scores_stopped_at">Huminto sa %1$d sa %2$d, i-tap para magpatuloy</string>
     <string name="use_normalized_audio">Gamitin ang naka-normalize na audio</string>
     <string name="use_normalized_audio_info">Kinakalkula ang mga score mula sa tunog na pinatutugtog ng I-normalize ang volume: ang nasukat na lakas at peak ng bawat recording ang nagtatakda ng gain na inilalapat ng playback. Ang mga score lang na nakalkula sa ganitong paraan ang bibilangin habang naka-on ito.</string>
-    <string name="show_sleep_scores">Ipakita ang mga nakalkulang score</string>
-    <string name="sleep_scores_list_info">Mga score sa aktibong audio mode. Ang mga kantang wala nito ay nilalaktawan ng sleep timer.</string>
-    <string name="sleep_scores_none_calculated">Wala pang kantang may sleep score</string>
-    <string name="sleep_score_not_calculated">Hindi nakalkula</string>
 </resources>

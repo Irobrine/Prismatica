@@ -5661,8 +5661,4 @@
     <string name="sleep_scores_stopped_at">%2$d میں سے %1$d پر رکا، جاری رکھنے کے لیے ٹیپ کریں</string>
     <string name="use_normalized_audio">یکساں آڈیو استعمال کریں</string>
     <string name="use_normalized_audio_info">اسکور اسی آواز سے شمار ہوتے ہیں جو والیوم یکساں کریں چلاتا ہے: ہر ریکارڈنگ کی ناپی گئی لاؤڈنیس اور پیک وہ گین طے کرتے ہیں جو پلے بیک لگاتا ہے۔ جب یہ آن ہو تو صرف اسی طرح شمار شدہ اسکور گنے جاتے ہیں۔</string>
-    <string name="show_sleep_scores">شمار شدہ اسکور دکھائیں</string>
-    <string name="sleep_scores_list_info">فعال آڈیو موڈ میں اسکور۔ جس گانے کا اسکور نہیں ہے اسے سلیپ ٹائمر چھوڑ دیتا ہے۔</string>
-    <string name="sleep_scores_none_calculated">ابھی کسی گانے کا نیند اسکور نہیں ہے</string>
-    <string name="sleep_score_not_calculated">شمار نہیں ہوا</string>
 </resources>

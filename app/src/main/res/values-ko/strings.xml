@@ -5586,8 +5586,4 @@
     <string name="sleep_scores_stopped_at">%2$d곡 중 %1$d곡에서 멈춤, 계속하려면 탭하세요</string>
     <string name="use_normalized_audio">평준화된 오디오 사용</string>
     <string name="use_normalized_audio_info">점수는 볼륨 평준화가 재생하는 소리로 계산됩니다: 각 녹음의 측정된 라우드니스와 피크가 재생에 적용되는 게인을 결정합니다. 이 기능이 켜져 있는 동안에는 이렇게 계산된 점수만 반영됩니다.</string>
-    <string name="show_sleep_scores">계산된 점수 표시</string>
-    <string name="sleep_scores_list_info">활성 오디오 모드의 점수. 점수가 없는 곡은 취침 타이머에서 건너뜁니다.</string>
-    <string name="sleep_scores_none_calculated">아직 수면 점수가 있는 곡이 없습니다</string>
-    <string name="sleep_score_not_calculated">계산되지 않음</string>
 </resources>

@@ -5661,8 +5661,4 @@
     <string name="sleep_scores_stopped_at">در %1$d از %2$d متوقف شد، برای ادامه ضربه بزنید</string>
     <string name="use_normalized_audio">استفاده از صدای یکسان‌شده</string>
     <string name="use_normalized_audio_info">امتیازها از صدایی محاسبه می‌شوند که یکسان‌سازی صدا پخش می‌کند: بلندی و اوج اندازه‌گیری‌شدهٔ هر ضبط، بهره‌ای را که پخش اعمال می‌کند تعیین می‌کند. تا وقتی این روشن است، فقط امتیازهایی که این‌طور محاسبه شده‌اند به حساب می‌آیند.</string>
-    <string name="show_sleep_scores">نمایش امتیازهای محاسبهشده</string>
-    <string name="sleep_scores_list_info">امتیازها در حالت صدای فعّال. تایمر خواب آهنگ‌هایی را که امتیازی ندارند رد میکند.</string>
-    <string name="sleep_scores_none_calculated">هنوز هیچ آهنگی امتیاز خواب ندارد</string>
-    <string name="sleep_score_not_calculated">محاسبه نشده</string>
 </resources>

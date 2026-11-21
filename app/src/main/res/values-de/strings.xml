@@ -5661,8 +5661,4 @@
     <string name="sleep_scores_stopped_at">Bei %1$d von %2$d gestoppt, zum Fortsetzen tippen</string>
     <string name="use_normalized_audio">Normalisiertes Audio verwenden</string>
     <string name="use_normalized_audio_info">Scores werden aus dem Klang berechnet, wie ihn Lautstärke angleichen abspielt: Die gemessene Loudness und der Spitzenwert jeder Aufnahme bestimmen die Verstärkung, die die Wiedergabe anwendet. Nur so berechnete Scores zählen, solange dies an ist.</string>
-    <string name="show_sleep_scores">Berechnete Scores anzeigen</string>
-    <string name="sleep_scores_list_info">Scores im aktiven Audiomodus. Songs ohne Score werden vom Sleep-Timer übersprungen.</string>
-    <string name="sleep_scores_none_calculated">Noch keine Songs haben einen Sleep-Score</string>
-    <string name="sleep_score_not_calculated">Nicht berechnet</string>
 </resources>

@@ -5961,8 +5961,4 @@
     <string name="sleep_scores_stopped_at">توقف عند %1$d من %2$d، انقر للمتابعة</string>
     <string name="use_normalized_audio">استخدام الصوت الموحَّد</string>
     <string name="use_normalized_audio_info">تُحسب الدرجات من الصوت كما يشغّله توحيد مستوى الصوت: جهارة كل تسجيل المقيسة وذروته تحددان الكسب الذي يطبّقه التشغيل. لا تُحتسب إلا الدرجات المحسوبة بهذه الطريقة أثناء تفعيل هذا الخيار.</string>
-    <string name="show_sleep_scores">إظهار الدرجات المحسوبة</string>
-    <string name="sleep_scores_list_info">الدرجات في وضع الصوت النشط. الأغاني التي ليس لها درجة يتجاوزها مؤقت النوم.</string>
-    <string name="sleep_scores_none_calculated">لا توجد أغانٍ لديها درجة نوم بعد</string>
-    <string name="sleep_score_not_calculated">لم يُحسب</string>
 </resources>
