@@ -7,12 +7,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
@@ -54,9 +51,7 @@ import com.prism.music.ui.screens.pitchText
 import com.prism.music.ui.screens.speedText
 import com.prism.music.ui.theme.LocalAppSettings
 import com.prism.music.ui.components.SearchField
-import com.prism.music.data.sleep.SleepLabel
 import com.prism.music.ui.theme.LocalContainer
-import com.prism.music.ui.theme.PrismIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -151,8 +146,6 @@ private fun SleepScoreRow() {
 @Composable
 private fun SleepScoresSheet(normalized: Boolean, scored: Int, onDismiss: () -> Unit) {
     val c = LocalContainer.current
-    val labels by c.sleepLabels.labels.collectAsState()
-    val calibration by c.sleepCalibration.weights.collectAsState()
     var query by rememberSaveable { mutableStateOf("") }
     var entries by remember { mutableStateOf<List<Pair<Song, Int?>>>(emptyList()) }
     LaunchedEffect(normalized, scored) {
@@ -186,26 +179,18 @@ private fun SleepScoresSheet(normalized: Boolean, scored: Int, onDismiss: () -> 
                 query, tr(R.string.search), { query = it },
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
-            Text(
-                if (calibration.labels > 0) tr(R.string.sleep_scores_calibrated, calibration.labels)
-                else tr(R.string.sleep_scores_calibration_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 22.dp, vertical = 8.dp),
-            )
             if (shown.isEmpty()) Text(
                 tr(R.string.sleep_scores_none_calculated), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp),
             )
         }
-        items(shown.size, key = { shown[it].first.id }) { i ->
-            SleepScoreRow(shown[i], labels[shown[i].first.id]) { label -> c.sleepLabels.set(shown[i].first.id, label) }
-        }
+        items(shown.size, key = { shown[it].first.id }) { i -> SleepScoreRow(shown[i]) }
     }
 }
 
 /** One song and its figure in the active mode, or "not calculated" instead of a misleading zero. */
 @Composable
-private fun SleepScoreRow(entry: Pair<Song, Int?>, label: SleepLabel?, onLabel: (SleepLabel?) -> Unit) {
+private fun SleepScoreRow(entry: Pair<Song, Int?>) {
     val (song, score) = entry
     val value = score?.let { tr(R.string.sleep_score_out_of, it) } ?: tr(R.string.sleep_score_not_calculated)
     Row(
@@ -224,25 +209,6 @@ private fun SleepScoreRow(entry: Pair<Song, Int?>, label: SleepLabel?, onLabel: 
             value, style = MaterialTheme.typography.bodyMedium,
             color = if (score == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
         )
-        // Three judgments: enough to fit a model from a small set of songs, without a separate settings page.
-        IconButton(onClick = { onLabel(if (label == SleepLabel.SUITABLE) null else SleepLabel.SUITABLE) }) {
-            Icon(
-                PrismIcons.Heart, tr(R.string.sleep_label_suitable), Modifier.size(20.dp),
-                tint = if (label == SleepLabel.SUITABLE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        IconButton(onClick = { onLabel(if (label == SleepLabel.BORDERLINE) null else SleepLabel.BORDERLINE) }) {
-            Icon(
-                PrismIcons.Remove, tr(R.string.sleep_label_borderline), Modifier.size(20.dp),
-                tint = if (label == SleepLabel.BORDERLINE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        IconButton(onClick = { onLabel(if (label == SleepLabel.UNSUITABLE) null else SleepLabel.UNSUITABLE) }) {
-            Icon(
-                PrismIcons.Close, tr(R.string.sleep_label_unsuitable), Modifier.size(20.dp),
-                tint = if (label == SleepLabel.UNSUITABLE) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 

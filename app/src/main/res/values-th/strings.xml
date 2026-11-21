@@ -5590,9 +5590,4 @@
     <string name="sleep_scores_list_info">คะแนนในโหมดเสียงที่ใช้งานอยู่ เพลงที่ไม่มีคะแนนจะถูกข้ามโดยการตั้งเวลาปิด</string>
     <string name="sleep_scores_none_calculated">ยังไม่มีเพลงใดมีคะแนนการนอน</string>
     <string name="sleep_score_not_calculated">ยังไม่ได้คำนวณ</string>
-    <string name="sleep_label_suitable">เหมาะสำหรับการนอน</string>
-    <string name="sleep_label_borderline">ใกล้เส้นแบ่ง</string>
-    <string name="sleep_label_unsuitable">ไม่เหมาะสม</string>
-    <string name="sleep_scores_calibrated">ปรับจากการตัดสินของคุณ %1$d รายการ</string>
-    <string name="sleep_scores_calibration_hint">ทำเครื่องหมายเพลงเพื่อปรับคะแนนให้เข้ากับหูของคุณ</string>
 </resources>

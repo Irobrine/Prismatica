@@ -5590,9 +5590,4 @@
     <string name="sleep_scores_list_info">アクティブなオーディオモードでのスコア。スコアがない曲はスリープタイマーでスキップされます。</string>
     <string name="sleep_scores_none_calculated">まだ睡眠スコアのある曲がありません</string>
     <string name="sleep_score_not_calculated">未計算</string>
-    <string name="sleep_label_suitable">睡眠に適しています</string>
-    <string name="sleep_label_borderline">ボーダーライン</string>
-    <string name="sleep_label_unsuitable">不適切</string>
-    <string name="sleep_scores_calibrated">%1$d件のあなたの判定から調整しました</string>
-    <string name="sleep_scores_calibration_hint">曲に印をつけてスコアをあなたの耳に合わせましょう</string>
 </resources>

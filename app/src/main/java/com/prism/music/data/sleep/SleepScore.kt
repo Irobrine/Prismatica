@@ -7,17 +7,19 @@ import kotlinx.serialization.json.Json
  * A song's sleep suitability (1.9): how unlikely its sound is to disturb someone falling asleep, 0–100, higher being
  * more suitable.
  *
- * Every figure here comes from the audio itself (never genre, artist or title), and the listener can fit the model to
- * their own taste by marking songs. Precision still matters more than recall, but a disruptive song is excluded by a
- * low score, not by a pile of hard caps that flatten an entire library to zero.
+ * The score is deliberately conservative: every figure here is a measurement of the audio itself (never its genre,
+ * artist or title), and a song is only scored high when nothing in it — no section, no sudden hit, no rise into a loud
+ * passage — argues otherwise. False positives (a disruptive song scored high) are the expensive mistake, so a single
+ * bad section can pull a whole song down.
  *
- * [score] is the published figure (a bounded logistic over [features], version [modelVersion]); [confidence] says how
- * much audio could be heard well enough to judge it. They are kept apart: low confidence only nudges [score], and
- * mainly tells the UI and the filter that the figure is a cautious estimate.
+ * [score] is the published figure ([SleepAnalysis]'s formula, version [modelVersion]); [confidence] says how much of
+ * the audio could be heard well enough to judge it (a very short song, a partly decoded one, or one that is mostly
+ * silence is judged with less certainty). They are kept apart: low confidence lowers [score] a little, but mainly it
+ * tells the UI and the filter that the figure is a cautious estimate.
  *
- * [features] are the bounded measurements the model used, stored so listener labels can be fitted without decoding the
- * audio again. [components] are their 0–100 mirror for diagnostics. [warnings] keep the sections that behaved badly,
- * with their times, so what a figure is made of is never lost with the samples.
+ * [components] are the 0–100 parts the formula is built from, kept for the scoring page and for tuning; they are not
+ * meant to be added up by hand (the model part and the conservative caps apply on top). [warnings] are the sections
+ * that pulled the score down, with their times, so what a figure is made of is never lost with the samples.
  *
  * Stored per recording ([com.prism.music.playback.Loudness.formId]): a music video, a picked version or a file plays
  * different audio from the song's own stream, and only the audio that is actually heard can be judged.
@@ -47,10 +49,6 @@ data class SleepScore(
      * figures are dropped and calculated again when it moves; null for a plain figure.
      */
     val normalizedTarget: Int? = null,
-    /** The bounded inputs behind this figure, so labels can be fitted and scores rescored without decoding the audio. */
-    val features: SleepFeatures = SleepFeatures(),
-    /** How many listener judgments went into the weights used for this figure. */
-    val calibrationLabels: Int = 0,
 ) {
     /** The worst section's own score, 0–100: where the conservative caps and penalties come from. */
     val worstSection: Int get() = components.worstSection

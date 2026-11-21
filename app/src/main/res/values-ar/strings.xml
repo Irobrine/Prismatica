@@ -5965,9 +5965,4 @@
     <string name="sleep_scores_list_info">الدرجات في وضع الصوت النشط. الأغاني التي ليس لها درجة يتجاوزها مؤقت النوم.</string>
     <string name="sleep_scores_none_calculated">لا توجد أغانٍ لديها درجة نوم بعد</string>
     <string name="sleep_score_not_calculated">لم يُحسب</string>
-    <string name="sleep_label_suitable">مناسب للنوم</string>
-    <string name="sleep_label_borderline">حدّي</string>
-    <string name="sleep_label_unsuitable">غير مناسب</string>
-    <string name="sleep_scores_calibrated">مُضبط من %1$d من تقييماتك</string>
-    <string name="sleep_scores_calibration_hint">قيّم الأغاني لضبط الدرجات على مقاس أذنيك</string>
 </resources>

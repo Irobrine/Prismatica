@@ -5665,9 +5665,4 @@
     <string name="sleep_scores_list_info">सक्रिय ऑडियो मोड में स्कोर। जिन गानों का स्कोर नहीं है उन्हें स्लीप टाइमर छोड़ देता है।</string>
     <string name="sleep_scores_none_calculated">अभी किसी गाने का स्लीप स्कोर नहीं है</string>
     <string name="sleep_score_not_calculated">गणना नहीं की गई</string>
-    <string name="sleep_label_suitable">नींद के लिए उपयुक्त</string>
-    <string name="sleep_label_borderline">सीमान्त</string>
-    <string name="sleep_label_unsuitable">अनुपयुक्त</string>
-    <string name="sleep_scores_calibrated">%1$d आपके निर्णयों के हिसाब से तैयार किया गया</string>
-    <string name="sleep_scores_calibration_hint">स्कोर को आपके कान के अनुसार ढालने के लिए गानों को मार्क करें</string>
 </resources>

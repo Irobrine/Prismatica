@@ -606,7 +606,7 @@ class Backup(private val c: AppContainer) {
                 "mix_tempo", "song_loudness", "song_loudness_version", "song_peak", "song_key", "dj_quick", "loudness", "lyric_offsets", "lyrics_choice", "lyrics_search_as",
                 // 1.9: what each recording's audio measured as sleep suitability (recalculated when the scoring changes),
                 // in both audio modes (plain and as Normalize plays it).
-                "sleep_scores", "sleep_scores_normalized", "sleep_score_labels", "sleep_score_calibration",
+                "sleep_scores", "sleep_scores_normalized",
                 "romanize_songs", "video_sync", "local_album_tags", "local_lengths", "local_no_art", "lyrics_word_shift",
                 // 1.8.1: Bring your history's choices (what Replay counts, what shapes the mixes).
                 "imports",

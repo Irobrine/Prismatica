@@ -5590,9 +5590,4 @@
     <string name="sleep_scores_list_info">Điểm trong chế độ âm thanh đang dùng. Các bài không có điểm bị hẹn giờ ngủ bỏ qua.</string>
     <string name="sleep_scores_none_calculated">Chưa có bài nào có điểm ngủ</string>
     <string name="sleep_score_not_calculated">Chưa tính</string>
-    <string name="sleep_label_suitable">Phù hợp để ngủ</string>
-    <string name="sleep_label_borderline">Gần ranh giới</string>
-    <string name="sleep_label_unsuitable">Không phù hợp</string>
-    <string name="sleep_scores_calibrated">Được điều chỉnh từ %1$d đánh giá của bạn</string>
-    <string name="sleep_scores_calibration_hint">Đánh dấu bài hát để điều chỉnh điểm theo tai của bạn</string>
 </resources>

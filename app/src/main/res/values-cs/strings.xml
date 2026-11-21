@@ -5815,9 +5815,4 @@
     <string name="sleep_scores_list_info">Skóre v aktivním zvukovém režimu. Skladby bez skóre časovač spánku přeskakuje.</string>
     <string name="sleep_scores_none_calculated">Zatím žádné skladby nemají skóre spánku</string>
     <string name="sleep_score_not_calculated">Nevypočteno</string>
-    <string name="sleep_label_suitable">Vhodné pro spánek</string>
-    <string name="sleep_label_borderline">Hraniční</string>
-    <string name="sleep_label_unsuitable">Nevhodné</string>
-    <string name="sleep_scores_calibrated">Přizpůsobeno z %1$d vašich hodnocení</string>
-    <string name="sleep_scores_calibration_hint">Označte skladby, abyste skóre přizpůsobili svému sluchu</string>
 </resources>

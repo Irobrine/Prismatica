@@ -5665,9 +5665,4 @@
     <string name="sleep_scores_list_info">Scores in de actieve audiomodus. Nummers zonder score worden door de slaaptimer overgeslagen.</string>
     <string name="sleep_scores_none_calculated">Nog geen nummers hebben een slaapscore</string>
     <string name="sleep_score_not_calculated">Niet berekend</string>
-    <string name="sleep_label_suitable">Geschikt voor slaap</string>
-    <string name="sleep_label_borderline">Grensgeval</string>
-    <string name="sleep_label_unsuitable">Ongeschikt</string>
-    <string name="sleep_scores_calibrated">Afgestemd op %1$d van je oordelen</string>
-    <string name="sleep_scores_calibration_hint">Markeer nummers om de scores op je oren af te stemmen</string>
 </resources>

@@ -5590,9 +5590,4 @@
     <string name="sleep_scores_list_info">Skor dalam mod audio aktif. Lagu yang tidak ada skor dilangkau oleh pemasa tidur.</string>
     <string name="sleep_scores_none_calculated">Belum ada lagu yang ada skor tidur</string>
     <string name="sleep_score_not_calculated">Belum dikira</string>
-    <string name="sleep_label_suitable">Sesuai untuk tidur</string>
-    <string name="sleep_label_borderline">Sempadan</string>
-    <string name="sleep_label_unsuitable">Tidak sesuai</string>
-    <string name="sleep_scores_calibrated">Disesuaikan daripada %1$d penilaian anda</string>
-    <string name="sleep_scores_calibration_hint">Tandakan lagu agar skor sesuai dengan telinga anda</string>
 </resources>

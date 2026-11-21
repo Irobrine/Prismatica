@@ -5590,9 +5590,4 @@
     <string name="sleep_scores_list_info">활성 오디오 모드의 점수. 점수가 없는 곡은 취침 타이머에서 건너뜁니다.</string>
     <string name="sleep_scores_none_calculated">아직 수면 점수가 있는 곡이 없습니다</string>
     <string name="sleep_score_not_calculated">계산되지 않음</string>
-    <string name="sleep_label_suitable">수면에 적합함</string>
-    <string name="sleep_label_borderline">경계선</string>
-    <string name="sleep_label_unsuitable">부적합</string>
-    <string name="sleep_scores_calibrated">%1$d개의 판단을 바탕으로 조정됨</string>
-    <string name="sleep_scores_calibration_hint">노래에 표시해 점수를 당신의 귀에 맞게 조정하세요</string>
 </resources>

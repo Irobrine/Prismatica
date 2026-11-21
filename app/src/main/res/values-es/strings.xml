@@ -5740,9 +5740,4 @@
     <string name="sleep_scores_list_info">Puntuaciones en el modo de audio activo. El temporizador pasa por alto las canciones que no tienen una.</string>
     <string name="sleep_scores_none_calculated">Ninguna canción tiene aún puntuación de sueño</string>
     <string name="sleep_score_not_calculated">Sin calcular</string>
-    <string name="sleep_label_suitable">Adecuada para dormir</string>
-    <string name="sleep_label_borderline">Límite</string>
-    <string name="sleep_label_unsuitable">Inadecuada</string>
-    <string name="sleep_scores_calibrated">Ajustado a partir de %1$d de tus juicios</string>
-    <string name="sleep_scores_calibration_hint">Marca canciones para ajustar las puntuaciones a tu oído</string>
 </resources>

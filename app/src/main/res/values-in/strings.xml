@@ -5590,9 +5590,4 @@
     <string name="sleep_scores_list_info">Skor dalam mode audio aktif. Lagu yang tidak punya skor dilewati oleh timer tidur.</string>
     <string name="sleep_scores_none_calculated">Belum ada lagu yang punya skor tidur</string>
     <string name="sleep_score_not_calculated">Belum dihitung</string>
-    <string name="sleep_label_suitable">Cocok untuk tidur</string>
-    <string name="sleep_label_borderline">Di batas</string>
-    <string name="sleep_label_unsuitable">Tidak cocok</string>
-    <string name="sleep_scores_calibrated">Disesuaikan dari %1$d penilaian Anda</string>
-    <string name="sleep_scores_calibration_hint">Tandai lagu untuk menyesuaikan skor dengan telinga Anda</string>
 </resources>

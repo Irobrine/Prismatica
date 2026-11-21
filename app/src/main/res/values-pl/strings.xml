@@ -5815,9 +5815,4 @@
     <string name="sleep_scores_list_info">Oceny w aktywnym trybie audio. Utwory bez oceny są pomijane przez wyłącznik czasowy.</string>
     <string name="sleep_scores_none_calculated">Jeszcze żaden utwór nie ma oceny snu</string>
     <string name="sleep_score_not_calculated">Nieobliczone</string>
-    <string name="sleep_label_suitable">Odpowiednie do snu</string>
-    <string name="sleep_label_borderline">Graniczne</string>
-    <string name="sleep_label_unsuitable">Nieodpowiednie</string>
-    <string name="sleep_scores_calibrated">Dopasowane na podstawie %1$d twoich ocen</string>
-    <string name="sleep_scores_calibration_hint">Oznacz utwory, aby dopasować oceny do swojego ucha</string>
 </resources>

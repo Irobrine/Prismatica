@@ -5740,9 +5740,4 @@
     <string name="sleep_scores_list_info">ציונים במצב האודיו הפעיל. שירים שאין להם ציון מדולגים על ידי טיימר השינה.</string>
     <string name="sleep_scores_none_calculated">עדיין אין שירים עם ציון שינה</string>
     <string name="sleep_score_not_calculated">לא חושב</string>
-    <string name="sleep_label_suitable">מתאים לשינה</string>
-    <string name="sleep_label_borderline">גבולי</string>
-    <string name="sleep_label_unsuitable">לא מתאים</string>
-    <string name="sleep_scores_calibrated">הותאם מ־%1$d מהשיפוטים שלך</string>
-    <string name="sleep_scores_calibration_hint">סמן שירים כדי להתאים את הציונים לאוזן שלך</string>
 </resources>
