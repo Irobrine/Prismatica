@@ -1,27 +1,17 @@
 package com.prism.music.ui.screens.settings
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.prism.music.R
 import com.prism.music.data.AutoplayLength
-import com.prism.music.data.model.songCount
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.CrossfadeCurve
 import com.prism.music.data.prefs.ExplicitContent
@@ -39,74 +29,9 @@ import com.prism.music.ui.screens.pitchText
 import com.prism.music.ui.screens.speedText
 import com.prism.music.ui.theme.LocalAppSettings
 import com.prism.music.ui.theme.LocalContainer
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private val page = SettingsPageId.PLAYBACK
-
-/**
- * "Calculate sleep scores" (1.9): the sleep timer's minimum score reads figures that have to be worked out from each
- * song's own audio, and this row walks a set of songs (the same sets "Measure songs now" offers) through that analysis.
- * It's the same walk and the same three-state row: tap to pick a set, tap again to stop, and a stopped walk carries on
- * where it stopped; its count says how far it got. Unlike measuring, it doesn't need Normalize: the scores stand alone.
- */
-@Composable
-private fun SleepScoreRow() {
-    val c = LocalContainer.current
-    val s = LocalAppSettings.current
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val running by c.sleepScoreSongs.running.collectAsState()
-    val calculating by c.sleepScoreSongs.progress.collectAsState()
-    val scored by c.sleepScores.calculated.collectAsState()
-    val title = tr(R.string.calculate_sleep_scores)
-    var open by rememberSaveable(title, "sleep-scores") { mutableStateOf(false) }
-    // How many of each set's songs still need a score: empty until the sheet has counted them.
-    var left by remember(title) { mutableStateOf<Map<MeasureScope, Int>>(emptyMap()) }
-    LinkRow(
-        title,
-        value = calculating?.let {
-            tr(if (running) R.string.calculating_n_of_n else R.string.sleep_scores_stopped_at, it.first, it.second)
-        } ?: tr(R.string.sleep_scores_scored_n, scored),
-        info = tr(R.string.sleep_scores_info), action = true,
-    ) {
-        when {
-            running -> c.sleepScoreSongs.stop()
-            // A stopped walk carries on where it stopped, and what it already scored isn't walked again.
-            calculating != null -> c.sleepScoreSongs.resume()
-            else -> open = true
-        }
-    }
-    if (open) {
-        LaunchedEffect(open) {
-            left = emptyMap()
-            // The sets Prism has to hand first, so the sheet fills as it opens; the Library's needs the database read.
-            val sets = MeasureScope.entries.filter { it != MeasureScope.LIBRARY } + MeasureScope.LIBRARY
-            for (set in sets) left = left + (set to c.sleepScoreSongs.pending(set.ids(c)).size)
-        }
-        RowsSheet(title, { open = false }) {
-            MeasureScope.entries.forEach { set ->
-                val count = left[set]
-                LinkRow(
-                    set.title,
-                    value = count?.let { songCount(it) },
-                    // A set with nothing left says so (0 songs) and does nothing.
-                    enabled = count != 0,
-                    action = true,
-                ) {
-                    open = false
-                    scope.launch {
-                        val network = c.sleepScoreSongs.network(s.mixTempoOnCellular)
-                        c.sleepScoreSongs.start(c.sleepScoreSongs.pending(set.ids(c)), network)
-                        // Kept going with Prism out of sight, as measuring is.
-                        com.prism.music.playback.SleepScoreService.start(context)
-                        if (!network) Toast.makeText(context, tr(R.string.on_wi_fi_songs_not_on_the_phone_are_measured_too), Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-        }
-    }
-}
 
 /**
  * Settings → Playback (1.8.4's map, plan §2.3), built with the kit: what plays next, the Shuffle button, crossfade
@@ -247,9 +172,6 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
                 tr(R.string.sleep_timer_fades_out), s.sound.sleepFadeSeconds.toFloat(), 0f..60f, { fade(it.roundToInt()) }, steps = 11,
                 info = tr(R.string.the_music_fades_out_over_the), changed = sleepFadeChanged,
             ) { prefs.setSleepFade(it.roundToInt()) }
-            // 1.9: the sleep timer's minimum score reads figures worked out from each song's own audio; this is where
-            // they are calculated, beside the timer's fade.
-            SleepScoreRow()
             SwitchRow(tr(R.string.fade_on_pause_and_play), s.sound.pauseFade, info = tr(R.string.pausing_fades_the_sound_out_over), changed = pauseFadeChanged) { prefs.setPauseFade(it) }
             SwitchRow(tr(R.string.stop_when_swiped_away), s.stopOnSwipeAway, info = tr(R.string.swiping_prism_out_of_recent_apps), changed = stopOnSwipeChanged) { prefs.setStopOnSwipeAway(it) }
             SwitchRow(tr(R.string.pause_when_muted), s.behavior.pauseOnMute, info = tr(R.string.only_the_phone_s_media_volume), changed = pauseOnMuteChanged) { prefs.setPauseOnMute(it) }
@@ -348,8 +270,6 @@ val playbackIndex: List<SettingEntry> by lazy {
             SettingEntry(page, speed, tr(R.string.pitch_when_prism_starts), tr(R.string.key_semitones_transpose_higher_lower_slowed)),
             SettingEntry(page, stopping, stopping),
             SettingEntry(page, stopping, tr(R.string.sleep_timer_fades_out), tr(R.string.sleep_fade_out_bedtime)),
-            // 1.9: an action, next to the sleep timer's fade.
-            SettingEntry(page, stopping, tr(R.string.calculate_sleep_scores), tr(R.string.minimum_sleep_score)),
             SettingEntry(page, stopping, tr(R.string.fade_on_pause_and_play), tr(R.string.pause_fade_gentle_soft)),
             SettingEntry(page, stopping, tr(R.string.stop_when_swiped_away), tr(R.string.recents_background)),
             SettingEntry(page, stopping, tr(R.string.pause_when_muted), tr(R.string.volume_zero_mute_pause_resume)),

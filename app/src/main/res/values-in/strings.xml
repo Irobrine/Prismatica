@@ -5568,20 +5568,4 @@
     <string name="choose_a_track">Pilih lagu</string>
     <string name="fade_in_duration">Durasi memudar masuk</string>
     <string name="loop_this_track">Ulangi lagu ini</string>
-    <string name="minimum_sleep_score">Skor tidur minimum</string>
-    <string name="sleep_score_out_of">%1$d dari 100</string>
-    <string name="sleep_score_info">Lagu di bawah ini dilewati selama timer berjalan, begitu juga lagu yang belum punya skor. Semakin tinggi, semakin cocok untuk tidur.</string>
-    <string name="sleep_score_queue_unscored">%1$d di antrean belum punya skor</string>
-    <string name="sleep_score_queue_below">%1$d di antrean berada di bawah ini</string>
-    <string name="temporarily_disable_the_score_limit">Nonaktifkan sementara batas skor tidur</string>
-    <string name="sleep_score_under">Setidaknya %1$d dari 100</string>
-    <string name="sleep_score_none_left">Tidak ada lagu dengan skor tidur %1$d atau lebih</string>
-    <string name="sleep_score_and_bpm_none_left">Tidak ada lagu di bawah %1$d BPM dan dengan skor tidur %2$d atau lebih</string>
-    <string name="calculate_sleep_scores">Skor tidur</string>
-    <string name="calculating_n_of_n">Menghitung %1$d dari %2$d…</string>
-    <string name="sleep_scores_started">Menghitung skor tidur untuk %1$d lagu</string>
-    <string name="sleep_scores_already_calculated">Setiap lagu yang dipilih sudah punya skor tidur</string>
-    <string name="sleep_scores_scored_n">%1$d diskor</string>
-    <string name="sleep_scores_info">Menilai audio tiap lagu untuk seberapa kecil kemungkinannya mengganggu tidur, untuk batas minimum timer tidur. Lagu yang sudah punya skor dilewati; angkanya disimpan sampai dihitung ulang atau penilaiannya berubah.</string>
-    <string name="sleep_scores_stopped_at">Berhenti di %1$d dari %2$d, ketuk untuk melanjutkan</string>
 </resources>

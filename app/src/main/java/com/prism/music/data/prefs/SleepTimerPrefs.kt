@@ -30,11 +30,6 @@ data class SleepTimerChoices(
     val fadeInSeconds: Int = 0,
     /** Whether the after-timer track starts over when it ends. */
     val loopAfter: Boolean = false,
-    /**
-     * The least sleep suitability a song may have while the timer runs, 0–100 (0 is no limit). A song whose score hasn't
-     * been calculated is passed over while this is on: the filter is never satisfied by a missing figure.
-     */
-    val minScore: Int = 0,
 )
 
 /** Stores [SleepTimerChoices] in SharedPreferences, read at start and shown in Compose at once (like SnoozeStore). */
@@ -53,7 +48,6 @@ class SleepTimerPrefs(context: Context) {
         },
         fadeInSeconds = (prefs.getInt(KEY_FADE_IN, 0)).coerceIn(0, MAX_FADE_IN_SECONDS),
         loopAfter = prefs.getBoolean(KEY_LOOP_AFTER, false),
-        minScore = (prefs.getInt(KEY_MIN_SCORE, 0)).coerceIn(0, MAX_SCORE_LIMIT),
     )
 
     @Synchronized
@@ -80,9 +74,6 @@ class SleepTimerPrefs(context: Context) {
     @Synchronized
     fun setLoopAfter(on: Boolean) = put { putBoolean(KEY_LOOP_AFTER, on) }
 
-    @Synchronized
-    fun setMinScore(minScore: Int) = put { putInt(KEY_MIN_SCORE, minScore.coerceIn(0, MAX_SCORE_LIMIT)) }
-
     private fun put(block: SharedPreferences.Editor.() -> SharedPreferences.Editor) {
         prefs.edit().block().apply()
         _choices.value = read()
@@ -93,8 +84,6 @@ class SleepTimerPrefs(context: Context) {
         const val MAX_MINUTES = 240
         /** The BPM slider's top; 0 is off. */
         const val MAX_BPM_LIMIT = 220
-        /** The sleep suitability score's top; 0 is off. */
-        const val MAX_SCORE_LIMIT = 100
         /** The fade-in slider's top, the same as the fade-out's. */
         const val MAX_FADE_IN_SECONDS = 60
 
@@ -108,6 +97,5 @@ class SleepTimerPrefs(context: Context) {
         private const val KEY_AFTER_SONG = "after_song"
         private const val KEY_FADE_IN = "fade_in"
         private const val KEY_LOOP_AFTER = "loop_after"
-        private const val KEY_MIN_SCORE = "min_score"
     }
 }

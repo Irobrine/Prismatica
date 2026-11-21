@@ -5943,20 +5943,4 @@
     <string name="choose_a_track">اختيار أغنية</string>
     <string name="fade_in_duration">مدة التلاشي للداخل</string>
     <string name="loop_this_track">تكرار هذه الأغنية</string>
-    <string name="minimum_sleep_score">الحد الأدنى لدرجة النوم</string>
-    <string name="sleep_score_out_of">%1$d من 100</string>
-    <string name="sleep_score_info">تُتجاوز الأغاني الأقل من هذا أثناء عمل المؤقت، وكذلك الأغاني التي ليس لها درجة بعد. وكلما ارتفعت الدرجة كانت أنسب للنوم.</string>
-    <string name="sleep_score_queue_unscored">%1$d في قائمة الانتظار ليس لها درجة بعد</string>
-    <string name="sleep_score_queue_below">%1$d في قائمة الانتظار أقل من هذا</string>
-    <string name="temporarily_disable_the_score_limit">تعطيل حد درجة النوم مؤقتًا</string>
-    <string name="sleep_score_under">ما لا يقل عن %1$d من 100</string>
-    <string name="sleep_score_none_left">لم تعد هناك أغانٍ بدرجة نوم %1$d أو أعلى</string>
-    <string name="sleep_score_and_bpm_none_left">لم تعد هناك أغانٍ أقل من %1$d BPM وبدرجة نوم %2$d أو أعلى</string>
-    <string name="calculate_sleep_scores">درجات النوم</string>
-    <string name="calculating_n_of_n">جارٍ حساب %1$d من %2$d…</string>
-    <string name="sleep_scores_started">جارٍ حساب درجات النوم لـ %1$d أغنية</string>
-    <string name="sleep_scores_already_calculated">كل أغنية مختارة لديها درجة نوم بالفعل</string>
-    <string name="sleep_scores_scored_n">تم تقييم %1$d</string>
-    <string name="sleep_scores_info">يقيّم صوت كل أغنية على حدة لمدى احتمال ألا تشوّش النوم، من أجل الحد الأدنى لمؤقت النوم. تُستبعد الأغاني المقيَّمة بالفعل، وتبقى النتيجة حتى يُعاد حسابها أو يتغير التقييم.</string>
-    <string name="sleep_scores_stopped_at">توقف عند %1$d من %2$d، انقر للمتابعة</string>
 </resources>

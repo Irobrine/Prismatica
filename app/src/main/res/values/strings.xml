@@ -5680,22 +5680,4 @@
     <string name="choose_a_track">Choose a track</string>
     <string name="fade_in_duration">Fade-in duration</string>
     <string name="loop_this_track">Loop this track</string>
-
-    <!-- Sleep suitability (1.9): scores, calculating them, and the sleep timer's minimum. -->
-    <string name="minimum_sleep_score">Minimum sleep score</string>
-    <string name="sleep_score_out_of">%1$d of 100</string>
-    <string name="sleep_score_info">Songs below this are passed over while the timer runs, and so are songs with no score yet. Higher is more suitable for sleep.</string>
-    <string name="sleep_score_queue_unscored">%1$d in the queue have no score yet</string>
-    <string name="sleep_score_queue_below">%1$d in the queue are below this</string>
-    <string name="temporarily_disable_the_score_limit">Temporarily disable the sleep score limit</string>
-    <string name="sleep_score_under">At least %1$d of 100</string>
-    <string name="sleep_score_none_left">No songs at or above %1$d sleep score left</string>
-    <string name="sleep_score_and_bpm_none_left">No songs left under %1$d BPM and at or above %2$d sleep score</string>
-    <string name="calculate_sleep_scores">Sleep scores</string>
-    <string name="calculating_n_of_n">Calculating %1$d of %2$d…</string>
-    <string name="sleep_scores_started">Calculating sleep scores for %1$d songs</string>
-    <string name="sleep_scores_already_calculated">Every picked song has a sleep score already</string>
-    <string name="sleep_scores_scored_n">%1$d scored</string>
-    <string name="sleep_scores_info">Scores each song\'s own audio for how unlikely it is to disturb sleep, for the sleep timer\'s minimum. Songs already scored are left out; a figure is kept until it is calculated again or the scoring changes.</string>
-    <string name="sleep_scores_stopped_at">Stopped at %1$d of %2$d, tap to carry on</string>
 </resources>

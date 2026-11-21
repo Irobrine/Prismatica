@@ -5718,20 +5718,4 @@
     <string name="choose_a_track">בחירת שיר</string>
     <string name="fade_in_duration">משך הדהייה פנימה</string>
     <string name="loop_this_track">חזרה על השיר הזה</string>
-    <string name="minimum_sleep_score">ציון שינה מינימלי</string>
-    <string name="sleep_score_out_of">%1$d מתוך 100</string>
-    <string name="sleep_score_info">שירים מתחת לזה מדולגים בזמן שהטיימר פועל, וגם שירים שאין להם ציון עדיין. ככל שהציון גבוה יותר, כך הוא מתאים יותר לשינה.</string>
-    <string name="sleep_score_queue_unscored">ל-%1$d בתור אין ציון עדיין</string>
-    <string name="sleep_score_queue_below">%1$d בתור מתחת לזה</string>
-    <string name="temporarily_disable_the_score_limit">השבתת מגבלת ציון השינה זמנית</string>
-    <string name="sleep_score_under">לפחות %1$d מתוך 100</string>
-    <string name="sleep_score_none_left">לא נותרו שירים עם ציון שינה של %1$d ומעלה</string>
-    <string name="sleep_score_and_bpm_none_left">לא נותרו שירים מתחת ל-%1$d BPM ועם ציון שינה של %2$d ומעלה</string>
-    <string name="calculate_sleep_scores">ציוני שינה</string>
-    <string name="calculating_n_of_n">מחשב %1$d מתוך %2$d…</string>
-    <string name="sleep_scores_started">מחשב ציוני שינה עבור %1$d שירים</string>
-    <string name="sleep_scores_already_calculated">לכל שיר נבחר יש כבר ציון שינה</string>
-    <string name="sleep_scores_scored_n">%1$d דורגו</string>
-    <string name="sleep_scores_info">מדרג את האודיו של כל שיר לפי כמה סביר שלא יפריע לשינה, עבור המינימום של טיימר השינה. שירים שכבר דורגו מדולגים; הנתון נשמר עד לחישוב מחדש או עד ששיטת הדירוג משתנה.</string>
-    <string name="sleep_scores_stopped_at">נעצר ב-%1$d מתוך %2$d, הקש להמשך</string>
 </resources>

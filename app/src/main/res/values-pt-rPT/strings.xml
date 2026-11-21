@@ -5718,20 +5718,4 @@
     <string name="choose_a_track">Escolher uma faixa</string>
     <string name="fade_in_duration">Duração do fade de entrada</string>
     <string name="loop_this_track">Repetir esta faixa</string>
-    <string name="minimum_sleep_score">Pontuação de sono mínima</string>
-    <string name="sleep_score_out_of">%1$d de 100</string>
-    <string name="sleep_score_info">As músicas abaixo disto são saltadas enquanto o timer corre, e também as que ainda não têm pontuação. Quanto mais alta, mais adequada para dormir.</string>
-    <string name="sleep_score_queue_unscored">%1$d na fila ainda não têm pontuação</string>
-    <string name="sleep_score_queue_below">%1$d na fila estão abaixo disto</string>
-    <string name="temporarily_disable_the_score_limit">Desativar temporariamente o limite de pontuação de sono</string>
-    <string name="sleep_score_under">Pelo menos %1$d de 100</string>
-    <string name="sleep_score_none_left">Já não há músicas com pontuação de sono %1$d ou mais</string>
-    <string name="sleep_score_and_bpm_none_left">Já não há músicas abaixo de %1$d BPM e com pontuação de sono %2$d ou mais</string>
-    <string name="calculate_sleep_scores">Pontuações de sono</string>
-    <string name="calculating_n_of_n">A calcular %1$d de %2$d…</string>
-    <string name="sleep_scores_started">A calcular pontuações de sono para %1$d músicas</string>
-    <string name="sleep_scores_already_calculated">Todas as músicas escolhidas já têm pontuação de sono</string>
-    <string name="sleep_scores_scored_n">%1$d pontuadas</string>
-    <string name="sleep_scores_info">Avalia o áudio de cada música pela probabilidade de não perturbar o sono, para o mínimo do temporizador de sono. As músicas já pontuadas são excluídas; o valor é mantido até ser calculado de novo ou a avaliação mudar.</string>
-    <string name="sleep_scores_stopped_at">Parou em %1$d de %2$d, toca para continuar</string>
 </resources>

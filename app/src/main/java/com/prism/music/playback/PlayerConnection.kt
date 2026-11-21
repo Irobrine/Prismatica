@@ -36,7 +36,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -769,19 +768,6 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         scope.launch(Dispatchers.IO) {
             matchesLoaded.await()
             prepareLibraryVideosByItself()
-        }
-        // The score limit is a setting the running session keeps up with: moving it (or switching it off) rechecks the
-        // queue at once, so a change never waits for the next song to take effect.
-        scope.launch {
-            c.sleepPrefs.choices
-                .map { it.minScore }
-                .distinctUntilChanged()
-                .drop(1)
-                .collect { minScore ->
-                    if (!sleepTimer.active.value || minScore == sleepTimer.minScore.value) return@collect
-                    sleepTimer.setMinScore(minScore)
-                    if (minScore <= 0) resumeIfSleepPaused() else enforceSleepBpm()
-                }
         }
     }
 
@@ -1588,18 +1574,13 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         override fun setSessionVolume(volume: Float) { NormalizerProcessor.sleepVolume = NormalizerProcessor.volumeFor(volume) }
         override fun restoreVolume() { NormalizerProcessor.fadeVolume = 1f; NormalizerProcessor.sleepVolume = 1f }
         override fun reportNoEligibleSongs(maxBpm: Int) { reportError(tr(R.string.sleep_bpm_none_left, maxBpm)) }
-        override fun reportNoEligibleScores(minScore: Int) { reportError(tr(R.string.sleep_score_none_left, minScore)) }
-        override fun reportNoEligibleSongsAndScores(maxBpm: Int, minScore: Int) {
-            reportError(tr(R.string.sleep_score_and_bpm_none_left, maxBpm, minScore))
-        }
     }
 
-    /** The one running sleep session: its clock, fade and its two gates (see [SleepTimerEngine]). */
+    /** The one running sleep session: its clock, fade and BPM gate (see [SleepTimerEngine]). */
     private val sleepTimer = SleepTimerEngine(
         audio = sleepAudio,
         bpmOf = { id -> c.mixTempo.djBpm(id) },
         onEnded = { onSleepSessionEnded() },
-        scoreOf = { id -> c.sleepScoreOf(id) },
     )
     private var sleepJob: Job? = null
     private var sleepRestoreJob: Job? = null
@@ -1622,7 +1603,6 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     private fun onSleepSessionEnded() {
         pausedBySleepBpm = false
         c.sleepPrefs.setMaxBpm(0)
-        c.sleepPrefs.setMinScore(0)
         val choices = c.sleepPrefs.choices.value
         val song = choices.afterSong ?: return
         afterTimerFadeJob?.cancel()
@@ -1716,12 +1696,6 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** The limit the running session was started with (0 when none). */
     val sleepMaxBpm: StateFlow<Int> = sleepTimer.maxBpm
 
-    /** The temporary "allow any score" override of the running session (false when none runs). */
-    val sleepScoreDisabled: StateFlow<Boolean> = sleepTimer.scoreDisabled
-
-    /** The least sleep score the running session was started with (0 when none). */
-    val sleepMinScore: StateFlow<Int> = sleepTimer.minScore
-
     /**
      * Starts the one sleep session from the menu's saved choices and the fade set in Settings. Any running session is
      * replaced, and the BPM limit (if one was picked) applies to the song playing now at once.
@@ -1738,7 +1712,6 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 maxBpm = choices.maxBpm,
                 finishSong = choices.finishSong,
                 volume = choices.volume,
-                minScore = choices.minScore,
             ),
         )
         runSleepLoop()
@@ -1757,7 +1730,6 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 maxBpm = choices.maxBpm,
                 finishSong = choices.finishSong,
                 volume = choices.volume,
-                minScore = choices.minScore,
             ),
         )
         runSleepLoop()
@@ -1776,7 +1748,6 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 maxBpm = choices.maxBpm,
                 finishSong = true,
                 volume = choices.volume,
-                minScore = choices.minScore,
             ),
         )
         runSleepLoop()
@@ -1852,45 +1823,6 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** Whether the running session's limit rules [songId] out (false when no timer runs, or the override is on). */
     fun sleepBlocksBpm(songId: String?): Boolean = sleepTimer.blocksBpm(songId)
 
-    /** Whether the running session's score limit rules [songId] out (false when no timer runs, or the override is on). */
-    fun sleepBlocksScore(songId: String?): Boolean = sleepTimer.blocksScore(songId)
-
-    /** Whether either of the running session's limits rules [songId] out: the queue walk and the additions use this. */
-    fun sleepBlocksFilter(songId: String?): Boolean = sleepTimer.blocks(songId)
-
-    /** Whether the running session's score limit is on (set and not overridden): the queue's UI says what it passes over. */
-    fun sleepFilteringScore(): Boolean = sleepTimer.filteringScore()
-
-    /**
-     * The active menu's temporary "allow any score" switch: off, songs the score limit held back play again; on again,
-     * the current song and the queue are checked immediately. The saved limit is never changed.
-     */
-    fun setSleepScoreDisabled(disabled: Boolean) {
-        sleepTimer.setScoreDisabled(disabled)
-        if (disabled) resumeIfSleepPaused() else enforceSleepBpm()
-    }
-
-    /**
-     * The sleep score limit while a session runs (its menu's slider, or a setting): the running session takes it up at
-     * once, and a queue this filter paused plays again when the limit is switched off. [remember] saves it for next time.
-     */
-    fun setSleepMinScore(minScore: Int, remember: Boolean = true) {
-        if (sleepTimer.active.value) {
-            sleepTimer.setMinScore(minScore)
-            if (minScore <= 0) resumeIfSleepPaused() else enforceSleepBpm()
-        }
-        // Written after the session has it: the store's own watcher then sees the value it already has, not a second change.
-        if (remember) c.sleepPrefs.setMinScore(minScore)
-    }
-
-    /** Brings the music back only from the pause the sleep filter itself caused (a listener's pause stays). */
-    private fun resumeIfSleepPaused() {
-        if (pausedBySleepBpm) {
-            pausedBySleepBpm = false
-            player?.play()
-        }
-    }
-
     /** Called by the service as an item starts: a finished song in overtime ends the session; either way, recalculate. */
     internal fun onSleepItemChanged() = sleepTimer.onItemChanged()
 
@@ -1898,11 +1830,9 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     internal fun onSleepPlaybackChanged() = sleepTimer.onPlaybackChanged()
 
     /**
-     * Applies the sleep timer's limits (BPM and minimum sleep score) to what plays right now: the song itself is skipped
-     * for the next allowed one (in play order, never wrapping), and when none is left the music stops instead of skipping
-     * for ever. Nothing is taken out of the queue: what the filter passes over is still there, in order, and switching the
-     * filter off brings it straight back (any edits made meanwhile included). Called when the timer starts, when a
-     * restriction is switched back on, and when something starts while the limits hold.
+     * Applies the BPM limit to what plays right now: the song itself is skipped for the next allowed one (in play order,
+     * never wrapping), and when none is left the music stops instead of skipping for ever. Called when the timer starts,
+     * when the restriction is switched back on, and when something starts while the limit holds.
      */
     fun enforceSleepBpm() {
         val p = player ?: return
@@ -1912,7 +1842,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             return
         }
         val song = p.currentMediaItem?.toSong()
-        if (!sleepTimer.blocks(song?.id) || p.mediaItemCount == 0) {
+        if (!sleepTimer.blocksBpm(song?.id) || p.mediaItemCount == 0) {
             pausedBySleepBpm = false
             return
         }
@@ -1924,18 +1854,18 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         }
         pausedBySleepBpm = true
         p.pause()
-        sleepTimer.reportNoEligible()
+        sleepAudio.reportNoEligibleSongs(sleepTimer.maxBpm.value)
     }
 
-    internal fun reportSleepBpmExhausted() = sleepTimer.reportNoEligible()
+    internal fun reportSleepBpmExhausted() = sleepAudio.reportNoEligibleSongs(sleepTimer.maxBpm.value)
 
-    /** The first item after the one playing (in play order) the limits allow, or [C.INDEX_UNSET] when none is left. */
+    /** The first item after the one playing (in play order) the limit allows, or [C.INDEX_UNSET] when none is left. */
     internal fun nextSleepAllowed(p: Player): Int {
         val tl = p.currentTimeline
         var i = tl.getNextWindowIndex(p.currentMediaItemIndex, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled)
         var seen = 0
         while (i != C.INDEX_UNSET && seen < tl.windowCount) {
-            if (!sleepTimer.blocks(p.getMediaItemAt(i).toSong()?.id)) return i
+            if (!sleepTimer.blocksBpm(p.getMediaItemAt(i).toSong()?.id)) return i
             i = tl.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled)
             seen++
         }
@@ -1956,7 +1886,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 // a queue edited under the current song, or one added by a car are checked here too.
                 if (sleepTimer.active.value && player?.isPlaying == true) {
                     val song = player?.currentMediaItem?.toSong()
-                    if (sleepTimer.blocks(song?.id)) enforceSleepBpm()
+                    if (sleepTimer.blocksBpm(song?.id)) enforceSleepBpm()
                 }
                 val wait = sleepTimer.tick()
                 if (!sleepTimer.active.value) {

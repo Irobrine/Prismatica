@@ -106,12 +106,6 @@ class SelectManyTest {
         assertEquals(listOf(a, file), SelectionPlan.forPlaylist(listOf(a, file, episode)))
     }
 
-    @Test fun sleepScoresAreCalculatedForEverythingWithAudioOnce() {
-        // A live stream has no recording to judge; everything else is scored once, even if picked twice.
-        val live = Song("live", "Live").copy(isLive = true)
-        assertEquals(listOf(a, file, episode), SelectionPlan.forSleep(listOf(a, file, episode, live, a)))
-    }
-
     // ---- the rows
 
     @Test fun longPressPicksTapsPickMoreAndPlayingWaits() {

@@ -327,7 +327,6 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
     var fadeValue by remember(choices.minutes, fade) { mutableFloatStateOf(fade.coerceAtMost(maxFade).toFloat()) }
     var fadeTouched by remember { mutableStateOf(false) }
     var bpmValue by remember(choices.maxBpm) { mutableFloatStateOf(choices.maxBpm.toFloat()) }
-    var scoreValue by remember(choices.minScore) { mutableFloatStateOf(choices.minScore.toFloat()) }
     var volumeValue by remember(choices.volume) { mutableFloatStateOf(choices.volume) }
     var fadeInValue by remember(choices.fadeInSeconds) { mutableFloatStateOf(choices.fadeInSeconds.toFloat()) }
     var choosingAfter by remember { mutableStateOf(false) }
@@ -460,47 +459,6 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                 Text(tr(R.string.sleep_timer_bpm_info), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
-                // The sleep score limit (1.9): higher scores are more suitable, and a song whose score hasn't been
-                // calculated is passed over too — the two counts below say how many of each the queue holds, so
-                // "not measured yet" never looks like "measured and unsuitable".
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr(R.string.minimum_sleep_score), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                    Text(
-                        if (scoreValue < 1f) tr(R.string.off) else tr(R.string.sleep_score_out_of, scoreValue.roundToInt()),
-                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                PrismSlider(
-                    scoreValue, { scoreValue = it },
-                    valueRange = 0f..com.prism.music.data.prefs.SleepTimerPrefs.MAX_SCORE_LIMIT.toFloat(), steps = 9,
-                ) { c.sleepPrefs.setMinScore(scoreValue.roundToInt()) }
-                Text(tr(R.string.sleep_score_info), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (choices.minScore >= 1) {
-                    // The committed limit (written when the slider's finger lifts), not every drag step: a long queue's
-                    // tally is worked out once per choice, not once a frame.
-                    val queue by pc.queue.collectAsState()
-                    val scored by c.sleepScores.calculated.collectAsState()
-                    val limit = choices.minScore
-                    val (unscored, below) = remember(queue, limit, scored) {
-                        var without = 0
-                        var under = 0
-                        for (entry in queue) {
-                            val score = c.sleepScoreOf(entry.song.id)
-                            if (score == null) without++ else if (score < limit) under++
-                        }
-                        without to under
-                    }
-                    if (unscored > 0) Text(
-                        tr(R.string.sleep_score_queue_unscored, unscored), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (below > 0) Text(
-                        tr(R.string.sleep_score_queue_below, below), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(tr(R.string.sleep_timer_volume), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                     Text(tr(R.string.tv_percent, (volumeValue * 100).roundToInt()), style = MaterialTheme.typography.bodyMedium,
@@ -541,8 +499,6 @@ fun SleepTimerEditDialog(onDismiss: () -> Unit) {
     val endOfSong by pc.sleepEndOfSong.collectAsState()
     val bpmDisabled by pc.sleepBpmDisabled.collectAsState()
     val maxBpm by pc.sleepMaxBpm.collectAsState()
-    val scoreDisabled by pc.sleepScoreDisabled.collectAsState()
-    val minScore by pc.sleepMinScore.collectAsState()
     var volumeValue by remember(choices.volume) { mutableFloatStateOf(choices.volume) }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
@@ -570,13 +526,6 @@ fun SleepTimerEditDialog(onDismiss: () -> Unit) {
                     { Text(tr(R.string.temporarily_disable_the_bpm_limit)) })
                 if (maxBpm > 0) Text(
                     tr(R.string.sleep_bpm_under, maxBpm), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(8.dp))
-                FilterChip(scoreDisabled, { pc.setSleepScoreDisabled(!scoreDisabled) },
-                    { Text(tr(R.string.temporarily_disable_the_score_limit)) })
-                if (minScore > 0) Text(
-                    tr(R.string.sleep_score_under, minScore), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))

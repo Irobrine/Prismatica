@@ -131,10 +131,10 @@ class PrismApp : Application(), coil3.SingletonImageLoader.Factory {
         com.prism.music.playback.BackgroundBudget.where = {
             com.prism.music.playback.BackgroundBudget.whereOf(
                 onScreen = container.visible.value,
-                // A measuring or scoring walk, or an enhancement batch the listener started, runs under its own
-                // foreground service (MeasureService, SleepScoreService, EnhanceService): kept to a core's worth, as
-                // music playing is, rather than rested to nothing out of sight (1.1.3).
-                measuring = container.measureSongs.running.value || container.sleepScoreSongs.running.value,
+                // A measuring walk or an enhancement batch the listener started runs under its own foreground service
+                // (MeasureService, EnhanceService): kept to a core's worth, as music playing is, rather than rested to
+                // nothing out of sight (1.1.3).
+                measuring = container.measureSongs.running.value,
                 enhancing = container.enhancing,
                 playing = container.player.isPlaying.value || container.player.buffering.value,
             )
@@ -428,29 +428,6 @@ class AppContainer(val app: Application) {
     val waves by lazy { com.prism.music.data.SongWaves(app) }
 
     /**
-     * Songs' sleep suitability figures (1.9), per recording heard: the sleep timer's minimum score reads them, and the
-     * two "Calculate sleep scores" actions fill them. A figure older than the scoring version is not used.
-     */
-    val sleepScores by lazy { com.prism.music.data.sleep.SleepScores(app) }
-
-    /** Reads a recording's audio and has [com.prism.music.data.sleep.SleepAnalysis] judge it (1.9). */
-    val sleepScanner by lazy {
-        com.prism.music.data.sleep.SleepScanner(
-            app, streamHttp, { id -> streams.analysisAudio(id) }, ::audioOnPhone, { yieldToPlaying(null) },
-        )
-    }
-
-    /** The sleep score of the recording [songId] plays as (with no music video armed), or null while uncalculated. */
-    fun sleepScoreOf(songId: String?): Double? =
-        songId?.let { sleepScores.score(loudnessIndex.formId(it, null)) }?.toDouble()
-
-    init {
-        // Read the figures once, off the playback thread: the timer's filter asks for them on the playback thread, and
-        // the first look must not be the one that parses a library's worth of JSON.
-        scope.launch(kotlinx.coroutines.Dispatchers.IO) { runCatching { sleepScores.ids() } }
-    }
-
-    /**
      * Where the form actually heard ([formId]: a song, its music video, the version picked for it, a file on the phone)
      * is on the phone, for scanning it without the network: a local file as it is; a download or a song cached whole,
      * copied out of its cache into [scratch]. Null when it isn't all here.
@@ -669,25 +646,6 @@ class AppContainer(val app: Application) {
             unmetered = { app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false },
         )
     }
-
-    /**
-     * The two "Calculate sleep scores" actions' walk (1.9): songs through [sleepScanner], one at a time (a whole
-     * recording is decoded and analysed), leaving out the recordings that already have a figure of the current scoring
-     * version. The same walk ([com.prism.music.data.MeasureSongs]) as "Measure songs now": progress, stop and resume are
-     * the settings row's and the selection bar's, and a song whose audio isn't reachable now stays unscored for the next
-     * run instead of stopping the walk.
-     */
-    val sleepScoreSongs by lazy {
-        com.prism.music.data.MeasureSongs(
-            scope,
-            { form, song, network -> sleepScanner.analyze(form, song.takeIf { it != form }, network)?.let { sleepScores.put(form, it) } },
-            { form -> sleepScores.isCurrent(form) },
-            { id -> loudnessIndex.formId(id, null) },
-            { 1 },
-            unmetered = { app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false },
-        )
-    }
-
     /** The listener's Prism Account: a name and picture kept on this phone ([com.prism.music.data.PrismAccount]). */
     val account by lazy { com.prism.music.data.PrismAccount(this) }
 

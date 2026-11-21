@@ -5718,20 +5718,4 @@
     <string name="choose_a_track">Scegli un brano</string>
     <string name="fade_in_duration">Durata della dissolvenza in entrata</string>
     <string name="loop_this_track">Ripeti questo brano</string>
-    <string name="minimum_sleep_score">Punteggio del sonno minimo</string>
-    <string name="sleep_score_out_of">%1$d su 100</string>
-    <string name="sleep_score_info">I brani sotto questo vengono saltati mentre il timer è attivo, e così quelli senza ancora un punteggio. Più è alto, più è adatto al sonno.</string>
-    <string name="sleep_score_queue_unscored">%1$d in coda non hanno ancora un punteggio</string>
-    <string name="sleep_score_queue_below">%1$d in coda sono sotto questo</string>
-    <string name="temporarily_disable_the_score_limit">Disattiva temporaneamente il limite del punteggio del sonno</string>
-    <string name="sleep_score_under">Almeno %1$d su 100</string>
-    <string name="sleep_score_none_left">Nessun brano con punteggio del sonno pari o superiore a %1$d</string>
-    <string name="sleep_score_and_bpm_none_left">Nessun brano sotto %1$d BPM e con punteggio del sonno pari o superiore a %2$d</string>
-    <string name="calculate_sleep_scores">Punteggi del sonno</string>
-    <string name="calculating_n_of_n">Calcolo di %1$d su %2$d…</string>
-    <string name="sleep_scores_started">Calcolo dei punteggi del sonno per %1$d brani</string>
-    <string name="sleep_scores_already_calculated">Ogni brano scelto ha già un punteggio del sonno</string>
-    <string name="sleep_scores_scored_n">%1$d valutati</string>
-    <string name="sleep_scores_info">Valuta l\'audio di ogni brano in base a quanto è improbabile che disturbi il sonno, per il minimo del timer di spegnimento. I brani già valutati vengono esclusi; il valore resta finché non viene ricalcolato o la valutazione cambia.</string>
-    <string name="sleep_scores_stopped_at">Fermato a %1$d su %2$d, tocca per continuare</string>
 </resources>

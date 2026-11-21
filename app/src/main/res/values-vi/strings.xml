@@ -5568,20 +5568,4 @@
     <string name="choose_a_track">Chọn bài hát</string>
     <string name="fade_in_duration">Thời lượng mờ dần vào</string>
     <string name="loop_this_track">Lặp lại bài này</string>
-    <string name="minimum_sleep_score">Điểm ngủ tối thiểu</string>
-    <string name="sleep_score_out_of">%1$d trên 100</string>
-    <string name="sleep_score_info">Các bài dưới mức này bị bỏ qua khi hẹn giờ chạy, và cả những bài chưa có điểm. Điểm càng cao càng phù hợp để ngủ.</string>
-    <string name="sleep_score_queue_unscored">%1$d bài trong danh sách chờ chưa có điểm</string>
-    <string name="sleep_score_queue_below">%1$d bài trong danh sách chờ ở dưới mức này</string>
-    <string name="temporarily_disable_the_score_limit">Tạm thời tắt giới hạn điểm ngủ</string>
-    <string name="sleep_score_under">Ít nhất %1$d trên 100</string>
-    <string name="sleep_score_none_left">Không còn bài nào có điểm ngủ %1$d trở lên</string>
-    <string name="sleep_score_and_bpm_none_left">Không còn bài nào dưới %1$d BPM và có điểm ngủ %2$d trở lên</string>
-    <string name="calculate_sleep_scores">Điểm ngủ</string>
-    <string name="calculating_n_of_n">Đang tính %1$d trên %2$d…</string>
-    <string name="sleep_scores_started">Đang tính điểm ngủ cho %1$d bài</string>
-    <string name="sleep_scores_already_calculated">Mọi bài đã chọn đều đã có điểm ngủ</string>
-    <string name="sleep_scores_scored_n">Đã chấm %1$d</string>
-    <string name="sleep_scores_info">Chấm điểm âm thanh riêng của từng bài theo mức độ khó gây gián đoạn giấc ngủ, cho mức tối thiểu của hẹn giờ ngủ. Các bài đã có điểm được bỏ qua; con số được giữ cho đến khi tính lại hoặc cách chấm thay đổi.</string>
-    <string name="sleep_scores_stopped_at">Đã dừng ở %1$d trên %2$d, nhấn để tiếp tục</string>
 </resources>

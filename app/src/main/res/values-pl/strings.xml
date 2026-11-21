@@ -5793,20 +5793,4 @@
     <string name="choose_a_track">Wybierz utwór</string>
     <string name="fade_in_duration">Długość płynnego wejścia</string>
     <string name="loop_this_track">Powtarzaj ten utwór</string>
-    <string name="minimum_sleep_score">Minimalna ocena snu</string>
-    <string name="sleep_score_out_of">%1$d ze 100</string>
-    <string name="sleep_score_info">Utwory poniżej tego progu są pomijane podczas działania timera, podobnie jak utwory bez oceny. Wyższa wartość lepiej nadaje się do snu.</string>
-    <string name="sleep_score_queue_unscored">%1$d utworów w kolejce nie ma jeszcze oceny</string>
-    <string name="sleep_score_queue_below">%1$d utworów w kolejce jest poniżej tego progu</string>
-    <string name="temporarily_disable_the_score_limit">Tymczasowo wyłącz limit oceny snu</string>
-    <string name="sleep_score_under">Co najmniej %1$d ze 100</string>
-    <string name="sleep_score_none_left">Nie zostały utwory z oceną snu %1$d lub wyższą</string>
-    <string name="sleep_score_and_bpm_none_left">Nie zostały utwory poniżej %1$d BPM i z oceną snu %2$d lub wyższą</string>
-    <string name="calculate_sleep_scores">Oceny snu</string>
-    <string name="calculating_n_of_n">Obliczanie %1$d z %2$d…</string>
-    <string name="sleep_scores_started">Obliczanie ocen snu dla %1$d utworów</string>
-    <string name="sleep_scores_already_calculated">Każdy wybrany utwór ma już ocenę snu</string>
-    <string name="sleep_scores_scored_n">%1$d oceniono</string>
-    <string name="sleep_scores_info">Ocenia dźwięk każdego utworu pod kątem tego, jak mało prawdopodobne jest zakłócenie snu, na potrzeby minimum wyłącznika czasowego. Utwory z oceną są pomijane; wartość zostaje do ponownego obliczenia lub zmiany sposobu oceniania.</string>
-    <string name="sleep_scores_stopped_at">Zatrzymano na %1$d z %2$d, dotknij, aby kontynuować</string>
 </resources>

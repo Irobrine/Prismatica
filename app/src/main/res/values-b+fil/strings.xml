@@ -5643,20 +5643,4 @@
     <string name="choose_a_track">Pumili ng kanta</string>
     <string name="fade_in_duration">Tagal ng fade in</string>
     <string name="loop_this_track">Ulitin ang kantang ito</string>
-    <string name="minimum_sleep_score">Pinakamababang sleep score</string>
-    <string name="sleep_score_out_of">%1$d sa 100</string>
-    <string name="sleep_score_info">Nilalaktawan ang mga kantang mas mababa rito habang tumatakbo ang timer, gayundin ang mga kantang wala pang score. Mas mainam para sa pagtulog ang mas mataas.</string>
-    <string name="sleep_score_queue_unscored">%1$d sa queue ang wala pang score</string>
-    <string name="sleep_score_queue_below">%1$d sa queue ang mas mababa rito</string>
-    <string name="temporarily_disable_the_score_limit">Pansamantalang patayin ang limitasyon sa sleep score</string>
-    <string name="sleep_score_under">Hindi bababa sa %1$d sa 100</string>
-    <string name="sleep_score_none_left">Wala nang kantang %1$d o mas mataas ang sleep score</string>
-    <string name="sleep_score_and_bpm_none_left">Wala nang kantang mas mababa sa %1$d BPM at %2$d o mas mataas ang sleep score</string>
-    <string name="calculate_sleep_scores">Mga sleep score</string>
-    <string name="calculating_n_of_n">Kinakalkula ang %1$d sa %2$d…</string>
-    <string name="sleep_scores_started">Kinakalkula ang sleep score para sa %1$d kanta</string>
-    <string name="sleep_scores_already_calculated">May sleep score na ang bawat napiling kanta</string>
-    <string name="sleep_scores_scored_n">%1$d ang naiskor</string>
-    <string name="sleep_scores_info">Sinusuri ang sariling audio ng bawat kanta para sa kung gaano ito kadalas makagambala sa pagtulog, para sa minimum ng sleep timer. Hindi kasama ang mga kantang may score na; itinatago ang bilang hanggang muling kalkulahin ito o magbago ang scoring.</string>
-    <string name="sleep_scores_stopped_at">Huminto sa %1$d sa %2$d, i-tap para magpatuloy</string>
 </resources>

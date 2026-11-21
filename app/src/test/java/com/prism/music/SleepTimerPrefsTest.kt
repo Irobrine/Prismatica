@@ -36,14 +36,12 @@ class SleepTimerPrefsTest {
         val prefs = fresh()
         prefs.setMinutes(45)
         prefs.setMaxBpm(120)
-        prefs.setMinScore(64)
         prefs.setFinishSong(true)
         prefs.setVolume(0.35f)
         // A new repository on the same store: the app started again.
         val again = SleepTimerPrefs(context()).choices.value
         assertEquals(45, again.minutes)
         assertEquals(120, again.maxBpm)
-        assertEquals(64, again.minScore)
         assertTrue(again.finishSong)
         assertEquals(0.35f, again.volume, 0f)
     }
@@ -58,10 +56,6 @@ class SleepTimerPrefsTest {
         assertEquals(0, prefs.choices.value.maxBpm)
         prefs.setMaxBpm(10_000)
         assertEquals(SleepTimerPrefs.MAX_BPM_LIMIT, prefs.choices.value.maxBpm)
-        prefs.setMinScore(-5)
-        assertEquals(0, prefs.choices.value.minScore)
-        prefs.setMinScore(10_000)
-        assertEquals(SleepTimerPrefs.MAX_SCORE_LIMIT, prefs.choices.value.minScore)
         prefs.setVolume(-1f)
         assertEquals(0f, prefs.choices.value.volume, 0f)
         prefs.setVolume(3f)

@@ -5643,20 +5643,4 @@
     <string name="choose_a_track">Kies een nummer</string>
     <string name="fade_in_duration">Duur van het infaden</string>
     <string name="loop_this_track">Dit nummer herhalen</string>
-    <string name="minimum_sleep_score">Minimale slaapscore</string>
-    <string name="sleep_score_out_of">%1$d van 100</string>
-    <string name="sleep_score_info">Nummers hieronder worden overgeslagen terwijl de timer loopt, en ook nummers zonder score. Hoger is geschikter voor slapen.</string>
-    <string name="sleep_score_queue_unscored">%1$d in de wachtrij hebben nog geen score</string>
-    <string name="sleep_score_queue_below">%1$d in de wachtrij zitten hieronder</string>
-    <string name="temporarily_disable_the_score_limit">Slaapscorelimiet tijdelijk uitschakelen</string>
-    <string name="sleep_score_under">Minimaal %1$d van 100</string>
-    <string name="sleep_score_none_left">Geen nummers meer met slaapscore %1$d of hoger</string>
-    <string name="sleep_score_and_bpm_none_left">Geen nummers meer onder %1$d BPM en met slaapscore %2$d of hoger</string>
-    <string name="calculate_sleep_scores">Slaapscores</string>
-    <string name="calculating_n_of_n">%1$d van %2$d wordt berekend…</string>
-    <string name="sleep_scores_started">Slaapscores voor %1$d nummers worden berekend</string>
-    <string name="sleep_scores_already_calculated">Elk gekozen nummer heeft al een slaapscore</string>
-    <string name="sleep_scores_scored_n">%1$d gescoord</string>
-    <string name="sleep_scores_info">Scoort de audio van elk nummer op hoe onwaarschijnlijk het is dat het de slaap verstoort, voor het minimum van de slaaptimer. Nummers die al gescoord zijn, worden overgeslagen; een waarde blijft totdat opnieuw wordt berekend of de scoring verandert.</string>
-    <string name="sleep_scores_stopped_at">Gestopt bij %1$d van %2$d, tik om door te gaan</string>
 </resources>

@@ -5643,20 +5643,4 @@
     <string name="choose_a_track">गाना चुनें</string>
     <string name="fade_in_duration">फ़ेड-इन अवधि</string>
     <string name="loop_this_track">इस गाने को दोहराएँ</string>
-    <string name="minimum_sleep_score">न्यूनतम स्लीप स्कोर</string>
-    <string name="sleep_score_out_of">100 में से %1$d</string>
-    <string name="sleep_score_info">टाइमर चलने के दौरान इससे कम वाले गाने छोड़ दिए जाते हैं, और जिनका अभी स्कोर नहीं है वे भी। ज़्यादा स्कोर नींद के लिए ज़्यादा उपयुक्त है।</string>
-    <string name="sleep_score_queue_unscored">कतार में %1$d गानों का अभी स्कोर नहीं है</string>
-    <string name="sleep_score_queue_below">कतार में %1$d गाने इससे कम हैं</string>
-    <string name="temporarily_disable_the_score_limit">स्लीप स्कोर सीमा अस्थायी रूप से बंद करें</string>
-    <string name="sleep_score_under">कम से कम 100 में से %1$d</string>
-    <string name="sleep_score_none_left">%1$d या उससे ज़्यादा स्लीप स्कोर वाला कोई गाना नहीं बचा</string>
-    <string name="sleep_score_and_bpm_none_left">%1$d BPM से कम और %2$d या उससे ज़्यादा स्लीप स्कोर वाला कोई गाना नहीं बचा</string>
-    <string name="calculate_sleep_scores">स्लीप स्कोर</string>
-    <string name="calculating_n_of_n">%2$d में से %1$d की गणना हो रही है…</string>
-    <string name="sleep_scores_started">%1$d गानों के स्लीप स्कोर की गणना हो रही है</string>
-    <string name="sleep_scores_already_calculated">हर चुने गए गाने का स्लीप स्कोर पहले से है</string>
-    <string name="sleep_scores_scored_n">%1$d स्कोर हुए</string>
-    <string name="sleep_scores_info">हर गाने के अपने ऑडियो को इस आधार पर स्कोर करता है कि वह नींद में बाधा डालने की कितनी कम संभावना रखता है, स्लीप टाइमर के न्यूनतम के लिए। जिन गानों का स्कोर पहले से है वे छोड़ दिए जाते हैं; आँकड़ा तब तक रखा जाता है जब तक दोबारा गणना न हो या स्कोरिंग न बदले।</string>
-    <string name="sleep_scores_stopped_at">%2$d में से %1$d पर रुका, जारी रखने के लिए टैप करें</string>
 </resources>

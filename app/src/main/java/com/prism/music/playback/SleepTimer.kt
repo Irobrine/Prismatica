@@ -69,12 +69,6 @@ interface SleepAudio {
     fun restoreVolume()
 
     fun reportNoEligibleSongs(maxBpm: Int)
-
-    /** No song at or above the score limit is left (a minimum score is set, and nothing fits it). */
-    fun reportNoEligibleScores(minScore: Int) {}
-
-    /** Nothing either limit allows is left: the message names both. */
-    fun reportNoEligibleSongsAndScores(maxBpm: Int, minScore: Int) {}
 }
 
 /** One session's choices, as they were when it started (later edits happen through the active timer menu). */
@@ -85,8 +79,6 @@ data class SleepConfig(
     val finishSong: Boolean,
     /** The volume slider's place, 0 … 1. */
     val volume: Float,
-    /** The least sleep suitability a song may have while the timer runs, 0–100; 0 is no limit. */
-    val minScore: Int = 0,
 )
 
 /**
@@ -126,21 +118,6 @@ object SleepBpm {
 }
 
 /**
- * The sleep suitability rule (1.9): a song is allowed when its score is at least [minScore]. An uncalculated song is
- * never let through while the rule is on — like an unmeasured tempo, a missing figure is not evidence of suitability —
- * and the same goes for a figure that came from another scoring version ([com.prism.music.data.sleep.SleepScores] keeps
- * none of those), so the filter only ever sees current figures.
- */
-object SleepSuitability {
-    /** [minScore] 0 (or less) means no limit: everything is allowed. */
-    fun allows(score: Double?, minScore: Int): Boolean {
-        if (minScore <= 0) return true
-        if (score == null || !score.isFinite()) return false
-        return score >= minScore
-    }
-}
-
-/**
  * The running sleep timer. [SleepTimerPrefs] holds what the listener chose; this holds the one session that is running
  * now: its deadline, overtime, temporary BPM override and the fade being applied.
  */
@@ -151,8 +128,6 @@ class SleepTimerEngine(
     private val wallClock: () -> Long = System::currentTimeMillis,
     /** A session that ended by itself (not cancelled): what a listener set only for that session can be put back. */
     private val onEnded: () -> Unit = {},
-    /** The recording's sleep suitability (0–100), or null while it hasn't been calculated ([SleepSuitability]). */
-    private val scoreOf: (String) -> Double? = { null },
 ) {
     private val _active = MutableStateFlow(false)
     val active: StateFlow<Boolean> = _active.asStateFlow()
@@ -173,18 +148,10 @@ class SleepTimerEngine(
     private val _maxBpm = MutableStateFlow(0)
     val maxBpm: StateFlow<Int> = _maxBpm.asStateFlow()
 
-    /** The temporary "allow every score" override of the active menu. Reset when the session ends. */
-    private val _scoreDisabled = MutableStateFlow(false)
-    val scoreDisabled: StateFlow<Boolean> = _scoreDisabled.asStateFlow()
-
-    /** The least score this session was started with (0 when none). */
-    private val _minScore = MutableStateFlow(0)
-    val minScore: StateFlow<Int> = _minScore.asStateFlow()
-
     private var deadline = 0L
     private var fadeMs = 0L
 
-    /** Snapshot of the running session: read from the playback thread too (the gate asks from autoplay's work). */
+    /** Snapshot of the running session: read from the playback thread too (the BPM gate asks from autoplay's work). */
     @Volatile private var config = SleepConfig(0, 0, 0, false, 1f)
     private var overtime = false
     private var overtimeKey: String? = null
@@ -203,17 +170,14 @@ class SleepTimerEngine(
             fadeSeconds = (config.fadeSeconds.coerceAtLeast(0)),
             maxBpm = config.maxBpm.coerceAtLeast(0),
             volume = config.volume.coerceIn(0f, 1f),
-            minScore = config.minScore.coerceIn(0, 100),
         )
         fadeMs = SleepClock.fadeMs(this.config.minutes, this.config.fadeSeconds)
         deadline = clock() + this.config.minutes * 60_000L
         overtime = false
         overtimeKey = null
         _maxBpm.value = this.config.maxBpm
-        _minScore.value = this.config.minScore
         _finishSong.value = this.config.finishSong
         _bpmDisabled.value = false
-        _scoreDisabled.value = false
         _wallDeadline.value = wallClock() + this.config.minutes * 60_000L
         _active.value = true
         audio.setSessionVolume(this.config.volume)
@@ -228,9 +192,7 @@ class SleepTimerEngine(
         _wallDeadline.value = 0L
         _finishSong.value = false
         _bpmDisabled.value = false
-        _scoreDisabled.value = false
         _maxBpm.value = 0
-        _minScore.value = 0
         overtime = false
         overtimeKey = null
         deadline = 0L
@@ -265,24 +227,6 @@ class SleepTimerEngine(
         _bpmDisabled.value = disabled
     }
 
-    /** The score limit's own temporary override ("allow every score" for this session). */
-    fun setScoreDisabled(disabled: Boolean) {
-        if (!_active.value) return
-        _scoreDisabled.value = disabled
-    }
-
-    /**
-     * The score limit changed while the session runs (the timer menu's own slider, or a setting): applied at once, so the
-     * queue is judged by what is set now rather than by what it was at start. Cancelling still keeps the listener's
-     * choice; this only moves the running session.
-     */
-    fun setMinScore(minScore: Int) {
-        if (!_active.value) return
-        val v = minScore.coerceIn(0, 100)
-        config = config.copy(minScore = v)
-        _minScore.value = v
-    }
-
     /**
      * Changes the running session's volume at once (the active timer's own slider). The fade on top of it is unchanged,
      * and the volume the listener had before the session is still what comes back when it ends.
@@ -298,32 +242,6 @@ class SleepTimerEngine(
     fun blocksBpm(songId: String?): Boolean {
         if (!_active.value || _bpmDisabled.value || config.maxBpm <= 0) return false
         return !SleepBpm.allows(songId?.let(bpmOf), config.maxBpm)
-    }
-
-    /**
-     * Whether the session's score limit rules [songId] out right now. A song whose score hasn't been calculated, or whose
-     * figure is from an older scoring version, is ruled out: the limit is never satisfied by missing evidence.
-     */
-    fun blocksScore(songId: String?): Boolean {
-        if (!_active.value || _scoreDisabled.value || config.minScore <= 0) return false
-        return !SleepSuitability.allows(songId?.let(scoreOf), config.minScore)
-    }
-
-    /** Whether either of the session's limits rules [songId] out: what the queue walk and the playlist additions use. */
-    fun blocks(songId: String?): Boolean = blocksBpm(songId) || blocksScore(songId)
-
-    /** Whether the session's score limit is on at all (set, and not overridden): the queue's UI says what it passes over. */
-    fun filteringScore(): Boolean = _active.value && !_scoreDisabled.value && config.minScore > 0
-
-    /** Says that nothing the session's limits allow is left, naming the ones that are on (not the overridden ones). */
-    fun reportNoEligible() {
-        val bpm = if (!_bpmDisabled.value) config.maxBpm else 0
-        val min = if (!_scoreDisabled.value) config.minScore else 0
-        when {
-            min > 0 && bpm > 0 -> audio.reportNoEligibleSongsAndScores(bpm, min)
-            min > 0 -> audio.reportNoEligibleScores(min)
-            else -> audio.reportNoEligibleSongs(bpm)
-        }
     }
 
     /**
@@ -411,9 +329,7 @@ class SleepTimerEngine(
         _wallDeadline.value = 0L
         _finishSong.value = false
         _bpmDisabled.value = false
-        _scoreDisabled.value = false
         _maxBpm.value = 0
-        _minScore.value = 0
         overtime = false
         overtimeKey = null
         deadline = 0L

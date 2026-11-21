@@ -5,7 +5,6 @@ import com.prism.music.playback.SleepBpm
 import com.prism.music.playback.SleepClock
 import com.prism.music.playback.SleepConfig
 import com.prism.music.playback.SleepFade
-import com.prism.music.playback.SleepSuitability
 import com.prism.music.playback.SleepTimerEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -45,8 +44,8 @@ class SleepTimerTest {
     private fun engine(audio: FakeAudio, bpms: Map<String, Double?> = emptyMap(), wall: () -> Long = { now }, onEnded: () -> Unit = {}): SleepTimerEngine =
         SleepTimerEngine(audio, { bpms[it] }, { now }, wall, onEnded)
 
-    private fun config(minutes: Int = 30, fade: Int = 0, maxBpm: Int = 0, finish: Boolean = false, volume: Float = 1f, minScore: Int = 0) =
-        SleepConfig(minutes, fade, maxBpm, finish, volume, minScore)
+    private fun config(minutes: Int = 30, fade: Int = 0, maxBpm: Int = 0, finish: Boolean = false, volume: Float = 1f) =
+        SleepConfig(minutes, fade, maxBpm, finish, volume)
 
     // ---------------------------------------------------------------- the fade
 
@@ -194,64 +193,6 @@ class SleepTimerTest {
         engine.cancel()
         assertFalse(engine.blocksBpm("fast"))
         assertFalse(engine.blocksBpm("unknown"))
-    }
-
-    // ---------------------------------------------------------------- sleep score
-
-    @Test fun theScoreLimitPassesOverLowAndUncalculatedSongsAndZeroMeansOff() {
-        assertTrue(SleepSuitability.allows(60.0, 60))
-        assertTrue(SleepSuitability.allows(100.0, 60))
-        assertFalse(SleepSuitability.allows(59.0, 60))
-        // A missing figure is never let through while a limit is on: it isn't evidence of suitability.
-        assertFalse(SleepSuitability.allows(null, 60))
-        assertFalse(SleepSuitability.allows(Double.NaN, 60))
-        assertTrue(SleepSuitability.allows(null, 0))
-        assertTrue(SleepSuitability.allows(0.0, 0))
-    }
-
-    @Test fun aSessionFiltersByScoreTooAndItsOwnOverrideIsOnlyWhileItRuns() {
-        val audio = FakeAudio()
-        val scores = mapOf("calm" to 82.0, "loud" to 12.0, "unknown" to null)
-        val engine = SleepTimerEngine(audio, { null }, { now }, { now }, {}, scoreOf = { scores[it] })
-        engine.start(config(minScore = 60))
-        assertFalse(engine.blocksScore("calm"))
-        assertTrue(engine.blocksScore("loud"))
-        assertTrue("uncalculated songs are passed over", engine.blocksScore("unknown"))
-        assertTrue(engine.blocks("loud"))
-        assertTrue(engine.filteringScore())
-        engine.setScoreDisabled(true)
-        assertFalse(engine.blocksScore("loud"))
-        assertFalse(engine.blocksScore("unknown"))
-        assertFalse(engine.filteringScore())
-        engine.setScoreDisabled(false)
-        assertTrue(engine.blocks("loud"))
-        engine.cancel()
-        assertFalse(engine.blocksScore("loud"))
-        assertFalse(engine.filteringScore())
-    }
-
-    @Test fun theScoreLimitCanMoveWhileTheSessionRuns() {
-        val audio = FakeAudio()
-        val engine = SleepTimerEngine(audio, { null }, { now }, { now }, {}, scoreOf = { 55.0 })
-        engine.start(config(minScore = 60))
-        assertTrue(engine.blocksScore("a"))
-        engine.setMinScore(50)
-        assertEquals(50, engine.minScore.value)
-        assertFalse("the running session takes the new limit up", engine.blocksScore("a"))
-        engine.setMinScore(0)
-        assertFalse(engine.filteringScore())
-    }
-
-    @Test fun bothLimitsMustPass() {
-        val audio = FakeAudio()
-        val engine = SleepTimerEngine(
-            audio, { id -> if (id == "fast") 150.0 else 90.0 }, { now }, { now }, {},
-            scoreOf = { id -> if (id == "low") 10.0 else 90.0 },
-        )
-        engine.start(config(maxBpm = 120, minScore = 60))
-        assertTrue("too slow enough, but its score is too low", engine.blocks("low"))
-        assertTrue("calm enough, but too fast", engine.blocks("fast"))
-        assertFalse("inside both limits", engine.blocks("inside"))
     }
 
     // ---------------------------------------------------------------- the countdown

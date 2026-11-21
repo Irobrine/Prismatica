@@ -5643,20 +5643,4 @@
     <string name="choose_a_track">Επιλογή τραγουδιού</string>
     <string name="fade_in_duration">Διάρκεια σταδιακής εισόδου</string>
     <string name="loop_this_track">Επανάληψη αυτού του τραγουδιού</string>
-    <string name="minimum_sleep_score">Ελάχιστη βαθμολογία ύπνου</string>
-    <string name="sleep_score_out_of">%1$d από 100</string>
-    <string name="sleep_score_info">Τα τραγούδια κάτω από αυτό παραλείπονται όσο τρέχει ο χρονοδιακόπτης, όπως και τα τραγούδια χωρίς βαθμολογία ακόμη. Όσο υψηλότερη, τόσο πιο κατάλληλη για ύπνο.</string>
-    <string name="sleep_score_queue_unscored">%1$d στην ουρά δεν έχουν βαθμολογία ακόμη</string>
-    <string name="sleep_score_queue_below">%1$d στην ουρά είναι κάτω από αυτό</string>
-    <string name="temporarily_disable_the_score_limit">Προσωρινή απενεργοποίηση του ορίου βαθμολογίας ύπνου</string>
-    <string name="sleep_score_under">Τουλάχιστον %1$d από 100</string>
-    <string name="sleep_score_none_left">Δεν έμειναν τραγούδια με βαθμολογία ύπνου %1$d ή υψηλότερη</string>
-    <string name="sleep_score_and_bpm_none_left">Δεν έμειναν τραγούδια κάτω από %1$d BPM και με βαθμολογία ύπνου %2$d ή υψηλότερη</string>
-    <string name="calculate_sleep_scores">Βαθμολογίες ύπνου</string>
-    <string name="calculating_n_of_n">Υπολογισμός %1$d από %2$d…</string>
-    <string name="sleep_scores_started">Υπολογισμός βαθμολογιών ύπνου για %1$d τραγούδια</string>
-    <string name="sleep_scores_already_calculated">Κάθε επιλεγμένο τραγούδι έχει ήδη βαθμολογία ύπνου</string>
-    <string name="sleep_scores_scored_n">%1$d βαθμολογήθηκαν</string>
-    <string name="sleep_scores_info">Βαθμολογεί τον ήχο κάθε τραγουδιού για το πόσο απίθανο είναι να διακόψει τον ύπνο, για το ελάχιστο του χρονοδιακόπτη ύπνου. Τα τραγούδια που έχουν ήδη βαθμολογηθεί παραλείπονται· η τιμή διατηρείται μέχρι να υπολογιστεί ξανά ή να αλλάξει η βαθμολόγηση.</string>
-    <string name="sleep_scores_stopped_at">Σταμάτησε στο %1$d από %2$d, πάτα για συνέχεια</string>
 </resources>

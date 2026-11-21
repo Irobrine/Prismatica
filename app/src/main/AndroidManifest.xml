@@ -566,12 +566,6 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!-- The "Calculate sleep scores" walks, likewise (1.9): a library takes a recording's decode and analysis per song. -->
-        <service
-            android:name=".playback.SleepScoreService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-
         <!-- Lyrics enhancement's queue, likewise: a batch of songs can run for an hour once the screen is off. -->
         <service
             android:name=".data.enhance.EnhanceService"
