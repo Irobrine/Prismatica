@@ -5714,4 +5714,8 @@
     <string name="color_scheme">Schema colori</string>
     <string name="scheme_variant">Variante</string>
     <string name="color_scheme_info">Le pagine, l\'inchiostro e la luce di un tema che conosci, nei colori pubblicati dai suoi autori. L\'opzione Prism lascia ogni impostazione di questa pagina com\'è.</string>
+    <string name="play_after_the_timer">Riproduci dopo il timer</string>
+    <string name="choose_a_track">Scegli un brano</string>
+    <string name="fade_in_duration">Durata della dissolvenza in entrata</string>
+    <string name="loop_this_track">Ripeti questo brano</string>
 </resources>

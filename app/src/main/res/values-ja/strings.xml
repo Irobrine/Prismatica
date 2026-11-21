@@ -5564,4 +5564,8 @@
     <string name="color_scheme">カラースキーム</string>
     <string name="scheme_variant">バリエーション</string>
     <string name="color_scheme_info">見慣れたテーマのページ、インク、光を、その製作者が公開している色で。Prism オプションでは、このページの設定はすべてそのままになります。</string>
+    <string name="play_after_the_timer">タイマー後に再生</string>
+    <string name="choose_a_track">曲を選択</string>
+    <string name="fade_in_duration">フェードインの長さ</string>
+    <string name="loop_this_track">この曲を繰り返す</string>
 </resources>

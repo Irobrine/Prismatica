@@ -1585,13 +1585,100 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     private var sleepJob: Job? = null
     private var sleepRestoreJob: Job? = null
 
+    /** The track the timer handed over to when it finished (null: none), and its fade-in. */
+    private var afterTimerSongId: String? = null
+    private var afterTimerLoop = false
+    private var afterTimerStarted = false
+    private var afterTimerRestarting = false
+    private var afterTimerPendingAt = 0L
+    private var afterTimerFadeJob: Job? = null
+
     /**
      * The BPM filter belonged to the session that just ran out: it goes back off for what plays next. Cancelling keeps
-     * the listener's saved choices (the same as the timer's other settings).
+     * the listener's saved choices (the same as the timer's other settings). If the menu chose a track to play after the
+     * timer, that starts here, fading in at the listener's own volume rather than the bedtime one.
      */
     private fun onSleepSessionEnded() {
         pausedBySleepBpm = false
         c.sleepPrefs.setMaxBpm(0)
+        val choices = c.sleepPrefs.choices.value
+        val song = choices.afterSong ?: return
+        afterTimerFadeJob?.cancel()
+        afterTimerSongId = song.id
+        afterTimerLoop = choices.loopAfter
+        afterTimerStarted = false
+        afterTimerPendingAt = android.os.SystemClock.elapsedRealtime()
+        // The bedtime volume and its fade were only for the timer: the after-track plays at the listener's own volume,
+        // starting silent so it can fade in.
+        NormalizerProcessor.sleepVolume = 1f
+        NormalizerProcessor.fadeVolume = if (choices.fadeInSeconds > 0) 0f else 1f
+        scope.launch { startAfterTimer(song, choices.fadeInSeconds * 1_000L) }
+    }
+
+    /** Starts [song] alone (the timer's work is done) and fades it in over [fadeInMs]. */
+    private fun startAfterTimer(song: Song, fadeInMs: Long) {
+        if (afterTimerSongId != song.id) return
+        playSingle(song)
+        afterTimerFadeJob?.cancel()
+        if (fadeInMs <= 0L) {
+            NormalizerProcessor.fadeVolume = 1f
+            return
+        }
+        val from = android.os.SystemClock.elapsedRealtime()
+        afterTimerFadeJob = scope.launch {
+            while (afterTimerSongId == song.id) {
+                val progress = ((android.os.SystemClock.elapsedRealtime() - from).toFloat() / fadeInMs).coerceIn(0f, 1f)
+                NormalizerProcessor.fadeVolume = SleepFade.gainIn(progress)
+                if (progress >= 1f) break
+                kotlinx.coroutines.delay(40)
+            }
+            if (afterTimerSongId == song.id) NormalizerProcessor.fadeVolume = 1f
+        }
+    }
+
+    /** Leaves the after-timer track's special handling (its fade, its loop) and puts normal volume back. */
+    private fun stopAfterTimer() {
+        afterTimerFadeJob?.cancel()
+        afterTimerFadeJob = null
+        afterTimerSongId = null
+        afterTimerLoop = false
+        afterTimerStarted = false
+        afterTimerRestarting = false
+        afterTimerPendingAt = 0L
+        NormalizerProcessor.fadeVolume = 1f
+        NormalizerProcessor.sleepVolume = 1f
+    }
+
+    /**
+     * The after-timer track is one song: when it ends it starts over if "Loop this track" is on (without changing the
+     * player's own repeat setting), and the moment anything else plays the special handling is over.
+     */
+    private fun handleAfterTimer() {
+        val id = afterTimerSongId ?: return
+        val p = player ?: return
+        val current = p.currentMediaItem?.toSong()?.id
+        if (!afterTimerStarted) {
+            if (current == id) afterTimerStarted = true
+            else if (afterTimerPendingAt > 0 && android.os.SystemClock.elapsedRealtime() - afterTimerPendingAt > 5_000) stopAfterTimer()
+            return
+        }
+        if (current != id) {
+            stopAfterTimer()
+            return
+        }
+        if (p.playbackState != Player.STATE_ENDED) return
+        if (!afterTimerLoop) {
+            stopAfterTimer()
+            return
+        }
+        if (afterTimerRestarting) return
+        afterTimerRestarting = true
+        try {
+            p.seekTo(0)
+            p.play()
+        } finally {
+            afterTimerRestarting = false
+        }
     }
 
     /** The timer's own pause, so switching the BPM limit off can bring the music back (a listener's pause stays). */
@@ -1611,6 +1698,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
      * replaced, and the BPM limit (if one was picked) applies to the song playing now at once.
      */
     fun startSleepTimer(fadeSeconds: Int? = null) {
+        stopAfterTimer()
         val choices = c.sleepPrefs.choices.value
         sleepTimer.start(
             SleepConfig(
@@ -1630,6 +1718,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** The old one-tap API (a chip's minutes): the same session with the saved choices, the time picked here. */
     fun setSleepTimer(minutes: Int) {
         if (minutes <= 0) { cancelSleepTimer(); return }
+        stopAfterTimer()
         val choices = c.sleepPrefs.choices.value
         sleepTimer.start(
             SleepConfig(
@@ -1647,6 +1736,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** The old end-of-song API: a session that finishes the current song over the saved countdown. */
     fun setSleepEndOfSong(on: Boolean) {
         if (!on) { cancelSleepTimer(); return }
+        stopAfterTimer()
         val choices = c.sleepPrefs.choices.value
         sleepTimer.start(
             SleepConfig(
@@ -1668,6 +1758,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         sleepRestoreJob?.cancel()
         sleepRestoreJob = null
         pausedBySleepBpm = false
+        stopAfterTimer()
         sleepTimer.cancel()
     }
 
@@ -1789,9 +1880,12 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 }
                 val wait = sleepTimer.tick()
                 if (!sleepTimer.active.value) {
-                    sleepRestoreJob = scope.launch {
-                        kotlinx.coroutines.delay(400)
-                        if (!sleepTimer.active.value) sleepAudio.restoreVolume()
+                    // A chosen after-timer track takes the volume over from here; otherwise let the buffer play out silent.
+                    if (afterTimerSongId == null) {
+                        sleepRestoreJob = scope.launch {
+                            kotlinx.coroutines.delay(400)
+                            if (!sleepTimer.active.value && afterTimerSongId == null) sleepAudio.restoreVolume()
+                        }
                     }
                     return@launch
                 }
@@ -1800,8 +1894,13 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         }
     }
 
-    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-        // Output return (Settings → Playback): remember only a pause the audio output itself caused, so the same
+    override fun onPlaybackStateChanged(playbackState: Int) {
+        // The after-timer track is one item: its end is where "Loop this track" starts it over (or the special handling
+        // ends). Events also pass through refresh, but this is the one moment it matters.
+        if (afterTimerSongId != null && playbackState == Player.STATE_ENDED) handleAfterTimer()
+    }
+
+    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {        // Output return (Settings → Playback): remember only a pause the audio output itself caused, so the same
         // Bluetooth output coming back can pick the music up; any other pause, and any play, ends the wait.
         if (playWhenReady) {
             outputReturn.played()
@@ -1905,6 +2004,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         updateLyricTiming()
         // A seek, a pause or a queue change moves where the current song ends: the running timer works its stop out again.
         if (sleepTimer.active.value) sleepTimer.tick()
+        if (afterTimerSongId != null) handleAfterTimer()
     }
 
     /** Called when a music video failed to load; the button stays usable so it can be tried again. */

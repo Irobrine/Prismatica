@@ -5564,4 +5564,8 @@
     <string name="color_scheme">ชุดสี</string>
     <string name="scheme_variant">รูปแบบ</string>
     <string name="color_scheme_info">หน้า หมึก และแสงของธีมที่คุณคุ้นเคย ในสีที่ผู้สร้างเผยแพร่ ตัวเลือก Prism จะคงการตั้งค่าทุกอย่างในหน้านี้ไว้ตามเดิม</string>
+    <string name="play_after_the_timer">เล่นหลังตัวจับเวลา</string>
+    <string name="choose_a_track">เลือกเพลง</string>
+    <string name="fade_in_duration">ระยะเวลาเฟดอิน</string>
+    <string name="loop_this_track">วนเพลงนี้</string>
 </resources>

@@ -5639,4 +5639,8 @@
     <string name="color_scheme">রঙের স্কিম</string>
     <string name="scheme_variant">ভ্যারিয়েন্ট</string>
     <string name="color_scheme_info">আপনার চেনা একটি থিমের পাতা, কালি ও আলো, তার নির্মাতাদের প্রকাশ করা রঙে। Prism বিকল্প এই পাতার প্রতিটি সেটিং যেমন আছে তেমনই রাখে।</string>
+    <string name="play_after_the_timer">টাইমারের পরে চালান</string>
+    <string name="choose_a_track">গান বাছুন</string>
+    <string name="fade_in_duration">ফেড-ইন সময়কাল</string>
+    <string name="loop_this_track">এই গানটি লুপ করুন</string>
 </resources>

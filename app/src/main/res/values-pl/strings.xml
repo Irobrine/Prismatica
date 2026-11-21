@@ -5789,4 +5789,8 @@
     <string name="color_scheme">Schemat kolorów</string>
     <string name="scheme_variant">Wariant</string>
     <string name="color_scheme_info">Strony, atrament i światło motywu, który znasz, w kolorach publikowanych przez jego twórców. Opcja Prism zostawia każde ustawienie na tej stronie bez zmian.</string>
+    <string name="play_after_the_timer">Odtwórz po wyłączeniu</string>
+    <string name="choose_a_track">Wybierz utwór</string>
+    <string name="fade_in_duration">Długość płynnego wejścia</string>
+    <string name="loop_this_track">Powtarzaj ten utwór</string>
 </resources>

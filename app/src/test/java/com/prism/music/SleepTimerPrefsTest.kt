@@ -1,6 +1,7 @@
 package com.prism.music
 
 import android.content.Context
+import com.prism.music.data.model.Song
 import com.prism.music.data.prefs.SleepTimerChoices
 import com.prism.music.data.prefs.SleepTimerPrefs
 import org.junit.Assert.assertEquals
@@ -59,6 +60,31 @@ class SleepTimerPrefsTest {
         assertEquals(0f, prefs.choices.value.volume, 0f)
         prefs.setVolume(3f)
         assertEquals(1f, prefs.choices.value.volume, 0f)
+    }
+
+    @Test fun theAfterTimerTrackAndItsFadeAreRemembered() {
+        val prefs = fresh()
+        val song = Song("after", "After song")
+        prefs.setAfterSong(song)
+        prefs.setFadeInSeconds(12)
+        prefs.setLoopAfter(true)
+        val again = SleepTimerPrefs(context()).choices.value
+        assertEquals("after", again.afterSong?.id)
+        assertEquals("After song", again.afterSong?.title)
+        assertEquals(12, again.fadeInSeconds)
+        assertTrue(again.loopAfter)
+        // Clearing it goes back to stopping at silence; the other choices stay.
+        prefs.setAfterSong(null)
+        assertNull(SleepTimerPrefs(context()).choices.value.afterSong)
+        assertEquals(12, SleepTimerPrefs(context()).choices.value.fadeInSeconds)
+    }
+
+    @Test fun theFadeInIsKeptInRange() {
+        val prefs = fresh()
+        prefs.setFadeInSeconds(-5)
+        assertEquals(0, prefs.choices.value.fadeInSeconds)
+        prefs.setFadeInSeconds(10_000)
+        assertEquals(SleepTimerPrefs.MAX_FADE_IN_SECONDS, prefs.choices.value.fadeInSeconds)
     }
 
     @Test fun aTypedNumberOfMinutesIsKeptInsideTheMenusRange() {

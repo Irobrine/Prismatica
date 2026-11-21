@@ -5714,4 +5714,8 @@
     <string name="color_scheme">Schemă de culori</string>
     <string name="scheme_variant">Variantă</string>
     <string name="color_scheme_info">Paginile, cerneala și lumina unei teme pe care o știi, în culorile publicate de creatorii ei. Opțiunea Prism lasă fiecare setare de pe această pagină așa cum este.</string>
+    <string name="play_after_the_timer">Redă după temporizator</string>
+    <string name="choose_a_track">Alege o piesă</string>
+    <string name="fade_in_duration">Durata estompării la început</string>
+    <string name="loop_this_track">Repetă această piesă</string>
 </resources>

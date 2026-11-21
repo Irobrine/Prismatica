@@ -5639,4 +5639,8 @@
     <string name="color_scheme">Renk şeması</string>
     <string name="scheme_variant">Varyant</string>
     <string name="color_scheme_info">Bildiğin bir temanın sayfaları, mürekkebi ve ışığı, yapımcılarının yayımladığı renklerle. Prism seçeneği bu sayfadaki her ayarı olduğu gibi bırakır.</string>
+    <string name="play_after_the_timer">Zamanlayıcıdan sonra çal</string>
+    <string name="choose_a_track">Bir parça seç</string>
+    <string name="fade_in_duration">Ses açılma süresi</string>
+    <string name="loop_this_track">Bu parçayı döngüye al</string>
 </resources>

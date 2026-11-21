@@ -1,6 +1,7 @@
 package com.prism.music
 
 import android.content.Context
+import android.os.Looper
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.test.core.app.ApplicationProvider
@@ -8,6 +9,7 @@ import com.prism.music.data.model.Song
 import com.prism.music.playback.HistoryShuffleOrder
 import com.prism.music.playback.NormalizerProcessor
 import com.prism.music.playback.toMediaItem
+import com.prism.music.playback.toSong
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,6 +19,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -172,6 +175,38 @@ class SleepTimerConnectionTest {
         assertEquals(NormalizerProcessor.volumeFor(0.5f), NormalizerProcessor.sleepVolume, 1e-5f)
         c.player.cancelSleepTimer()
         assertEquals(1f, NormalizerProcessor.sleepVolume, 0f)
+    }
+
+    @Test fun theChosenTrackStartsWhenTheTimerFinishes() {
+        queue(song("slow", 100.0))
+        val after = Song("after", "After song")
+        c.sleepPrefs.setMinutes(1)
+        c.sleepPrefs.setMaxBpm(0)
+        c.sleepPrefs.setFinishSong(false)
+        c.sleepPrefs.setVolume(1f)
+        c.sleepPrefs.setAfterSong(after)
+        c.sleepPrefs.setFadeInSeconds(0)
+        c.sleepPrefs.setLoopAfter(false)
+        c.player.startSleepTimer()
+        // -5 from a one-minute timer runs it out; the after-track then takes over at the listener's own volume.
+        c.player.adjustSleepTimer(-5)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals("after", player.currentMediaItem?.toSong()?.id)
+        assertTrue(player.playWhenReady)
+        assertEquals(1f, NormalizerProcessor.sleepVolume, 0f)
+        assertEquals(1f, NormalizerProcessor.fadeVolume, 0f)
+    }
+
+    @Test fun theChosenTrackAndItsFadeSurviveACancel() {
+        queue(song("slow", 100.0))
+        timer()
+        c.sleepPrefs.setAfterSong(Song("after", "After song"))
+        c.sleepPrefs.setFadeInSeconds(20)
+        c.sleepPrefs.setLoopAfter(true)
+        c.player.cancelSleepTimer()
+        assertEquals("after", c.sleepPrefs.choices.value.afterSong?.id)
+        assertEquals(20, c.sleepPrefs.choices.value.fadeInSeconds)
+        assertTrue(c.sleepPrefs.choices.value.loopAfter)
     }
 
     @Test fun theEditMenusVolumeChangesTheSessionAndIsRemembered() {

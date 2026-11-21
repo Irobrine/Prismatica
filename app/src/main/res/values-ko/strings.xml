@@ -5564,4 +5564,8 @@
     <string name="color_scheme">색상 구성표</string>
     <string name="scheme_variant">변형</string>
     <string name="color_scheme_info">익숙한 테마의 페이지, 잉크, 빛을 제작자가 공개한 색으로. Prism 옵션은 이 페이지의 모든 설정을 그대로 유지해요.</string>
+    <string name="play_after_the_timer">타이머 후 재생</string>
+    <string name="choose_a_track">곡 선택</string>
+    <string name="fade_in_duration">페이드인 길이</string>
+    <string name="loop_this_track">이 곡 반복</string>
 </resources>

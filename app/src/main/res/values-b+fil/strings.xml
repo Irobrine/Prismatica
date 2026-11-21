@@ -5639,4 +5639,8 @@
     <string name="color_scheme">Scheme ng kulay</string>
     <string name="scheme_variant">Baryante</string>
     <string name="color_scheme_info">Ang mga pahina, tinta at liwanag ng isang temang kilala mo, sa mga kulay na inilathala ng gumawa nito. Hindi ginagalaw ng Prism na opsyon ang anumang setting sa pahinang ito.</string>
+    <string name="play_after_the_timer">I-play pagkatapos ng timer</string>
+    <string name="choose_a_track">Pumili ng kanta</string>
+    <string name="fade_in_duration">Tagal ng fade in</string>
+    <string name="loop_this_track">Ulitin ang kantang ito</string>
 </resources>

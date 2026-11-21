@@ -5639,4 +5639,8 @@
     <string name="color_scheme">طرح رنگ</string>
     <string name="scheme_variant">گونه</string>
     <string name="color_scheme_info">صفحه‌ها، جوهر و نور تمی که می‌شناسید، با رنگ‌هایی که سازندگانش منتشر می‌کنند. گزینه Prism هر تنظیم این صفحه را همان‌طور که هست نگه می‌دارد.</string>
+    <string name="play_after_the_timer">پخش پس از تایمر</string>
+    <string name="choose_a_track">انتخاب آهنگ</string>
+    <string name="fade_in_duration">مدت محو شدن ورودی</string>
+    <string name="loop_this_track">تکرار این آهنگ</string>
 </resources>

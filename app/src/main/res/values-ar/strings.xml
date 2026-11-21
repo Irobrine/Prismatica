@@ -5939,4 +5939,8 @@
     <string name="color_scheme">نظام الألوان</string>
     <string name="scheme_variant">المتغيّر</string>
     <string name="color_scheme_info">صفحات سمة تعرفها وحبرها وضوؤها، بألوان ينشرها صانعوها. ويُبقي خيار Prism كل إعداد في هذه الصفحة كما هو.</string>
+    <string name="play_after_the_timer">تشغيل بعد المؤقت</string>
+    <string name="choose_a_track">اختيار أغنية</string>
+    <string name="fade_in_duration">مدة التلاشي للداخل</string>
+    <string name="loop_this_track">تكرار هذه الأغنية</string>
 </resources>

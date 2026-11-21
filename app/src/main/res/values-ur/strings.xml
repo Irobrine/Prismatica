@@ -5639,4 +5639,8 @@
     <string name="color_scheme">رنگ سکیم</string>
     <string name="scheme_variant">ویرینٹ</string>
     <string name="color_scheme_info">آپ کے جانتے ہوئے تھیم کے صفحات، روشنائی اور روشنی، اُس کے بنانے والوں کے شائع کردہ رنگوں میں۔ Prism کا آپشن اِس صفحے کی ہر سیٹنگ کو ویسا ہی رکھتا ہے۔</string>
+    <string name="play_after_the_timer">ٹائمر کے بعد چلائیں</string>
+    <string name="choose_a_track">گانا منتخب کریں</string>
+    <string name="fade_in_duration">فیڈ اِن دورانیہ</string>
+    <string name="loop_this_track">اس گانے کو دہرائیں</string>
 </resources>

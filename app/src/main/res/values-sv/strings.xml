@@ -5639,4 +5639,8 @@
     <string name="color_scheme">Färgschema</string>
     <string name="scheme_variant">Variant</string>
     <string name="color_scheme_info">Sidorna, bläcket och ljuset i ett tema du känner igen, i färgerna som skaparna publicerar. Alternativet Prism lämnar varje inställning på den här sidan som den är.</string>
+    <string name="play_after_the_timer">Spela efter timern</string>
+    <string name="choose_a_track">Välj ett spår</string>
+    <string name="fade_in_duration">Intoningens längd</string>
+    <string name="loop_this_track">Upprepa det här spåret</string>
 </resources>

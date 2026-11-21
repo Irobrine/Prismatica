@@ -5789,4 +5789,8 @@
     <string name="color_scheme">Barevné schéma</string>
     <string name="scheme_variant">Varianta</string>
     <string name="color_scheme_info">Stránky, inkoust a světlo motivu, který znáš, v barvách, které jeho tvůrci zveřejňují. Volba Prism nechá každé nastavení na této stránce tak, jak je.</string>
+    <string name="play_after_the_timer">Přehrát po časovači</string>
+    <string name="choose_a_track">Vybrat skladbu</string>
+    <string name="fade_in_duration">Délka prolínání na začátku</string>
+    <string name="loop_this_track">Opakovat tuto skladbu</string>
 </resources>

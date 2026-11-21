@@ -5639,4 +5639,8 @@
     <string name="color_scheme">Kleurenschema</string>
     <string name="scheme_variant">Variant</string>
     <string name="color_scheme_info">De pagina\'s, inkt en het licht van een thema dat je kent, in de kleuren die de makers ervan publiceren. Met de optie Prism blijft elke instelling op deze pagina zoals hij is.</string>
+    <string name="play_after_the_timer">Afspelen na de timer</string>
+    <string name="choose_a_track">Kies een nummer</string>
+    <string name="fade_in_duration">Duur van het infaden</string>
+    <string name="loop_this_track">Dit nummer herhalen</string>
 </resources>

@@ -2,6 +2,8 @@ package com.prism.music.data.prefs
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.prism.music.data.innertube.InnerTube
+import com.prism.music.data.model.Song
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -22,6 +24,12 @@ data class SleepTimerChoices(
     val finishSong: Boolean = false,
     /** The sleep timer volume, as the slider's place (0 … 1); NormalizerProcessor.volumeFor's curve is applied to it. */
     val volume: Float = 1f,
+    /** A track to play once the timer has finished (null: nothing; the music just stops). */
+    val afterSong: com.prism.music.data.model.Song? = null,
+    /** How long the after-timer track fades in over, in seconds; 0 starts it at full volume. */
+    val fadeInSeconds: Int = 0,
+    /** Whether the after-timer track starts over when it ends. */
+    val loopAfter: Boolean = false,
 )
 
 /** Stores [SleepTimerChoices] in SharedPreferences, read at start and shown in Compose at once (like SnoozeStore). */
@@ -35,6 +43,11 @@ class SleepTimerPrefs(context: Context) {
         maxBpm = (prefs.getInt(KEY_MAX_BPM, 0)).coerceIn(0, MAX_BPM_LIMIT),
         finishSong = prefs.getBoolean(KEY_FINISH_SONG, false),
         volume = prefs.getFloat(KEY_VOLUME, 1f).coerceIn(0f, 1f),
+        afterSong = prefs.getString(KEY_AFTER_SONG, null)?.let {
+            runCatching { InnerTube.json.decodeFromString(Song.serializer(), it) }.getOrNull()
+        },
+        fadeInSeconds = (prefs.getInt(KEY_FADE_IN, 0)).coerceIn(0, MAX_FADE_IN_SECONDS),
+        loopAfter = prefs.getBoolean(KEY_LOOP_AFTER, false),
     )
 
     @Synchronized
@@ -49,6 +62,18 @@ class SleepTimerPrefs(context: Context) {
     @Synchronized
     fun setVolume(volume: Float) = put { putFloat(KEY_VOLUME, volume.coerceIn(0f, 1f)) }
 
+    @Synchronized
+    fun setAfterSong(song: Song?) = put {
+        if (song == null) remove(KEY_AFTER_SONG)
+        else putString(KEY_AFTER_SONG, InnerTube.json.encodeToString(Song.serializer(), song))
+    }
+
+    @Synchronized
+    fun setFadeInSeconds(seconds: Int) = put { putInt(KEY_FADE_IN, seconds.coerceIn(0, MAX_FADE_IN_SECONDS)) }
+
+    @Synchronized
+    fun setLoopAfter(on: Boolean) = put { putBoolean(KEY_LOOP_AFTER, on) }
+
     private fun put(block: SharedPreferences.Editor.() -> SharedPreferences.Editor) {
         prefs.edit().block().apply()
         _choices.value = read()
@@ -59,6 +84,8 @@ class SleepTimerPrefs(context: Context) {
         const val MAX_MINUTES = 240
         /** The BPM slider's top; 0 is off. */
         const val MAX_BPM_LIMIT = 220
+        /** The fade-in slider's top, the same as the fade-out's. */
+        const val MAX_FADE_IN_SECONDS = 60
 
         /** A typed number of minutes, kept inside the menu's range; null when it isn't a whole number. */
         fun parseMinutes(text: String): Int? = text.trim().toIntOrNull()?.coerceIn(MIN_MINUTES, MAX_MINUTES)
@@ -67,5 +94,8 @@ class SleepTimerPrefs(context: Context) {
         private const val KEY_MAX_BPM = "max_bpm"
         private const val KEY_FINISH_SONG = "finish_song"
         private const val KEY_VOLUME = "volume"
+        private const val KEY_AFTER_SONG = "after_song"
+        private const val KEY_FADE_IN = "fade_in"
+        private const val KEY_LOOP_AFTER = "loop_after"
     }
 }

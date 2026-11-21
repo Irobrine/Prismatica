@@ -54,6 +54,7 @@ import com.prism.music.data.prefs.SleepTimerPrefs
 import com.prism.music.ui.components.PrismTextField
 import com.prism.music.ui.theme.LocalContainer
 import com.prism.music.ui.theme.MonoStyle
+import com.prism.music.ui.theme.PrismIcons
 import com.prism.music.ui.components.tickWhileShown
 import kotlin.math.roundToInt
 
@@ -327,6 +328,8 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
     var fadeTouched by remember { mutableStateOf(false) }
     var bpmValue by remember(choices.maxBpm) { mutableFloatStateOf(choices.maxBpm.toFloat()) }
     var volumeValue by remember(choices.volume) { mutableFloatStateOf(choices.volume) }
+    var fadeInValue by remember(choices.fadeInSeconds) { mutableFloatStateOf(choices.fadeInSeconds.toFloat()) }
+    var choosingAfter by remember { mutableStateOf(false) }
     // The countdown is typed in as a whole number of minutes, and remembered when it's committed (Done, or leaving the
     // field). A blank or non-number goes back to what was there; 0 and numbers past the menu's top are kept in range.
     val focus = LocalFocusManager.current
@@ -364,6 +367,14 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
     // Opening the menu is heard at once too: the slider's remembered level is applied for as long as it's open (closing
     // puts the listener's own volume back).
     LaunchedEffect(volumeValue) { pc.previewSleepVolume(volumeValue) }
+    if (choosingAfter) {
+        SleepAfterTrackPicker(
+            chosenId = choices.afterSong?.id,
+            onDismiss = { choosingAfter = false },
+            onPick = { c.sleepPrefs.setAfterSong(it); choosingAfter = false },
+        )
+        return
+    }
     AlertDialog(
         onDismissRequest = { close() },
         title = { Text(tr(R.string.sleep_timer)) },
@@ -393,6 +404,38 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.height(8.dp))
                 FilterChip(choices.finishSong, { c.sleepPrefs.setFinishSong(!choices.finishSong) }, { Text(tr(R.string.end_of_song)) })
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { choosingAfter = true }
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(PrismIcons.Song, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(tr(R.string.play_after_the_timer), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            choices.afterSong?.let { "${it.title} · ${it.artistText}" } ?: tr(R.string.choose_a_track),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (choices.afterSong != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                    Icon(PrismIcons.ChevronRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (choices.afterSong != null) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(tr(R.string.fade_in_duration), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                        Text(
+                            if (fadeInValue < 1f) tr(R.string.off) else tr(R.string.hist_count_seconds, fadeInValue.roundToInt()),
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    PrismSlider(fadeInValue, { fadeInValue = it }, valueRange = 0f..com.prism.music.data.prefs.SleepTimerPrefs.MAX_FADE_IN_SECONDS.toFloat()) {
+                        c.sleepPrefs.setFadeInSeconds(fadeInValue.roundToInt())
+                    }
+                    FilterChip(choices.loopAfter, { c.sleepPrefs.setLoopAfter(!choices.loopAfter) }, { Text(tr(R.string.loop_this_track)) })
+                }
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(tr(R.string.fade_out_duration), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))

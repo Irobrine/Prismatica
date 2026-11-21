@@ -5564,4 +5564,8 @@
     <string name="color_scheme">配色方案</string>
     <string name="scheme_variant">变体</string>
     <string name="color_scheme_info">熟悉的主题的页面、墨色与光线，采用其制作者发布的颜色。Prism 选项会保持此页面上的所有设置不变。</string>
+    <string name="play_after_the_timer">计时结束后播放</string>
+    <string name="choose_a_track">选择歌曲</string>
+    <string name="fade_in_duration">淡入时长</string>
+    <string name="loop_this_track">循环此歌曲</string>
 </resources>

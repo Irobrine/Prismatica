@@ -5639,4 +5639,8 @@
     <string name="color_scheme">Farbschema</string>
     <string name="scheme_variant">Variante</string>
     <string name="color_scheme_info">Die Seiten, Tinte und Licht eines Designs, das du kennst, in den Farben, die seine Macher veröffentlichen. Die Option Prism lässt jede Einstellung auf dieser Seite, wie sie ist.</string>
+    <string name="play_after_the_timer">Nach dem Timer abspielen</string>
+    <string name="choose_a_track">Titel wählen</string>
+    <string name="fade_in_duration">Einblenddauer</string>
+    <string name="loop_this_track">Diesen Titel wiederholen</string>
 </resources>

@@ -5639,4 +5639,8 @@
     <string name="color_scheme">Χρωματικό σχήμα</string>
     <string name="scheme_variant">Παραλλαγή</string>
     <string name="color_scheme_info">Οι σελίδες, η μελάνη και το φως ενός θέματος που ξέρεις, στα χρώματα που δημοσιεύουν οι δημιουργοί του. Η επιλογή Prism αφήνει κάθε ρύθμιση σε αυτή τη σελίδα ως έχει.</string>
+    <string name="play_after_the_timer">Αναπαραγωγή μετά τον χρονοδιακόπτη</string>
+    <string name="choose_a_track">Επιλογή τραγουδιού</string>
+    <string name="fade_in_duration">Διάρκεια σταδιακής εισόδου</string>
+    <string name="loop_this_track">Επανάληψη αυτού του τραγουδιού</string>
 </resources>

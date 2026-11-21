@@ -5564,4 +5564,8 @@
     <string name="color_scheme">Bảng màu</string>
     <string name="scheme_variant">Biến thể</string>
     <string name="color_scheme_info">Trang, mực và ánh sáng của một chủ đề bạn đã quen, với màu sắc do những người tạo ra nó công bố. Tùy chọn Prism giữ nguyên mọi cài đặt trên trang này.</string>
+    <string name="play_after_the_timer">Phát sau hẹn giờ</string>
+    <string name="choose_a_track">Chọn bài hát</string>
+    <string name="fade_in_duration">Thời lượng mờ dần vào</string>
+    <string name="loop_this_track">Lặp lại bài này</string>
 </resources>

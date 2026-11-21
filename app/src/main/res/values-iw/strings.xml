@@ -5714,4 +5714,8 @@
     <string name="color_scheme">ערכת צבעים</string>
     <string name="scheme_variant">וריאציה</string>
     <string name="color_scheme_info">הדפים, הדיו והאור של ערכת נושא שאתה מכיר, בצבעים שמפרסמים היוצרים שלה. האפשרות Prism משאירה כל הגדרה בעמוד הזה כפי שהיא.</string>
+    <string name="play_after_the_timer">נגן לאחר הטיימר</string>
+    <string name="choose_a_track">בחירת שיר</string>
+    <string name="fade_in_duration">משך הדהייה פנימה</string>
+    <string name="loop_this_track">חזרה על השיר הזה</string>
 </resources>

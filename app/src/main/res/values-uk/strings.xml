@@ -5789,4 +5789,8 @@
     <string name="color_scheme">Кольорова схема</string>
     <string name="scheme_variant">Варіант</string>
     <string name="color_scheme_info">Сторінки, чорнило й світло знайомої теми — у кольорах, які публікують її творці. Варіант Prism залишає всі налаштування на цій сторінці як є.</string>
+    <string name="play_after_the_timer">Грати після таймера</string>
+    <string name="choose_a_track">Вибрати трек</string>
+    <string name="fade_in_duration">Тривалість плавної появи</string>
+    <string name="loop_this_track">Повторювати цей трек</string>
 </resources>

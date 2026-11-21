@@ -5639,4 +5639,8 @@
     <string name="color_scheme">रंग योजना</string>
     <string name="scheme_variant">वेरिएंट</string>
     <string name="color_scheme_info">आपके किसी जाने-पहचाने थीम के पन्ने, स्याही और रोशनी, उसके निर्माताओं के प्रकाशित रंगों में। Prism विकल्प इस पेज की हर सेटिंग को जैसी है वैसी ही रखता है।</string>
+    <string name="play_after_the_timer">टाइमर के बाद चलाएँ</string>
+    <string name="choose_a_track">गाना चुनें</string>
+    <string name="fade_in_duration">फ़ेड-इन अवधि</string>
+    <string name="loop_this_track">इस गाने को दोहराएँ</string>
 </resources>

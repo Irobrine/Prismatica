@@ -81,6 +81,18 @@ class SleepTimerTest {
         assertTrue("a step at the very end: ${SleepFade.gain(0.999999f)}", SleepFade.gain(0.999999f) < 1e-5f)
     }
 
+    @Test fun theFadeInIsTheSameCurveTheOtherWay() {
+        assertEquals(0f, SleepFade.gainIn(0f), 0f)
+        assertEquals(1f, SleepFade.gainIn(1f), 0f)
+        assertEquals(SleepFade.gain(0.5f), SleepFade.gainIn(0.5f), 0f)
+        var previous = 0f
+        for (i in 0..1000) {
+            val g = SleepFade.gainIn(i / 1000f)
+            assertTrue("gain-in went back down at $i", g >= previous - 1e-6f)
+            previous = g
+        }
+    }
+
     @Test fun aSixtySecondFadeFollowsTheRequestedLine() {
         fun atSeconds(seconds: Int) = kotlin.math.sqrt(SleepFade.gain(seconds / 60f))
         assertEquals(1f, atSeconds(0), 1e-4f)

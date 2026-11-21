@@ -39,6 +39,9 @@ object SleepFade {
         val t = ((1f - p) / TAPER).coerceIn(0f, 1f)
         return (END_VOLUME * END_VOLUME * (t * t * (3f - 2f * t))).coerceIn(0f, 1f)
     }
+
+    /** The same curve the other way: a track's fade-in at [progress] (0: silent, 1: its full volume). */
+    fun gainIn(progress: Float): Float = gain(1f - progress.coerceIn(0f, 1f))
 }
 
 /** What a running timer can ask of playback. Kept small so the timer's maths can be tested without a player. */

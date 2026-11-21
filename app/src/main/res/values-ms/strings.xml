@@ -5564,4 +5564,8 @@
     <string name="color_scheme">Skema warna</string>
     <string name="scheme_variant">Varian</string>
     <string name="color_scheme_info">Halaman, dakwat dan cahaya tema yang anda kenal, dalam warna yang diterbitkan oleh pembuatnya. Pilihan Prism membiarkan setiap tetapan pada halaman ini seperti sedia ada.</string>
+    <string name="play_after_the_timer">Mainkan selepas pemasa</string>
+    <string name="choose_a_track">Pilih lagu</string>
+    <string name="fade_in_duration">Tempoh pudar masuk</string>
+    <string name="loop_this_track">Ulang lagu ini</string>
 </resources>
