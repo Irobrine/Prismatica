@@ -641,9 +641,10 @@ class AppContainer(val app: Application) {
             },
             { form -> mixTempo.loudnessCurrent(form) },
             { id -> loudnessIndex.formId(id, null) },
-        ) {
-            app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
-        }
+            // Two at once on a phone that can spare them: one song's decoding overlaps the other's analysis (1.9).
+            { if (mixTempo.mayScanTwice()) 2 else 1 },
+            unmetered = { app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false },
+        )
     }
     /** The listener's Prism Account: a name and picture kept on this phone ([com.prism.music.data.PrismAccount]). */
     val account by lazy { com.prism.music.data.PrismAccount(this) }

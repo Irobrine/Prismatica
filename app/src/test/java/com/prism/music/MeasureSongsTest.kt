@@ -39,8 +39,9 @@ class MeasureSongsTest {
 
     private fun engine(
         metered: Boolean = false,
+        width: () -> Int = { 1 },
         measure: suspend (String, String?, Boolean) -> Unit = { form, song, network -> asked += Triple(form, song, network); measuredNow += form },
-    ) = MeasureSongs(scope, measure, { it in measuredNow }, { versions[it] ?: it }, { !metered })
+    ) = MeasureSongs(scope, measure, { it in measuredNow }, { versions[it] ?: it }, width = width, unmetered = { !metered })
 
 
     /** Waits for [check] to hold (the walk runs on threads of its own), failing with what was waited for instead of hanging. */
@@ -92,6 +93,59 @@ class MeasureSongsTest {
         gates[2].complete(Unit)
         until("the end") { e.progress.value == null }
         assertEquals(listOf("a", "b", "c"), asked.map { it.first })
+    }
+
+    /**
+     * On a phone that can spare the cores a walk measures two songs at once ([MeasureSongs]'s `width`): one decodes
+     * while the other is analysed. The count is still songs walked — a song counts when its scan has finished, never
+     * when it starts — so it can't run ahead of the work done.
+     */
+    @Test fun twoAtOnceWhereThePhoneCanSpareThem() {
+        val gates = List(4) { CompletableDeferred<Unit>() }
+        val at = AtomicInteger()
+        val inside = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+        val most = AtomicInteger()
+        val e = engine(width = { 2 }, measure = { form, _, _ ->
+            asked += Triple(form, null, false)
+            inside += form
+            most.set(maxOf(most.get(), inside.size))
+            gates[at.getAndIncrement()].await()
+            inside -= form
+            measuredNow += form
+        })
+        e.start(listOf("a" to "a", "b" to "b", "c" to "c", "d" to "d"), network = false)
+        until("two songs at once") { asked.size == 2 }
+        assertEquals("nothing is counted until a scan has finished", 0 to 4, e.progress.value)
+        gates[0].complete(Unit)
+        until("the first counted and the third under way") { e.progress.value == (1 to 4) && asked.size == 3 }
+        assertEquals("never more than two", 2, most.get())
+        gates[1].complete(Unit)
+        gates[2].complete(Unit)
+        gates[3].complete(Unit)
+        until("the end") { e.progress.value == null }
+        assertEquals(listOf("a", "b", "c", "d"), asked.map { it.first }.sorted())
+        assertEquals("each song was scanned once", 4, asked.size)
+    }
+
+
+    /**
+     * Stopped with two songs under way: neither counts, nothing after them starts, and the count stays where it was so
+     * the row can carry on (a resumed walk recomputes what's left from what's measured, not from this count).
+     */
+    @Test
+    fun stoppingTwoAtOnceCountsNeitherAndStartsNothingMore() {
+        val hold = CompletableDeferred<Unit>()
+        val entered = AtomicInteger()
+        val e = engine(width = { 2 }, measure = { form, _, _ -> asked += Triple(form, null, false); entered.incrementAndGet(); hold.await() })
+        e.start(listOf("a" to "a", "b" to "b", "c" to "c", "d" to "d"), network = false)
+        until("both under way") { entered.get() == 2 }
+        assertEquals(0 to 4, e.progress.value)
+        e.stop()
+        until("the walk to end") { !e.running.value }
+        assertEquals("neither of the two counted", 0 to 4, e.progress.value)
+        runBlocking { delay(50) }
+        assertEquals("and nothing after them", 2, entered.get())
+        hold.complete(Unit)
     }
 
     /**

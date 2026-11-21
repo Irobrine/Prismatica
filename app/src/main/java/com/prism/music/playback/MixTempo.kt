@@ -325,8 +325,12 @@ class MixTempo(
     private val keyPrefs = context.getSharedPreferences("song_key", Context.MODE_PRIVATE)
     /** Form id -> when its scan last failed: a failure isn't forever (a file back on the phone, a read that went wrong). */
     private val failed = ConcurrentHashMap<String, Long>()
-    /** One song at a time: decoding a whole song is the heaviest thing Prism does in the background. */
-    private val lock = Mutex()
+    /**
+     * Whole scans at once (see [scanSlots]): decoding a whole song is the heaviest thing Prism does in the background,
+     * so it's one unless a walk the listener started has the processor to itself ([mayScanTwice]) — then two, which
+     * overlaps one song's decoding and analysis with the next's.
+     */
+    private val scanSlots = ScanSlots(MAX_SCANS)
 
     /**
      * Whether [id]'s scan failed so lately that it isn't worth asking again yet (1.2.1). It used to be for the rest of
@@ -537,8 +541,8 @@ class MixTempo(
             // Waiting for the player to finish loading is the player's, not this scan's: done before the lock is taken,
             // so a scan the volume is waiting for isn't held behind it.
             withContext(Dispatchers.IO) { runCatching { yieldToPlaying() } }
-            return lock.withLock {
-                if (done()) return@withLock cached(id)
+            return withScanSlot(deferToPlaying) {
+                if (done()) return@withScanSlot cached(id)
                 withContext(Dispatchers.IO) {
                     if (deferToPlaying) scanPriority.markWalkScan(true)
                     try {
@@ -593,52 +597,108 @@ class MixTempo(
         }
     }
 
+    /**
+     * Holds a whole scan's place. A walk's scan ([walk]: [measure]'s `deferToPlaying`) may share the processor with one
+     * other when [mayScanTwice]; every other scan, and a walk's on a phone that can't, has the slots to itself — the
+     * same one-at-a-time the scans always had.
+     */
+    private suspend fun <T> withScanSlot(walk: Boolean, block: suspend () -> T): T =
+        scanSlots.with(shared = walk && mayScanTwice(), block = block)
+
+    /** [mayScanTwice]'s rule, on its own so it can be read (and tested) without a phone ([twoAtOnce]). */
+    internal fun mayScanTwice(): Boolean {
+        val runtime = Runtime.getRuntime()
+        return twoAtOnce(
+            cores = runtime.availableProcessors(),
+            where = BackgroundBudget.where(),
+            slow = slowPhone(),
+            // Unknown counts as low: a second song's samples aren't risked on a phone that won't say.
+            lowRam = runCatching { context.getSystemService(android.app.ActivityManager::class.java)?.isLowRamDevice }.getOrNull() ?: true,
+            freeHeap = runtime.maxMemory() - (runtime.totalMemory() - runtime.freeMemory()),
+            maxHeap = runtime.maxMemory(),
+        )
+    }
+
     /** Null when the form's audio isn't on the phone and [network] doesn't allow fetching it. */
     private fun scan(id: String, network: Boolean, sourceSongId: String? = null): Scan? {
         val file = File(context.cacheDir, "mix_$id.part")
         try {
-            val uri = local(id, sourceSongId ?: id, file) ?: run {
+            val uri = local(id, sourceSongId ?: id, file)
+            if (uri == null) {
                 if (!network || id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX)) return null
-                Log.d(TAG, "downloading $id to scan it")
                 val a = streams.analysisAudio(id)
-                http.newCall(Request.Builder().url(a.url).apply {
-                    if (a.contentLength > 0) header("Range", "bytes=0-${a.contentLength - 1}")
-                }.build()).execute().use { r ->
-                    if (!r.isSuccessful) throw java.io.IOException("audio returned HTTP ${r.code}")
-                    file.outputStream().use { out -> r.body.byteStream().copyTo(out) }
-                }
-                android.net.Uri.fromFile(file)
-            }
-            return analyse({ decodeAll(uri) ?: throw java.io.IOException("couldn't decode its audio") }, onSamples = { pcm, count, rate ->
-                // The waveform progress bar's outline, from the same audio (1.7.4).
-                waves?.let { w -> runCatching { w.put(id, com.prism.music.data.SongWaves.outline(pcm, count)) } }
-                // Debug builds keep the decoded audio when asked (adb shell touch …/files/mix_dump), for tuning [Tempo.analyze].
-                if (com.prism.music.BuildConfig.DEBUG) context.getExternalFilesDir(null)?.let { dir ->
-                    if (File(dir, "mix_dump").exists()) runCatching {
-                        val bb = java.nio.ByteBuffer.allocate(count * 4).order(ByteOrder.LITTLE_ENDIAN)
-                        for (i in 0 until count) bb.putFloat(pcm[i])
-                        File(dir, "mix_${id}_$rate.f32").writeBytes(bb.array())
+                if (a.contentLength <= 0) {
+                    // The stream won't say how long it is, so its bytes can't be asked for by range: fetched whole first,
+                    // as every stream used to be.
+                    Log.d(TAG, "downloading $id to scan it (its length is unknown)")
+                    http.newCall(Request.Builder().url(a.url).build()).execute().use { r ->
+                        if (!r.isSuccessful) throw java.io.IOException("audio returned HTTP ${r.code}")
+                        file.outputStream().use { out -> r.body.byteStream().copyTo(out) }
                     }
+                    return analyse({ decodeAll(android.net.Uri.fromFile(file)) ?: throw java.io.IOException("couldn't decode its audio") }, onSamples = onSamples(id))
                 }
-            })
+                // Decoded as it arrives rather than downloaded whole first (1.9): the smallest stream is what the scan
+                // reads either way, and only what's needed for the first [MAX_SECONDS] is fetched at all. Its blocks are
+                // fetched one ahead while the decoder works, so the network and the decoding overlap.
+                Log.d(TAG, "streaming $id to scan it")
+                val ranged = RangedSource(http, a.url, a.contentLength, prefetch = true)
+                try {
+                    // Its outline and debug copy are kept only if the stream was read whole: a failed read is the
+                    // extractor's end of the song, and an outline of its first seconds would outlive the discarded
+                    // figure (SongWaves.has would then stop the song being measured again).
+                    val scan = analyse(
+                        { decodeAll(ranged) ?: throw java.io.IOException("couldn't decode its audio") },
+                        onSamples = { pcm, count, rate -> if (ranged.failure == null) keepSamples(id, pcm, count, rate) },
+                    )
+                    // A read that failed is the extractor's end of the song: a figure from part of one isn't kept (it's
+                    // asked again another time), as the quick scan does with the same source.
+                    ranged.failure?.let { throw it }
+                    return scan
+                } finally {
+                    ranged.close()
+                }
+            }
+            return analyse({ decodeAll(uri) ?: throw java.io.IOException("couldn't decode its audio") }, onSamples = onSamples(id))
         } finally {
             file.delete()
+        }
+    }
+
+    /** What a scan reads from the samples it decoded once, beside the figures proper ([analyse]). */
+    private fun onSamples(id: String): (FloatArray, Int, Int) -> Unit = { pcm, count, rate -> keepSamples(id, pcm, count, rate) }
+
+    private fun keepSamples(id: String, pcm: FloatArray, count: Int, rate: Int) {
+        // The waveform progress bar's outline, from the same audio (1.7.4).
+        waves?.let { w -> runCatching { w.put(id, com.prism.music.data.SongWaves.outline(pcm, count)) } }
+        // Debug builds keep the decoded audio when asked (adb shell touch …/files/mix_dump), for tuning [Tempo.analyze].
+        if (com.prism.music.BuildConfig.DEBUG) context.getExternalFilesDir(null)?.let { dir ->
+            if (File(dir, "mix_dump").exists()) runCatching {
+                val bb = java.nio.ByteBuffer.allocate(count * 4).order(ByteOrder.LITTLE_ENDIAN)
+                for (i in 0 until count) bb.putFloat(pcm[i])
+                File(dir, "mix_${id}_$rate.f32").writeBytes(bb.array())
+            }
         }
     }
 
     /** A song as mono PCM: the first [count] samples of [pcm], at [rate], its loudest sample before (0 … 1), and its measured loudness (LUFS). */
     internal class Decoded(val pcm: FloatArray, val count: Int, val rate: Int, val peak: Float, val lufs: Float?)
 
+    private fun decodeAll(uri: android.net.Uri): Decoded? = decodeAll { ex -> ex.setDataSource(context, uri, null) }
+
+    /** [decodeAll] of a source read on demand (a stream fetched as the decoder reads it), not a file. */
+    private fun decodeAll(source: android.media.MediaDataSource): Decoded? = decodeAll { ex -> ex.setDataSource(source) }
+
     /**
      * The whole file as mono PCM, decimated to roughly 11 kHz, and its loudness over every channel as it decodes
      * ([LoudnessMeter]). One array for the mono, sized from the song's length (it used to grow by doubling, 4 + 8 +
-     * 16 MB for a song of 12, and be copied once more at the end); the loudness needs no copy of its own.
+     * 16 MB for a song of 12, and be copied once more at the end); the loudness needs no copy of its own. [open] gives
+     * the extractor its source (a file or a stream).
      */
-    private fun decodeAll(uri: android.net.Uri): Decoded? {
+    private fun decodeAll(open: (MediaExtractor) -> Unit): Decoded? {
         val ex = MediaExtractor()
         var codec: MediaCodec? = null
         try {
-            ex.setDataSource(context, uri, null)
+            open(ex)
             val track = (0 until ex.trackCount).firstOrNull { ex.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
                 ?: return null
             ex.selectTrack(track)
@@ -733,6 +793,18 @@ class MixTempo(
         /** A scan that failed (a file briefly gone, a read that went wrong) may be asked for again after this. */
         internal const val FAILED_RETRY_MS = 5 * 60_000L
 
+        /** Whole scans running at once at most ([MixTempo.withScanSlot]): two, on the phones [MixTempo.mayScanTwice] allows. */
+        private const val MAX_SCANS = 2
+
+        /** Heap for two songs' samples at once (a song's mono is about 11 MB, its FFT working set as much again). */
+        internal const val MIN_HEAP_FOR_TWO = 256L * 1024 * 1024
+
+        /**
+         * Free heap a second song needs beside the first: its samples and the key pass's spectra (a song of ten minutes is
+         * about 30 MB each), with room for what a decoder holds between them.
+         */
+        internal const val MIN_FREE_FOR_TWO = 128L * 1024 * 1024
+
         /** How often a background walk looks whether the form being heard is waiting for its own scan ([measure]). */
         private const val PLAYING_SCAN_POLL_MS = 100L
 
@@ -772,13 +844,76 @@ class MixTempo(
             onSamples(pcm, count, rate)
             // The analysis steps are seconds of work each on a slow phone: each waits its turn too ([ease]).
             step()
-            val bands = VideoSync.bandFeatures(pcm, rate, count)
+            // The bands and the key are independent passes over the same samples: the key runs on a spare thread while
+            // the bands are worked out here, when the phone may spare it ([spreadBandKey]). Neither's figures depend on
+            // the other, and the step between them is kept so a scan still gives way there.
+            val (bands: Array<FloatArray>, key: MusicKey?) = spreadBandKey(
+                bands = { VideoSync.bandFeatures(pcm, rate, count) },
+                key = { runCatching { KeyDetector.detect(pcm, rate, count) }.getOrNull() },
+                step = step,
+            )
             val frameMs = (rate / 100) * 1000.0 / rate
-            step()
-            val key = runCatching { KeyDetector.detect(pcm, rate, count) }.getOrNull()
             val peakDb = decoded.peak.takeIf { it > 0f }?.let { (20 * kotlin.math.log10(it.toDouble())).toFloat() }
             return Heard(lufs, bands, frameMs, VideoSync.WINDOW / 2 * 1000.0 / rate, key, peakDb)
         }
+
+        /**
+         * The bands here and the key on a spare thread, at once, when a scan may have the thread ([maySpread]); one
+         * after the other otherwise. The two are the scan's own share of its time after decoding, so a walk the listener
+         * started halves it; a phone with music playing, or one whose scans already make way, keeps to one
+         * ([BackgroundBudget]) — there a second thread beside playback is what #373 was. [step] runs between them, as it
+         * did when they were one after the other: the walk gives way to the form being heard at the same points.
+         */
+        private fun <B> spreadBandKey(bands: () -> Array<FloatArray>, key: () -> B, step: () -> Unit): Pair<Array<FloatArray>, B> {
+            if (!maySpread()) {
+                val b = bands()
+                step()
+                return b to key()
+            }
+            val ahead = java.util.concurrent.FutureTask(java.util.concurrent.Callable { key() })
+            passes.execute(ahead)
+            val b = bands()
+            step()
+            return try {
+                b to ahead.get()
+            } catch (e: java.util.concurrent.ExecutionException) {
+                throw e.cause ?: e
+            }
+        }
+
+        /**
+         * The threads a scan's own passes run on ([spreadBandKey]): one a scan, two scans at once at most, background
+         * priority, daemons, nothing kept between scans.
+         */
+        private val passes: java.util.concurrent.ExecutorService by lazy {
+            val threads = (Runtime.getRuntime().availableProcessors() - 2).coerceIn(2, 4)
+            java.util.concurrent.Executors.newFixedThreadPool(threads) { r ->
+                Thread(r, "prism-scan-pass").apply { isDaemon = true; priority = Thread.MIN_PRIORITY }
+            }
+        }
+
+        /**
+         * Whether a scan may run its key pass beside its bands: cores to spare, and only where the processor is there to
+         * be had — on screen, or a walk the listener started. Never while music plays (a scan then has one core's worth,
+         * [BackgroundBudget.share]) nor out of sight with nothing playing, and not on a phone whose scans make way for
+         * touches (#343).
+         */
+        internal fun maySpread(
+            cores: Int = Runtime.getRuntime().availableProcessors(),
+            where: BackgroundBudget.Where = BackgroundBudget.where(),
+            slow: Boolean = slowPhone(),
+        ): Boolean = cores >= 6 && !slow &&
+            (where == BackgroundBudget.Where.ON_SCREEN || where == BackgroundBudget.Where.WORKING)
+
+        /**
+         * Whether two songs may be measured at once ([MixTempo.mayScanTwice]): cores to spare, not a phone the scans
+         * already make way on, not a low-RAM device, heap for two songs' samples, and only while there's a reason to
+         * have the processor — on screen, or a walk the listener started.
+         */
+        internal fun twoAtOnce(
+            cores: Int, where: BackgroundBudget.Where, slow: Boolean, lowRam: Boolean, freeHeap: Long, maxHeap: Long,
+        ): Boolean = cores >= 6 && !slow && !lowRam && maxHeap >= MIN_HEAP_FOR_TWO && freeHeap >= MIN_FREE_FOR_TWO &&
+            (where == BackgroundBudget.Where.ON_SCREEN || where == BackgroundBudget.Where.WORKING)
 
         /** When the sound last ran dry (SystemClock.elapsedRealtime; set by the playback service). */
         @Volatile var lastUnderrunAt = 0L
