@@ -115,6 +115,7 @@ import com.prism.music.ui.Routes
 import com.prism.music.ui.components.Artwork
 import com.prism.music.ui.components.ArtworkAccent
 import com.prism.music.ui.components.ActionSheet
+import com.prism.music.ui.components.PrismProgressBar
 import com.prism.music.ui.components.pane
 import com.prism.music.ui.components.EmptyState
 import com.prism.music.ui.components.ErrorState
@@ -1978,10 +1979,19 @@ private fun DownloadsInfo(songs: List<Song>, ask: (String, () -> Unit) -> Unit) 
                 style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
             )
         }
+        var showQueue by remember { mutableStateOf(false) }
         if (active.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(tr(R.string.downloading_4, active.size), style = MaterialTheme.typography.labelMedium, color = scheme.primary)
+            // The line opens the queue: each download with its progress, and its own way out.
+            Row(
+                Modifier.clickable(onClickLabel = tr(R.string.downloads)) { showQueue = true }.padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(tr(R.string.downloading_4, active.size), style = MaterialTheme.typography.labelMedium, color = scheme.primary)
+                Icon(PrismIcons.ChevronRight, null, Modifier.padding(start = 2.dp).size(14.dp), tint = scheme.primary)
+            }
             PrismTextButton(onClick = { ask(trp(R.plurals.cancel_n_downloads, active.size)) { c.downloads.removeMany(active.keys) } }) { Text(tr(R.string.cancel)) }
         }
+        if (showQueue) DownloadingSheet { showQueue = false }
         val unfinished = remember(all) { all.values.filter { it.state != Download.STATE_COMPLETED } }
         if (unfinished.isNotEmpty()) DownloadQueueStatus(unfinished)
     }
@@ -2073,6 +2083,73 @@ fun FailedDownloadsSheet(onDismiss: () -> Unit) {
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
             PrismTextButton(onClick = { close { c.downloads.removeMany(failed.map { it.first }) } }) { Text(tr(R.string.remove_all)) }
             com.prism.music.ui.components.PrismButton(onClick = { close { c.downloads.retryFailed() } }) { Text(tr(R.string.try_all_again)) }
+        }
+    }
+}
+
+/**
+ * The downloads on their way: tapping "Downloading …" under the Downloads header opens this, so each one shows how far
+ * it has got and can be stopped on its own. Rows leave as downloads finish or are cancelled, and the sheet closes once
+ * none are left. Ones waiting for Wi-Fi, queued or paused stay here too: they're part of the queue, and a progress bar
+ * with nothing filled says so next to the state.
+ */
+@Composable
+fun DownloadingSheet(onDismiss: () -> Unit) {
+    val c = LocalContainer.current
+    val scheme = MaterialTheme.colorScheme
+    val ui = LocalUi.current
+    val all by c.downloadState.collectAsState()
+    val waiting by c.downloads.waitingForNetwork.collectAsState()
+    // Downloading first, then the queue in the order it was added.
+    val active = remember(all) {
+        all.filter { it.value.state != Download.STATE_COMPLETED && it.value.state != Download.STATE_FAILED }
+            .entries
+            .sortedWith(
+                compareByDescending<Map.Entry<String, com.prism.music.download.DownloadInfo>> {
+                    it.value.state == Download.STATE_DOWNLOADING || it.value.state == Download.STATE_RESTARTING
+                }.thenBy { it.value.addedAt },
+            )
+    }
+    LaunchedEffect(active.isEmpty()) { if (active.isEmpty()) onDismiss() }
+    ActionSheet(art = null, onDismiss = onDismiss) {
+        Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp)) {
+            Text(tr(R.string.downloading_4, active.size), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Light)
+        }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp).pane(ui.card)) {
+            active.forEachIndexed { i, (id, d) ->
+                if (i > 0) HorizontalDivider(Modifier.padding(start = 70.dp), color = scheme.onSurface.copy(alpha = 0.07f))
+                Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Artwork(d.song?.thumbnail, Modifier.size(46.dp), ui.art, size = 226)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            d.song?.title ?: tr(R.string.unknown_song), style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                        d.song?.let {
+                            Text(
+                                it.artistText, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        // A download moving without a percentage yet runs the bar's light along instead of filling it.
+                        val running = d.state == Download.STATE_DOWNLOADING || d.state == Download.STATE_RESTARTING
+                        val fraction = (d.percent / 100f).coerceIn(0f, 1f)
+                        PrismProgressBar(
+                            if (running && d.percent < 0f) null else ({ fraction }),
+                            Modifier.padding(top = 6.dp, end = 10.dp),
+                            height = 3.dp,
+                        )
+                        Text(
+                            downloadStateText(d, waiting), style = MaterialTheme.typography.labelSmall,
+                            color = scheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp),
+                        )
+                    }
+                    IconButton(onClick = { c.downloads.removeMany(setOf(id)) }) {
+                        Icon(PrismIcons.Close, tr(R.string.cancel), Modifier.size(20.dp))
+                    }
+                }
+            }
         }
     }
 }
