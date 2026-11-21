@@ -202,9 +202,9 @@ behind the model component, which is why its weights live in one place.
 * **Settings → Playback → Sleep scores** (in the Sleep group, above the audio-mode toggle) opens the songs' scores:
   a searchable list with each song's figure in the active mode. Songs without a figure say "Not calculated" instead of
   showing a misleading zero, and the three icons on a row are your judgments — mark a handful you know and the model is
-  fitted to your ears. Tapping the row opens its menu — the set picker (library, downloads, on this phone, liked) with
-  **Show calculated scores** for the list — even while a walk is running; **Stop** / **Continue** and the walk's progress
-  are in both menus, with a silent foreground notification as in "Measure songs now".
+  fitted to your ears. Tapping the row opens this list even while a walk is running; the list's **Calculate** button
+  opens the set picker (library, downloads, on this phone, liked), and **Stop** / **Continue** control a walk in flight
+  there, with its progress and a silent foreground notification as in "Measure songs now".
 * **Select many → Sleep scores** starts the same walk for the picked songs.
 * **Settings → Playback → Sleep → Use normalized audio** scores the sound as Normalize plays it: the recording's
   already-measured loudness and peak give exactly the gain playback's Normalize applies (its target, lift room and cut),
