@@ -5568,4 +5568,20 @@
     <string name="choose_a_track">곡 선택</string>
     <string name="fade_in_duration">페이드인 길이</string>
     <string name="loop_this_track">이 곡 반복</string>
+    <string name="minimum_sleep_score">최소 수면 점수</string>
+    <string name="sleep_score_out_of">100점 중 %1$d점</string>
+    <string name="sleep_score_info">타이머가 작동하는 동안 이보다 낮은 곡과 아직 점수가 없는 곡은 건너뜁니다. 점수가 높을수록 수면에 더 적합합니다.</string>
+    <string name="sleep_score_queue_unscored">대기열의 %1$d곡은 아직 점수가 없습니다</string>
+    <string name="sleep_score_queue_below">대기열의 %1$d곡은 이보다 낮습니다</string>
+    <string name="temporarily_disable_the_score_limit">수면 점수 제한 일시 해제</string>
+    <string name="sleep_score_under">100점 중 %1$d점 이상</string>
+    <string name="sleep_score_none_left">수면 점수 %1$d점 이상인 곡이 없습니다</string>
+    <string name="sleep_score_and_bpm_none_left">%1$d BPM 미만이면서 수면 점수 %2$d점 이상인 곡이 없습니다</string>
+    <string name="calculate_sleep_scores">수면 점수</string>
+    <string name="calculating_n_of_n">%2$d곡 중 %1$d곡 계산 중…</string>
+    <string name="sleep_scores_started">%1$d곡의 수면 점수를 계산하는 중</string>
+    <string name="sleep_scores_already_calculated">선택한 모든 곡에 이미 수면 점수가 있습니다</string>
+    <string name="sleep_scores_scored_n">%1$d곡 채점됨</string>
+    <string name="sleep_scores_info">각 곡의 오디오를 수면을 방해할 가능성이 얼마나 낮은지로 채점하여 취침 타이머의 최솟값에 씁니다. 이미 점수가 있는 곡은 제외되며, 다시 계산하거나 채점 방식이 바뀔 때까지 값이 유지됩니다.</string>
+    <string name="sleep_scores_stopped_at">%2$d곡 중 %1$d곡에서 멈춤, 계속하려면 탭하세요</string>
 </resources>

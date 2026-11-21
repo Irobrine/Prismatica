@@ -5568,4 +5568,20 @@
     <string name="choose_a_track">选择歌曲</string>
     <string name="fade_in_duration">淡入时长</string>
     <string name="loop_this_track">循环此歌曲</string>
+    <string name="minimum_sleep_score">最低睡眠评分</string>
+    <string name="sleep_score_out_of">100 分中的 %1$d 分</string>
+    <string name="sleep_score_info">计时器运行期间，低于此评分的歌曲会被跳过，尚未评分的歌曲也一样。评分越高越适合睡眠。</string>
+    <string name="sleep_score_queue_unscored">队列中有 %1$d 首尚未评分</string>
+    <string name="sleep_score_queue_below">队列中有 %1$d 首低于此评分</string>
+    <string name="temporarily_disable_the_score_limit">暂时关闭睡眠评分限制</string>
+    <string name="sleep_score_under">至少 100 分中的 %1$d 分</string>
+    <string name="sleep_score_none_left">没有评分达到 %1$d 或更高的歌曲了</string>
+    <string name="sleep_score_and_bpm_none_left">没有低于 %1$d BPM 且评分达到 %2$d 或更高的歌曲了</string>
+    <string name="calculate_sleep_scores">睡眠评分</string>
+    <string name="calculating_n_of_n">正在计算 %1$d/%2$d…</string>
+    <string name="sleep_scores_started">正在为 %1$d 首歌曲计算睡眠评分</string>
+    <string name="sleep_scores_already_calculated">所选歌曲都已有睡眠评分</string>
+    <string name="sleep_scores_scored_n">已评分 %1$d 首</string>
+    <string name="sleep_scores_info">根据每首歌曲自身的音频有多不容易打扰睡眠来评分，用于睡眠定时器的最低值。已有评分的歌曲会跳过；数值会保留，直到重新计算或评分方式改变。</string>
+    <string name="sleep_scores_stopped_at">停在 %1$d/%2$d，点按继续</string>
 </resources>

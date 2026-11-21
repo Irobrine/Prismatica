@@ -6,6 +6,9 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.test.core.app.ApplicationProvider
 import com.prism.music.data.model.Song
+import com.prism.music.data.sleep.SleepAnalysis
+import com.prism.music.data.sleep.SleepComponents
+import com.prism.music.data.sleep.SleepScore
 import com.prism.music.playback.HistoryShuffleOrder
 import com.prism.music.playback.NormalizerProcessor
 import com.prism.music.playback.toMediaItem
@@ -46,6 +49,7 @@ class SleepTimerConnectionTest {
         app.getSharedPreferences("sleep_timer", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("dj_quick", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("mix_tempo", Context.MODE_PRIVATE).edit().clear().commit()
+        app.getSharedPreferences("sleep_scores", Context.MODE_PRIVATE).edit().clear().commit()
         NormalizerProcessor.fadeVolume = 1f
         NormalizerProcessor.sleepVolume = 1f
         player = ExoPlayer.Builder(app).build()
@@ -62,6 +66,7 @@ class SleepTimerConnectionTest {
         app.getSharedPreferences("sleep_timer", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("dj_quick", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("mix_tempo", Context.MODE_PRIVATE).edit().clear().commit()
+        app.getSharedPreferences("sleep_scores", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     private fun queue(vararg songs: Song) {
@@ -250,5 +255,149 @@ class SleepTimerConnectionTest {
         assertEquals(0L, c.player.sleepAt.value)
         // Cancelling leaves the choices for the next session.
         assertEquals(45, c.sleepPrefs.choices.value.minutes)
+    }
+
+    // ---------------------------------------------------------------- the minimum sleep score (1.9)
+
+    /** A song with a sleep score already calculated (stored under its own id, the form a plain song plays as). */
+    private fun scored(id: String, value: Int): Song = Song(id, "Scored $id").also {
+        val figure = SleepScore(
+            score = value, confidence = 90,
+            components = SleepComponents(0, 0, 0, 0, 0, 0, 0, 0),
+            warnings = emptyList(), modelVersion = SleepAnalysis.MODEL_VERSION, durationMs = 180_000, analyzedAtMs = 1L,
+        )
+        app.getSharedPreferences("sleep_scores", Context.MODE_PRIVATE).edit()
+            .putString(id, SleepScore.encode(figure)).commit()
+    }
+
+    private fun scoreTimer(minScore: Int = 60, maxBpm: Int = 0) {
+        c.sleepPrefs.setMinutes(30)
+        c.sleepPrefs.setMaxBpm(maxBpm)
+        c.sleepPrefs.setMinScore(minScore)
+        c.sleepPrefs.setFinishSong(false)
+        c.sleepPrefs.setVolume(1f)
+        c.player.startSleepTimer()
+    }
+
+    @Test fun aSongBelowTheLimitOrWithNoScoreIsPassedOverAtOnce() {
+        queue(scored("loud", 20), song("uncalculated", null), scored("calm", 82))
+        scoreTimer(minScore = 60)
+        // The first song is below the minimum and the next has no figure: the calm one after them plays.
+        assertEquals(2, player.currentMediaItemIndex)
+        assertTrue(c.player.sleepBlocksScore("loud"))
+        assertTrue("an uncalculated song is never assumed suitable", c.player.sleepBlocksScore("uncalculated"))
+        assertFalse(c.player.sleepBlocksScore("calm"))
+        assertTrue(c.player.sleepFilteringScore())
+        // Nothing was taken out of the queue: all of it is still there, in order.
+        assertEquals(3, player.mediaItemCount)
+    }
+
+    @Test fun withNoAllowedSongLeftItStopsAndTurningTheLimitOffBringsPlaybackBack() {
+        queue(scored("loud", 20), song("uncalculated", null))
+        player.play()
+        scoreTimer(minScore = 60)
+        assertEquals(0, player.currentMediaItemIndex)
+        assertFalse(player.playWhenReady)
+        c.player.setSleepMinScore(0)
+        assertTrue("the pause the filter caused ends with the filter", player.playWhenReady)
+        assertFalse(c.player.sleepBlocksScore("loud"))
+        assertEquals(0, c.sleepPrefs.choices.value.minScore)
+        assertEquals(0, c.player.sleepMinScore.value)
+        // Both songs are still there: nothing was removed, so there's nothing to restore.
+        assertEquals(2, player.mediaItemCount)
+    }
+
+    @Test fun theThresholdIsExactAndTheFilterIsOffOnceTheTimerHasRunOut() {
+        queue(scored("border", 60), scored("under", 59), scored("loud", 10))
+        scoreTimer(minScore = 60)
+        assertEquals("a song exactly at the minimum passes", 0, player.currentMediaItemIndex)
+        assertFalse(c.player.sleepBlocksScore("border"))
+        assertTrue(c.player.sleepBlocksScore("under"))
+        // A one-minute session runs out at -5: the score filter was the session's own, like the BPM limit.
+        c.sleepPrefs.setMinutes(1)
+        c.player.startSleepTimer()
+        c.player.adjustSleepTimer(-5)
+        assertEquals(0, c.sleepPrefs.choices.value.minScore)
+        assertFalse(c.player.sleepBlocksScore("under"))
+    }
+
+    @Test fun queueEditsMadeWhileFilteringAreKeptAndNeverUndoneByTurningItOff() {
+        queue(scored("loud", 10), scored("calm", 90), scored("loud2", 15), scored("calm2", 88))
+        scoreTimer(minScore = 60)
+        // The first is passed over: the calm one next to it plays.
+        assertEquals(1, player.currentMediaItemIndex)
+        // The listener removes the passed-over song and adds another while the filter runs.
+        c.player.removeAt(0)
+        c.player.addToQueue(listOf(scored("added", 5)), null)
+        assertEquals(4, player.mediaItemCount)
+        // Turning the filter off restores no snapshot: it brings the queue back exactly as the listener left it.
+        c.player.cancelSleepTimer()
+        assertEquals(4, player.mediaItemCount)
+        assertEquals(listOf("calm", "loud2", "calm2", "added"), (0 until player.mediaItemCount).map { player.getMediaItemAt(it).toSong()!!.id })
+        assertEquals("calm", player.currentMediaItem?.toSong()?.id)
+    }
+
+    @Test fun theTemporaryScoreOverrideBringsSongsBackAndReEnablingChecksTheCurrentOne() {
+        queue(scored("loud", 10), scored("calm", 90))
+        scoreTimer(minScore = 60)
+        assertEquals(1, player.currentMediaItemIndex)
+        c.player.setSleepScoreDisabled(true)
+        assertFalse(c.player.sleepBlocksScore("loud"))
+        assertFalse(c.player.sleepFilteringScore())
+        c.player.skipTo(0)
+        assertEquals(0, player.currentMediaItemIndex)
+        // On again: the song playing now is checked at once, not at the next one.
+        c.player.setSleepScoreDisabled(false)
+        assertEquals(1, player.currentMediaItemIndex)
+        assertEquals("the override never touches the saved limit", 60, c.sleepPrefs.choices.value.minScore)
+    }
+
+    @Test fun cancellingKeepsTheScoreChoiceForNextTime() {
+        queue(scored("calm", 90))
+        scoreTimer(minScore = 70)
+        c.player.cancelSleepTimer()
+        assertEquals(70, c.sleepPrefs.choices.value.minScore)
+        assertFalse(c.player.sleepBlocksScore("calm"))
+    }
+
+    @Test fun bothLimitsApplyWithNothingRemovedFromTheQueue() {
+        // One song too fast, one with too low a score, and one that fits both.
+        queue(song("fast", 150.0), scored("low", 10), scored("fits", 90))
+        app.getSharedPreferences("dj_quick", Context.MODE_PRIVATE).edit().putString("fits", "100|5.0|").commit()
+        scoreTimer(minScore = 60, maxBpm = 120)
+        assertEquals(2, player.currentMediaItemIndex)
+        assertTrue(c.player.sleepBlocksFilter("fast"))
+        assertTrue(c.player.sleepBlocksFilter("low"))
+        assertFalse(c.player.sleepBlocksFilter("fits"))
+        assertEquals(3, player.mediaItemCount)
+    }
+
+    @Test fun duplicateSongsAreJudgedInPlaceAndTheQueueKeepsItsOrder() {
+        queue(scored("low", 10), scored("calm", 90), scored("low", 10), scored("calm2", 80))
+        scoreTimer(minScore = 60)
+        assertEquals(1, player.currentMediaItemIndex)
+        // Jumping onto the repeated unsuitable song: the filter passes it over for the one that fits.
+        c.player.skipTo(2)
+        c.player.enforceSleepBpm()
+        assertEquals(3, player.currentMediaItemIndex)
+        assertEquals(
+            listOf("low", "calm", "low", "calm2"),
+            (0 until player.mediaItemCount).map { player.getMediaItemAt(it).toSong()!!.id },
+        )
+    }
+
+    @Test fun aChangedMinimumIsReappliedAtOnce() {
+        queue(scored("border", 60), scored("calm", 75))
+        scoreTimer(minScore = 60)
+        assertEquals("a song exactly at the minimum plays", 0, player.currentMediaItemIndex)
+        // Raised while the timer runs: the song playing no longer passes, and the next one that does plays at once.
+        c.player.setSleepMinScore(70)
+        assertEquals(70, c.sleepPrefs.choices.value.minScore)
+        assertEquals(1, player.currentMediaItemIndex)
+        // Switched off: the limit is gone from the session and from next time's choices.
+        c.player.setSleepMinScore(0)
+        assertEquals(0, c.sleepPrefs.choices.value.minScore)
+        assertFalse(c.player.sleepBlocksScore("border"))
+        assertEquals(2, player.mediaItemCount)
     }
 }

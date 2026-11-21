@@ -5643,4 +5643,20 @@
     <string name="choose_a_track">گانا منتخب کریں</string>
     <string name="fade_in_duration">فیڈ اِن دورانیہ</string>
     <string name="loop_this_track">اس گانے کو دہرائیں</string>
+    <string name="minimum_sleep_score">کم از کم نیند اسکور</string>
+    <string name="sleep_score_out_of">100 میں سے %1$d</string>
+    <string name="sleep_score_info">ٹائمر چلنے کے دوران اس سے کم والے گانے چھوڑ دیے جاتے ہیں، اور وہ بھی جن کا ابھی اسکور نہیں۔ زیادہ اسکور نیند کے لیے زیادہ موزوں ہے۔</string>
+    <string name="sleep_score_queue_unscored">قطار میں %1$d گانوں کا ابھی اسکور نہیں</string>
+    <string name="sleep_score_queue_below">قطار میں %1$d گانے اس سے کم ہیں</string>
+    <string name="temporarily_disable_the_score_limit">نیند اسکور کی حد عارضی طور پر بند کریں</string>
+    <string name="sleep_score_under">کم از کم 100 میں سے %1$d</string>
+    <string name="sleep_score_none_left">%1$d یا اس سے زیادہ نیند اسکور والا کوئی گانا نہیں بچا</string>
+    <string name="sleep_score_and_bpm_none_left">%1$d BPM سے کم اور %2$d یا اس سے زیادہ نیند اسکور والا کوئی گانا نہیں بچا</string>
+    <string name="calculate_sleep_scores">نیند اسکور</string>
+    <string name="calculating_n_of_n">%2$d میں سے %1$d شمار ہو رہا ہے…</string>
+    <string name="sleep_scores_started">%1$d گانوں کے نیند اسکور شمار ہو رہے ہیں</string>
+    <string name="sleep_scores_already_calculated">ہر چنے گئے گانے کا نیند اسکور پہلے سے موجود ہے</string>
+    <string name="sleep_scores_scored_n">%1$d اسکور ہوئے</string>
+    <string name="sleep_scores_info">ہر گانے کے اپنے آڈیو کو اس بنیاد پر اسکور کرتا ہے کہ وہ نیند میں خلل ڈالنے کا کتنا کم امکان رکھتا ہے، سلیپ ٹائمر کی کم از کم حد کے لیے۔ جن گانوں کا اسکور پہلے سے ہے وہ چھوڑ دیے جاتے ہیں؛ عدد تب تک محفوظ رہتا ہے جب تک دوبارہ شمار نہ ہو یا اسکورنگ نہ بدلے۔</string>
+    <string name="sleep_scores_stopped_at">%2$d میں سے %1$d پر رکا، جاری رکھنے کے لیے ٹیپ کریں</string>
 </resources>

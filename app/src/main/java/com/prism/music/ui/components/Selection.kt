@@ -194,6 +194,13 @@ object SelectionPlan {
     fun forPlaylist(songs: Collection<Song>): List<Song> = songs.filter { !it.isRss }
 
     /**
+     * What a sleep score can be calculated for (1.9): anything with audio of its own. A live stream has no recording to
+     * judge (it never ends, and its audio isn't what plays later), so it's left out; everything else, episodes included,
+     * is scored from its own samples.
+     */
+    fun forSleep(songs: Collection<Song>): List<Song> = songs.filter { !it.isLive }.distinctBy { it.id }
+
+    /**
      * What a snooze applies to (1.8.5): songs, once each; not podcast episodes (a snooze is for a track, and a show is
      * not one). Already-snoozed songs are kept: snoozing them again only moves their days, never a second record.
      */
@@ -339,6 +346,31 @@ fun SelectionBar(selection: SongSelection, modifier: Modifier = Modifier) {
                 BarButton(PrismIcons.Equalizer, tr(R.string.enhance_make_instrumental), ink, enabled = forEnhance.isNotEmpty()) {
                     if (c.enhance.separatorReady()) { c.enhance.enqueue(forEnhance, setOf(com.prism.music.data.enhance.EnhanceKind.INSTRUMENTAL)); toast(tr(R.string.enhance_queued)); selection.clear() }
                     else { enhanceKind = com.prism.music.data.enhance.EnhanceKind.INSTRUMENTAL; enhanceAsk = com.prism.music.data.enhance.EnhanceModel.SEPARATOR }
+                }
+                // Sleep scores (1.9): the picked songs' own audio analysed for how unlikely it is to disturb sleep. The
+                // walk is the one "Calculate sleep scores now" in Settings uses, so its progress and Stop are here too.
+                val forSleep = SelectionPlan.forSleep(songs)
+                val scoreRunning by c.sleepScoreSongs.running.collectAsState()
+                val scoreProgress by c.sleepScoreSongs.progress.collectAsState()
+                BarButton(
+                    PrismIcons.Moon,
+                    if (scoreRunning) tr(R.string.calculating_n_of_n, scoreProgress?.first ?: 0, scoreProgress?.second ?: 0)
+                    else tr(R.string.calculate_sleep_scores),
+                    ink, enabled = scoreRunning || forSleep.isNotEmpty(),
+                ) {
+                    if (scoreRunning) c.sleepScoreSongs.stop()
+                    else {
+                        val network = c.sleepScoreSongs.network(c.settings.current.mixTempoOnCellular)
+                        val pending = c.sleepScoreSongs.pending(forSleep.map { it.id })
+                        if (pending.isEmpty()) toast(tr(R.string.sleep_scores_already_calculated))
+                        else {
+                            c.sleepScoreSongs.start(pending, network)
+                            // Kept going with Prism out of sight, as "Measure songs now" is.
+                            com.prism.music.playback.SleepScoreService.start(context)
+                            toast(tr(R.string.sleep_scores_started, pending.size))
+                            if (!network) toast(tr(R.string.on_wi_fi_songs_not_on_the_phone_are_measured_too))
+                        }
+                    }
                 }
                 val (likeThem, likeWhich) = SelectionPlan.like(songs, liked)
                 BarButton(

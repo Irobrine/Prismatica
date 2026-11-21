@@ -5643,4 +5643,20 @@
     <string name="choose_a_track">গান বাছুন</string>
     <string name="fade_in_duration">ফেড-ইন সময়কাল</string>
     <string name="loop_this_track">এই গানটি লুপ করুন</string>
+    <string name="minimum_sleep_score">সর্বনিম্ন ঘুমের স্কোর</string>
+    <string name="sleep_score_out_of">100-এর মধ্যে %1$d</string>
+    <string name="sleep_score_info">টাইমার চলার সময় এর চেয়ে কম স্কোরের গান বাদ দেওয়া হয়, আর যে গানগুলোর এখনো স্কোর নেই সেগুলোও। স্কোর যত বেশি, ঘুমের জন্য তত উপযুক্ত।</string>
+    <string name="sleep_score_queue_unscored">সারিতে %1$dটি গানের এখনো স্কোর নেই</string>
+    <string name="sleep_score_queue_below">সারিতে %1$dটি গান এর চেয়ে কম</string>
+    <string name="temporarily_disable_the_score_limit">ঘুমের স্কোরের সীমা সাময়িকভাবে বন্ধ করুন</string>
+    <string name="sleep_score_under">অন্তত 100-এর মধ্যে %1$d</string>
+    <string name="sleep_score_none_left">%1$d বা তার বেশি ঘুমের স্কোরের কোনো গান নেই</string>
+    <string name="sleep_score_and_bpm_none_left">%1$d BPM-এর কম এবং %2$d বা তার বেশি ঘুমের স্কোরের কোনো গান নেই</string>
+    <string name="calculate_sleep_scores">ঘুমের স্কোর</string>
+    <string name="calculating_n_of_n">%2$d-এর মধ্যে %1$d গণনা করা হচ্ছে…</string>
+    <string name="sleep_scores_started">%1$dটি গানের ঘুমের স্কোর গণনা করা হচ্ছে</string>
+    <string name="sleep_scores_already_calculated">বাছাই করা প্রতিটি গানেরই ঘুমের স্কোর আছে</string>
+    <string name="sleep_scores_scored_n">%1$dটি স্কোর হয়েছে</string>
+    <string name="sleep_scores_info">প্রতিটি গানের নিজস্ব অডিও কতটা ঘুমে ব্যাঘাত ঘটানোর সম্ভাবনা কম, তা যাচাই করে, স্লিপ টাইমারের সর্বনিম্ন মানের জন্য। যেসব গানের স্কোর আগে থেকেই আছে সেগুলো বাদ যায়; স্কোরটি আবার গণনা না করা বা স্কোরিং না বদলালে সংরক্ষিত থাকে।</string>
+    <string name="sleep_scores_stopped_at">%2$d-এর মধ্যে %1$d-এ থেমেছে, চালিয়ে যেতে ট্যাপ করুন</string>
 </resources>

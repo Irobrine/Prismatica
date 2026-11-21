@@ -5568,4 +5568,20 @@
     <string name="choose_a_track">เลือกเพลง</string>
     <string name="fade_in_duration">ระยะเวลาเฟดอิน</string>
     <string name="loop_this_track">วนเพลงนี้</string>
+    <string name="minimum_sleep_score">คะแนนการนอนขั้นต่ำ</string>
+    <string name="sleep_score_out_of">%1$d จาก 100</string>
+    <string name="sleep_score_info">เพลงที่ต่ำกว่านี้จะถูกข้ามระหว่างที่ตัวจับเวลาทำงาน รวมถึงเพลงที่ยังไม่มีคะแนน ยิ่งสูงยิ่งเหมาะกับการนอน</string>
+    <string name="sleep_score_queue_unscored">%1$d ในคิวที่ยังไม่มีคะแนน</string>
+    <string name="sleep_score_queue_below">%1$d ในคิวที่ต่ำกว่านี้</string>
+    <string name="temporarily_disable_the_score_limit">ปิดการจำกัดคะแนนการนอนชั่วคราว</string>
+    <string name="sleep_score_under">อย่างน้อย %1$d จาก 100</string>
+    <string name="sleep_score_none_left">ไม่มีเพลงที่ได้คะแนนการนอน %1$d หรือสูงกว่าเหลืออยู่</string>
+    <string name="sleep_score_and_bpm_none_left">ไม่มีเพลงที่ต่ำกว่า %1$d BPM และได้คะแนนการนอน %2$d หรือสูงกว่าเหลืออยู่</string>
+    <string name="calculate_sleep_scores">คะแนนการนอน</string>
+    <string name="calculating_n_of_n">กำลังคำนวณ %1$d จาก %2$d…</string>
+    <string name="sleep_scores_started">กำลังคำนวณคะแนนการนอนสำหรับ %1$d เพลง</string>
+    <string name="sleep_scores_already_calculated">ทุกเพลงที่เลือกมีคะแนนการนอนแล้ว</string>
+    <string name="sleep_scores_scored_n">ให้คะแนนแล้ว %1$d</string>
+    <string name="sleep_scores_info">ให้คะแนนเสียงของแต่ละเพลงว่ามีโอกาสรบกวนการนอนน้อยแค่ไหน สำหรับค่าขั้นต่ำของการตั้งเวลาปิด เพลงที่ให้คะแนนแล้วจะถูกข้าม ค่าจะถูกเก็บไว้จนกว่าจะคำนวณใหม่หรือวิธีให้คะแนนเปลี่ยน</string>
+    <string name="sleep_scores_stopped_at">หยุดที่ %1$d จาก %2$d แตะเพื่อทำต่อ</string>
 </resources>

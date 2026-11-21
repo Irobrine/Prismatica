@@ -5718,4 +5718,20 @@
     <string name="choose_a_track">Choisir un titre</string>
     <string name="fade_in_duration">Durée du fondu d\'entrée</string>
     <string name="loop_this_track">Répéter ce titre</string>
+    <string name="minimum_sleep_score">Score de sommeil minimum</string>
+    <string name="sleep_score_out_of">%1$d sur 100</string>
+    <string name="sleep_score_info">Les morceaux en dessous sont ignorés pendant que le minuteur tourne, ainsi que ceux qui n’ont pas encore de score. Plus il est élevé, plus le morceau convient au sommeil.</string>
+    <string name="sleep_score_queue_unscored">%1$d dans la file n’ont pas encore de score</string>
+    <string name="sleep_score_queue_below">%1$d dans la file sont en dessous</string>
+    <string name="temporarily_disable_the_score_limit">Désactiver temporairement la limite de score de sommeil</string>
+    <string name="sleep_score_under">Au moins %1$d sur 100</string>
+    <string name="sleep_score_none_left">Plus aucun morceau avec un score de sommeil de %1$d ou plus</string>
+    <string name="sleep_score_and_bpm_none_left">Plus aucun morceau sous %1$d BPM et avec un score de sommeil de %2$d ou plus</string>
+    <string name="calculate_sleep_scores">Scores de sommeil</string>
+    <string name="calculating_n_of_n">Calcul de %1$d sur %2$d…</string>
+    <string name="sleep_scores_started">Calcul des scores de sommeil pour %1$d morceaux</string>
+    <string name="sleep_scores_already_calculated">Chaque morceau choisi a déjà un score de sommeil</string>
+    <string name="sleep_scores_scored_n">%1$d évalués</string>
+    <string name="sleep_scores_info">Évalue l’audio de chaque morceau selon sa probabilité de ne pas perturber le sommeil, pour le minimum du minuteur. Les morceaux déjà évalués sont ignorés ; la valeur est conservée jusqu’à un nouveau calcul ou un changement de l’évaluation.</string>
+    <string name="sleep_scores_stopped_at">Arrêté à %1$d sur %2$d, appuyez pour continuer</string>
 </resources>

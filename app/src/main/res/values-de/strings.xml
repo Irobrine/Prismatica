@@ -5643,4 +5643,20 @@
     <string name="choose_a_track">Titel wählen</string>
     <string name="fade_in_duration">Einblenddauer</string>
     <string name="loop_this_track">Diesen Titel wiederholen</string>
+    <string name="minimum_sleep_score">Minimaler Sleep-Score</string>
+    <string name="sleep_score_out_of">%1$d von 100</string>
+    <string name="sleep_score_info">Songs darunter werden übersprungen, solange der Timer läuft, ebenso Songs ohne Score. Höher eignet sich besser fürs Schlafen.</string>
+    <string name="sleep_score_queue_unscored">%1$d in der Warteschlange haben noch keinen Score</string>
+    <string name="sleep_score_queue_below">%1$d in der Warteschlange liegen darunter</string>
+    <string name="temporarily_disable_the_score_limit">Sleep-Score-Grenze vorübergehend deaktivieren</string>
+    <string name="sleep_score_under">Mindestens %1$d von 100</string>
+    <string name="sleep_score_none_left">Keine Songs mit Sleep-Score %1$d oder höher mehr</string>
+    <string name="sleep_score_and_bpm_none_left">Keine Songs unter %1$d BPM und mit Sleep-Score %2$d oder höher mehr</string>
+    <string name="calculate_sleep_scores">Sleep-Scores</string>
+    <string name="calculating_n_of_n">%1$d von %2$d wird berechnet…</string>
+    <string name="sleep_scores_started">Sleep-Scores für %1$d Songs werden berechnet</string>
+    <string name="sleep_scores_already_calculated">Jeder ausgewählte Song hat schon einen Sleep-Score</string>
+    <string name="sleep_scores_scored_n">%1$d bewertet</string>
+    <string name="sleep_scores_info">Bewertet das eigene Audio jedes Songs danach, wie unwahrscheinlich er den Schlaf stört, für das Minimum des Sleep-Timers. Bereits bewertete Songs bleiben aus; ein Wert bleibt, bis er neu berechnet wird oder sich die Bewertung ändert.</string>
+    <string name="sleep_scores_stopped_at">Bei %1$d von %2$d gestoppt, zum Fortsetzen tippen</string>
 </resources>

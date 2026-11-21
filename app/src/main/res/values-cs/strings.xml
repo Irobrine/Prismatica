@@ -5793,4 +5793,20 @@
     <string name="choose_a_track">Vybrat skladbu</string>
     <string name="fade_in_duration">Délka prolínání na začátku</string>
     <string name="loop_this_track">Opakovat tuto skladbu</string>
+    <string name="minimum_sleep_score">Minimální skóre spánku</string>
+    <string name="sleep_score_out_of">%1$d ze 100</string>
+    <string name="sleep_score_info">Skladby pod tímto skóre se při běhu časovače přeskakují, stejně jako skladby bez skóre. Vyšší je pro spánek vhodnější.</string>
+    <string name="sleep_score_queue_unscored">%1$d ve frontě zatím nemá skóre</string>
+    <string name="sleep_score_queue_below">%1$d ve frontě je pod tímto</string>
+    <string name="temporarily_disable_the_score_limit">Dočasně vypnout limit skóre spánku</string>
+    <string name="sleep_score_under">Alespoň %1$d ze 100</string>
+    <string name="sleep_score_none_left">Nezbývají žádné skladby se skóre spánku %1$d a vyšším</string>
+    <string name="sleep_score_and_bpm_none_left">Nezbývají skladby pod %1$d BPM se skóre spánku %2$d a vyšším</string>
+    <string name="calculate_sleep_scores">Skóre spánku</string>
+    <string name="calculating_n_of_n">Počítá se %1$d z %2$d…</string>
+    <string name="sleep_scores_started">Počítá se skóre spánku pro %1$d skladeb</string>
+    <string name="sleep_scores_already_calculated">Každá vybraná skladba už skóre spánku má</string>
+    <string name="sleep_scores_scored_n">%1$d ohodnoceno</string>
+    <string name="sleep_scores_info">Hodnotí zvuk každé skladby podle toho, jak nepravděpodobně ruší spánek, pro minimum časovače spánku. Skladby, které už skóre mají, se vynechávají; hodnota zůstává, dokud se znovu nevypočítá nebo se hodnocení nezmění.</string>
+    <string name="sleep_scores_stopped_at">Zastaveno na %1$d z %2$d, klepnutím pokračuj</string>
 </resources>

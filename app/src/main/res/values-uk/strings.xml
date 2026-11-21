@@ -5793,4 +5793,20 @@
     <string name="choose_a_track">Вибрати трек</string>
     <string name="fade_in_duration">Тривалість плавної появи</string>
     <string name="loop_this_track">Повторювати цей трек</string>
+    <string name="minimum_sleep_score">Мінімальна оцінка сну</string>
+    <string name="sleep_score_out_of">%1$d зі 100</string>
+    <string name="sleep_score_info">Пісні нижче цього пропускаються, поки працює таймер, як і пісні без оцінки. Що вище, то краще підходить для сну.</string>
+    <string name="sleep_score_queue_unscored">%1$d у черзі ще без оцінки</string>
+    <string name="sleep_score_queue_below">%1$d у черзі нижче цього</string>
+    <string name="temporarily_disable_the_score_limit">Тимчасово вимкнути обмеження оцінки сну</string>
+    <string name="sleep_score_under">Щонайменше %1$d зі 100</string>
+    <string name="sleep_score_none_left">Не залишилося пісень з оцінкою сну %1$d або вище</string>
+    <string name="sleep_score_and_bpm_none_left">Не залишилося пісень нижче %1$d BPM з оцінкою сну %2$d або вище</string>
+    <string name="calculate_sleep_scores">Оцінки сну</string>
+    <string name="calculating_n_of_n">Обчислення %1$d з %2$d…</string>
+    <string name="sleep_scores_started">Обчислення оцінок сну для %1$d пісень</string>
+    <string name="sleep_scores_already_calculated">Кожна вибрана пісня вже має оцінку сну</string>
+    <string name="sleep_scores_scored_n">Оцінено: %1$d</string>
+    <string name="sleep_scores_info">Оцінює звук кожної пісні за тим, наскільки малоймовірно, що вона завадить сну, для мінімуму таймера сну. Пісні з оцінкою пропускаються; значення зберігається до перерахунку або зміни способу оцінювання.</string>
+    <string name="sleep_scores_stopped_at">Зупинено на %1$d з %2$d, торкнися, щоб продовжити</string>
 </resources>

@@ -5643,4 +5643,20 @@
     <string name="choose_a_track">انتخاب آهنگ</string>
     <string name="fade_in_duration">مدت محو شدن ورودی</string>
     <string name="loop_this_track">تکرار این آهنگ</string>
+    <string name="minimum_sleep_score">حداقل امتیاز خواب</string>
+    <string name="sleep_score_out_of">%1$d از 100</string>
+    <string name="sleep_score_info">آهنگ‌های پایین‌تر از این هنگام اجرای تایمر رد می‌شوند، و همچنین آهنگ‌هایی که هنوز امتیاز ندارند. امتیاز بالاتر برای خواب مناسب‌تر است.</string>
+    <string name="sleep_score_queue_unscored">%1$d در صف هنوز امتیاز ندارند</string>
+    <string name="sleep_score_queue_below">%1$d در صف پایین‌تر از این هستند</string>
+    <string name="temporarily_disable_the_score_limit">غیرفعال کردن موقت محدودیت امتیاز خواب</string>
+    <string name="sleep_score_under">حداقل %1$d از 100</string>
+    <string name="sleep_score_none_left">آهنگی با امتیاز خواب %1$d یا بالاتر نمانده است</string>
+    <string name="sleep_score_and_bpm_none_left">آهنگی زیر %1$d BPM و با امتیاز خواب %2$d یا بالاتر نمانده است</string>
+    <string name="calculate_sleep_scores">امتیازهای خواب</string>
+    <string name="calculating_n_of_n">محاسبه %1$d از %2$d…</string>
+    <string name="sleep_scores_started">محاسبه امتیاز خواب برای %1$d آهنگ</string>
+    <string name="sleep_scores_already_calculated">هر آهنگ انتخاب‌شده از قبل امتیاز خواب دارد</string>
+    <string name="sleep_scores_scored_n">%1$d امتیاز گرفت</string>
+    <string name="sleep_scores_info">صدای هر آهنگ را از این نظر امتیاز می‌دهد که چقدر احتمال کمتری دارد خواب را مختل کند، برای حداقل تایمر خواب. آهنگ‌هایی که قبلاً امتیاز گرفته‌اند کنار گذاشته می‌شوند؛ عدد تا محاسبه دوباره یا تغییر امتیازدهی نگه داشته می‌شود.</string>
+    <string name="sleep_scores_stopped_at">در %1$d از %2$d متوقف شد، برای ادامه ضربه بزنید</string>
 </resources>

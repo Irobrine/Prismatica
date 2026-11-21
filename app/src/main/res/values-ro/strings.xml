@@ -5718,4 +5718,20 @@
     <string name="choose_a_track">Alege o piesă</string>
     <string name="fade_in_duration">Durata estompării la început</string>
     <string name="loop_this_track">Repetă această piesă</string>
+    <string name="minimum_sleep_score">Scor de somn minim</string>
+    <string name="sleep_score_out_of">%1$d din 100</string>
+    <string name="sleep_score_info">Piesele sub acest prag sunt sărite cât timp rulează temporizatorul, la fel și cele care încă nu au scor. Cu cât e mai mare, cu atât e mai potrivit pentru somn.</string>
+    <string name="sleep_score_queue_unscored">%1$d din coadă nu au încă scor</string>
+    <string name="sleep_score_queue_below">%1$d din coadă sunt sub acest prag</string>
+    <string name="temporarily_disable_the_score_limit">Dezactivează temporar limita scorului de somn</string>
+    <string name="sleep_score_under">Cel puțin %1$d din 100</string>
+    <string name="sleep_score_none_left">Nu mai există piese cu scor de somn %1$d sau mai mare</string>
+    <string name="sleep_score_and_bpm_none_left">Nu mai există piese sub %1$d BPM și cu scor de somn %2$d sau mai mare</string>
+    <string name="calculate_sleep_scores">Scoruri de somn</string>
+    <string name="calculating_n_of_n">Se calculează %1$d din %2$d…</string>
+    <string name="sleep_scores_started">Se calculează scorurile de somn pentru %1$d piese</string>
+    <string name="sleep_scores_already_calculated">Fiecare piesă aleasă are deja un scor de somn</string>
+    <string name="sleep_scores_scored_n">%1$d evaluate</string>
+    <string name="sleep_scores_info">Evaluează sunetul fiecărei piese după cât de puțin probabil este să deranjeze somnul, pentru minimul temporizatorului de somn. Piesele deja evaluate sunt lăsate deoparte; valoarea se păstrează până la recalculare sau până când evaluarea se schimbă.</string>
+    <string name="sleep_scores_stopped_at">Oprit la %1$d din %2$d, atinge pentru a continua</string>
 </resources>

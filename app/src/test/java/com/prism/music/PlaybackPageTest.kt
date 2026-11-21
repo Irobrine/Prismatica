@@ -74,7 +74,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
             listOf(t(R.string.what_plays_next), t(R.string.shuffle), t(R.string.playback_song_to_song), t(R.string.playback_speed_and_pitch), t(R.string.stopping_and_pausing)),
             groupTitles(),
         )
-        assertEquals(listOf(6, 2, 2, 2, 6), groupSizes())
+        assertEquals(listOf(6, 2, 2, 2, 7), groupSizes())
         assertEquals("nothing differs from how Prism comes", 0, changedRows())
         // No group is named as the page, and none as one of its own rows (§2.7: "Crossfade" was both).
         assertTrue(groupTitles().none { it == SettingsPageId.PLAYBACK.title })
@@ -101,7 +101,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         until("crossfade on") { it.mix && !it.mixAuto }
         show()
         assertBudgets("crossfade on, fixed length")
-        assertEquals(listOf(6, 2, 5, 2, 6), groupSizes())
+        assertEquals(listOf(6, 2, 5, 2, 7), groupSizes())
         assertEquals("6 s", valueOf(length))
     }
 
@@ -189,7 +189,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
 
         // Every row now differs from how Prism comes, says so, and the page still fits.
         assertBudgets("everything changed")
-        assertEquals(listOf(6, 2, 5, 2, 6), groupSizes())
+        assertEquals(listOf(6, 2, 5, 2, 7), groupSizes())
         assertEquals(21, changedRows())
         // The root's line is live.
         val line = SettingsPageId.PLAYBACK.value(stored)
@@ -206,7 +206,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
                 it.mixBeatMatch == d.mixBeatMatch && it.mixKeepAlbums == d.mixKeepAlbums && it.stopOnSwipeAway == d.stopOnSwipeAway
         }
         assertEquals(0, changedRows())
-        assertEquals(listOf(6, 2, 2, 2, 6), groupSizes())
+        assertEquals(listOf(6, 2, 2, 2, 7), groupSizes())
     }
 
     /** D57 and #416: the two new rows, off (as Prism was) until picked. */

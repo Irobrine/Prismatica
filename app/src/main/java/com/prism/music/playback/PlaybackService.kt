@@ -761,10 +761,11 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         c.player.onSleepItemChanged()
         applyLiveVideo()
         val song = mediaItem?.toSong()
-        // The sleep timer's BPM limit (A5, extended): a song faster than the limit, or one whose tempo isn't known, is
-        // passed over for the next one that fits. Nothing is taken out of the queue, so switching the limit off brings
-        // those songs back; when nothing fits, playback stops rather than skipping for ever.
-        if (mediaItem != null && !c.queue.followingHost && c.player.sleepBlocksBpm(song?.id)) {
+        // The sleep timer's limits (A5, extended by 1.9's minimum sleep score): a song faster than the BPM limit, one
+        // below the score limit, or one whose figure isn't known, is passed over for the next one that fits. Nothing is
+        // taken out of the queue, so switching a limit off brings those songs back, with every edit made meanwhile;
+        // when nothing fits, playback stops rather than skipping for ever.
+        if (mediaItem != null && !c.queue.followingHost && c.player.sleepBlocksFilter(song?.id)) {
             untrack()
             val next = c.player.nextSleepAllowed(player)
             if (next != C.INDEX_UNSET) { player.seekTo(next, 0); return }
@@ -1151,9 +1152,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             c.player.reportError(tr(R.string.explicit_none_left))
             return
         }
-        // Pressing Play while the sleep timer's BPM limit rules the song out: the next song that fits plays instead, and
-        // with none left it stays paused (the limit never lets an unknown or faster song through).
-        if (!c.queue.followingHost && c.player.sleepBlocksBpm(song.id)) {
+        // Pressing Play while the sleep timer's limits rule the song out: the next song that fits plays instead, and with
+        // none left it stays paused (a limit never lets an unknown-tempo or unscored song through).
+        if (!c.queue.followingHost && c.player.sleepBlocksFilter(song.id)) {
             val next = c.player.nextSleepAllowed(player)
             if (next != C.INDEX_UNSET) player.seekTo(next, 0) else {
                 player.pause()
@@ -1163,13 +1164,14 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     }
 
     /**
-     * Applies the sleep timer's BPM limit to what plays right now, for the menu and the timer's start (the connection
-     * works on a test player when there's no service). Returns whether it had to stop playback (no allowed song left).
+     * Applies the sleep timer's limits (BPM and minimum sleep score) to what plays right now, for the menu and the
+     * timer's start (the connection works on a test player when there's no service). Returns whether it had to stop
+     * playback (no allowed song left).
      */
     internal fun enforceSleepBpm(): Boolean {
         if (c.queue.followingHost) return false
         val song = player.currentMediaItem?.toSong()
-        if (!c.player.sleepBlocksBpm(song?.id) || player.mediaItemCount == 0) return false
+        if (!c.player.sleepBlocksFilter(song?.id) || player.mediaItemCount == 0) return false
         val next = c.player.nextSleepAllowed(player)
         if (next != C.INDEX_UNSET) { untrack(); player.seekTo(next, 0); return false }
         player.pause()
@@ -1988,9 +1990,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     // the one playing stays, and Add to queue and Play next are the listener's own).
                     !c.snoozes.isSnoozed(it) &&
                         !c.library.isDisliked(it.id) && !c.exclusions.blocks(it) && com.prism.music.data.ExplicitFilter.plays(explicit, it) &&
-                        // The sleep timer's BPM limit: autoplay's and a radio's additions keep to it, so a bedtime queue
+                        // The sleep timer's limits: autoplay's and a radio's additions keep to them, so a bedtime queue
                         // doesn't keep handing over songs it would immediately pass over.
-                        !c.player.sleepBlocksBpm(it.id) &&
+                        !c.player.sleepBlocksFilter(it.id) &&
                         // #299: Autoplay's own songs only: a radio the listener started is left as it is.
                         (radio || com.prism.music.data.AutoplayLength.fits(it, behavior.autoplayMaxMinutes))
                 },
@@ -2666,7 +2668,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             val r = runCatching { withContext(Dispatchers.IO) { c.radio(seed.id, "RDAMVM${seed.id}") } }.getOrNull() ?: continue
             r.songs.filter { s ->
                 s.id !in inQueue && !c.snoozes.isSnoozed(s) && s.id !in recent && !s.isVideo && !s.isLive && !c.library.isDisliked(s.id) && !c.exclusions.blocks(s) &&
-                    !c.player.sleepBlocksBpm(s.id) &&
+                    !c.player.sleepBlocksFilter(s.id) &&
                     smartPool.none { it.id == s.id } && !c.recFeedback.turnedDown(s.id, known = false) &&
                     // One offered in the last day or two (and not taken up) waits its turn.
                     (c.recFeedback.servedDaysAgo(s.id) ?: 99) > 1
@@ -3239,7 +3241,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             val r = runCatching { withContext(Dispatchers.IO) { c.radio(song.id, "RDAMVM${song.id}") } }.getOrNull() ?: return@launch
             if (player.currentMediaItem?.mediaId != song.id) return@launch
             val explicit = c.settings.current.behavior.explicitContent
-            val all = r.songs.filter { it.id != song.id && !c.snoozes.isSnoozed(it) && !c.library.isDisliked(it.id) && !c.exclusions.blocks(it) && com.prism.music.data.ExplicitFilter.plays(explicit, it) && !c.player.sleepBlocksBpm(it.id) }
+            val all = r.songs.filter { it.id != song.id && !c.snoozes.isSnoozed(it) && !c.library.isDisliked(it.id) && !c.exclusions.blocks(it) && com.prism.music.data.ExplicitFilter.plays(explicit, it) && !c.player.sleepBlocksFilter(it.id) }
             // No repeats this session; with nothing else in this answer, the radio still starts.
             val add = if (c.settings.current.behavior.autoplayNoRepeats) all.filter { !c.sessionHeard.has(it) }.ifEmpty { all } else all
             if (add.isEmpty()) return@launch

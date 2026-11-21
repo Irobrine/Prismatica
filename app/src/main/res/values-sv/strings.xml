@@ -5643,4 +5643,20 @@
     <string name="choose_a_track">Välj ett spår</string>
     <string name="fade_in_duration">Intoningens längd</string>
     <string name="loop_this_track">Upprepa det här spåret</string>
+    <string name="minimum_sleep_score">Lägsta sömnpoäng</string>
+    <string name="sleep_score_out_of">%1$d av 100</string>
+    <string name="sleep_score_info">Låtar under detta hoppas över medan timern går, liksom låtar som ännu inte har någon poäng. Högre passar bättre för sömn.</string>
+    <string name="sleep_score_queue_unscored">%1$d i kön har ingen poäng än</string>
+    <string name="sleep_score_queue_below">%1$d i kön ligger under detta</string>
+    <string name="temporarily_disable_the_score_limit">Stäng av sömnpoänggränsen tillfälligt</string>
+    <string name="sleep_score_under">Minst %1$d av 100</string>
+    <string name="sleep_score_none_left">Inga låtar med sömnpoäng %1$d eller högre kvar</string>
+    <string name="sleep_score_and_bpm_none_left">Inga låtar kvar under %1$d BPM med sömnpoäng %2$d eller högre</string>
+    <string name="calculate_sleep_scores">Sömnpoäng</string>
+    <string name="calculating_n_of_n">Beräknar %1$d av %2$d…</string>
+    <string name="sleep_scores_started">Beräknar sömnpoäng för %1$d låtar</string>
+    <string name="sleep_scores_already_calculated">Varje vald låt har redan en sömnpoäng</string>
+    <string name="sleep_scores_scored_n">%1$d poängsatta</string>
+    <string name="sleep_scores_info">Poängsätter varje låts eget ljud efter hur osannolikt det är att det stör sömnen, för insomningstimerens minimum. Låtar som redan är poängsatta hoppas över; värdet sparas tills det beräknas igen eller poängsättningen ändras.</string>
+    <string name="sleep_scores_stopped_at">Stannade vid %1$d av %2$d, tryck för att fortsätta</string>
 </resources>

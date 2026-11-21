@@ -5643,4 +5643,20 @@
     <string name="choose_a_track">Bir parça seç</string>
     <string name="fade_in_duration">Ses açılma süresi</string>
     <string name="loop_this_track">Bu parçayı döngüye al</string>
+    <string name="minimum_sleep_score">En düşük uyku puanı</string>
+    <string name="sleep_score_out_of">%1$d / 100</string>
+    <string name="sleep_score_info">Zamanlayıcı çalışırken bunun altındaki şarkılar atlanır; henüz puanı olmayanlar da. Yüksek olan uyku için daha uygundur.</string>
+    <string name="sleep_score_queue_unscored">Sıradaki %1$d şarkının henüz puanı yok</string>
+    <string name="sleep_score_queue_below">Sıradaki %1$d şarkı bunun altında</string>
+    <string name="temporarily_disable_the_score_limit">Uyku puanı sınırını geçici olarak kapat</string>
+    <string name="sleep_score_under">En az %1$d / 100</string>
+    <string name="sleep_score_none_left">%1$d veya üstü uyku puanı olan şarkı kalmadı</string>
+    <string name="sleep_score_and_bpm_none_left">%1$d BPM altında ve %2$d veya üstü uyku puanı olan şarkı kalmadı</string>
+    <string name="calculate_sleep_scores">Uyku puanları</string>
+    <string name="calculating_n_of_n">%1$d / %2$d hesaplanıyor…</string>
+    <string name="sleep_scores_started">%1$d şarkı için uyku puanları hesaplanıyor</string>
+    <string name="sleep_scores_already_calculated">Seçilen her şarkının zaten uyku puanı var</string>
+    <string name="sleep_scores_scored_n">%1$d puanlandı</string>
+    <string name="sleep_scores_info">Her şarkının kendi sesini uykuyu bozma olasılığının düşüklüğüne göre puanlar, uyku zamanlayıcısının alt sınırı için. Puanı olan şarkılar atlanır; değer yeniden hesaplanana ya da puanlama değişene kadar saklanır.</string>
+    <string name="sleep_scores_stopped_at">%1$d / %2$d konumunda durdu, devam etmek için dokun</string>
 </resources>

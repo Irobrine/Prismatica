@@ -341,11 +341,12 @@ private fun MeasureSongsRow() {
 }
 
 /**
- * The sets of songs "Measure songs now" walks, as its sheet lists them, each under the name it goes by elsewhere in
- * Prism: the listener's own songs ([com.prism.music.data.SmartQuery.KNOWN]'s: liked, played, tagged), their downloads,
- * the music files on the phone, and their liked songs.
+ * The sets of songs the whole-song walks go through, as "Measure songs now" (Sound & quality) and "Sleep scores"
+ * (Playback) list them, each under the name it goes by elsewhere in Prism: the listener's own songs
+ * ([com.prism.music.data.SmartQuery.KNOWN]'s: liked, played, tagged), their downloads, the music files on the phone, and
+ * their liked songs.
  */
-private enum class MeasureScope(val title: String) {
+internal enum class MeasureScope(val title: String) {
     LIBRARY(tr(R.string.library)),
     DOWNLOADED(tr(R.string.downloaded)),
     PHONE(tr(R.string.on_this_phone)),

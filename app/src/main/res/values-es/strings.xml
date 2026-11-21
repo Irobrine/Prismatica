@@ -5718,4 +5718,20 @@
     <string name="choose_a_track">Elegir una canción</string>
     <string name="fade_in_duration">Duración del fundido de entrada</string>
     <string name="loop_this_track">Repetir esta canción</string>
+    <string name="minimum_sleep_score">Puntuación de sueño mínima</string>
+    <string name="sleep_score_out_of">%1$d de 100</string>
+    <string name="sleep_score_info">Se omiten las canciones por debajo de esta mientras corre el temporizador, y también las que aún no tienen puntuación. Cuanto más alta, más adecuada para dormir.</string>
+    <string name="sleep_score_queue_unscored">%1$d en la cola aún no tienen puntuación</string>
+    <string name="sleep_score_queue_below">%1$d en la cola están por debajo</string>
+    <string name="temporarily_disable_the_score_limit">Desactivar temporalmente el límite de puntuación de sueño</string>
+    <string name="sleep_score_under">Al menos %1$d de 100</string>
+    <string name="sleep_score_none_left">No quedan canciones con puntuación de sueño de %1$d o más</string>
+    <string name="sleep_score_and_bpm_none_left">No quedan canciones por debajo de %1$d BPM y con puntuación de sueño de %2$d o más</string>
+    <string name="calculate_sleep_scores">Puntuaciones de sueño</string>
+    <string name="calculating_n_of_n">Calculando %1$d de %2$d…</string>
+    <string name="sleep_scores_started">Calculando puntuaciones de sueño para %1$d canciones</string>
+    <string name="sleep_scores_already_calculated">Todas las canciones elegidas ya tienen puntuación de sueño</string>
+    <string name="sleep_scores_scored_n">%1$d puntuadas</string>
+    <string name="sleep_scores_info">Puntúa el audio de cada canción según lo improbable que sea que altere el sueño, para el mínimo del temporizador. Las canciones ya puntuadas se omiten; la cifra se conserva hasta que se vuelva a calcular o cambie la puntuación.</string>
+    <string name="sleep_scores_stopped_at">Detenido en %1$d de %2$d, toca para continuar</string>
 </resources>
