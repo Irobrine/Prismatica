@@ -5670,5 +5670,4 @@
     <string name="sleep_label_unsuitable">Hindi angkop</string>
     <string name="sleep_scores_calibrated">Inangkop mula sa %1$d ng iyong mga pagtatasa</string>
     <string name="sleep_scores_calibration_hint">Markahan ang mga kanta upang iangkop ang mga score sa iyong pandinig</string>
-    <string name="continue_scores">Ituloy</string>
 </resources>

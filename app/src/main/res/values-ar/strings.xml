@@ -5970,5 +5970,4 @@
     <string name="sleep_label_unsuitable">غير مناسب</string>
     <string name="sleep_scores_calibrated">مُضبط من %1$d من تقييماتك</string>
     <string name="sleep_scores_calibration_hint">قيّم الأغاني لضبط الدرجات على مقاس أذنيك</string>
-    <string name="continue_scores">متابعة</string>
 </resources>

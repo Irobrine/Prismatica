@@ -5595,5 +5595,4 @@
     <string name="sleep_label_unsuitable">不适合</string>
     <string name="sleep_scores_calibrated">根据您的 %1$d 项判断调整</string>
     <string name="sleep_scores_calibration_hint">标记歌曲，让评分更贴合您的耳朵</string>
-    <string name="continue_scores">继续</string>
 </resources>

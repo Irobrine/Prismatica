@@ -5670,5 +5670,4 @@
     <string name="sleep_label_unsuitable">अनुपयुक्त</string>
     <string name="sleep_scores_calibrated">%1$d आपके निर्णयों के हिसाब से तैयार किया गया</string>
     <string name="sleep_scores_calibration_hint">स्कोर को आपके कान के अनुसार ढालने के लिए गानों को मार्क करें</string>
-    <string name="continue_scores">जारी रखें</string>
 </resources>

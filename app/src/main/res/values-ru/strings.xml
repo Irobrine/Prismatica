@@ -5820,5 +5820,4 @@
     <string name="sleep_label_unsuitable">Не подходит</string>
     <string name="sleep_scores_calibrated">Подстроено на основе %1$d ваших оценок</string>
     <string name="sleep_scores_calibration_hint">Отмечайте песни, чтобы подстроить оценки под ваш слух</string>
-    <string name="continue_scores">Продолжить</string>
 </resources>

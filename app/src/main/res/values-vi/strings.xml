@@ -5595,5 +5595,4 @@
     <string name="sleep_label_unsuitable">Không phù hợp</string>
     <string name="sleep_scores_calibrated">Được điều chỉnh từ %1$d đánh giá của bạn</string>
     <string name="sleep_scores_calibration_hint">Đánh dấu bài hát để điều chỉnh điểm theo tai của bạn</string>
-    <string name="continue_scores">Tiếp tục</string>
 </resources>

@@ -159,10 +159,5 @@ class MeasureSongs(
     }
 
     /** Stops the walk where it is: nothing more is measured, and its count is kept for [resume]. */
-    fun stop() {
-        job?.cancel()
-        // The walk's own finally sets this too, but the menu must show "stopped" the moment the listener taps it, not
-        // when an IO thread gets round to unwinding the decode.
-        running.value = false
-    }
+    fun stop() { job?.cancel() }
 }
