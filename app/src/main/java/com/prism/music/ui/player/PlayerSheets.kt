@@ -361,6 +361,9 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
             pc.clearSleepVolumePreview()
         }
     }
+    // Opening the menu is heard at once too: the slider's remembered level is applied for as long as it's open (closing
+    // puts the listener's own volume back).
+    LaunchedEffect(volumeValue) { pc.previewSleepVolume(volumeValue) }
     AlertDialog(
         onDismissRequest = { close() },
         title = { Text(tr(R.string.sleep_timer)) },
@@ -418,7 +421,7 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                     Text(tr(R.string.tv_percent, (volumeValue * 100).roundToInt()), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary)
                 }
-                PrismSlider(volumeValue, { volumeValue = it; pc.previewSleepVolume(it) }, valueRange = 0f..1f, steps = 9) {
+                PrismSlider(volumeValue, { volumeValue = it; pc.previewSleepVolume(it) }, valueRange = 0f..1f) {
                     c.sleepPrefs.setVolume(volumeValue)
                     pc.previewSleepVolume(volumeValue)
                 }
@@ -488,7 +491,7 @@ fun SleepTimerEditDialog(onDismiss: () -> Unit) {
                     Text(tr(R.string.tv_percent, (volumeValue * 100).roundToInt()), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary)
                 }
-                PrismSlider(volumeValue, { volumeValue = it; pc.setSleepVolume(it) }, valueRange = 0f..1f, steps = 9) {
+                PrismSlider(volumeValue, { volumeValue = it; pc.setSleepVolume(it) }, valueRange = 0f..1f) {
                     pc.setSleepVolume(volumeValue, remember = true)
                 }
             }
