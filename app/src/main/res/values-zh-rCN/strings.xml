@@ -5586,4 +5586,8 @@
     <string name="sleep_scores_stopped_at">停在 %1$d/%2$d，点按继续</string>
     <string name="use_normalized_audio">使用标准化音频</string>
     <string name="use_normalized_audio_info">评分根据“音量标准化”播放的声音计算：每段录音测得的响度和峰值决定播放时应用的增益。开启此项后，只有以这种方式计算的评分才计入。</string>
+    <string name="show_sleep_scores">显示计算出的评分</string>
+    <string name="sleep_scores_list_info">当前音频模式下的评分。没有评分的歌曲会被睡眠定时器跳过。</string>
+    <string name="sleep_scores_none_calculated">还没有歌曲有睡眠评分</string>
+    <string name="sleep_score_not_calculated">未计算</string>
 </resources>

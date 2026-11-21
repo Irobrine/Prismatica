@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -194,6 +195,31 @@ fun <T> PickListRow(
 @Composable
 fun RowsSheet(title: String, onDismiss: () -> Unit, info: String? = null, content: @Composable ColumnScope.() -> Unit) {
     SettingsSheet(onDismiss) { _ -> SheetRows(title, info, content) }
+}
+
+/**
+ * A settings sheet whose rows are a lazy list: the same handle, header and tag as [RowsSheet], for lists that can hold
+ * hundreds of rows (a library's songs with their sleep scores) without composing them all at once.
+ */
+@Composable
+fun LazyRowsSheet(
+    title: String,
+    onDismiss: () -> Unit,
+    info: String? = null,
+    content: LazyListScope.() -> Unit,
+) {
+    SettingsSheet(onDismiss) { _ ->
+        Column(
+            Modifier.fillMaxWidth().heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.85f)
+                .testTag(SettingsTags.SHEET),
+        ) {
+            SheetHeader(title, info)
+            LazyColumn(
+                Modifier.fillMaxWidth().weight(1f, fill = false).nestedScroll(KeepUpwardScroll).padding(bottom = 22.dp),
+                content = content,
+            )
+        }
+    }
 }
 
 /** What a [RowsSheet] shows under its handle (apart, so it's tested and drawn without a sheet's window). */

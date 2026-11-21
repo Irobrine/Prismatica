@@ -5661,4 +5661,8 @@
     <string name="sleep_scores_stopped_at">Gestopt bij %1$d van %2$d, tik om door te gaan</string>
     <string name="use_normalized_audio">Genormaliseerde audio gebruiken</string>
     <string name="use_normalized_audio_info">Scores worden berekend uit het geluid zoals Volume normaliseren het afspeelt: de gemeten luidheid en piek van elke opname bepalen de versterking die het afspelen toepast. Alleen zo berekende scores tellen zolang dit aan staat.</string>
+    <string name="show_sleep_scores">Berekende scores tonen</string>
+    <string name="sleep_scores_list_info">Scores in de actieve audiomodus. Nummers zonder score worden door de slaaptimer overgeslagen.</string>
+    <string name="sleep_scores_none_calculated">Nog geen nummers hebben een slaapscore</string>
+    <string name="sleep_score_not_calculated">Niet berekend</string>
 </resources>

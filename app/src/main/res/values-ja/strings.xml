@@ -5586,4 +5586,8 @@
     <string name="sleep_scores_stopped_at">%2$d 件中 %1$d 件で停止しました。タップして続行</string>
     <string name="use_normalized_audio">均一化した音声を使用</string>
     <string name="use_normalized_audio_info">スコアは「音量を均一化」が再生する音から計算されます。各録音で測定したラウドネスとピークが、再生時に適用されるゲインを決めます。これがオンの間は、この方法で計算したスコアだけが対象になります。</string>
+    <string name="show_sleep_scores">計算済みのスコアを表示</string>
+    <string name="sleep_scores_list_info">アクティブなオーディオモードでのスコア。スコアがない曲はスリープタイマーでスキップされます。</string>
+    <string name="sleep_scores_none_calculated">まだ睡眠スコアのある曲がありません</string>
+    <string name="sleep_score_not_calculated">未計算</string>
 </resources>

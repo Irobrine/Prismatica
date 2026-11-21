@@ -5736,4 +5736,8 @@
     <string name="sleep_scores_stopped_at">נעצר ב-%1$d מתוך %2$d, הקש להמשך</string>
     <string name="use_normalized_audio">שימוש באודיו מאוזן</string>
     <string name="use_normalized_audio_info">הציונים מחושבים מהצליל כפי שאיזון עוצמת הקול משמיע אותו: העוצמה והשיא הנמדדים של כל הקלטה קובעים את ההגבר שההשמעה מיישמת. כשזה פעיל, נספרים רק ציונים שחושבו כך.</string>
+    <string name="show_sleep_scores">הצגת ציונים מחושבים</string>
+    <string name="sleep_scores_list_info">ציונים במצב האודיו הפעיל. שירים שאין להם ציון מדולגים על ידי טיימר השינה.</string>
+    <string name="sleep_scores_none_calculated">עדיין אין שירים עם ציון שינה</string>
+    <string name="sleep_score_not_calculated">לא חושב</string>
 </resources>

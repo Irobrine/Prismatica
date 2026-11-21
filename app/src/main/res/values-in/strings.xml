@@ -5586,4 +5586,8 @@
     <string name="sleep_scores_stopped_at">Berhenti di %1$d dari %2$d, ketuk untuk melanjutkan</string>
     <string name="use_normalized_audio">Pakai audio yang dinormalisasi</string>
     <string name="use_normalized_audio_info">Skor dihitung dari suara yang diputar oleh Normalisasi volume: kenyaringan dan puncak terukur tiap rekaman menentukan gain yang diterapkan pemutaran. Saat ini aktif, hanya skor yang dihitung dengan cara ini yang dihitung.</string>
+    <string name="show_sleep_scores">Tampilkan skor yang sudah dihitung</string>
+    <string name="sleep_scores_list_info">Skor dalam mode audio aktif. Lagu yang tidak punya skor dilewati oleh timer tidur.</string>
+    <string name="sleep_scores_none_calculated">Belum ada lagu yang punya skor tidur</string>
+    <string name="sleep_score_not_calculated">Belum dihitung</string>
 </resources>

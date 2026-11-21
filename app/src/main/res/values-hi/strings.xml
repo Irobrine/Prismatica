@@ -5661,4 +5661,8 @@
     <string name="sleep_scores_stopped_at">%2$d में से %1$d पर रुका, जारी रखने के लिए टैप करें</string>
     <string name="use_normalized_audio">एक जैसा किया गया ऑडियो इस्तेमाल करें</string>
     <string name="use_normalized_audio_info">स्कोर उसी आवाज़ से गिने जाते हैं जो वॉल्यूम एक जैसा करें बजाता है: हर रिकॉर्डिंग की मापी गई लाउडनेस और पीक तय करते हैं कि प्लेबैक कौन-सा गेन लगाता है। यह चालू रहने पर सिर्फ़ इसी तरह गिने गए स्कोर माने जाते हैं।</string>
+    <string name="show_sleep_scores">गणना किए गए स्कोर दिखाएं</string>
+    <string name="sleep_scores_list_info">सक्रिय ऑडियो मोड में स्कोर। जिन गानों का स्कोर नहीं है उन्हें स्लीप टाइमर छोड़ देता है।</string>
+    <string name="sleep_scores_none_calculated">अभी किसी गाने का स्लीप स्कोर नहीं है</string>
+    <string name="sleep_score_not_calculated">गणना नहीं की गई</string>
 </resources>

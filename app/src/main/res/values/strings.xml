@@ -5700,4 +5700,8 @@
     <string name="sleep_scores_stopped_at">Stopped at %1$d of %2$d, tap to carry on</string>
     <string name="use_normalized_audio">Use normalized audio</string>
     <string name="use_normalized_audio_info">Scores are calculated from the sound as Normalize plays it: each recording\'s measured loudness and peak give the gain playback applies. Only scores calculated this way count while this is on.</string>
+    <string name="show_sleep_scores">Show calculated scores</string>
+    <string name="sleep_scores_list_info">Scores in the active audio mode. Songs without one are passed over by the sleep timer.</string>
+    <string name="sleep_scores_none_calculated">No songs have a sleep score yet</string>
+    <string name="sleep_score_not_calculated">Not calculated</string>
 </resources>

@@ -5586,4 +5586,8 @@
     <string name="sleep_scores_stopped_at">Đã dừng ở %1$d trên %2$d, nhấn để tiếp tục</string>
     <string name="use_normalized_audio">Dùng âm thanh đã chuẩn hóa</string>
     <string name="use_normalized_audio_info">Điểm được tính từ âm thanh đúng như chuẩn hóa âm lượng phát ra: độ lớn và đỉnh đo được của từng bản thu quyết định mức khuếch đại mà phát nhạc áp dụng. Khi bật, chỉ những điểm tính theo cách này mới được tính.</string>
+    <string name="show_sleep_scores">Hiện điểm đã tính</string>
+    <string name="sleep_scores_list_info">Điểm trong chế độ âm thanh đang dùng. Các bài không có điểm bị hẹn giờ ngủ bỏ qua.</string>
+    <string name="sleep_scores_none_calculated">Chưa có bài nào có điểm ngủ</string>
+    <string name="sleep_score_not_calculated">Chưa tính</string>
 </resources>

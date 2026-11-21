@@ -191,6 +191,8 @@ behind the model component, which is why its weights live in one place.
   downloads, on this phone, liked) and walks it; progress, Stop and resume are the same as "Measure songs now", with a
   silent foreground notification while the screen is off.
 * **Select many → Sleep scores** does the same for the picked songs.
+* **Show calculated scores** in that sheet opens a searchable list of the library's songs with each one's figure in the
+  active mode; songs without a figure say "Not calculated" instead of showing a misleading zero.
 * **Settings → Playback → Sleep → Use normalized audio** scores the sound as Normalize plays it: the recording's
   already-measured loudness and peak give exactly the gain playback's Normalize applies (its target, lift room and cut),
   and the analysis shifts its measured levels by that gain. One decode and one set of spectra produce both figures, so

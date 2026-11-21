@@ -5661,4 +5661,8 @@
     <string name="sleep_scores_stopped_at">%2$d-এর মধ্যে %1$d-এ থেমেছে, চালিয়ে যেতে ট্যাপ করুন</string>
     <string name="use_normalized_audio">সমান করা অডিও ব্যবহার করুন</string>
     <string name="use_normalized_audio_info">স্কোর সেই শব্দ থেকেই গণনা করা হয় যা ভলিউম সমান করুন বাজায়: প্রতিটি রেকর্ডিংয়ের মাপা লাউডনেস ও পিক নির্ধারণ করে প্লেব্যাক কোন গেইন প্রয়োগ করে। এটি চালু থাকলে কেবল এভাবে গণনা করা স্কোরই ধরা হয়।</string>
+    <string name="show_sleep_scores">গণনা করা স্কোর দেখান</string>
+    <string name="sleep_scores_list_info">সক্রিয় অডিও মোডের স্কোর। যে গানগুলোর স্কোর নেই সেগুলো স্লিপ টাইমার এড়িয়ে যায়।</string>
+    <string name="sleep_scores_none_calculated">এখনও কোনো গানের ঘুমের স্কোর নেই</string>
+    <string name="sleep_score_not_calculated">গণনা করা হয়নি</string>
 </resources>

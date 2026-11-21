@@ -5736,4 +5736,8 @@
     <string name="sleep_scores_stopped_at">Arrêté à %1$d sur %2$d, appuyez pour continuer</string>
     <string name="use_normalized_audio">Utiliser l\'audio normalisé</string>
     <string name="use_normalized_audio_info">Les scores sont calculés à partir du son tel que le lit Normaliser le volume : la loudness mesurée et le niveau de crête de chaque enregistrement déterminent le gain que la lecture applique. Seuls les scores calculés ainsi comptent tant que cette option est activée.</string>
+    <string name="show_sleep_scores">Afficher les scores calculés</string>
+    <string name="sleep_scores_list_info">Scores dans le mode audio actif. Le minuteur passe outre les morceaux qui n’en ont pas.</string>
+    <string name="sleep_scores_none_calculated">Aucun morceau n’a encore de score de sommeil</string>
+    <string name="sleep_score_not_calculated">Non calculé</string>
 </resources>
