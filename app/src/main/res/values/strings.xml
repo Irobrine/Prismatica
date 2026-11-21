@@ -5698,4 +5698,6 @@
     <string name="sleep_scores_scored_n">%1$d scored</string>
     <string name="sleep_scores_info">Scores each song\'s own audio for how unlikely it is to disturb sleep, for the sleep timer\'s minimum. Songs already scored are left out; a figure is kept until it is calculated again or the scoring changes.</string>
     <string name="sleep_scores_stopped_at">Stopped at %1$d of %2$d, tap to carry on</string>
+    <string name="use_normalized_audio">Use normalized audio</string>
+    <string name="use_normalized_audio_info">Scores are calculated from the sound as Normalize plays it: each recording\'s measured loudness and peak give the gain playback applies. Only scores calculated this way count while this is on.</string>
 </resources>

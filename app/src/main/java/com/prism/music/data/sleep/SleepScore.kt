@@ -37,6 +37,18 @@ data class SleepScore(
     val durationMs: Long,
     /** When it was calculated (the settings' page says how old a library's figures are). */
     val analyzedAtMs: Long,
+    /**
+     * Whether it was calculated on the sound as Normalize plays it (1.9): the loudness change playback applies, from
+     * the recording's measured loudness and peak. A figure is only valid in the mode it was made for, and the two are
+     * kept apart ([SleepScores]): with normalized mode on, a normalized figure is the one used, overriding a plain one;
+     * with it off, only plain figures count.
+     */
+    val normalized: Boolean = false,
+    /**
+     * The Normalize target (LUFS) a normalized figure was made for. Changing the target changes the gain, so normalized
+     * figures are dropped and calculated again when it moves; null for a plain figure.
+     */
+    val normalizedTarget: Int? = null,
 ) {
     /** The worst section's own score, 0–100: where the conservative caps and penalties come from. */
     val worstSection: Int get() = components.worstSection

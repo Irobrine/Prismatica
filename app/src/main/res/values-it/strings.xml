@@ -5734,4 +5734,6 @@
     <string name="sleep_scores_scored_n">%1$d valutati</string>
     <string name="sleep_scores_info">Valuta l\'audio di ogni brano in base a quanto è improbabile che disturbi il sonno, per il minimo del timer di spegnimento. I brani già valutati vengono esclusi; il valore resta finché non viene ricalcolato o la valutazione cambia.</string>
     <string name="sleep_scores_stopped_at">Fermato a %1$d su %2$d, tocca per continuare</string>
+    <string name="use_normalized_audio">Usa audio normalizzato</string>
+    <string name="use_normalized_audio_info">I punteggi vengono calcolati dal suono così come lo riproduce Normalizza volume: la loudness e il picco misurati di ogni registrazione determinano il guadagno applicato dalla riproduzione. Con questa opzione attiva contano solo i punteggi calcolati in questo modo.</string>
 </resources>

@@ -923,6 +923,11 @@ data class SoundPrefs(
     val skipSilenceEpisodes: Boolean = false,
     /** The sleep timer fades the music out over this many seconds before it pauses (A5); 0 stops at once. */
     val sleepFadeSeconds: Int = 0,
+    /**
+     * 1.9: sleep suitability scores are calculated on the sound as Normalize plays it (the recording's measured loudness
+     * and peak turned into the same gain playback applies). Only figures calculated this way count while it's on.
+     */
+    val sleepScoresNormalized: Boolean = false,
     /** Pausing and playing fade the sound out and in over a moment instead of cutting (A5). */
     val pauseFade: Boolean = false,
     /**
@@ -2493,6 +2498,7 @@ class SettingsRepository(
         val musicPitchDefault = intPreferencesKey("music_pitch")
         val skipSilenceEpisodes = booleanPreferencesKey("skip_silence_episodes")
         val sleepFade = intPreferencesKey("sleep_fade")
+        val sleepScoresNormalized = booleanPreferencesKey("sleep_scores_normalized")
         val pauseFade = booleanPreferencesKey("pause_fade")
         /** 1.8.1 (#314, [SoundPrefs.ownLossyFiles]). */
         val ownLossyFiles = booleanPreferencesKey("own_lossy_files")
@@ -2608,6 +2614,8 @@ class SettingsRepository(
                 // 1.7.8 ([SoundPrefs]).
                 "crossfade_curve", "normalize_target", "normalize_albums", "music_speed", "music_pitch",
                 "skip_silence_episodes", "sleep_fade", "pause_fade",
+                // 1.9: which audio the sleep scores are measured on.
+                "sleep_scores_normalized",
                 // 1.8.1 (#314): your own song files in place of the stream.
                 "own_lossy_files",
                 // 1.8.1 (#216): what plays and shows, not a look.
@@ -2922,6 +2930,7 @@ class SettingsRepository(
                 // Skip silence used to be one switch for everything: episodes keep what it was until set apart.
                 skipSilenceEpisodes = p[K.skipSilenceEpisodes] ?: p[K.skipSilence] ?: d.sound.skipSilenceEpisodes,
                 sleepFadeSeconds = (p[K.sleepFade] ?: d.sound.sleepFadeSeconds).coerceIn(0, 60),
+                sleepScoresNormalized = p[K.sleepScoresNormalized] ?: d.sound.sleepScoresNormalized,
                 pauseFade = p[K.pauseFade] ?: d.sound.pauseFade,
                 ownLossyFiles = p[K.ownLossyFiles] ?: d.sound.ownLossyFiles,
             ),
@@ -3853,6 +3862,7 @@ class SettingsRepository(
     }
     fun setSkipSilenceEpisodes(v: Boolean) = edit { it[K.skipSilenceEpisodes] = v }
     fun setSleepFade(v: Int) = edit { it[K.sleepFade] = v.coerceIn(0, 60) }
+    fun setSleepScoresNormalized(v: Boolean) = edit { it[K.sleepScoresNormalized] = v }
     fun setPauseFade(v: Boolean) = edit { it[K.pauseFade] = v }
     fun setOwnLossyFiles(v: Boolean) = edit { it[K.ownLossyFiles] = v }
     fun setLyricsStripAlign(v: LyricsAlign) = edit { it[K.lyricsStripAlign] = v.name }

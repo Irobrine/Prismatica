@@ -780,8 +780,18 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 .collect { minScore ->
                     if (!sleepTimer.active.value || minScore == sleepTimer.minScore.value) return@collect
                     sleepTimer.setMinScore(minScore)
-                    if (minScore <= 0) resumeIfSleepPaused() else enforceSleepBpm()
+                    // On the app's thread: these talk to the player, and the store writes off it.
+                    withContext(Dispatchers.Main) { if (minScore <= 0) resumeIfSleepPaused() else enforceSleepBpm() }
                 }
+        }
+        // Which audio mode the figures are for is part of the limit, not a different limit: switching it changes which
+        // songs pass, so the current one and the queue are checked at once (the starting song may no longer be suitable).
+        scope.launch {
+            c.settings.flow
+                .map { it.sound.sleepScoresNormalized to it.sound.normalizeTarget }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { if (sleepTimer.active.value) withContext(Dispatchers.Main) { enforceSleepBpm() } }
         }
     }
 

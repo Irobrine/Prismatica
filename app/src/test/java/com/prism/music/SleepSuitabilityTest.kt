@@ -217,6 +217,33 @@ class SleepSuitabilityTest {
     }
 
     @Test
+    fun aNormalizedGainMovesTheLevelVerdictAndOnlyThat() {
+        // The normalized-audio mode scores the sound with the gain playback's Normalize applies. On a quiet pad, being
+        // lifted to the target makes it louder — the one thing that can lower its figure — and nothing else changes.
+        val quiet = calm(120)
+        val plain = SleepAnalysis.analyze(quiet, quiet.size, rate, analyzedAtMs = 1L, expectedMs = 120_000L)
+        val lifted = SleepAnalysis.analyze(quiet, quiet.size, rate, analyzedAtMs = 1L, expectedMs = 120_000L, levelGainDb = 18.0)
+        println("normalized gain: plain=${plain.score} lifted=${lifted.score}, quietness ${plain.components.quietness} -> ${lifted.components.quietness}")
+        assertTrue("lifting a quiet master makes it louder: ${lifted.components.quietness}", lifted.components.quietness < plain.components.quietness)
+        assertTrue("so its figure may not rise: ${lifted.score} vs ${plain.score}", lifted.score <= plain.score)
+        // The ratios are the gain's invariant: dynamics, hits, rhythm, complexity and mood are unchanged.
+        assertEquals(plain.components.dynamics, lifted.components.dynamics)
+        assertEquals(plain.components.transients, lifted.components.transients)
+        assertEquals(plain.components.rhythm, lifted.components.rhythm)
+        assertEquals(plain.components.complexity, lifted.components.complexity)
+        assertEquals(plain.components.mood, lifted.components.mood)
+        // The other way: a loud steady wall, cut as Normalize would cut it, reads quieter and may only score better.
+        val wall = signal(90) { t, _ -> 0.45 * sin(2 * PI * 110 * t) + 0.3 * sin(2 * PI * 220 * t) + 0.15 * sin(2 * PI * 330 * t) }
+        val loud = SleepAnalysis.analyze(wall, wall.size, rate, analyzedAtMs = 1L, expectedMs = 90_000L)
+        val cut = SleepAnalysis.analyze(wall, wall.size, rate, analyzedAtMs = 1L, expectedMs = 90_000L, levelGainDb = -18.0)
+        println("normalized cut: loud=${loud.score} cut=${cut.score}, quietness ${loud.components.quietness} -> ${cut.components.quietness}")
+        assertTrue("cutting it makes it quieter: ${cut.components.quietness}", cut.components.quietness > loud.components.quietness)
+        assertTrue("so its figure may not fall: ${cut.score} vs ${loud.score}", cut.score >= loud.score)
+        // Deterministic in the mode too.
+        assertEquals(lifted, SleepAnalysis.analyze(quiet, quiet.size, rate, analyzedAtMs = 1L, expectedMs = 120_000L, levelGainDb = 18.0))
+    }
+
+    @Test
     fun threeMinutesAreAnalysedFasterThanTheyPlay() {
         // The regression guard for scoring a library: the analysis must never be slower than the song itself (a phone is
         // several times slower than this JVM; the device test prints its own figure).

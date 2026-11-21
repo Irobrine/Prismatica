@@ -5659,4 +5659,6 @@
     <string name="sleep_scores_scored_n">%1$d bewertet</string>
     <string name="sleep_scores_info">Bewertet das eigene Audio jedes Songs danach, wie unwahrscheinlich er den Schlaf stört, für das Minimum des Sleep-Timers. Bereits bewertete Songs bleiben aus; ein Wert bleibt, bis er neu berechnet wird oder sich die Bewertung ändert.</string>
     <string name="sleep_scores_stopped_at">Bei %1$d von %2$d gestoppt, zum Fortsetzen tippen</string>
+    <string name="use_normalized_audio">Normalisiertes Audio verwenden</string>
+    <string name="use_normalized_audio_info">Scores werden aus dem Klang berechnet, wie ihn Lautstärke angleichen abspielt: Die gemessene Loudness und der Spitzenwert jeder Aufnahme bestimmen die Verstärkung, die die Wiedergabe anwendet. Nur so berechnete Scores zählen, solange dies an ist.</string>
 </resources>

@@ -429,7 +429,8 @@ class AppContainer(val app: Application) {
 
     /**
      * Songs' sleep suitability figures (1.9), per recording heard: the sleep timer's minimum score reads them, and the
-     * two "Calculate sleep scores" actions fill them. A figure older than the scoring version is not used.
+     * two "Calculate sleep scores" actions fill them. A figure older than the scoring version, or made for the other
+     * audio mode (plain or normalized), is not used.
      */
     val sleepScores by lazy { com.prism.music.data.sleep.SleepScores(app) }
 
@@ -440,14 +441,36 @@ class AppContainer(val app: Application) {
         )
     }
 
-    /** The sleep score of the recording [songId] plays as (with no music video armed), or null while uncalculated. */
+    /** Whether sleep scores are calculated on the sound as Normalize plays it (Settings → Playback's toggle). */
+    private fun sleepScoresNormalized(): Boolean = settings.current.sound.sleepScoresNormalized
+
+    /**
+     * The sleep score of the recording [songId] plays as (with no music video armed), or null while uncalculated in the
+     * active mode. A normalized figure is the one used while normalized mode is on; a plain one otherwise.
+     */
     fun sleepScoreOf(songId: String?): Double? =
-        songId?.let { sleepScores.score(loudnessIndex.formId(it, null)) }?.toDouble()
+        songId?.let { sleepScores.score(loudnessIndex.formId(it, null), sleepScoresNormalized()) }?.toDouble()
 
     init {
         // Read the figures once, off the playback thread: the timer's filter asks for them on the playback thread, and
         // the first look must not be the one that parses a library's worth of JSON.
-        scope.launch(kotlinx.coroutines.Dispatchers.IO) { runCatching { sleepScores.ids() } }
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) { runCatching { sleepScores.warm() } }
+        // A mode is a different set of figures: a walk over the other mode's songs no longer means anything. Stop it and
+        // clear its count, so the row shows how many of this mode's songs are scored and the next tap starts the ones
+        // this mode still needs. (The running sleep timer is rechecked by the player, which watches the same setting.)
+        scope.launch {
+            settings.flow.map { it.sound.sleepScoresNormalized }.distinctUntilChanged().drop(1).collect {
+                sleepScoreSongs.start(emptyList(), false)
+            }
+        }
+        // A normalized figure is made with the Normalize target's gain: a new target makes every one of them wrong, so
+        // they are dropped and calculated again (the row's count and a walk in flight follow, as with the mode).
+        scope.launch {
+            settings.flow.map { it.sound.normalizeTarget }.distinctUntilChanged().drop(1).collect {
+                sleepScores.clearNormalized()
+                sleepScoreSongs.start(emptyList(), false)
+            }
+        }
     }
 
     /**
@@ -673,15 +696,37 @@ class AppContainer(val app: Application) {
     /**
      * The two "Calculate sleep scores" actions' walk (1.9): songs through [sleepScanner], one at a time (a whole
      * recording is decoded and analysed), leaving out the recordings that already have a figure of the current scoring
-     * version. The same walk ([com.prism.music.data.MeasureSongs]) as "Measure songs now": progress, stop and resume are
-     * the settings row's and the selection bar's, and a song whose audio isn't reachable now stays unscored for the next
-     * run instead of stopping the walk.
+     * version **for the active mode**. In normalized mode the preexisting Normalize measurement is made sure of first
+     * ([com.prism.music.playback.MixTempo.measure]: the recording's loudness and peak), then the recording is scored with
+     * the gain playback applies to it ([com.prism.music.playback.NormalizerProcessor.gainFor]) and filed as a normalized
+     * figure. The same walk ([com.prism.music.data.MeasureSongs]) as "Measure songs now": progress, stop and resume are
+     * the settings row's and the selection bar's, and a song whose audio (or, in normalized mode, whose measurement)
+     * isn't available now stays unscored for the next run instead of stopping the walk.
      */
     val sleepScoreSongs by lazy {
         com.prism.music.data.MeasureSongs(
             scope,
-            { form, song, network -> sleepScanner.analyze(form, song.takeIf { it != form }, network)?.let { sleepScores.put(form, it) } },
-            { form -> sleepScores.isCurrent(form) },
+            { form, song, network ->
+                val source = song.takeIf { it != form }
+                if (sleepScoresNormalized()) {
+                    // The measurement Normalize itself goes by. Already current: its scan returns at once.
+                    mixTempo.measure(
+                        form, network = network, edges = false, key = false, wave = false, peak = true,
+                        sourceSongId = source, deferToPlaying = true,
+                    )
+                    val lufs = mixTempo.loudness(form)
+                    if (lufs != null) {
+                        val gain = com.prism.music.playback.NormalizerProcessor
+                            .gainFor(settings.current.sound.normalizeTarget.toFloat(), lufs, mixTempo.peak(form))
+                        sleepScanner.analyze(form, source, network, levelGainDb = gain.toDouble(), normalized = true)
+                            ?.copy(normalizedTarget = settings.current.sound.normalizeTarget)
+                            ?.let { sleepScores.put(form, it) }
+                    }
+                } else {
+                    sleepScanner.analyze(form, source, network)?.let { sleepScores.put(form, it) }
+                }
+            },
+            { form -> sleepScores.isCurrent(form, sleepScoresNormalized()) },
             { id -> loudnessIndex.formId(id, null) },
             { 1 },
             unmetered = { app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false },

@@ -5584,4 +5584,6 @@
     <string name="sleep_scores_scored_n">已評分 %1$d 首</string>
     <string name="sleep_scores_info">根據每首歌曲自身的音訊有多不容易打擾睡眠來評分，用於睡眠定時器的最低值。已有評分的歌曲會略過；數值會保留，直到重新計算或評分方式改變。</string>
     <string name="sleep_scores_stopped_at">停在 %1$d/%2$d，輕觸繼續</string>
+    <string name="use_normalized_audio">使用標準化音訊</string>
+    <string name="use_normalized_audio_info">評分根據「音量標準化」播放的聲音計算：每段錄音測得的響度和峰值決定播放時套用的增益。開啟此項後，只有以這種方式計算的評分才計入。</string>
 </resources>

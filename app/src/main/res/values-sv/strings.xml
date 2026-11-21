@@ -5659,4 +5659,6 @@
     <string name="sleep_scores_scored_n">%1$d poängsatta</string>
     <string name="sleep_scores_info">Poängsätter varje låts eget ljud efter hur osannolikt det är att det stör sömnen, för insomningstimerens minimum. Låtar som redan är poängsatta hoppas över; värdet sparas tills det beräknas igen eller poängsättningen ändras.</string>
     <string name="sleep_scores_stopped_at">Stannade vid %1$d av %2$d, tryck för att fortsätta</string>
+    <string name="use_normalized_audio">Använd normaliserat ljud</string>
+    <string name="use_normalized_audio_info">Poäng beräknas från ljudet så som Normalisera volym spelar upp det: varje inspelnings uppmätta ljudstyrka och topp ger den förstärkning som uppspelningen tillämpar. Med detta på räknas bara poäng som beräknats så här.</string>
 </resources>

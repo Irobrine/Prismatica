@@ -58,11 +58,15 @@ private fun SleepScoreRow() {
     val scope = rememberCoroutineScope()
     val running by c.sleepScoreSongs.running.collectAsState()
     val calculating by c.sleepScoreSongs.progress.collectAsState()
-    val scored by c.sleepScores.calculated.collectAsState()
+    // The count is the active mode's: a figure made for the other mode isn't a figure this mode can use.
+    val normalized = s.sound.sleepScoresNormalized
+    val plainScored by c.sleepScores.calculated.collectAsState()
+    val normalizedScored by c.sleepScores.calculatedNormalized.collectAsState()
+    val scored = if (normalized) normalizedScored else plainScored
     val title = tr(R.string.calculate_sleep_scores)
     var open by rememberSaveable(title, "sleep-scores") { mutableStateOf(false) }
-    // How many of each set's songs still need a score: empty until the sheet has counted them.
-    var left by remember(title) { mutableStateOf<Map<MeasureScope, Int>>(emptyMap()) }
+    // How many of each set's songs still need a score in this mode: empty until the sheet has counted them.
+    var left by remember(title, normalized) { mutableStateOf<Map<MeasureScope, Int>>(emptyMap()) }
     LinkRow(
         title,
         value = calculating?.let {
@@ -78,7 +82,7 @@ private fun SleepScoreRow() {
         }
     }
     if (open) {
-        LaunchedEffect(open) {
+        LaunchedEffect(open, normalized) {
             left = emptyMap()
             // The sets Prism has to hand first, so the sheet fills as it opens; the Library's needs the database read.
             val sets = MeasureScope.entries.filter { it != MeasureScope.LIBRARY } + MeasureScope.LIBRARY
@@ -163,6 +167,10 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
         prefs.setMusicDefaults(speedAfter, pitchAfter); c.player.setMusicPitch(pitchAfter)
     }
     val sleepFadeChanged = reset.add(tr(R.string.sleep_timer_fades_out), s.sound.sleepFadeSeconds, d.sound.sleepFadeSeconds, fade) { prefs.setSleepFade(it) }
+    // 1.9: a scoring choice, reset with its page like the rest.
+    val normalizedScoresChanged = reset.add(
+        tr(R.string.use_normalized_audio), s.sound.sleepScoresNormalized, d.sound.sleepScoresNormalized, onOff,
+    ) { prefs.setSleepScoresNormalized(it) }
     val pauseFadeChanged = reset.add(tr(R.string.fade_on_pause_and_play), s.sound.pauseFade, d.sound.pauseFade, onOff) { prefs.setPauseFade(it) }
     val stopOnSwipeChanged = reset.add(tr(R.string.stop_when_swiped_away), s.stopOnSwipeAway, d.stopOnSwipeAway, onOff) { prefs.setStopOnSwipeAway(it) }
     val pauseOnMuteChanged = reset.add(tr(R.string.pause_when_muted), s.behavior.pauseOnMute, d.behavior.pauseOnMute, onOff) { prefs.setPauseOnMute(it) }
@@ -247,9 +255,6 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
                 tr(R.string.sleep_timer_fades_out), s.sound.sleepFadeSeconds.toFloat(), 0f..60f, { fade(it.roundToInt()) }, steps = 11,
                 info = tr(R.string.the_music_fades_out_over_the), changed = sleepFadeChanged,
             ) { prefs.setSleepFade(it.roundToInt()) }
-            // 1.9: the sleep timer's minimum score reads figures worked out from each song's own audio; this is where
-            // they are calculated, beside the timer's fade.
-            SleepScoreRow()
             SwitchRow(tr(R.string.fade_on_pause_and_play), s.sound.pauseFade, info = tr(R.string.pausing_fades_the_sound_out_over), changed = pauseFadeChanged) { prefs.setPauseFade(it) }
             SwitchRow(tr(R.string.stop_when_swiped_away), s.stopOnSwipeAway, info = tr(R.string.swiping_prism_out_of_recent_apps), changed = stopOnSwipeChanged) { prefs.setStopOnSwipeAway(it) }
             SwitchRow(tr(R.string.pause_when_muted), s.behavior.pauseOnMute, info = tr(R.string.only_the_phone_s_media_volume), changed = pauseOnMuteChanged) { prefs.setPauseOnMute(it) }
@@ -257,6 +262,15 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
             SwitchRow(tr(R.string.playback_face_down_pause), s.behavior.faceDownPause, info = tr(R.string.playback_face_down_pause_info), changed = faceDownChanged) { prefs.setFaceDownPause(it) }
             // 1.8.5: a Bluetooth output that goes and comes back (playback/OutputReturn.kt).
             SwitchRow(tr(R.string.playback_resume_on_return), s.behavior.resumeOnReturn, info = tr(R.string.playback_resume_on_return_info), changed = resumeOnReturnChanged) { prefs.setResumeOnReturn(it) }
+        }
+        // 1.9: the sleep timer's minimum score reads figures worked out from each song's own audio; this is where they
+        // are calculated, and the toggle below them chooses whether the sound is judged with Normalize's gain applied.
+        group(tr(R.string.sleep)) {
+            SleepScoreRow()
+            SwitchRow(
+                tr(R.string.use_normalized_audio), s.sound.sleepScoresNormalized,
+                info = tr(R.string.use_normalized_audio_info), changed = normalizedScoresChanged,
+            ) { prefs.setSleepScoresNormalized(it) }
         }
     }
 }
@@ -326,6 +340,7 @@ val playbackIndex: List<SettingEntry> by lazy {
     val between = tr(R.string.playback_song_to_song)
     val speed = tr(R.string.playback_speed_and_pitch)
     val stopping = tr(R.string.stopping_and_pausing)
+    val sleep = tr(R.string.sleep)
     with(SettingNeeds) {
         listOf(
             // 1.8.0 (#210): merged choices; the old titles stay as search words.
@@ -348,8 +363,9 @@ val playbackIndex: List<SettingEntry> by lazy {
             SettingEntry(page, speed, tr(R.string.pitch_when_prism_starts), tr(R.string.key_semitones_transpose_higher_lower_slowed)),
             SettingEntry(page, stopping, stopping),
             SettingEntry(page, stopping, tr(R.string.sleep_timer_fades_out), tr(R.string.sleep_fade_out_bedtime)),
-            // 1.9: an action, next to the sleep timer's fade.
-            SettingEntry(page, stopping, tr(R.string.calculate_sleep_scores), tr(R.string.minimum_sleep_score)),
+            // 1.9: the sleep timer's own figures and the audio they are measured on.
+            SettingEntry(page, sleep, tr(R.string.calculate_sleep_scores), tr(R.string.minimum_sleep_score)),
+            SettingEntry(page, sleep, tr(R.string.use_normalized_audio), tr(R.string.normalize_volume)),
             SettingEntry(page, stopping, tr(R.string.fade_on_pause_and_play), tr(R.string.pause_fade_gentle_soft)),
             SettingEntry(page, stopping, tr(R.string.stop_when_swiped_away), tr(R.string.recents_background)),
             SettingEntry(page, stopping, tr(R.string.pause_when_muted), tr(R.string.volume_zero_mute_pause_resume)),

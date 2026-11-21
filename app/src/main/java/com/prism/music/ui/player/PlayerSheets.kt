@@ -478,11 +478,15 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (choices.minScore >= 1) {
                     // The committed limit (written when the slider's finger lifts), not every drag step: a long queue's
-                    // tally is worked out once per choice, not once a frame.
+                    // tally is worked out once per choice, not once a frame. Which figures count follows the audio mode.
                     val queue by pc.queue.collectAsState()
-                    val scored by c.sleepScores.calculated.collectAsState()
+                    val plainScored by c.sleepScores.calculated.collectAsState()
+                    val normalizedScored by c.sleepScores.calculatedNormalized.collectAsState()
+                    val normalizedMode = settings.sound.sleepScoresNormalized
+                    val scored = if (normalizedMode) normalizedScored else plainScored
                     val limit = choices.minScore
-                    val (unscored, below) = remember(queue, limit, scored) {
+                    // The mode is part of the tally: the two counts can match while naming different songs.
+                    val (unscored, below) = remember(queue, limit, scored, normalizedMode) {
                         var without = 0
                         var under = 0
                         for (entry in queue) {

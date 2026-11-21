@@ -5584,4 +5584,6 @@
     <string name="sleep_scores_scored_n">Đã chấm %1$d</string>
     <string name="sleep_scores_info">Chấm điểm âm thanh riêng của từng bài theo mức độ khó gây gián đoạn giấc ngủ, cho mức tối thiểu của hẹn giờ ngủ. Các bài đã có điểm được bỏ qua; con số được giữ cho đến khi tính lại hoặc cách chấm thay đổi.</string>
     <string name="sleep_scores_stopped_at">Đã dừng ở %1$d trên %2$d, nhấn để tiếp tục</string>
+    <string name="use_normalized_audio">Dùng âm thanh đã chuẩn hóa</string>
+    <string name="use_normalized_audio_info">Điểm được tính từ âm thanh đúng như chuẩn hóa âm lượng phát ra: độ lớn và đỉnh đo được của từng bản thu quyết định mức khuếch đại mà phát nhạc áp dụng. Khi bật, chỉ những điểm tính theo cách này mới được tính.</string>
 </resources>

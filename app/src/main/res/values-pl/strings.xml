@@ -5809,4 +5809,6 @@
     <string name="sleep_scores_scored_n">%1$d oceniono</string>
     <string name="sleep_scores_info">Ocenia dźwięk każdego utworu pod kątem tego, jak mało prawdopodobne jest zakłócenie snu, na potrzeby minimum wyłącznika czasowego. Utwory z oceną są pomijane; wartość zostaje do ponownego obliczenia lub zmiany sposobu oceniania.</string>
     <string name="sleep_scores_stopped_at">Zatrzymano na %1$d z %2$d, dotknij, aby kontynuować</string>
+    <string name="use_normalized_audio">Używaj znormalizowanego dźwięku</string>
+    <string name="use_normalized_audio_info">Oceny są obliczane z dźwięku odtwarzanego przez Normalizuj głośność: zmierzona głośność i szczyt każdego nagrania określają wzmocnienie stosowane przez odtwarzanie. Gdy ta opcja jest włączona, liczą się tylko oceny obliczone w ten sposób.</string>
 </resources>

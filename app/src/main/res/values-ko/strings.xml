@@ -5584,4 +5584,6 @@
     <string name="sleep_scores_scored_n">%1$d곡 채점됨</string>
     <string name="sleep_scores_info">각 곡의 오디오를 수면을 방해할 가능성이 얼마나 낮은지로 채점하여 취침 타이머의 최솟값에 씁니다. 이미 점수가 있는 곡은 제외되며, 다시 계산하거나 채점 방식이 바뀔 때까지 값이 유지됩니다.</string>
     <string name="sleep_scores_stopped_at">%2$d곡 중 %1$d곡에서 멈춤, 계속하려면 탭하세요</string>
+    <string name="use_normalized_audio">평준화된 오디오 사용</string>
+    <string name="use_normalized_audio_info">점수는 볼륨 평준화가 재생하는 소리로 계산됩니다: 각 녹음의 측정된 라우드니스와 피크가 재생에 적용되는 게인을 결정합니다. 이 기능이 켜져 있는 동안에는 이렇게 계산된 점수만 반영됩니다.</string>
 </resources>

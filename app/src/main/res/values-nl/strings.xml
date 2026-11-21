@@ -5659,4 +5659,6 @@
     <string name="sleep_scores_scored_n">%1$d gescoord</string>
     <string name="sleep_scores_info">Scoort de audio van elk nummer op hoe onwaarschijnlijk het is dat het de slaap verstoort, voor het minimum van de slaaptimer. Nummers die al gescoord zijn, worden overgeslagen; een waarde blijft totdat opnieuw wordt berekend of de scoring verandert.</string>
     <string name="sleep_scores_stopped_at">Gestopt bij %1$d van %2$d, tik om door te gaan</string>
+    <string name="use_normalized_audio">Genormaliseerde audio gebruiken</string>
+    <string name="use_normalized_audio_info">Scores worden berekend uit het geluid zoals Volume normaliseren het afspeelt: de gemeten luidheid en piek van elke opname bepalen de versterking die het afspelen toepast. Alleen zo berekende scores tellen zolang dit aan staat.</string>
 </resources>

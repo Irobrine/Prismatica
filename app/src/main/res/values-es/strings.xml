@@ -5734,4 +5734,6 @@
     <string name="sleep_scores_scored_n">%1$d puntuadas</string>
     <string name="sleep_scores_info">Puntúa el audio de cada canción según lo improbable que sea que altere el sueño, para el mínimo del temporizador. Las canciones ya puntuadas se omiten; la cifra se conserva hasta que se vuelva a calcular o cambie la puntuación.</string>
     <string name="sleep_scores_stopped_at">Detenido en %1$d de %2$d, toca para continuar</string>
+    <string name="use_normalized_audio">Usar audio normalizado</string>
+    <string name="use_normalized_audio_info">Las puntuaciones se calculan a partir del sonido tal como lo reproduce Normalizar volumen: la sonoridad y el pico medidos de cada grabación determinan la ganancia que aplica la reproducción. Solo cuentan las puntuaciones calculadas así mientras esto esté activado.</string>
 </resources>

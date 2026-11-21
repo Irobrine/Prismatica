@@ -5584,4 +5584,6 @@
     <string name="sleep_scores_scored_n">%1$d diskor</string>
     <string name="sleep_scores_info">Menilai audio tiap lagu untuk seberapa kecil kemungkinannya mengganggu tidur, untuk batas minimum timer tidur. Lagu yang sudah punya skor dilewati; angkanya disimpan sampai dihitung ulang atau penilaiannya berubah.</string>
     <string name="sleep_scores_stopped_at">Berhenti di %1$d dari %2$d, ketuk untuk melanjutkan</string>
+    <string name="use_normalized_audio">Pakai audio yang dinormalisasi</string>
+    <string name="use_normalized_audio_info">Skor dihitung dari suara yang diputar oleh Normalisasi volume: kenyaringan dan puncak terukur tiap rekaman menentukan gain yang diterapkan pemutaran. Saat ini aktif, hanya skor yang dihitung dengan cara ini yang dihitung.</string>
 </resources>
