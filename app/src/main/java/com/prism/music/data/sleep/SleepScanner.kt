@@ -6,12 +6,8 @@ import com.prism.music.data.model.Song
 import com.prism.music.data.stream.StreamResolver
 import com.prism.music.playback.sing.PcmDecoder
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -52,27 +48,7 @@ class SleepScanner(
      */
     suspend fun analyze(
         formId: String, sourceSongId: String?, network: Boolean, levelGainDb: Double = 0.0, normalized: Boolean = false,
-    ): SleepScore? = withAudio(formId, sourceSongId, network) { uri ->
-        decode(uri) { analyzer, now -> analyzer.finish(now, levelGainDb).copy(normalized = normalized) }
-    }
-
-    /**
-     * One decode and one set of spectra, two figures: the recording as it sounds and as Normalize plays it. The gain
-     * only shifts absolute levels, so the second figure costs a second (cheap) scoring pass, not a second song scan.
-     */
-    suspend fun analyzeBoth(
-        formId: String, sourceSongId: String?, network: Boolean, normalizedGainDb: Double,
-    ): Pair<SleepScore, SleepScore>? = withAudio(formId, sourceSongId, network) { uri ->
-        decode(uri) { analyzer, now ->
-            val (plain, normalized) = analyzer.finishBoth(now, 0.0, normalizedGainDb)
-            plain.copy(normalized = false) to normalized.copy(normalized = true)
-        }
-    }
-
-    /** Finds the bytes (or fetches them when allowed) and deletes the scratch file when the analysis is over. */
-    private suspend fun <T> withAudio(
-        formId: String, sourceSongId: String?, network: Boolean, block: suspend (Uri) -> T,
-    ): T? {
+    ): SleepScore? {
         val scratch = File(context.cacheDir, "sleep_${Integer.toHexString(formId.hashCode())}.part")
         return try {
             withContext(Dispatchers.IO) {
@@ -81,7 +57,13 @@ class SleepScanner(
                     if (!network || formId.startsWith(Song.LOCAL_PREFIX)) return@withContext null
                     fetch(formId, scratch)
                 }
-                block(uri)
+                val before = android.os.Process.getThreadPriority(android.os.Process.myTid())
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+                try {
+                    decodeAndAnalyze(uri, levelGainDb, normalized)
+                } finally {
+                    android.os.Process.setThreadPriority(before)
+                }
             }
         } finally {
             scratch.delete()
@@ -97,78 +79,42 @@ class SleepScanner(
         return Uri.fromFile(into)
     }
 
-    /**
-     * Decoding and analysis run side by side (1.9's speed work): the codec fills a small bounded queue on the IO pool
-     * while the analysis turns the pieces into frames on the CPU pool. On a phone the two stages are of similar size, so
-     * overlapping them takes the decode time out of the wall clock. Pieces are kept in order and the arithmetic per
-     * frame is untouched, so the figure is the same as when both stages ran on one thread.
-     */
-    private suspend fun <T> decode(uri: Uri, finish: (SleepAnalysis.Analyzer, Long) -> T): T = coroutineScope {
-        val decoder = PcmDecoder(context, uri)
-        try {
-            val rate = decoder.sampleRate
-            require(rate > 0) { "the decoder gave no sample rate" }
+    private suspend fun decodeAndAnalyze(uri: Uri, levelGainDb: Double, normalized: Boolean): SleepScore? {
+        PcmDecoder(context, uri).use { dec ->
+            val rate = dec.sampleRate
+            if (rate <= 0) return null
             // The length the file says it has: a decode that stops short of it is judged with less confidence.
-            val expectedMs = if (decoder.totalFrames > 0) decoder.totalFrames * 1000L / rate else 0L
-            val pieces = Channel<FloatArray>(PIECES_IN_FLIGHT)
-            val decoding = launch(Dispatchers.IO) {
-                val before = android.os.Process.getThreadPriority(android.os.Process.myTid())
-                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
-                try {
-                    decoder.use { dec ->
-                        var fed = 0L
-                        val limit = MAX_SECONDS.toLong() * rate
-                        while (true) {
-                            currentCoroutineContext().ensureActive()
-                            val piece = dec.read() ?: break
-                            pieces.send(downmix(piece))
-                            fed += piece.size / 2L
-                            if (fed >= limit) break
-                        }
-                    }
-                } catch (t: Throwable) {
-                    // A failed or stopped decode must not be scored from the pieces that arrived before it.
-                    pieces.close(t)
-                    throw t
-                } finally {
-                    pieces.close()
-                    android.os.Process.setThreadPriority(before)
-                }
+            val expectedMs = if (dec.totalFrames > 0) dec.totalFrames * 1000L / rate else 0L
+            // At the decoder's own rate: resampling to a fixed one would cost more than the analysis itself, and the
+            // features are all worked out in Hz, so 44.1 kHz, 48 kHz and 96 kHz files are judged alike.
+            val analyzer = SleepAnalysis.Analyzer(rate, expectedMs, levelGainDb)
+            var fed = 0L
+            val limit = MAX_SECONDS.toLong() * rate
+            while (true) {
+                currentCoroutineContext().ensureActive()
+                val piece = dec.read() ?: break
+                fed += downmix(piece, analyzer)
+                if (fed >= limit) break
             }
-            val analyzing = async(Dispatchers.Default) {
-                // At the decoder's own rate: resampling to a fixed one would cost more than the analysis itself, and the
-                // features are all worked out in Hz, so 44.1 kHz, 48 kHz and 96 kHz files are judged alike.
-                val analyzer = SleepAnalysis.Analyzer(rate, expectedMs)
-                for (piece in pieces) {
-                    currentCoroutineContext().ensureActive()
-                    analyzer.feed(piece)
-                }
-                finish(analyzer, System.currentTimeMillis())
-            }
-            val result = analyzing.await()
-            decoding.join()
-            result
-        } finally {
-            runCatching { decoder.close() }
+            return analyzer.finish(System.currentTimeMillis()).copy(normalized = normalized)
         }
     }
 
-    /** Downmixes an interleaved stereo piece to mono. Each piece owns its buffer, so two scans can run at once. */
-    private fun downmix(interleaved: FloatArray): FloatArray {
-        if (interleaved.isEmpty()) return FloatArray(0)
+    /** One piece's mono, reused between pieces (one scan runs at a time): about 0.5 s of audio. */
+    private var mono = FloatArray(0)
+
+    /** Downmixes an interleaved stereo piece to mono and feeds it to [analyzer]; returns the frames fed. */
+    private fun downmix(interleaved: FloatArray, analyzer: SleepAnalysis.Analyzer): Int {
+        if (interleaved.isEmpty()) return 0
         val frames = interleaved.size / 2
-        val mono = FloatArray(frames)
+        if (mono.size < frames) mono = FloatArray(frames)
         for (i in 0 until frames) mono[i] = (interleaved[2 * i] + interleaved[2 * i + 1]) * 0.5f
-        return mono
+        analyzer.feed(mono, 0, frames)
+        return frames
     }
 
     companion object {
         /** Nothing past this is read (a very long recording is judged by its first fifteen minutes, like the scan). */
         private const val MAX_SECONDS = 15 * 60
-
-        /** Pieces in flight while decoding: ~3 seconds of audio, small enough for a phone and for two scans at once. */
-        private const val PIECES_IN_FLIGHT = 6
-
-
     }
 }

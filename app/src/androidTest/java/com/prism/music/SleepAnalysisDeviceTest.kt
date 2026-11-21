@@ -30,15 +30,15 @@ class SleepAnalysisDeviceTest {
     private val rate = 22_050
 
     /** Three minutes of a busy mix: a beat, a bass line, a bright and a dark passage, all changing. */
-    private fun mix(seconds: Int, sampleRate: Int = rate): FloatArray {
-        val n = seconds * sampleRate
+    private fun mix(seconds: Int): FloatArray {
+        val n = seconds * rate
         var seed = 20261120L
         fun noise(): Double {
             seed = seed * 6364136223846793005L + 1442695040888963407L
             return ((seed ushr 11).toDouble() / (1L shl 53).toDouble()) * 2 - 1
         }
         return FloatArray(n) { i ->
-            val t = i.toDouble() / sampleRate
+            val t = i.toDouble() / rate
             val beat = t * 2.0
             val phase = beat - kotlin.math.floor(beat)
             val kick = if (phase < 0.12) sin(2 * PI * 52 * t) * (1 - phase / 0.12) else 0.0
@@ -66,33 +66,6 @@ class SleepAnalysisDeviceTest {
         )
         assertTrue("scoring must not take longer than the song plays: $ms ms for $seconds s", ms < seconds * 1_000L)
         assertTrue(score.score in 0..100)
-    }
-
-    @Test
-    fun threeMinutesAt44100ShowWhereTheTimeGoes() {
-        // Real files are 44.1/48 kHz: twice the frame size and twice the frames per second of the older benchmark's
-        // 22.05 kHz. Feed and scoring are timed apart so the next speed change targets the right stage.
-        val sampleRate = 44_100
-        val seconds = 180
-        val pcm = mix(seconds, sampleRate)
-        val analyzer = SleepAnalysis.Analyzer(sampleRate, seconds * 1_000L)
-        System.gc()
-        val feedStart = System.nanoTime()
-        var at = 0
-        while (at < pcm.size) {
-            val step = minOf(16_384, pcm.size - at)
-            analyzer.feed(pcm, at, step)
-            at += step
-        }
-        val feedMs = (System.nanoTime() - feedStart) / 1_000_000
-        val scoreStart = System.nanoTime()
-        val score = analyzer.finish(1L)
-        val scoreMs = (System.nanoTime() - scoreStart) / 1_000_000
-        println(
-            "PrismSleepBench 44.1k: ${seconds}s, feed+FFT $feedMs ms, scoring $scoreMs ms, total ${feedMs + scoreMs} ms " +
-                "(${"%.1f".format(seconds * 1_000.0 / (feedMs + scoreMs).coerceAtLeast(1))}× real time), score ${score.score}",
-        )
-        assertTrue("scoring must not take longer than the song plays", feedMs + scoreMs < seconds * 1_000L)
     }
 
     @Test

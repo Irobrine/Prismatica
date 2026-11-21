@@ -140,40 +140,18 @@ own, and it runs in the same pass as the DSP. Its weights are clearly separated 
 **Benchmark.** `SleepAnalysisDeviceTest` (instrumentation) analyses three minutes of audio on the phone and
 prints the time and heap cost; run it with
 `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.prism.music.SleepAnalysisDeviceTest`
-(the app's in-app tests are the other `androidTest` classes). Three separate tests cover the older 22.05 kHz signal, a
-real 44.1 kHz-rate analysis with the feed and scoring stages timed apart, and a whole WAV decoded and scored end to end.
-The pass is comfortably faster than real time (`SleepSuitabilityTest` asserts this on the JVM too: 107 ms for three
-minutes at 22.05 kHz, about 0.06% of real time).
+(the app's in-app tests are the other `androidTest` classes). The pass is comfortably faster than real time — three
+minutes of audio take a small fraction of the three minutes they play on the JVM (`SleepSuitabilityTest` asserts this
+too; 147 ms for three minutes at 22.05 kHz on the development machine, about 0.08% of real time) — and the heap cost is
+the per-frame measurements (under a megabyte for a ten-minute song), not the audio. Decoding dominates a real song's
+cost, and it is the same decode "Measure songs now" already pays.
 
-Measured on the development phone (vivo V2413, Android 16, debug build):
-
-| Signal | Before the speed work | Now |
-| --- | --- | --- |
-| 3 min at 22.05 kHz, analysis only | 1032 ms (174× real time), heap +46 MB | **960 ms (187× real time), heap +10 MB** |
-| 3 min at 44.1 kHz | — | **1933 ms frames/FFT + 20 ms scoring = 1953 ms (92× real time)** |
-| 60 s WAV, decoded and scored end to end | 779 ms | **499 ms** |
-
-The scoring itself is only ~1% of a 44.1 kHz pass; the frame loop and its FFT are the cost. The lower heap comes from
-sizing the frame arrays from the file's known duration and from computing the little medians without an array per frame.
-The numbers are printed by the test, so a change that makes scoring a library take hours shows up as a failing benchmark.
-
-**Speed work (1.9.1).** Four changes made the analysis faster without changing what it measures, so scoring stays
-deterministic for a given version (`MODEL_VERSION` was bumped to 2 for the changed arithmetic):
-
-1. **A real-input FFT** gets the same N-point magnitudes from one N/2-point complex FFT (`RealSpectrum.kt`);
-   `RealSpectrumTest` checks them bin for bin against the old N-point transform.
-2. **Decode and analysis overlap**: the codec fills a small bounded queue on the IO pool while the FFT runs on the CPU
-   pool (`SleepScanner.decode`). Pieces stay in order and each frame's arithmetic is untouched.
-3. **One pass, both figures**: in normalized mode the loudness/peak are made sure of first, then one decode and one set
-   of spectra produce both the plain and the normalized figure (`SleepAnalysis.analyzeBoth`); a mode toggle needs no
-   second walk. The gain is only a shift of the measured levels, so everything computed from ratios is shared.
-4. **Two recordings at a time** on phones that can spare the cores (the same gate as the measurement walk, and never
-   while that walk is using them). Each scan owns its buffers, so the work is independent and the progress still counts
-   whole songs.
-
-What remains is mostly the per-frame spectral loop (a magnitude, log and band sum for every FFT bin) and the codec;
-approximating either would change the measurements, so that is not done. Loading the stored figures is warmed off the
-playback thread at startup, and the settings row and the timer's queue counts follow the active mode's own count.
+Measured on the development phone (vivo V2413, Android 16, debug build): three minutes at 22.05 kHz scored in
+**1032 ms (174× faster than it plays)**, and a 60-second WAV decoded and scored end to end in **779 ms**. The heap grew
+by about 46 MB over the whole measured sequence — the warm-up, the JIT and the test's own 3-minute float array (16 MB)
+included, so it is an allocation upper bound, not the analysis's live state; what the analysis retains is the per-frame
+measurements (under a megabyte). Both figures are printed by the test, so a change that makes scoring a library take
+hours shows up as a failing benchmark.
 
 ## What v1 does not see
 
@@ -193,8 +171,7 @@ behind the model component, which is why its weights live in one place.
 * **Select many → Sleep scores** does the same for the picked songs.
 * **Settings → Playback → Sleep → Use normalized audio** scores the sound as Normalize plays it: the recording's
   already-measured loudness and peak give exactly the gain playback's Normalize applies (its target, lift room and cut),
-  and the analysis shifts its measured levels by that gain. One decode and one set of spectra produce both figures, so
-  the plain one is already there if the mode is turned off. Every ratio — dynamics, hits, spectral change, brightness —
+  and the analysis shifts its measured levels by that gain. Every ratio — dynamics, hits, spectral change, brightness —
   is unchanged by a gain, so only the absolute-loudness verdict moves, which is precisely what normalization changes. A
   recording not measured yet is measured first (the same scan Normalize uses). Plain and normalized figures are stored
   separately for each recording: while the mode is on only normalized figures count, and they override the plain ones

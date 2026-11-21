@@ -697,9 +697,9 @@ class AppContainer(val app: Application) {
      * The two "Calculate sleep scores" actions' walk (1.9): songs through [sleepScanner], one at a time (a whole
      * recording is decoded and analysed), leaving out the recordings that already have a figure of the current scoring
      * version **for the active mode**. In normalized mode the preexisting Normalize measurement is made sure of first
-     * ([com.prism.music.playback.MixTempo.measure]: the recording's loudness and peak), then one analysis of the audio
-     * produces both the plain figure and the normalized one, with the gain playback applies to it
-     * ([com.prism.music.playback.NormalizerProcessor.gainFor]); only the mode in use advances the progress. The same walk ([com.prism.music.data.MeasureSongs]) as "Measure songs now": progress, stop and resume are
+     * ([com.prism.music.playback.MixTempo.measure]: the recording's loudness and peak), then the recording is scored with
+     * the gain playback applies to it ([com.prism.music.playback.NormalizerProcessor.gainFor]) and filed as a normalized
+     * figure. The same walk ([com.prism.music.data.MeasureSongs]) as "Measure songs now": progress, stop and resume are
      * the settings row's and the selection bar's, and a song whose audio (or, in normalized mode, whose measurement)
      * isn't available now stays unscored for the next run instead of stopping the walk.
      */
@@ -716,16 +716,11 @@ class AppContainer(val app: Application) {
                     )
                     val lufs = mixTempo.loudness(form)
                     if (lufs != null) {
-                        val target = settings.current.sound.normalizeTarget
                         val gain = com.prism.music.playback.NormalizerProcessor
-                            .gainFor(target.toFloat(), lufs, mixTempo.peak(form))
-                        // One decode and one set of spectra yields both figures: the plain one is ready for when the
-                        // mode is turned off, without a second walk over the recording.
-                        sleepScanner.analyzeBoth(form, source, network, gain.toDouble())
-                            ?.let { (plain, normalized) ->
-                                sleepScores.put(form, plain)
-                                sleepScores.put(form, normalized.copy(normalizedTarget = target))
-                            }
+                            .gainFor(settings.current.sound.normalizeTarget.toFloat(), lufs, mixTempo.peak(form))
+                        sleepScanner.analyze(form, source, network, levelGainDb = gain.toDouble(), normalized = true)
+                            ?.copy(normalizedTarget = settings.current.sound.normalizeTarget)
+                            ?.let { sleepScores.put(form, it) }
                     }
                 } else {
                     sleepScanner.analyze(form, source, network)?.let { sleepScores.put(form, it) }
@@ -733,9 +728,7 @@ class AppContainer(val app: Application) {
             },
             { form -> sleepScores.isCurrent(form, sleepScoresNormalized()) },
             { id -> loudnessIndex.formId(id, null) },
-            // Two recordings at once where the phone can spare the cores (the same gate as the measurement walk), but
-            // never while that walk is using them: each scan decodes a whole recording and runs its own FFT.
-            { if (!measureSongs.running.value && mixTempo.mayScanTwice()) 2 else 1 },
+            { 1 },
             unmetered = { app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false },
         )
     }

@@ -244,21 +244,6 @@ class SleepSuitabilityTest {
     }
 
     @Test
-    fun bothModesComeFromOnePassWithoutChangingEitherFigure() {
-        // The normalized score is a level shift of the same measurements, so one decode and one set of spectra can
-        // produce both. The shared pass must give exactly the figures the two separate analyses give.
-        val pcm = loudRock(60)
-        val plain = SleepAnalysis.analyze(pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 60_000L, levelGainDb = 0.0)
-        val normalized = SleepAnalysis.analyze(pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 60_000L, levelGainDb = 6.0)
-        val (bothPlain, bothNormalized) = SleepAnalysis.analyzeBoth(
-            pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 60_000L, normalizedGainDb = 6.0,
-        )
-        assertEquals(plain, bothPlain)
-        assertEquals(normalized, bothNormalized)
-        assertTrue("the two modes really differ", plain != normalized)
-    }
-
-    @Test
     fun threeMinutesAreAnalysedFasterThanTheyPlay() {
         // The regression guard for scoring a library: the analysis must never be slower than the song itself (a phone is
         // several times slower than this JVM; the device test prints its own figure).
