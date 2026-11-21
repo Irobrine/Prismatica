@@ -4,9 +4,38 @@ What changed in each release. Older releases are described on the [Releases page
 
 ## 1.3.1
 
+A track of your own can follow the sleep timer, playback comes back when a Bluetooth output does, the download queue shows each download, and measuring songs uses more of the phone.
+
+### Sleep timer
+
+- **A track after the timer**: "Play after the timer" picks a downloaded song or a file on the phone, with a fade-in of up to a minute and "Loop this track"; the bedtime volume stays for it, and your own volume comes back when it ends or something else plays.
+- **The volume is heard while the timer is set up**: opening the menu applies the saved level at once, the slider moves smoothly instead of in steps, and closing it puts your own volume back while keeping the choice.
+
 ### The player
 
 - **Resume when Bluetooth comes back**: earbuds that drop out and connect again pick the music up where it stopped — a TWS switching to its own 2.4 GHz connection and back, say. Only a pause the lost output caused is picked up, and only by the same pair, within two minutes; a pause you made yourself, a call, the end of the queue or the sleep timer stays paused. Settings → Playback → Stopping and pausing → "Resume when Bluetooth comes back" (off, as Prism comes).
+
+### Downloads
+
+- **The Downloading line opens the queue**: each download on its way with its progress and state (waiting for Wi-Fi, queued or paused) and a Cancel of its own; the sheet closes when the last one is done.
+
+### Replay
+
+- **The numbers draw as soon as they arrive**, instead of the spinner waiting for a chip or a scroll to rebuild the page.
+
+### Measuring songs
+
+- **Two songs at once**: "Measure songs now" walks two at a time where the phone can spare them — six cores, memory for a second song and nothing playing — one decoding while the other is analysed.
+- **Each song is measured sooner**: a scan's key pass runs on a spare thread beside its band features.
+- **A song that isn't on the phone is decoded as it arrives**: fetched in 512 KB blocks while the decoder works, so the network and the decoding overlap and nothing is written to the cache and read back; a broken stream discards the figure and the waveform outline rather than keeping either.
+- No measured figure changes, so nothing is measured again.
+
+### Under the hood
+
+- Debug APKs are signed with the release key, so a debug build installs over the release app and keeps its data.
+- Unit tests fork across half the machine's cores, and the Gradle daemon gets 16 GB.
+- Replay's page reads its loaded numbers above the list, which settles `ReplaySectionsTest`; `PreviousAlwaysBackTest` no longer stalls under parallel runs.
+- The new strings are translated into all 31 languages.
 
 ## 1.3.0
 
