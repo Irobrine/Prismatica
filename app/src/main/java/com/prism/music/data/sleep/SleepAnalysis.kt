@@ -40,7 +40,7 @@ object SleepAnalysis {
      * What the figures mean. Any change to the formula, the features or the caps needs a new version: stored figures
      * say which one made them, and the walk recalculates the ones that are older.
      */
-    const val MODEL_VERSION = 1
+    const val MODEL_VERSION = 2
 
     /** The shortest audio worth judging; anything shorter is scored cautiously and with little confidence. */
     const val MIN_CONFIDENT_MS = 60_000L
@@ -71,7 +71,7 @@ object SleepAnalysis {
     fun analyze(
         pcm: FloatArray, count: Int, rate: Int, analyzedAtMs: Long, expectedMs: Long = 0L, levelGainDb: Double = 0.0,
     ): SleepScore {
-        val analyzer = Analyzer(rate, expectedMs, levelGainDb)
+        val analyzer = Analyzer(rate, expectedMs)
         var at = 0
         val n = count.coerceIn(0, pcm.size)
         while (at < n) {
@@ -79,34 +79,61 @@ object SleepAnalysis {
             analyzer.feed(pcm, at, step)
             at += step
         }
-        return analyzer.finish(analyzedAtMs)
+        return analyzer.finish(analyzedAtMs, levelGainDb)
+    }
+
+    /**
+     * Scores the same samples twice, once as the recording sounds and once at [normalizedGainDb]: the expensive decode,
+     * frames and spectra are shared, so the two audio modes cost one pass plus a second (cheap) scoring pass.
+     */
+    fun analyzeBoth(
+        pcm: FloatArray, count: Int, rate: Int, analyzedAtMs: Long, expectedMs: Long = 0L, normalizedGainDb: Double = 0.0,
+    ): Pair<SleepScore, SleepScore> {
+        val analyzer = Analyzer(rate, expectedMs)
+        var at = 0
+        val n = count.coerceIn(0, pcm.size)
+        while (at < n) {
+            val step = min(n - at, 16_384)
+            analyzer.feed(pcm, at, step)
+            at += step
+        }
+        return analyzer.finishBoth(analyzedAtMs, 0.0, normalizedGainDb)
     }
 
     /**
      * One song's analysis, fed its samples as they are decoded. [rate] is their sample rate (mono), [expectedMs] the
-     * length the song is known to have (0 when unknown), and [levelGainDb] a gain applied to the measured levels (the
-     * normalized mode's). [feed] may be called any number of times; [finish] once.
+     * length the song is known to have (0 when unknown). The levels are kept as measured: a caller passes the gain to
+     * [finish] (or both gains to [finishBoth]), so one pass can produce both audio modes' figures. [feed] may be called
+     * any number of times; [finish] and [finishBoth] once.
      */
-    class Analyzer(private val rate: Int, private val expectedMs: Long = 0L, private val levelGainDb: Double = 0.0) {
+    class Analyzer(private val rate: Int, private val expectedMs: Long = 0L) {
         private val size = nextPowerOfTwo((rate * WINDOW_SECONDS).roundToInt().coerceAtLeast(256))
-        private val hop = size / 2
-        private val fft = Fft(size)
-        private val re = DoubleArray(size)
-        private val im = DoubleArray(size)
+        private val half = size / 2
+        private val hop = half
+        // A real N-point FFT is one complex N/2-point FFT plus a recombination; the magnitudes are the same.
+        private val fft = Fft(half)
+        private val even = DoubleArray(half)
+        private val odd = DoubleArray(half)
         private val window = DoubleArray(size) { 0.5 - 0.5 * cos(2.0 * Math.PI * it / (size - 1)) }
-        private val mag = DoubleArray(size / 2)
-        private val previous = DoubleArray(size / 2)
+        private val mag = DoubleArray(half)
+        private val previous = DoubleArray(half)
         private val binHz = if (rate > 0) rate.toDouble() / size else 1.0
         private val pending = FloatArray(size)
         private var pendingCount = 0
 
-        private val rmsDb = Growable()
-        private val peakDb = Growable()
-        private val centroid = Growable()
-        private val flatness = Growable()
-        private val flux = Growable()
-        private val lowRatio = Growable()
-        private val highRatio = Growable()
+        // The file usually says how long it is: size the frame arrays once instead of copying them as they grow.
+        private val framesHint = if (expectedMs > 0 && rate > 0) {
+            (expectedMs * rate / 1000L / hop).toInt().coerceIn(1_024, 200_000)
+        } else 1_024
+        private val rmsDb = Growable(framesHint)
+        private val peakDb = Growable(framesHint)
+        private val centroid = Growable(framesHint)
+        private val flatness = Growable(framesHint)
+        private val flux = Growable(framesHint)
+        private val lowRatio = Growable(framesHint)
+        private val highRatio = Growable(framesHint)
+        /** Reused by every little median in the two baselines; no allocation per frame. */
+        private val medianScratch = DoubleArray(64)
 
         /** How many samples were fed, for the duration. */
         private var fed = 0L
@@ -143,16 +170,19 @@ object SleepAnalysis {
                 val v = pending[i].toDouble()
                 sumSq += v * v
                 if (abs(v) > peak) peak = abs(v)
-                re[i] = v * window[i]
-                im[i] = 0.0
             }
             val level = 20.0 * log10(sqrt(sumSq / size).coerceAtLeast(1e-7))
-            rmsDb.add(level + levelGainDb)
-            peakDb.add(20.0 * log10(peak.coerceAtLeast(1e-7)) + levelGainDb)
+            rmsDb.add(level)
+            peakDb.add(20.0 * log10(peak.coerceAtLeast(1e-7)))
             // A silent frame's spectrum is the window's own leakage, not the music: it isn't "noisy" or "bright", and
             // counting it as either would punish the rests a gentle piece is made of.
             val quietFrame = level < SILENCE_DB
-            fft.transform(re, im)
+            for (i in 0 until half) {
+                even[i] = pending[2 * i].toDouble() * window[2 * i]
+                odd[i] = pending[2 * i + 1].toDouble() * window[2 * i + 1]
+            }
+            fft.transform(even, odd)
+            RealSpectrum.magnitudes(fft, even, odd, size, mag)
 
             var total = 0.0
             var weighted = 0.0
@@ -160,9 +190,8 @@ object SleepAnalysis {
             var power = 0.0
             var lowEnergy = 0.0
             var highEnergy = 0.0
-            for (k in 0 until size / 2) {
-                val m = sqrt(re[k] * re[k] + im[k] * im[k])
-                mag[k] = m
+            for (k in 0 until half) {
+                val m = mag[k]
                 val hz = k * binHz
                 total += m
                 weighted += m * hz
@@ -179,7 +208,7 @@ object SleepAnalysis {
             lowRatio.add(if (!quietFrame && total > 0) lowEnergy / total else 0.0)
             highRatio.add(if (!quietFrame && total > 0) highEnergy / total else 0.0)
             var rise = 0.0
-            if (rmsDb.n > 1) for (k in 0 until size / 2) {
+            if (rmsDb.n > 1) for (k in 0 until half) {
                 val d = mag[k] - previous[k]
                 if (d > 0) rise += d
             }
@@ -190,27 +219,53 @@ object SleepAnalysis {
         }
 
         /** The score once every sample has been fed. Further [feed]s are ignored. */
-        fun finish(analyzedAtMs: Long): SleepScore {
+        fun finish(analyzedAtMs: Long, levelGainDb: Double = 0.0): SleepScore {
             finished = true
-            val durationMs = if (rate > 0) fed * 1000L / rate else 0L
-            if (rmsDb.n < 8) return silent(durationMs, analyzedAtMs)
+            val frames = frames(levelGainDb) ?: return silent(durationMs(), analyzedAtMs)
+            return score(frames, analyzedAtMs)
+        }
+
+        /** Both modes from one pass: only the level arrays differ, everything else is computed once per mode's scoring. */
+        fun finishBoth(analyzedAtMs: Long, plainGain: Double, normalizedGain: Double): Pair<SleepScore, SleepScore> {
+            finished = true
+            val plain = frames(plainGain)
+            val normalized = frames(normalizedGain)
+            if (plain == null || normalized == null) {
+                val unjudgeable = silent(durationMs(), analyzedAtMs)
+                return unjudgeable to unjudgeable
+            }
+            return score(plain, analyzedAtMs) to score(normalized, analyzedAtMs)
+        }
+
+        private fun durationMs(): Long = if (rate > 0) fed * 1000L / rate else 0L
+
+        /** The measurements at [gain]: only absolute levels move; dynamics, flux, brightness and the rest are shared. */
+        private fun frames(gain: Double): Frames? {
+            if (rmsDb.n < 8) return null
+            val level = DoubleArray(rmsDb.n) { rmsDb.data[it] + gain }
+            val peak = DoubleArray(peakDb.n) { peakDb.data[it] + gain }
             val frames = Frames(
-                rmsDb.toArray(), peakDb.toArray(), centroid.toArray(), flatness.toArray(), flux.toArray(),
-                lowRatio.toArray(), highRatio.toArray(), rmsDb.n, hop.toDouble() / rate, durationMs,
+                level, peak, centroid.toArray(), flatness.toArray(), flux.toArray(),
+                lowRatio.toArray(), highRatio.toArray(), rmsDb.n, hop.toDouble() / rate, durationMs(),
             )
-            val baseline = blockBaseline(frames.rmsDb, frames.frameSeconds)
-            val fluxBaseline = blockBaseline(frames.flux, frames.frameSeconds)
-            val onsets = onsets(frames, fluxBaseline)
-            val transients = transients(frames, baseline, onsets)
-            val jumped = suddenEvents(frames, baseline)
-            val clip = if (fed > 0) clipped.toDouble() / fed else 0.0
             // Nothing audible anywhere: a decode that lost its audio, or a silent file. There is no evidence of
             // suitability in it, so it gets no credit (the UI shows it as unjudgeable, not as a lullaby).
             var audible = 0
             for (i in 0 until frames.n) if (frames.rmsDb[i] >= SILENCE_DB) audible++
-            if (audible.toDouble() / frames.n < 0.1) return silent(durationMs, analyzedAtMs)
+            if (audible.toDouble() / frames.n < 0.1) return null
+            return frames
+        }
+
+        private fun score(frames: Frames, analyzedAtMs: Long): SleepScore {
+            val durationMs = frames.durationMs
+            val baseline = blockBaseline(frames.rmsDb, frames.frameSeconds, medianScratch)
+            val fluxBaseline = blockBaseline(frames.flux, frames.frameSeconds, medianScratch)
+            val onsets = onsets(frames, fluxBaseline)
+            val transients = transients(frames, baseline, onsets)
+            val jumped = suddenEvents(frames, baseline)
+            val clip = if (fed > 0) clipped.toDouble() / fed else 0.0
             val sections = sections(frames, onsets, transients)
-            if (sections.isEmpty()) return silent(durationMs, analyzedAtMs)
+            if (sections.isEmpty()) return silent(frames.durationMs, analyzedAtMs)
 
             val warnings = ArrayList<SleepWarning>()
             // Loud passages: a section ten decibels into the red is disruptive whatever else it does.
@@ -263,7 +318,7 @@ object SleepAnalysis {
             }
 
             val confidence = confidence(frames, sections, durationMs, expectedMs)
-            return judge(frames, sections, transients, jumped, warnings.sortedBy { it.startMs }, confidence, durationMs, analyzedAtMs)
+            return judge(frames, sections, transients, jumped, warnings.sortedBy { it.startMs }, confidence, frames.durationMs, analyzedAtMs)
         }
 
         private fun silent(durationMs: Long, analyzedAtMs: Long): SleepScore = SleepScore(
@@ -280,8 +335,8 @@ object SleepAnalysis {
     // ---------------------------------------------------------------- frames
 
     /** A growable primitive array: the frames of a whole song are not known in advance when it is still decoding. */
-    private class Growable {
-        var data = DoubleArray(1024)
+    private class Growable(initial: Int) {
+        var data = DoubleArray(initial)
             private set
         var n = 0
             private set
@@ -311,7 +366,7 @@ object SleepAnalysis {
     // ---------------------------------------------------------------- events
 
     /** A per-frame baseline of what came before it: the median of the previous three one-second blocks. */
-    private fun blockBaseline(values: DoubleArray, frameSeconds: Double): DoubleArray {
+    private fun blockBaseline(values: DoubleArray, frameSeconds: Double, scratch: DoubleArray): DoubleArray {
         val perBlock = max(1, (1.0 / frameSeconds).roundToInt())
         val blocks = (values.size + perBlock - 1) / perBlock
         val medians = DoubleArray(blocks)
@@ -323,9 +378,27 @@ object SleepAnalysis {
         val out = DoubleArray(values.size)
         for (i in values.indices) {
             val b = i / perBlock
-            out[i] = percentile(medians, max(0, b - 3), b, 0.5)
+            out[i] = medianOfUpToFour(medians, max(0, b - 3), b, scratch)
         }
         return out
+    }
+
+    /**
+     * The same upper median [percentile] gives for p=0.5 (rank n/2), without its array copy: the baselines ask for this
+     * once per frame, so the allocation used to be thousands of tiny arrays per song.
+     */
+    private fun medianOfUpToFour(values: DoubleArray, from: Int, to: Int, scratch: DoubleArray): Double {
+        val n = to - from
+        if (n <= 0) return 0.0
+        if (n == 1) return values[from]
+        for (i in 0 until n) scratch[i] = values[from + i]
+        for (i in 1 until n) {
+            val v = scratch[i]
+            var j = i - 1
+            while (j >= 0 && scratch[j] > v) { scratch[j + 1] = scratch[j]; j-- }
+            scratch[j + 1] = v
+        }
+        return scratch[n / 2]
     }
 
     /** Frames where the spectrum jumps: an attack, kept as onsets for density and beat. */
