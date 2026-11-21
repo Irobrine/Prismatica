@@ -5815,4 +5815,9 @@
     <string name="sleep_scores_list_info">Оцінки в активному звуковому режимі. Пісні без оцінки пропускаються таймером сну.</string>
     <string name="sleep_scores_none_calculated">Жодна пісня ще не має оцінки сну</string>
     <string name="sleep_score_not_calculated">Не обчислено</string>
+    <string name="sleep_label_suitable">Підходить для сну</string>
+    <string name="sleep_label_borderline">На межі</string>
+    <string name="sleep_label_unsuitable">Не підходить</string>
+    <string name="sleep_scores_calibrated">Підлаштовано на основі %1$d ваших оцінок</string>
+    <string name="sleep_scores_calibration_hint">Позначайте пісні, щоб підлаштувати оцінки під ваш слух</string>
 </resources>

@@ -5665,4 +5665,9 @@
     <string name="sleep_scores_list_info">Βαθμολογίες στην ενεργή λειτουργία ήχου. Τα τραγούδια χωρίς βαθμολογία παραλείπονται από τον χρονοδιακόπτη ύπνου.</string>
     <string name="sleep_scores_none_calculated">Κανένα τραγούδι δεν έχει βαθμολογία ύπνου ακόμα</string>
     <string name="sleep_score_not_calculated">Δεν υπολογίστηκε</string>
+    <string name="sleep_label_suitable">Κατάλληλο για ύπνο</string>
+    <string name="sleep_label_borderline">Οριακό</string>
+    <string name="sleep_label_unsuitable">Ακατάλληλο</string>
+    <string name="sleep_scores_calibrated">Προσαρμοσμένο με βάση %1$d κρίσεις σας</string>
+    <string name="sleep_scores_calibration_hint">Σημειώστε τραγούδια για να προσαρμόσετε τις βαθμολογίες στην ακοή σας</string>
 </resources>

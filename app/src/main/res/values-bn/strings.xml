@@ -5665,4 +5665,9 @@
     <string name="sleep_scores_list_info">সক্রিয় অডিও মোডের স্কোর। যে গানগুলোর স্কোর নেই সেগুলো স্লিপ টাইমার এড়িয়ে যায়।</string>
     <string name="sleep_scores_none_calculated">এখনও কোনো গানের ঘুমের স্কোর নেই</string>
     <string name="sleep_score_not_calculated">গণনা করা হয়নি</string>
+    <string name="sleep_label_suitable">ঘুমের জন্য উপযুক্ত</string>
+    <string name="sleep_label_borderline">সীমান্তবর্তী</string>
+    <string name="sleep_label_unsuitable">অনুপযুক্ত</string>
+    <string name="sleep_scores_calibrated">%1$dটি আপনার বিচার থেকে মানানো</string>
+    <string name="sleep_scores_calibration_hint">স্কোরগুলো আপনার শোনার মতো মানাতে গানে চিহ্ন দিন</string>
 </resources>

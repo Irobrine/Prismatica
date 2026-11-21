@@ -5665,4 +5665,9 @@
     <string name="sleep_scores_list_info">Poäng i aktivt ljudläge. Låtar utan poäng hoppas över av insomningstimern.</string>
     <string name="sleep_scores_none_calculated">Inga låtar har någon sömnpoäng än</string>
     <string name="sleep_score_not_calculated">Inte beräknad</string>
+    <string name="sleep_label_suitable">Lämplig för sömn</string>
+    <string name="sleep_label_borderline">Gränsfall</string>
+    <string name="sleep_label_unsuitable">Olämplig</string>
+    <string name="sleep_scores_calibrated">Anpassad utifrån %1$d av dina bedömningar</string>
+    <string name="sleep_scores_calibration_hint">Markera låtar för att anpassa poängen efter dina öron</string>
 </resources>

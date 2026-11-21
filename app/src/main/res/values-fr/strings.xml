@@ -5740,4 +5740,9 @@
     <string name="sleep_scores_list_info">Scores dans le mode audio actif. Le minuteur passe outre les morceaux qui n’en ont pas.</string>
     <string name="sleep_scores_none_calculated">Aucun morceau n’a encore de score de sommeil</string>
     <string name="sleep_score_not_calculated">Non calculé</string>
+    <string name="sleep_label_suitable">Adapté au sommeil</string>
+    <string name="sleep_label_borderline">Limite</string>
+    <string name="sleep_label_unsuitable">Inadapté</string>
+    <string name="sleep_scores_calibrated">Ajusté à partir de %1$d de vos jugements</string>
+    <string name="sleep_scores_calibration_hint">Marquez des titres pour adapter les scores à votre oreille</string>
 </resources>

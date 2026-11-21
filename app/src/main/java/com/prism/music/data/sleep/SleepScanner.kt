@@ -52,8 +52,11 @@ class SleepScanner(
      */
     suspend fun analyze(
         formId: String, sourceSongId: String?, network: Boolean, levelGainDb: Double = 0.0, normalized: Boolean = false,
+        weights: SleepWeights = SleepWeights(), calibrationLabels: Int = 0,
     ): SleepScore? = withAudio(formId, sourceSongId, network) { uri ->
-        decode(uri) { analyzer, now -> analyzer.finish(now, levelGainDb).copy(normalized = normalized) }
+        decode(uri) { analyzer, now ->
+            analyzer.finish(now, levelGainDb, weights, normalized, calibrationLabels).copy(normalized = normalized)
+        }
     }
 
     /**
@@ -62,9 +65,10 @@ class SleepScanner(
      */
     suspend fun analyzeBoth(
         formId: String, sourceSongId: String?, network: Boolean, normalizedGainDb: Double,
+        weights: SleepWeights = SleepWeights(), calibrationLabels: Int = 0,
     ): Pair<SleepScore, SleepScore>? = withAudio(formId, sourceSongId, network) { uri ->
         decode(uri) { analyzer, now ->
-            val (plain, normalized) = analyzer.finishBoth(now, 0.0, normalizedGainDb)
+            val (plain, normalized) = analyzer.finishBoth(now, 0.0, normalizedGainDb, weights, calibrationLabels)
             plain.copy(normalized = false) to normalized.copy(normalized = true)
         }
     }

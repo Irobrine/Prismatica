@@ -154,7 +154,7 @@ class SleepSuitabilityTest {
         val wall = signal(90) { t, _ -> 0.45 * sin(2 * PI * 110 * t) + 0.3 * sin(2 * PI * 220 * t) + 0.15 * sin(2 * PI * 330 * t) }
         val s = score(wall)
         println("loud wall=${s.score} components=${s.components} warnings=${s.warnings.map { it.kind }}")
-        assertTrue("a loud steady passage is still too loud: ${s.score}", s.score <= 45)
+        assertTrue("a loud but perfectly steady tone is not highly recommended: ${s.score}", s.score <= 60)
         assertTrue("and the loud sections are named", s.warnings.any { it.kind == SleepWarningKind.LOUD })
     }
 
@@ -243,13 +243,56 @@ class SleepSuitabilityTest {
         assertEquals(lifted, SleepAnalysis.analyze(quiet, quiet.size, rate, analyzedAtMs = 1L, expectedMs = 120_000L, levelGainDb = 18.0))
     }
 
+    /** A compact stand-in for ordinary music: a pad, a beat of varying strength, some air and a slow swell. */
+    private fun realistic(seconds: Int, seed: Int, drums: Double, air: Double, swell: Double): FloatArray {
+        val noise = Noise(seed.toLong())
+        return signal(seconds) { t, _ ->
+            val beat = t * (1.6 + (seed % 3) * 0.4)
+            val phase = beat - kotlin.math.floor(beat)
+            val kick = drums * exp(-phase * 12.0) * sin(2 * PI * 55 * t)
+            val pad = 0.12 * sin(2 * PI * 110 * t) + 0.08 * sin(2 * PI * 165 * t)
+            val breath = 1.0 + swell * 0.45 * sin(2 * PI * t / 30.0)
+            ((kick + pad + air * noise.next()) * breath).coerceIn(-1.0, 1.0)
+        }
+    }
+
+    @Test
+    fun aLibraryLikeSetGetsAUsefulSpreadInsteadOfAllZeros() {
+        // The old formula collapsed ordinary music to 0. A usable score must rank a library, not flatten it.
+        val scores = (0 until 12).map { i ->
+            val fraction = i / 11.0
+            val pcm = realistic(90, 100 + i, drums = fraction * 0.5, air = 0.005 + fraction * 0.14, swell = fraction)
+            SleepAnalysis.analyze(pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 90_000L).score
+        }
+        println("spread=$scores")
+        assertTrue("most songs should have a figure above zero: $scores", scores.count { it == 0 } <= 1)
+        assertTrue("some should be suitable: $scores", scores.maxOrNull()!! >= 70)
+        assertTrue("some should be unsuitable: $scores", scores.minOrNull()!! <= 50)
+        assertTrue("and there should be a middle: $scores", scores.sorted()[6] in 35..85)
+    }
+
+    @Test
+    fun volumeAloneBarelyMovesTheScore() {
+        // Playback's Normalize already evens out loudness. A 12 dB lift must not decide suitability by itself.
+        val pcm = calm(90)
+        val quiet = SleepAnalysis.analyze(pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 90_000L)
+        val lifted = SleepAnalysis.analyze(pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 90_000L, levelGainDb = 12.0)
+        println("volume: ${quiet.score} -> ${lifted.score}")
+        assertTrue(
+            "a 12 dB lift changes the figure by at most 10 points: ${quiet.score} -> ${lifted.score}",
+            abs(lifted.score - quiet.score) <= 10,
+        )
+    }
+
     @Test
     fun bothModesComeFromOnePassWithoutChangingEitherFigure() {
         // The normalized score is a level shift of the same measurements, so one decode and one set of spectra can
         // produce both. The shared pass must give exactly the figures the two separate analyses give.
         val pcm = loudRock(60)
         val plain = SleepAnalysis.analyze(pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 60_000L, levelGainDb = 0.0)
-        val normalized = SleepAnalysis.analyze(pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 60_000L, levelGainDb = 6.0)
+        val normalized = SleepAnalysis.analyze(
+            pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 60_000L, levelGainDb = 6.0, normalized = true,
+        )
         val (bothPlain, bothNormalized) = SleepAnalysis.analyzeBoth(
             pcm, pcm.size, rate, analyzedAtMs = 1L, expectedMs = 60_000L, normalizedGainDb = 6.0,
         )

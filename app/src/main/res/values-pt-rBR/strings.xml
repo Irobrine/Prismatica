@@ -5740,4 +5740,9 @@
     <string name="sleep_scores_list_info">Pontuações no modo de áudio ativo. Músicas sem pontuação são puladas pelo timer de sono.</string>
     <string name="sleep_scores_none_calculated">Nenhuma música tem pontuação de sono ainda</string>
     <string name="sleep_score_not_calculated">Não calculado</string>
+    <string name="sleep_label_suitable">Adequada para dormir</string>
+    <string name="sleep_label_borderline">Limítrofe</string>
+    <string name="sleep_label_unsuitable">Inadequada</string>
+    <string name="sleep_scores_calibrated">Ajustado a partir de %1$d dos seus julgamentos</string>
+    <string name="sleep_scores_calibration_hint">Marque músicas para ajustar as pontuações ao seu ouvido</string>
 </resources>

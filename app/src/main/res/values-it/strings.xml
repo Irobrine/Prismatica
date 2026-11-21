@@ -5740,4 +5740,9 @@
     <string name="sleep_scores_list_info">Punteggi nella modalità audio attiva. Il timer di spegnimento salta i brani che non ne hanno uno.</string>
     <string name="sleep_scores_none_calculated">Nessun brano ha ancora un punteggio del sonno</string>
     <string name="sleep_score_not_calculated">Non calcolato</string>
+    <string name="sleep_label_suitable">Adatto al sonno</string>
+    <string name="sleep_label_borderline">Al limite</string>
+    <string name="sleep_label_unsuitable">Inadatto</string>
+    <string name="sleep_scores_calibrated">Adattato da %1$d dei tuoi giudizi</string>
+    <string name="sleep_scores_calibration_hint">Segna i brani per adattare i punteggi al tuo orecchio</string>
 </resources>

@@ -5665,4 +5665,9 @@
     <string name="sleep_scores_list_info">Pontszámok az aktív hangmódban. Az elalváskapcsoló kihagyja azokat a számokat, amelyeknek nincs pontszáma.</string>
     <string name="sleep_scores_none_calculated">Egyik számnak sincs még alvási pontszáma</string>
     <string name="sleep_score_not_calculated">Nincs kiszámolva</string>
+    <string name="sleep_label_suitable">Alkalmas alváshoz</string>
+    <string name="sleep_label_borderline">Határeset</string>
+    <string name="sleep_label_unsuitable">Nem alkalmas</string>
+    <string name="sleep_scores_calibrated">%1$d megítélésed alapján igazítva</string>
+    <string name="sleep_scores_calibration_hint">Jelölj meg dalokat, hogy a pontszámokat a füledhez igazítsd</string>
 </resources>

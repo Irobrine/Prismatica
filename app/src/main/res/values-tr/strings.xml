@@ -5665,4 +5665,9 @@
     <string name="sleep_scores_list_info">Etkin ses modundaki puanlar. Puanı olmayan şarkılar uyku zamanlayıcısı tarafından atlanır.</string>
     <string name="sleep_scores_none_calculated">Henüz hiçbir şarkının uyku puanı yok</string>
     <string name="sleep_score_not_calculated">Hesaplanmadı</string>
+    <string name="sleep_label_suitable">Uyku için uygun</string>
+    <string name="sleep_label_borderline">Sınırda</string>
+    <string name="sleep_label_unsuitable">Uygun değil</string>
+    <string name="sleep_scores_calibrated">%1$d yargınızdan uyarlandı</string>
+    <string name="sleep_scores_calibration_hint">Puanları kulağınıza uyarlamak için şarkıları işaretleyin</string>
 </resources>

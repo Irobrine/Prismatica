@@ -5665,4 +5665,9 @@
     <string name="sleep_scores_list_info">Mga score sa aktibong audio mode. Ang mga kantang wala nito ay nilalaktawan ng sleep timer.</string>
     <string name="sleep_scores_none_calculated">Wala pang kantang may sleep score</string>
     <string name="sleep_score_not_calculated">Hindi nakalkula</string>
+    <string name="sleep_label_suitable">Angkop para sa pagtulog</string>
+    <string name="sleep_label_borderline">Nasa hangganan</string>
+    <string name="sleep_label_unsuitable">Hindi angkop</string>
+    <string name="sleep_scores_calibrated">Inangkop mula sa %1$d ng iyong mga pagtatasa</string>
+    <string name="sleep_scores_calibration_hint">Markahan ang mga kanta upang iangkop ang mga score sa iyong pandinig</string>
 </resources>

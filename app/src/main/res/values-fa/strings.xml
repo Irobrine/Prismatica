@@ -5665,4 +5665,9 @@
     <string name="sleep_scores_list_info">امتیازها در حالت صدای فعّال. تایمر خواب آهنگ‌هایی را که امتیازی ندارند رد میکند.</string>
     <string name="sleep_scores_none_calculated">هنوز هیچ آهنگی امتیاز خواب ندارد</string>
     <string name="sleep_score_not_calculated">محاسبه نشده</string>
+    <string name="sleep_label_suitable">مناسب برای خواب</string>
+    <string name="sleep_label_borderline">مرزی</string>
+    <string name="sleep_label_unsuitable">نامناسب</string>
+    <string name="sleep_scores_calibrated">متناسب با %1$d از قضاوتهای شما</string>
+    <string name="sleep_scores_calibration_hint">آهنگها را علامت بزنید تا امتیازها متناسب با گوشتان شوند</string>
 </resources>

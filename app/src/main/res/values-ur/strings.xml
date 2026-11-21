@@ -5665,4 +5665,9 @@
     <string name="sleep_scores_list_info">فعال آڈیو موڈ میں اسکور۔ جس گانے کا اسکور نہیں ہے اسے سلیپ ٹائمر چھوڑ دیتا ہے۔</string>
     <string name="sleep_scores_none_calculated">ابھی کسی گانے کا نیند اسکور نہیں ہے</string>
     <string name="sleep_score_not_calculated">شمار نہیں ہوا</string>
+    <string name="sleep_label_suitable">نیند کے لیے موزوں</string>
+    <string name="sleep_label_borderline">سرحدی</string>
+    <string name="sleep_label_unsuitable">ناموزوں</string>
+    <string name="sleep_scores_calibrated">%1$d آپ کے فیصلوں کے مطابق ڈھالا گیا</string>
+    <string name="sleep_scores_calibration_hint">اسکور کو آپ کے کان کے مطابق ڈھالنے کے لیے گانوں کو نشان زد کریں</string>
 </resources>

@@ -434,6 +434,12 @@ class AppContainer(val app: Application) {
      */
     val sleepScores by lazy { com.prism.music.data.sleep.SleepScores(app) }
 
+    /** The listener's own judgments of songs, used to fit the model to their ears. */
+    val sleepLabels by lazy { com.prism.music.data.sleep.SleepLabels(app) }
+
+    /** The scoring weights, fitted from [sleepLabels] when there are enough judgments. */
+    val sleepCalibration by lazy { com.prism.music.data.sleep.SleepCalibration(app) }
+
     /** Reads a recording's audio and has [com.prism.music.data.sleep.SleepAnalysis] judge it (1.9). */
     val sleepScanner by lazy {
         com.prism.music.data.sleep.SleepScanner(
@@ -470,6 +476,28 @@ class AppContainer(val app: Application) {
                 sleepScores.clearNormalized()
                 sleepScoreSongs.start(emptyList(), false)
             }
+        }
+        // Enough labels of both kinds: fit the weights from the features already stored (no decoding), then throw away
+        // the old figures so the next walk applies the new model. A changed model is an algorithm change, like a version.
+        scope.launch {
+            kotlinx.coroutines.flow.combine(sleepLabels.labels, sleepCalibration.weights) { labels, weights -> labels to weights }
+                .distinctUntilChanged()
+                .collect { (labels, weights) ->
+                    if (!sleepLabels.enoughToFit()) return@collect
+                    val figures = sleepScores.all()
+                    val samples = figures.mapNotNull { (formId, figure) ->
+                        val label = labels.entries.firstOrNull { (songId, _) -> loudnessIndex.formId(songId, null) == formId }?.value
+                            ?: return@mapNotNull null
+                        figure.features to label.target
+                    }
+                    if (samples.size < 6) return@collect
+                    val fitted = sleepCalibration.fit(samples)
+                    if (sleepCalibration.changed(weights, fitted)) {
+                        sleepCalibration.save(fitted)
+                        sleepScores.clear()
+                        sleepScoreSongs.start(emptyList(), false)
+                    }
+                }
         }
     }
 
@@ -721,14 +749,15 @@ class AppContainer(val app: Application) {
                             .gainFor(target.toFloat(), lufs, mixTempo.peak(form))
                         // One decode and one set of spectra yields both figures: the plain one is ready for when the
                         // mode is turned off, without a second walk over the recording.
-                        sleepScanner.analyzeBoth(form, source, network, gain.toDouble())
+                        sleepScanner.analyzeBoth(form, source, network, gain.toDouble(), sleepCalibration.weights.value, sleepLabels.labels.value.size)
                             ?.let { (plain, normalized) ->
                                 sleepScores.put(form, plain)
                                 sleepScores.put(form, normalized.copy(normalizedTarget = target))
                             }
                     }
                 } else {
-                    sleepScanner.analyze(form, source, network)?.let { sleepScores.put(form, it) }
+                    sleepScanner.analyze(form, source, network, weights = sleepCalibration.weights.value, calibrationLabels = sleepLabels.labels.value.size)
+                        ?.let { sleepScores.put(form, it) }
                 }
             },
             { form -> sleepScores.isCurrent(form, sleepScoresNormalized()) },

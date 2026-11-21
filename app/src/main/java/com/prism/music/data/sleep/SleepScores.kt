@@ -99,6 +99,11 @@ class SleepScores(context: Context) {
             return cache.keys.toSet()
         }
 
+        fun all(): Map<String, SleepScore> {
+            load()
+            return cache.toMap()
+        }
+
         private fun countNow(): Int {
             load()
             return cache.values.count { it.modelVersion == SleepAnalysis.MODEL_VERSION }
@@ -159,6 +164,9 @@ class SleepScores(context: Context) {
 
     /** Every recording with a figure of the mode, whatever its version. */
     fun ids(normalized: Boolean = false): Set<String> = shelf(normalized).ids()
+
+    /** The figures of both modes, with their features, for fitting the model to listener labels. */
+    fun all(): Map<String, SleepScore> = plain.all() + normalized.all()
 
     /** Reads both files once, off the playback thread (the settings page and the filter ask for them later). */
     fun warm() {

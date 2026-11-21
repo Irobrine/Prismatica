@@ -42,33 +42,45 @@ centroid, spectral flatness, spectral flux, and the share of energy below 250 Hz
 * **Mood.** How dark and tonal the spectrum is: brightness (centroid), flatness (noisiness) and top-end share, as a
   proxy for gentle versus tense/dramatic.
 
-### Components (0–100, higher is more suitable)
+### Features and the score (1.9.2)
 
-| Component | Weight | What lowers it |
+The first formula stacked six penalties and five hard caps on the same evidence, which collapsed ordinary mastered music
+to 0. The current model is one bounded logistic:
+
+```
+score = 10 + 85 * sigmoid(bias - 1.6 * SUM(weight[i] * feature[i]) + 0.01 * (confidence - 100))
+```
+
+Each feature is a measured 0–1 disturbance value, and each is charged **once**. The floor of 10 and ceiling of 95 keep
+the score useful for ranking; precision comes from where the listener sets the filter, not from crushing scores to zero.
+
+| Feature (0–1, higher = more disturbing) | Default weight | From |
 | --- | --- | --- |
-| `quietness` | 0.16 | The loudest sections' level (−32 dBFS scores 100, −10 dBFS 0) |
-| `dynamics` | 0.20 | Level spread between sections, sudden events, crescendos, within-section pumping |
-| `transients` | 0.22 | Strong hits per minute, the strongest hit's rise, peak-to-level (crest) |
-| `rhythm` | 0.14 | Onsets per second, beat strength, bass share |
-| `complexity` | 0.16 | Spectral flux, flatness, structural changes |
-| `mood` | 0.12 | Brightness, flatness, top-end share |
-| `model` | 0.20 of the end figure | A fixed-weight linear model over the same measurements, squashed to 0–100 |
+| `level` | 0.25 | Absolute level, **zero in normalized mode** (Normalize makes it equal for every recording) |
+| `peaks` | 0.90 | Crest factor and true-peak headroom |
+| `transients` | 1.60 | Strong hits per minute and how far they rise |
+| `onsets` | 1.05 | Onset density and beat strength |
+| `activity` | 0.85 | Spectral flux and flatness |
+| `changes` | 1.10 | Abrupt changes, sudden events, level spread |
+| `brightness` | 0.40 | Spectral centroid and high-frequency share |
+| `worstSection` | 1.10 | The single most disturbing ten-second section |
 
-The hand-written components are averaged 80/20 with the model. Every component below 55 then costs its own weight in
-points, so a song can't be rescued by its quiet moments. Then:
+Volume is deliberately one of the smallest terms, and disappears entirely in normalized mode: what tends to wake a
+listener is a hit, a build or a busy section, not the integrated level of a Normalize-played recording.
+The unit tests check a library-like set of twelve signals: the figures spread from 24 to 74 with a median near 53, rather
+than collapsing to 0; a deliberately loud, percussive beat scores 11, a calm pad 70, and a single severe slam in a calm
+song 36. A 12 dB change in volume alone moves the figure by less than a point.
 
-1. `score = min(score, worstSection + 30)` — the worst ten seconds set a ceiling.
-2. `score -= 0.45 × max(0, 60 − worstSection)`.
-3. A cap by absolute level, before any event cap: the loudest sections at ≥ −8 dBFS → 35, ≥ −11 → 45, ≥ −14 → 58,
-   ≥ −17 → 70. A steady loud wall is still too loud to fall asleep to.
-4. A recording shorter than 30 s is capped at 55.
-5. Hard caps: sudden event ≥ 12 dB → 45, ≥ 9 dB → 62; crescendo severe → 52, disruptive → 66; clipping → 45/60; loud
-   passage (≥ −10 dBFS median) → 45/60; a section whose own score is under 15 → 55.
-6. `score -= 0.12 × (100 − confidence)` (so a short clip lands under its 55 cap).
+Two more safeguards remain: silence (or a decode with no audible frames) has no evidence and scores 0 with confidence 5
+and an `UNSTABLE` warning; and `confidence` — short audio, a partial decode, mostly silence, few sections — is kept out
+of the features and only nudges the logit slightly. The old per-component figures are still stored as diagnostics
+(higher being more suitable), and `model` in them is the final score.
 
-`confidence` is kept separate: it falls for short audio (below 60 s), a decode that stopped short of the known duration,
-mostly silence, and a song with fewer than three sections. Silence, or a decode that produces no audible frames at all,
-scores 0 with confidence 5 and an `UNSTABLE` warning: unreadable audio is never a lullaby.
+**Calibration.** The default weights are transparent, not guesses presented as truths. The scores menu lets the listener
+mark each song *Suitable for sleep*, *Borderline* or *Unsuitable*; once there are at least 8 labels with two of each end,
+a deterministic logistic fit runs over the stored features (no re-decoding), weights stay non-negative so more
+disturbance can never raise a score, and the library is recalculated with the fitted model. The figure records how many
+judgments were used. A label is per song, and labels and weights travel in backups with the scores.
 
 ### Warnings
 
@@ -158,7 +170,7 @@ sizing the frame arrays from the file's known duration and from computing the li
 The numbers are printed by the test, so a change that makes scoring a library take hours shows up as a failing benchmark.
 
 **Speed work (1.9.1).** Four changes made the analysis faster without changing what it measures, so scoring stays
-deterministic for a given version (`MODEL_VERSION` was bumped to 2 for the changed arithmetic):
+deterministic for a given version (`MODEL_VERSION` was bumped to 3 for the changed model):
 
 1. **A real-input FFT** gets the same N-point magnitudes from one N/2-point complex FFT (`RealSpectrum.kt`);
    `RealSpectrumTest` checks them bin for bin against the old N-point transform.
@@ -192,7 +204,8 @@ behind the model component, which is why its weights live in one place.
   silent foreground notification while the screen is off.
 * **Select many → Sleep scores** does the same for the picked songs.
 * **Show calculated scores** in that sheet opens a searchable list of the library's songs with each one's figure in the
-  active mode; songs without a figure say "Not calculated" instead of showing a misleading zero.
+  active mode; songs without a figure say "Not calculated" instead of showing a misleading zero. The three icons on a row
+  are your judgments — mark a handful of songs you know and the model is fitted to your ears.
 * **Settings → Playback → Sleep → Use normalized audio** scores the sound as Normalize plays it: the recording's
   already-measured loudness and peak give exactly the gain playback's Normalize applies (its target, lift room and cut),
   and the analysis shifts its measured levels by that gain. One decode and one set of spectra produce both figures, so

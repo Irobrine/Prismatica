@@ -5665,4 +5665,9 @@
     <string name="sleep_scores_list_info">Scores im aktiven Audiomodus. Songs ohne Score werden vom Sleep-Timer übersprungen.</string>
     <string name="sleep_scores_none_calculated">Noch keine Songs haben einen Sleep-Score</string>
     <string name="sleep_score_not_calculated">Nicht berechnet</string>
+    <string name="sleep_label_suitable">Für den Schlaf geeignet</string>
+    <string name="sleep_label_borderline">Grenzwertig</string>
+    <string name="sleep_label_unsuitable">Ungeeignet</string>
+    <string name="sleep_scores_calibrated">Anhand von %1$d deiner Bewertungen angepasst</string>
+    <string name="sleep_scores_calibration_hint">Songs markieren, um die Scores an dein Gehör anzupassen</string>
 </resources>

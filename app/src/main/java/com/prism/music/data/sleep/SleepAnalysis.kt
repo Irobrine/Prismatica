@@ -14,22 +14,15 @@ import kotlin.math.sqrt
 /**
  * How suitable a recording's sound is for sleep, worked out from its own samples (1.9).
  *
- * The analysis reads the decoded mono audio in ~46 ms frames (a Hann-windowed FFT each), measures quietness, level
- * changes, transients, onsets, spectral activity and brightness, and then judges the song in ten-second sections so a
- * calm intro can never speak for a loud chorus. The published figure is conservative by construction:
- *
- *  - the sections are read for their worst, not their average (a quiet average still hides a chorus),
- *  - hard caps apply to severe events anywhere in the song (a sudden slam, a clipped peak, a rise into a loud part),
- *  - the worst section sets a ceiling, and
- *  - a low confidence (little audio, mostly silence) lowers the figure a little on top of that.
+ * The analysis reads the decoded mono audio in ~46 ms frames (a Hann-windowed FFT each), measures peaks, transients,
+ * onsets, spectral activity and brightness, and watches ten-second sections so a calm intro cannot speak for a loud
+ * chorus. Those measurements become bounded 0–1 disturbance [SleepFeatures], which one logistic model turns into a score
+ * with a floor and a ceiling. A bad section is one input to that model, not a stack of hard caps; volume has a small
+ * weight and none at all in normalized mode, where playback has already evened out the level. The listener can fit the
+ * weights from their own labels ([SleepCalibration]).
  *
  * Nothing depends on genre, title, artist or any online information: the same samples always produce the same figure
- * for a given [MODEL_VERSION]. It is a heuristic, not a probability; a model's similarity is not a likelihood, and the
- * components are kept apart so the formula can be retuned without pretending the old figures were certainties.
- *
- * The audio-model part ([SleepComponents.model]) is a fixed-weight model over the same measurements. It is deliberately
- * small and deterministic (no download, no inference runtime); a bundled neural audio tagger can replace it behind the
- * [MODEL_VERSION] gate without changing the stored format, since a new version recalculates everything.
+ * for a given [MODEL_VERSION] and weights. It is a heuristic, not a probability; a model's similarity is not a likelihood.
  *
  * The samples are read as they are decoded ([Analyzer.feed]): a ten-minute song never has to sit in memory as a whole,
  * only its per-frame measurements do (under a megabyte for a ten-minute song), which is what lets a mid-range phone
@@ -37,10 +30,10 @@ import kotlin.math.sqrt
  */
 object SleepAnalysis {
     /**
-     * What the figures mean. Any change to the formula, the features or the caps needs a new version: stored figures
-     * say which one made them, and the walk recalculates the ones that are older.
+     * What the figures mean. Any change to the features or the model needs a new version: stored figures say which one
+     * made them, and the walk recalculates the ones that are older.
      */
-    const val MODEL_VERSION = 2
+    const val MODEL_VERSION = 3
 
     /** The shortest audio worth judging; anything shorter is scored cautiously and with little confidence. */
     const val MIN_CONFIDENT_MS = 60_000L
@@ -70,6 +63,7 @@ object SleepAnalysis {
      */
     fun analyze(
         pcm: FloatArray, count: Int, rate: Int, analyzedAtMs: Long, expectedMs: Long = 0L, levelGainDb: Double = 0.0,
+        weights: SleepWeights = SleepWeights(), normalized: Boolean = false, calibrationLabels: Int = 0,
     ): SleepScore {
         val analyzer = Analyzer(rate, expectedMs)
         var at = 0
@@ -79,7 +73,7 @@ object SleepAnalysis {
             analyzer.feed(pcm, at, step)
             at += step
         }
-        return analyzer.finish(analyzedAtMs, levelGainDb)
+        return analyzer.finish(analyzedAtMs, levelGainDb, weights, normalized, calibrationLabels)
     }
 
     /**
@@ -88,6 +82,7 @@ object SleepAnalysis {
      */
     fun analyzeBoth(
         pcm: FloatArray, count: Int, rate: Int, analyzedAtMs: Long, expectedMs: Long = 0L, normalizedGainDb: Double = 0.0,
+        weights: SleepWeights = SleepWeights(), calibrationLabels: Int = 0,
     ): Pair<SleepScore, SleepScore> {
         val analyzer = Analyzer(rate, expectedMs)
         var at = 0
@@ -97,7 +92,7 @@ object SleepAnalysis {
             analyzer.feed(pcm, at, step)
             at += step
         }
-        return analyzer.finishBoth(analyzedAtMs, 0.0, normalizedGainDb)
+        return analyzer.finishBoth(analyzedAtMs, 0.0, normalizedGainDb, weights, calibrationLabels)
     }
 
     /**
@@ -219,14 +214,20 @@ object SleepAnalysis {
         }
 
         /** The score once every sample has been fed. Further [feed]s are ignored. */
-        fun finish(analyzedAtMs: Long, levelGainDb: Double = 0.0): SleepScore {
+        fun finish(
+            analyzedAtMs: Long, levelGainDb: Double = 0.0, weights: SleepWeights = SleepWeights(),
+            normalized: Boolean = false, calibrationLabels: Int = 0,
+        ): SleepScore {
             finished = true
             val frames = frames(levelGainDb) ?: return silent(durationMs(), analyzedAtMs)
-            return score(frames, analyzedAtMs)
+            return score(frames, analyzedAtMs, weights, normalized, calibrationLabels)
         }
 
         /** Both modes from one pass: only the level arrays differ, everything else is computed once per mode's scoring. */
-        fun finishBoth(analyzedAtMs: Long, plainGain: Double, normalizedGain: Double): Pair<SleepScore, SleepScore> {
+        fun finishBoth(
+            analyzedAtMs: Long, plainGain: Double, normalizedGain: Double,
+            weights: SleepWeights = SleepWeights(), calibrationLabels: Int = 0,
+        ): Pair<SleepScore, SleepScore> {
             finished = true
             val plain = frames(plainGain)
             val normalized = frames(normalizedGain)
@@ -234,7 +235,8 @@ object SleepAnalysis {
                 val unjudgeable = silent(durationMs(), analyzedAtMs)
                 return unjudgeable to unjudgeable
             }
-            return score(plain, analyzedAtMs) to score(normalized, analyzedAtMs)
+            return score(plain, analyzedAtMs, weights, false, calibrationLabels) to
+                score(normalized, analyzedAtMs, weights, true, calibrationLabels)
         }
 
         private fun durationMs(): Long = if (rate > 0) fed * 1000L / rate else 0L
@@ -256,7 +258,9 @@ object SleepAnalysis {
             return frames
         }
 
-        private fun score(frames: Frames, analyzedAtMs: Long): SleepScore {
+        private fun score(
+            frames: Frames, analyzedAtMs: Long, weights: SleepWeights, normalized: Boolean, calibrationLabels: Int,
+        ): SleepScore {
             val durationMs = frames.durationMs
             val baseline = blockBaseline(frames.rmsDb, frames.frameSeconds, medianScratch)
             val fluxBaseline = blockBaseline(frames.flux, frames.frameSeconds, medianScratch)
@@ -314,11 +318,14 @@ object SleepAnalysis {
             if (clip >= 0.02) warnings += SleepWarning(SleepWarningKind.CLIPPING, 0, durationMs, 3)
             else if (clip >= 0.002) warnings += SleepWarning(SleepWarningKind.CLIPPING, 0, durationMs, 2)
             for (s in sections) {
-                if (s.score < 30) warnings += SleepWarning(SleepWarningKind.ENERGETIC, s.startMs, s.endMs, if (s.score < 15) 3 else 2)
+                if (s.disturbance >= 0.8) warnings += SleepWarning(SleepWarningKind.ENERGETIC, s.startMs, s.endMs, if (s.disturbance >= 0.9) 3 else 2)
             }
 
             val confidence = confidence(frames, sections, durationMs, expectedMs)
-            return judge(frames, sections, transients, jumped, warnings.sortedBy { it.startMs }, confidence, frames.durationMs, analyzedAtMs)
+            return judge(
+                frames, sections, transients, jumped, warnings.sortedBy { it.startMs }, confidence,
+                frames.durationMs, analyzedAtMs, weights, normalized, calibrationLabels,
+            )
         }
 
         private fun silent(durationMs: Long, analyzedAtMs: Long): SleepScore = SleepScore(
@@ -493,7 +500,7 @@ object SleepAnalysis {
         val strongestTransientDb: Double,
         val slopeDbPerSec: Double,
         val crest: Double,
-        var score: Double,
+        var disturbance: Double,
     )
 
     private fun sections(
@@ -530,9 +537,9 @@ object SleepAnalysis {
                 strongestTransientDb = strongest,
                 slopeDbPerSec = slope(frames.rmsDb, from, to, frames.frameSeconds),
                 crest = percentile(frames.peakDb, from, to, 0.98) - level,
-                score = 0.0,
+                disturbance = 0.0,
             )
-            section.score = sectionScore(section)
+            section.disturbance = sectionDisturbance(section)
             out += section
         }
         return out
@@ -584,22 +591,16 @@ object SleepAnalysis {
 
     // ---------------------------------------------------------------- the formula
 
-    /**
-     * A section's own score: the same components as the song's, from its own measurements. A section isn't held to the
-     * whole song's evidence (it has no confidence of its own); it is a witness, not a verdict.
-     */
-    private fun sectionScore(s: Section): Double {
-        val quiet = quietness(s.levelDb)
-        val dynamics = dynamics(s.levelRangeDb, 0, 0.0, s.microDb)
-        val transients = transients(s.transientPerMin, s.strongestTransientDb, s.crest)
-        val rhythm = rhythm(s.onsetsPerSec, s.beat, s.lowRatio)
-        val complexity = complexity(s.flux, s.flatness, 0)
-        val mood = mood(s.centroid, s.flatness, s.highRatio)
-        val parts = doubleArrayOf(s.levelDb, s.levelRangeDb, s.transientPerMin, s.strongestTransientDb, s.onsetsPerSec, s.beat, s.flux, s.flatness, s.centroid, 0.0, s.microDb)
-        val model = model(parts)
-        return (0.16 * quiet + 0.20 * dynamics + 0.22 * transients + 0.14 * rhythm + 0.16 * complexity + 0.12 * mood) * 0.8 +
-            model * 0.2
-    }
+    /** How badly one ten-second stretch behaves, 0–1. It is one input to the model, not a stack of hard caps. */
+    private fun sectionDisturbance(s: Section): Double =
+        0.30 * bounded(s.transientPerMin, 2.0, 30.0) +
+            0.20 * bounded(s.strongestTransientDb, 6.0, 20.0) +
+            0.20 * bounded(s.onsetsPerSec, 0.5, 4.0) +
+            0.15 * bounded(s.flux, 0.08, 0.45) +
+            0.15 * bounded(s.levelDb, -16.0, -8.0)
+
+    /** x is 0 at [lo] and 1 at [hi], clamped. */
+    private fun bounded(x: Double, lo: Double, hi: Double): Double = ((x - lo) / (hi - lo)).coerceIn(0.0, 1.0)
 
     private fun judge(
         frames: Frames,
@@ -610,6 +611,9 @@ object SleepAnalysis {
         confidence: Int,
         durationMs: Long,
         analyzedAtMs: Long,
+        weights: SleepWeights,
+        normalized: Boolean,
+        calibrationLabels: Int,
     ): SleepScore {
         val levels = DoubleArray(sections.size) { sections[it].levelDb }
         val levelTop = percentile(levels, 0, levels.size, 0.9)
@@ -628,78 +632,41 @@ object SleepAnalysis {
         val centroid = percentile(DoubleArray(sections.size) { sections[it].centroid }, 0, sections.size, 0.5)
         val changes = warnings.count { it.kind == SleepWarningKind.ABRUPT_CHANGE }
 
-        val quiet = quietness(levelTop)
-        val dynamics = dynamics(levelRange, jumped.size, warnings.filter { it.kind == SleepWarningKind.CRESCENDO }.maxOfOrNull { it.severity }?.toDouble() ?: 0.0, micro)
-        val transientScore = transients(strongPerMin, strongest, crest)
-        val rhythm = rhythm(onsetsPerSec, beat, lowRatio)
-        val complexity = complexity(flux, flatness, changes)
-        val mood = mood(centroid, flatness, highRatio)
-        val parts = doubleArrayOf(levelTop, levelRange, strongPerMin, strongest, onsetsPerSec, beat, flux, flatness, centroid, changes.toDouble(), micro)
-        val model = model(parts)
-
-        val dsp = 0.16 * quiet + 0.20 * dynamics + 0.22 * transientScore + 0.14 * rhythm + 0.16 * complexity + 0.12 * mood
-        var score = dsp * 0.8 + model * 0.2
-        // A weak part isn't averaged away: each component's own shortfall below 55 costs its weight's worth of points, so a
-        // song with no transients but a loud, driving chorus can't pass on the strength of its quiet moments.
-        for ((part, weight) in listOf(
-            quiet to 0.16, dynamics to 0.20, transientScore to 0.22, rhythm to 0.14, complexity to 0.16, mood to 0.12,
-        )) {
-            score -= max(0.0, 55.0 - part) * weight
-        }
-        val worst = sections.minOfOrNull { it.score } ?: score
-
-        // Conservative: a bad section anywhere is the song's problem, however calm the rest is.
-        score = min(score, worst + 30.0)
-        score -= 0.45 * max(0.0, 60.0 - worst)
-        // A recording this loud is not made suitable by being steady: at a sleeper's volume a loud passage is still the
-        // loudest thing in the room, and loud masters are the compressed, dense ones. This caps by absolute level, before
-        // any of the event caps below.
-        score = min(
-            score,
-            when {
-                levelTop >= -8.0 -> 35.0
-                levelTop >= -11.0 -> 45.0
-                levelTop >= -14.0 -> 58.0
-                levelTop >= -17.0 -> 70.0
-                else -> 100.0
-            },
+        // Bounded disturbance features, then one bounded model. No stacked caps: a bad section lowers the score once,
+        // through `worstSection`, and the same evidence isn't charged to five different components.
+        val features = SleepFeatures(
+            level = if (normalized) 0.0 else bounded(levelTop, -18.0, -8.0),
+            peaks = 0.4 * bounded(crest, 12.0, 24.0) + 0.6 * bounded(percentile(frames.peakDb, 0, frames.n, 0.99), -6.0, -1.0),
+            transients = 0.6 * bounded(strongPerMin, 2.0, 30.0) + 0.4 * bounded(strongest, 6.0, 18.0),
+            onsets = 0.5 * bounded(onsetsPerSec, 0.4, 4.0) + 0.5 * beat.coerceIn(0.0, 1.0),
+            activity = 0.5 * bounded(flux, 0.08, 0.45) + 0.5 * bounded(flatness, 0.03, 0.30),
+            changes = 0.30 * bounded(changes.toDouble(), 0.0, 8.0) + 0.30 * bounded(jumped.size.toDouble(), 0.0, 6.0) +
+                0.25 * bounded(levelRange, 6.0, 20.0) +
+                0.15 * bounded(
+                    (warnings.maxOfOrNull {
+                        if (it.kind == SleepWarningKind.SUDDEN_LOUD || it.kind == SleepWarningKind.CRESCENDO || it.kind == SleepWarningKind.CLIPPING) it.severity else 0
+                    } ?: 0).toDouble(), 1.0, 3.0,
+                ),
+            brightness = 0.6 * bounded(centroid, 1000.0, 3500.0) + 0.4 * bounded(highRatio, 0.15, 0.45),
+            worstSection = sections.maxOfOrNull { it.disturbance } ?: 0.0,
         )
-        // Too short to stand behind: a clip's figure may not be high, whatever it measured (a 20 s excerpt can miss the
-        // chorus entirely, and missing the chorus is exactly the mistake this score must not make).
-        if (durationMs < 30_000L) score = min(score, 55.0)
-        // Hard caps for severe events the averages would otherwise wash out.
-        for (w in warnings) {
-            val cap = when {
-                w.kind == SleepWarningKind.SUDDEN_LOUD && w.severity >= 3 -> 45.0
-                w.kind == SleepWarningKind.SUDDEN_LOUD && w.severity == 2 -> 62.0
-                w.kind == SleepWarningKind.CRESCENDO && w.severity >= 3 -> 52.0
-                w.kind == SleepWarningKind.CRESCENDO && w.severity == 2 -> 66.0
-                w.kind == SleepWarningKind.CLIPPING && w.severity >= 3 -> 45.0
-                w.kind == SleepWarningKind.CLIPPING -> 60.0
-                w.kind == SleepWarningKind.LOUD && w.severity >= 3 -> 45.0
-                w.kind == SleepWarningKind.LOUD && w.severity == 2 -> 60.0
-                w.kind == SleepWarningKind.ENERGETIC && w.severity >= 3 -> 55.0
-                w.kind == SleepWarningKind.ENERGETIC -> 65.0
-                else -> null
-            } ?: continue
-            score = min(score, cap)
-        }
-        // A short, partly decoded or silent recording is judged cautiously, but that is a confidence matter, not evidence
-        // of suitability: it lowers the figure only a little and never raises it.
-        score -= 0.12 * (100 - confidence)
-        val finalScore = score.roundToInt().coerceIn(0, 100)
+        val finalScore = weights.score(features, confidence)
 
+        // The components are diagnostics now (0–100, higher being more suitable), not the arithmetic of the score.
         val components = SleepComponents(
-            quietness = quiet.roundToInt(),
-            dynamics = dynamics.roundToInt(),
-            transients = transientScore.roundToInt(),
-            rhythm = rhythm.roundToInt(),
-            complexity = complexity.roundToInt(),
-            mood = mood.roundToInt(),
-            model = model.roundToInt(),
-            worstSection = worst.roundToInt(),
+            quietness = ((1.0 - features.level) * 100).toInt(),
+            dynamics = ((1.0 - features.changes) * 100).toInt(),
+            transients = ((1.0 - features.transients) * 100).toInt(),
+            rhythm = ((1.0 - features.onsets) * 100).toInt(),
+            complexity = ((1.0 - features.activity) * 100).toInt(),
+            mood = ((1.0 - features.brightness) * 100).toInt(),
+            model = finalScore,
+            worstSection = ((1.0 - features.worstSection) * 100).toInt(),
         )
-        return SleepScore(finalScore, confidence, components, warnings, MODEL_VERSION, durationMs, analyzedAtMs)
+        return SleepScore(
+            finalScore, confidence, components, warnings, MODEL_VERSION, durationMs, analyzedAtMs,
+            features = features, calibrationLabels = calibrationLabels,
+        )
     }
 
     /**
@@ -720,91 +687,6 @@ object SleepAnalysis {
         if (sections.size < 3) c -= 10.0 * (3 - sections.size)
         return c.roundToInt().coerceIn(0, 100)
     }
-
-    // ---------------------------------------------------------------- the components
-
-    /** How quiet the loudest parts are: 100 at −32 dBFS and below, 0 at −10 dBFS and above. */
-    private fun quietness(levelTopDb: Double): Double = ramp(levelTopDb, -32.0, -10.0)
-
-    /** Predictable level: little spread between sections, no jumps, no crescendo, little within-section pumping. */
-    private fun dynamics(levelRangeDb: Double, jumps: Int, crescendo: Double, microDb: Double): Double {
-        var v = ramp(levelRangeDb, 5.0, 24.0)
-        v -= 9.0 * min(jumps, 3)
-        v -= 12.0 * crescendo
-        v -= 3.0 * max(0.0, microDb - 4.0)
-        return v.coerceIn(0.0, 100.0)
-    }
-
-    /** Few strong hits: density per minute, the strongest hit's rise, and peaky frames. */
-    private fun transients(perMin: Double, strongestDb: Double, crestDb: Double): Double {
-        var v = 100.0
-        v -= 8.0 * min(perMin, 10.0)
-        v -= 5.0 * max(0.0, strongestDb - 6.0)
-        v -= 2.0 * max(0.0, crestDb - 18.0)
-        return v.coerceIn(0.0, 100.0)
-    }
-
-    /** Little rhythmic drive: a low onset rate, a weak beat, little energy in the bass. */
-    private fun rhythm(onsetsPerSec: Double, beat: Double, lowRatio: Double): Double {
-        var v = ramp(onsetsPerSec, 0.4, 3.0)
-        v -= 24.0 * beat.coerceIn(0.0, 1.0)
-        v -= 30.0 * max(0.0, lowRatio - 0.30)
-        return v.coerceIn(0.0, 100.0)
-    }
-
-    /** A simple arrangement: little spectral change, low noise, few structural shifts. */
-    private fun complexity(flux: Double, flatness: Double, changes: Int): Double {
-        var v = 100.0
-        v -= 130.0 * max(0.0, flux - 0.10)
-        v -= 60.0 * max(0.0, flatness - 0.06)
-        v -= 10.0 * changes
-        return v.coerceIn(0.0, 100.0)
-    }
-
-    /** Gentle rather than tense: dark, tonal spectra without a hiss or a lot of top-end edge. */
-    private fun mood(centroidHz: Double, flatness: Double, highRatio: Double): Double {
-        var v = ramp(centroidHz, 900.0, 3800.0)
-        v -= 35.0 * max(0.0, flatness - 0.10)
-        v -= 35.0 * max(0.0, highRatio - 0.22)
-        return v.coerceIn(0.0, 100.0)
-    }
-
-    /**
-     * The audio model: a fixed-weight linear model over the same measurements, its output squashed to 0–100. Its input
-     * is centred and scaled ([MODEL_CENTER], [MODEL_SCALE]), so a typical pop song sits near 50 and only a genuinely
-     * gentle one reaches the eighties; its weights ([MODEL_WEIGHTS]) are all negative, because each measurement is a
-     * source of stimulation, and it exists to be retuned independently of the hand-written components.
-     *
-     * This is a model *impression*, not a probability: it is not calibrated against human votes here, and the UI must
-     * never present it as one.
-     */
-    private fun model(parts: DoubleArray): Double {
-        var z = MODEL_BIAS
-        for (i in parts.indices) {
-            val x = ((parts[i] - MODEL_CENTER[i]) / MODEL_SCALE[i]).coerceIn(-1.5, 1.5)
-            z += MODEL_WEIGHTS[i] * x
-        }
-        val p = 1.0 / (1.0 + exp(-z))
-        return 100.0 * p
-    }
-
-    /** Feature centres: the value at which a measurement stops adding evidence. */
-    private val MODEL_CENTER = doubleArrayOf(
-        -22.0, // loudest sections' level, dBFS
-        10.0, // level range across sections, dB
-        2.0, // strong transients per minute
-        8.0, // strongest transient, dB above the passage before it
-        1.2, // onsets per second
-        0.25, // beat strength
-        0.18, // spectral flux
-        0.18, // spectral flatness
-        1800.0, // spectral centroid, Hz
-        2.0, // structural changes
-        5.0, // within-section dynamic spread, dB
-    )
-    private val MODEL_SCALE = doubleArrayOf(12.0, 8.0, 4.0, 6.0, 1.0, 0.35, 0.2, 0.15, 1200.0, 3.0, 4.0)
-    private val MODEL_WEIGHTS = doubleArrayOf(-0.85, -0.60, -1.10, -0.80, -0.70, -0.50, -0.60, -0.70, -0.50, -0.50, -0.40)
-    private const val MODEL_BIAS = 0.85
 
     // ---------------------------------------------------------------- helpers
 

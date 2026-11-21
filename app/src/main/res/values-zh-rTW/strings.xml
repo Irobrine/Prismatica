@@ -5590,4 +5590,9 @@
     <string name="sleep_scores_list_info">目前音訊模式下的評分。沒有評分的歌曲會被睡眠定時器略過。</string>
     <string name="sleep_scores_none_calculated">還沒有歌曲有睡眠評分</string>
     <string name="sleep_score_not_calculated">未計算</string>
+    <string name="sleep_label_suitable">適合睡眠</string>
+    <string name="sleep_label_borderline">臨界</string>
+    <string name="sleep_label_unsuitable">不適合</string>
+    <string name="sleep_scores_calibrated">根據您的 %1$d 項判斷調整</string>
+    <string name="sleep_scores_calibration_hint">標記歌曲，讓評分更貼合您的耳朵</string>
 </resources>
