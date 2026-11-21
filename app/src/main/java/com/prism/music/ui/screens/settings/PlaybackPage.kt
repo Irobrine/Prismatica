@@ -68,8 +68,9 @@ private val page = SettingsPageId.PLAYBACK
 /**
  * "Calculate sleep scores" (1.9): the sleep timer's minimum score reads figures that have to be worked out from each
  * song's own audio, and this row walks a set of songs (the same sets "Measure songs now" offers) through that analysis.
- * Tapping it opens the songs' scores, which is also where a walk is stopped or continued and a new set is picked; the
- * row's own value says how far the walk got. Unlike measuring, it doesn't need Normalize: the scores stand alone.
+ * Tapping it opens its menu: the sets a walk can measure, with "Show calculated scores" for the per-song list. Both
+ * menus can stop or continue a walk in flight, and the row's value says how far it got. Unlike measuring, it doesn't
+ * need Normalize: the scores stand alone.
  */
 @Composable
 private fun SleepScoreRow() {
@@ -96,7 +97,7 @@ private fun SleepScoreRow() {
         } ?: tr(R.string.sleep_scores_scored_n, scored),
         info = tr(R.string.sleep_scores_info), action = true,
     ) {
-        showScores = true
+        open = true
     }
     if (open) {
         LaunchedEffect(open, normalized) {
@@ -106,6 +107,20 @@ private fun SleepScoreRow() {
             for (set in sets) left = left + (set to c.sleepScoreSongs.pending(set.ids(c)).size)
         }
         RowsSheet(title, { open = false }) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (running) PrismTextButton(onClick = { c.sleepScoreSongs.stop() }) { Text(tr(R.string.stop)) }
+                else if (calculating != null) PrismTextButton(onClick = { c.sleepScoreSongs.resume() }) { Text(tr(R.string.continue_scores)) }
+                Spacer(Modifier.weight(1f))
+                calculating?.let { progress ->
+                    Text(
+                        tr(if (running) R.string.calculating_n_of_n else R.string.sleep_scores_stopped_at, progress.first, progress.second),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             LinkRow(
                 tr(R.string.show_sleep_scores),
                 value = songCount(scored),
