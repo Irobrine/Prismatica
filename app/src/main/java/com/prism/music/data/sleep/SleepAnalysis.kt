@@ -32,8 +32,8 @@ import kotlin.math.sqrt
  * [MODEL_VERSION] gate without changing the stored format, since a new version recalculates everything.
  *
  * The samples are read as they are decoded ([Analyzer.feed]): a ten-minute song never has to sit in memory as a whole,
- * only its per-frame measurements do (under a megabyte for a ten-minute song), which is what lets a mid-range phone score
-a library.
+ * only its per-frame measurements do (under a megabyte for a ten-minute song), which is what lets a mid-range phone
+ * score a library.
  */
 object SleepAnalysis {
     /**

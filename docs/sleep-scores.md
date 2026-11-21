@@ -141,8 +141,16 @@ prints the time and heap cost; run it with
 `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.prism.music.SleepAnalysisDeviceTest`
 (the app's in-app tests are the other `androidTest` classes). The pass is comfortably faster than real time — three
 minutes of audio take a small fraction of the three minutes they play on the JVM (`SleepSuitabilityTest` asserts this
-too; 147 ms for three minutes at 22.05 kHz on the development machine, about 0.08% of real time) — and the heap cost is the per-frame measurements (under a megabyte for a ten-minute song), not the audio.
-Decoding dominates a real song's cost, and it is the same decode "Measure songs now" already pays.
+too; 147 ms for three minutes at 22.05 kHz on the development machine, about 0.08% of real time) — and the heap cost is
+the per-frame measurements (under a megabyte for a ten-minute song), not the audio. Decoding dominates a real song's
+cost, and it is the same decode "Measure songs now" already pays.
+
+Measured on the development phone (vivo V2413, Android 16, debug build): three minutes at 22.05 kHz scored in
+**1032 ms (174× faster than it plays)**, and a 60-second WAV decoded and scored end to end in **779 ms**. The heap grew
+by about 46 MB over the whole measured sequence — the warm-up, the JIT and the test's own 3-minute float array (16 MB)
+included, so it is an allocation upper bound, not the analysis's live state; what the analysis retains is the per-frame
+measurements (under a megabyte). Both figures are printed by the test, so a change that makes scoring a library take
+hours shows up as a failing benchmark.
 
 ## What v1 does not see
 
@@ -163,7 +171,8 @@ weights live in one place.
 * **Sleep timer → Minimum sleep score** (0 = off) draws the line. Songs below it, and songs with no figure yet, are
   passed over exactly as the BPM limit passes songs over: play order, no wrapping, and when nothing fits the music stops
   and says why. Nothing is ever removed from the queue, so edits made while the filter runs survive turning it off, and
-  there is no snapshot to restore over them. The menu counts the two cases separately ("12 in the queue have no score
-  yet", "8 are below this"), so an unmeasured song never looks like an unsuitable one.
+  there is no snapshot to restore over them; turning the timer off also resumes the pause either filter caused, while a
+  pause the listener made (or the deadline's) stays. The menu counts the two cases separately ("12 in the queue have no
+  score yet", "8 are below this"), so an unmeasured song never looks like an unsuitable one.
 
 The score is a heuristic, not a probability, and the app never presents it as one.

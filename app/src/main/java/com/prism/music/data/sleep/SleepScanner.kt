@@ -19,9 +19,9 @@ import java.io.IOException
  *
  * The bytes come from where the scan's own audio does ([local], [com.prism.music.AppContainer.audioOnPhone]: a local
  * file, a finished download, a whole-song cache entry, a file matched to the song), else the smallest stream is fetched
- * whole and decoded. Audio is decoded at the file's own rate and analysed as it arrives, so a song
- * never has to sit in memory: a ten-minute recording costs the per-frame measurements (under a megabyte), not its
- * samples. One recording is scanned at a time by the walk that calls this ([com.prism.music.data.MeasureSongs]).
+ * whole and decoded. Audio is decoded at the file's own rate and analysed as it arrives, so a song never has to sit in
+ * memory: a ten-minute recording costs the per-frame measurements (under a megabyte), not its samples. One recording is
+ * scanned at a time by the walk that calls this ([com.prism.music.data.MeasureSongs]).
  *
  * Every failure (no audio on the phone and no network for it, a file that won't decode, a stopped walk) leaves the
  * recording without a figure, which the walk counts as walked but not scored; the next run takes it up again. Nothing is
