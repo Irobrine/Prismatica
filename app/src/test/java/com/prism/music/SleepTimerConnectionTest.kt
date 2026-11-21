@@ -183,18 +183,21 @@ class SleepTimerConnectionTest {
         c.sleepPrefs.setMinutes(1)
         c.sleepPrefs.setMaxBpm(0)
         c.sleepPrefs.setFinishSong(false)
-        c.sleepPrefs.setVolume(1f)
+        c.sleepPrefs.setVolume(0.4f)
         c.sleepPrefs.setAfterSong(after)
         c.sleepPrefs.setFadeInSeconds(0)
         c.sleepPrefs.setLoopAfter(false)
         c.player.startSleepTimer()
-        // -5 from a one-minute timer runs it out; the after-track then takes over at the listener's own volume.
+        // -5 from a one-minute timer runs it out; the after-track then takes over at the bedtime volume.
         c.player.adjustSleepTimer(-5)
         shadowOf(Looper.getMainLooper()).idle()
         assertEquals("after", player.currentMediaItem?.toSong()?.id)
         assertTrue(player.playWhenReady)
-        assertEquals(1f, NormalizerProcessor.sleepVolume, 0f)
+        assertEquals(NormalizerProcessor.volumeFor(0.4f), NormalizerProcessor.sleepVolume, 1e-5f)
         assertEquals(1f, NormalizerProcessor.fadeVolume, 0f)
+        // When its special handling ends, the listener's own volume comes back.
+        c.player.cancelSleepTimer()
+        assertEquals(1f, NormalizerProcessor.sleepVolume, 0f)
     }
 
     @Test fun theChosenTrackAndItsFadeSurviveACancel() {

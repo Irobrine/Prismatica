@@ -1592,11 +1592,13 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     private var afterTimerRestarting = false
     private var afterTimerPendingAt = 0L
     private var afterTimerFadeJob: Job? = null
+    /** What played before the setup menu's volume preview, to put it back when the menu closes. */
+    private var volumeBeforePreview: Float? = null
 
     /**
      * The BPM filter belonged to the session that just ran out: it goes back off for what plays next. Cancelling keeps
      * the listener's saved choices (the same as the timer's other settings). If the menu chose a track to play after the
-     * timer, that starts here, fading in at the listener's own volume rather than the bedtime one.
+     * timer, that starts here, fading in to the bedtime volume, which stays for as long as that track plays.
      */
     private fun onSleepSessionEnded() {
         pausedBySleepBpm = false
@@ -1608,9 +1610,9 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         afterTimerLoop = choices.loopAfter
         afterTimerStarted = false
         afterTimerPendingAt = android.os.SystemClock.elapsedRealtime()
-        // The bedtime volume and its fade were only for the timer: the after-track plays at the listener's own volume,
-        // starting silent so it can fade in.
-        NormalizerProcessor.sleepVolume = 1f
+        // The after-track keeps the bedtime volume (that's the point of the sleep-timer slider): it starts silent and
+        // fades up to it. The listener's own volume comes back when this track ends or something else plays.
+        NormalizerProcessor.sleepVolume = NormalizerProcessor.volumeFor(choices.volume)
         NormalizerProcessor.fadeVolume = if (choices.fadeInSeconds > 0) 0f else 1f
         scope.launch { startAfterTimer(song, choices.fadeInSeconds * 1_000L) }
     }
@@ -1645,6 +1647,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         afterTimerStarted = false
         afterTimerRestarting = false
         afterTimerPendingAt = 0L
+        volumeBeforePreview = null
         NormalizerProcessor.fadeVolume = 1f
         NormalizerProcessor.sleepVolume = 1f
     }
@@ -1783,15 +1786,22 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
      */
     fun previewSleepVolume(volume: Float) {
         if (sleepTimer.active.value) return
+        if (volumeBeforePreview == null) volumeBeforePreview = NormalizerProcessor.sleepVolume
         NormalizerProcessor.fadeVolume = 1f
         NormalizerProcessor.sleepVolume = NormalizerProcessor.volumeFor(volume)
     }
 
     /** Ends the configuration menu's volume preview, unless a timer started meanwhile (its own volume stays). */
     fun clearSleepVolumePreview() {
-        if (sleepTimer.active.value) return
+        if (sleepTimer.active.value) {
+            volumeBeforePreview = null
+            return
+        }
         NormalizerProcessor.fadeVolume = 1f
-        NormalizerProcessor.sleepVolume = 1f
+        // What played before the menu: the listener's own volume, or the bedtime volume an after-timer track is using.
+        NormalizerProcessor.sleepVolume = volumeBeforePreview
+            ?: if (afterTimerSongId != null) NormalizerProcessor.volumeFor(c.sleepPrefs.choices.value.volume) else 1f
+        volumeBeforePreview = null
     }
 
     /**
