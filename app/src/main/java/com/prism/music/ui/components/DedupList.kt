@@ -63,15 +63,17 @@ fun DedupToggle(scope: DedupScope, enabled: Boolean, onOpenSheet: () -> Unit) {
 
 /** Builds the view for one list and one scope, reading the current groups and settings. */
 @Composable
-fun rememberDedupList(songs: List<Song>, scope: DedupScope, expanded: Set<String> = emptySet()): DedupListState {
+fun rememberDedupList(songs: List<Song>, scope: DedupScope, expanded: Set<String> = emptySet(), buildLines: Boolean = true): DedupListState {
     val c = LocalContainer.current
     val settings = LocalAppSettings.current
     val groups by c.dedup.groups.collectAsState()
     val suggestions by c.dedup.suggestions.collectAsState()
     val enabled = DedupSettingsLogic.enabled(scope, settings.behavior.dedup.enabled, DedupSettingsLogic.parse(settings.behavior.dedup.overrides))
-    return remember(songs, scope, groups, suggestions, enabled, expanded) {
+    return remember(songs, scope, groups, suggestions, enabled, expanded, buildLines) {
         if (!enabled) {
-            DedupListState(songs.map(::DedupLine), emptySet(), false, groups, suggestions)
+            // Lines are unused while hiding is off; callers that only need enabled/queue can skip the allocation.
+            if (buildLines) DedupListState(songs.map(::DedupLine), emptySet(), false, groups, suggestions)
+            else DedupListState(emptyList(), emptySet(), false, groups, suggestions)
         } else {
             val byId = songs.associateBy { it.id }
             val views = DedupViews(groups, c.dedup.candidates(songs), enabled = true)

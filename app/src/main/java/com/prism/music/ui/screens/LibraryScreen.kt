@@ -357,37 +357,7 @@ fun LibraryScreen(bottomPadding: Dp) {
         else com.prism.music.data.SongsFrom.merge(liked, songsFrom.playlists.map { id -> prismLists.firstOrNull { it.id == id }?.songs ?: fromLoaded[id].orEmpty() }, songsFrom)
     }
     var choosingFrom by remember { mutableStateOf(false) }
-    val sortedSongs = remember(songsBase, songSort, shownRev) {
-        when (songSort) {
-            SongSort.RECENT -> songsBase
-            SongSort.TITLE -> songsBase.sortedByKey { it.shown.title.lowercase() }
-            SongSort.ARTIST -> songsBase.sortedByKey({ it.shown.primaryArtist.lowercase() }, { it.shown.album?.title?.lowercase() ?: "" })
-            SongSort.ALBUM -> songsBase.sortedByKey({ it.shown.album?.title?.lowercase() ?: "\uFFFF" }, { it.shown.title.lowercase() })
-        }
-    }
-    // Each song's names as search reads them, normalized once for the list: filtering as the listener types used to
-    // normalize every name of every song on every keystroke, the slowest part of a Library search.
-    val songHay = remember(sortedSongs, songQuery.isNotBlank(), spellings) {
-        if (songQuery.isBlank()) emptyMap() else sortedSongs.associate { s ->
-            s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
-        }
-    }
-    val shownSongs = remember(sortedSongs, songQuery, songHay) {
-        val words = libraryWords(songQuery)
-        when {
-            songQuery.isBlank() -> sortedSongs
-            // Punctuation only ("!!!" is a band): looked for in the names themselves, as [libraryMatches] does.
-            words.isEmpty() -> sortedSongs.filter { s -> libraryMatches(songQuery, spellings, arrayOf(s.title, s.artistText, s.album?.title.orEmpty())) }
-            else -> sortedSongs.filter { s -> words.all { it in songHay[s.id].orEmpty() } }
-        }
-    }
-    // Library Songs has its own dedup scope, independent of a playlist's or Downloads' choice.
-    val dedup = rememberDedupList(shownSongs, com.prism.music.data.dedup.DedupScope.SONGS)
     var dedupSheet by remember { mutableStateOf(false) }
-    // With hiding off, DedupListState.lines is already shownSongs in the same order; copying thousands of songs into
-    // two more lists on every Library entry was pure allocation.
-    val songsShown = remember(shownSongs, dedup) { if (dedup.enabled) dedup.lines.map { it.song } else shownSongs }
-    val songsQueue = remember(shownSongs, dedup) { if (dedup.enabled) dedup.queue(shownSongs) else shownSongs }
     val albumSongs by c.library.albumSongs.collectAsState()
     // Downloaded songs per album: by the album's id, and by its title for albums YouTube lists under another edition's id.
     val downloadedPerAlbum = remember(dls) {
@@ -396,40 +366,8 @@ fun LibraryScreen(bottomPadding: Dp) {
             done.mapNotNull { s -> s.album?.title?.lowercase()?.let { it to s } }.groupingBy { it.first }.eachCount()
     }
     fun artistOf(a: com.prism.music.data.model.BrowseItem) = albumSongs[a.id]?.first()?.primaryArtist ?: a.subtitle.split(" • ").firstOrNull { it != "Album" && it != "Single" && it != "EP" } ?: ""
-    val sortedAlbums = remember(albums, albumSort, albumSongs, downloadedPerAlbum, albumsSeen, savedAlbums) {
-        fun downloaded(a: com.prism.music.data.model.BrowseItem) = downloadedPerAlbum.first[a.id] ?: downloadedPerAlbum.second[a.title.lowercase()] ?: 0
-        when (albumSort) {
-            AlbumSort.LIBRARY -> albums
-            AlbumSort.DOWNLOADED -> albums.sortedByDescending { downloaded(it) }
-            AlbumSort.MOST -> albums.sortedByDescending { albumSongs[it.id]?.size ?: 0 }
-            AlbumSort.TITLE -> albums.sortedByKey { it.title.lowercase() }
-            AlbumSort.ARTIST -> albums.sortedByKey({ artistOf(it).lowercase() }, { it.title.lowercase() })
-            AlbumSort.ADDED -> albumsRecentlyAdded(albums, savedAlbums.associate { it.id to it.savedAt }, albumsSeen)
-        }
-    }
     var albumKind by remember { mutableStateOf(AlbumKind.entries.firstOrNull { it.name == c.library.sortOf("library:albums:kind") } ?: AlbumKind.ALL) }
-    val albumKinds = remember(albums) { albums.map { AlbumKind.ALBUMS.shows(it) }.toSet() }
-    val shownAlbums = remember(sortedAlbums, albumKind, albumQuery, pinned, spellings) {
-        val single = tr(R.string.single)
-        pinnedFirst(sortedAlbums.filter { a ->
-            albumKind.shows(a) && (albumQuery.isBlank() ||
-                libraryMatches(albumQuery, spellings, arrayOf(a.title, *albumNames(a.subtitle, single).toTypedArray())))
-        })
-    }
     val artistSongs by c.library.artistSongs.collectAsState()
-    val sortedArtists = remember(artists, artistSort, artistSongs, favorites) {
-        val fav = favorites.map { it.id }.toSet()
-        when (artistSort) {
-            ArtistSort.LIBRARY -> artists
-            ArtistSort.MOST -> artists.sortedWith(compareByDescending<com.prism.music.data.model.BrowseItem> { it.id in fav }.thenByDescending { artistSongs[it.id] ?: 0 })
-            ArtistSort.NAME -> artists.sortedByKey({ if (it.id in fav) 0 else 1 }, { it.title.lowercase().removePrefix("the ") })
-        }
-    }
-    val shownArtists = remember(sortedArtists, artistQuery, pinned, spellings) {
-        pinnedFirst(if (artistQuery.isBlank()) sortedArtists else sortedArtists.filter {
-            libraryMatches(artistQuery, spellings, arrayOf(it.title))
-        })
-    }
     // Playlists: YouTube Music's order, by title, or the listener's own (arranged in Rearrange mode).
     val playlistOrder by c.library.playlistOrder.collectAsState()
     val playlistSortName by c.library.playlistSort.collectAsState()
@@ -455,33 +393,15 @@ fun LibraryScreen(bottomPadding: Dp) {
     if (openingLink) OpenPlaylistLinkDialog({ openingLink = false }) { id -> openingLink = false; nav.go(Routes.playlist(id)) }
     // Playlists in a folder (1.7.6) show in it, not in the list; pinned ones lead.
     val inFolders = remember(folders) { folders.flatMap { f -> f.playlists.map { it.removePrefix("VL") } }.toSet() }
-    val sortedPlaylists = remember(myPlaylists, playlistOrder, playlistSort, pinned, inFolders) {
-        pinnedFirst(when (playlistSort) {
-            PlaylistSort.CUSTOM -> LibraryRepository.inOrder(myPlaylists, playlistOrder)
-            PlaylistSort.LIBRARY -> myPlaylists
-            PlaylistSort.TITLE -> myPlaylists.sortedBy { it.title.lowercase() }
-        }).filterNot { it.id.removePrefix("VL") in inFolders }
-    }
     var rearranging by rememberSaveable { mutableStateOf(false) }
     // A search goes through every playlist, the ones in folders too, and the folders by name.
     val searchingPlaylists = playlistQuery.isNotBlank() && !rearranging
-    val foundFolders = remember(folders, playlistQuery, spellings) {
-        if (playlistQuery.isBlank()) folders else folders.filter { libraryMatches(playlistQuery, spellings, arrayOf(it.name)) }
-    }
-    val foundPlaylists = remember(myPlaylists, sortedPlaylists, playlistQuery, pinned, spellings) {
-        if (playlistQuery.isBlank()) sortedPlaylists
-        else {
-            val inList = sortedPlaylists.map { it.id }.toSet()
-            pinnedFirst(sortedPlaylists + myPlaylists.filter { it.id !in inList }).filter {
-                libraryMatches(playlistQuery, spellings, arrayOf(it.title))
-            }
-        }
-    }
-    val foundFollowed = remember(spotifyFollowed, playlistQuery, spellings) {
-        if (playlistQuery.isBlank()) spotifyFollowed else spotifyFollowed.filter {
-            libraryMatches(playlistQuery, spellings, arrayOf(it.name))
-        }
-    }
+    // The shown playlist order: the page remembers it; the actions sheet below reads it lazily on a tap.
+    fun sortedPlaylistsNow() = pinnedFirst(when (playlistSort) {
+        PlaylistSort.CUSTOM -> LibraryRepository.inOrder(myPlaylists, playlistOrder)
+        PlaylistSort.LIBRARY -> myPlaylists
+        PlaylistSort.TITLE -> myPlaylists.sortedBy { it.title.lowercase() }
+    }).filterNot { it.id.removePrefix("VL") in inFolders }
     // Moving one (or starting to) saves the whole order as shown, and switches to it.
     fun saveOrder(list: List<com.prism.music.data.model.BrowseItem>) {
         c.library.setPlaylistOrder(list.map { it.id })
@@ -539,8 +459,89 @@ fun LibraryScreen(bottomPadding: Dp) {
         }
         PagerChips(tabs.map { it.label }, pager)
 
-        HorizontalPager(pager, Modifier.weight(1f), beyondViewportPageCount = 1) { page ->
+        HorizontalPager(pager, Modifier.weight(1f), beyondViewportPageCount = 0) { page ->
             val tab = LibTab.entries[page]
+            // Tab-specific derived lists live in the page: entering the Library composes only the page in view.
+            val sortedSongs = remember(songsBase, songSort, shownRev) {
+                when (songSort) {
+                    SongSort.RECENT -> songsBase
+                    SongSort.TITLE -> songsBase.sortedByKey { it.shown.title.lowercase() }
+                    SongSort.ARTIST -> songsBase.sortedByKey({ it.shown.primaryArtist.lowercase() }, { it.shown.album?.title?.lowercase() ?: "" })
+                    SongSort.ALBUM -> songsBase.sortedByKey({ it.shown.album?.title?.lowercase() ?: "\uFFFF" }, { it.shown.title.lowercase() })
+                }
+            }
+            // Each song's names as search reads them, normalized once for the list: filtering as the listener types used to
+            // normalize every name of every song on every keystroke, the slowest part of a Library search.
+            val songHay = remember(sortedSongs, songQuery.isNotBlank(), spellings) {
+                if (songQuery.isBlank()) emptyMap() else sortedSongs.associate { s ->
+                    s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
+                }
+            }
+            val shownSongs = remember(sortedSongs, songQuery, songHay) {
+                val words = libraryWords(songQuery)
+                when {
+                    songQuery.isBlank() -> sortedSongs
+                    // Punctuation only ("!!!" is a band): looked for in the names themselves, as [libraryMatches] does.
+                    words.isEmpty() -> sortedSongs.filter { s -> libraryMatches(songQuery, spellings, arrayOf(s.title, s.artistText, s.album?.title.orEmpty())) }
+                    else -> sortedSongs.filter { s -> words.all { it in songHay[s.id].orEmpty() } }
+                }
+            }
+            // Library Songs has its own dedup scope, independent of a playlist's or Downloads' choice.
+            val dedup = rememberDedupList(shownSongs, com.prism.music.data.dedup.DedupScope.SONGS, buildLines = false)
+            // With hiding off, DedupListState.lines is already shownSongs in the same order; copying thousands of songs into
+            // two more lists on every Library entry was pure allocation.
+            val songsShown = remember(shownSongs, dedup) { if (dedup.enabled) dedup.lines.map { it.song } else shownSongs }
+            val songsQueue = remember(shownSongs, dedup) { if (dedup.enabled) dedup.queue(shownSongs) else shownSongs }
+            val sortedAlbums = remember(albums, albumSort, albumSongs, downloadedPerAlbum, albumsSeen, savedAlbums) {
+                fun downloaded(a: com.prism.music.data.model.BrowseItem) = downloadedPerAlbum.first[a.id] ?: downloadedPerAlbum.second[a.title.lowercase()] ?: 0
+                when (albumSort) {
+                    AlbumSort.LIBRARY -> albums
+                    AlbumSort.DOWNLOADED -> albums.sortedByDescending { downloaded(it) }
+                    AlbumSort.MOST -> albums.sortedByDescending { albumSongs[it.id]?.size ?: 0 }
+                    AlbumSort.TITLE -> albums.sortedByKey { it.title.lowercase() }
+                    AlbumSort.ARTIST -> albums.sortedByKey({ artistOf(it).lowercase() }, { it.title.lowercase() })
+                    AlbumSort.ADDED -> albumsRecentlyAdded(albums, savedAlbums.associate { it.id to it.savedAt }, albumsSeen)
+                }
+            }
+            val albumKinds = remember(albums) { albums.map { AlbumKind.ALBUMS.shows(it) }.toSet() }
+            val shownAlbums = remember(sortedAlbums, albumKind, albumQuery, pinned, spellings) {
+                val single = tr(R.string.single)
+                pinnedFirst(sortedAlbums.filter { a ->
+                    albumKind.shows(a) && (albumQuery.isBlank() ||
+                        libraryMatches(albumQuery, spellings, arrayOf(a.title, *albumNames(a.subtitle, single).toTypedArray())))
+                })
+            }
+            val sortedArtists = remember(artists, artistSort, artistSongs, favorites) {
+                val fav = favorites.map { it.id }.toSet()
+                when (artistSort) {
+                    ArtistSort.LIBRARY -> artists
+                    ArtistSort.MOST -> artists.sortedWith(compareByDescending<com.prism.music.data.model.BrowseItem> { it.id in fav }.thenByDescending { artistSongs[it.id] ?: 0 })
+                    ArtistSort.NAME -> artists.sortedByKey({ if (it.id in fav) 0 else 1 }, { it.title.lowercase().removePrefix("the ") })
+                }
+            }
+            val shownArtists = remember(sortedArtists, artistQuery, pinned, spellings) {
+                pinnedFirst(if (artistQuery.isBlank()) sortedArtists else sortedArtists.filter {
+                    libraryMatches(artistQuery, spellings, arrayOf(it.title))
+                })
+            }
+            val sortedPlaylists = remember(myPlaylists, playlistOrder, playlistSort, pinned, inFolders) { sortedPlaylistsNow() }
+            val foundFolders = remember(folders, playlistQuery, spellings) {
+                if (playlistQuery.isBlank()) folders else folders.filter { libraryMatches(playlistQuery, spellings, arrayOf(it.name)) }
+            }
+            val foundPlaylists = remember(myPlaylists, sortedPlaylists, playlistQuery, pinned, spellings) {
+                if (playlistQuery.isBlank()) sortedPlaylists
+                else {
+                    val inList = sortedPlaylists.map { it.id }.toSet()
+                    pinnedFirst(sortedPlaylists + myPlaylists.filter { it.id !in inList }).filter {
+                        libraryMatches(playlistQuery, spellings, arrayOf(it.title))
+                    }
+                }
+            }
+            val foundFollowed = remember(spotifyFollowed, playlistQuery, spellings) {
+                if (playlistQuery.isBlank()) spotifyFollowed else spotifyFollowed.filter {
+                    libraryMatches(playlistQuery, spellings, arrayOf(it.name))
+                }
+            }
             @Suppress("NAME_SHADOWING") val asList = listFor(tab)
             val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
             // Swapping playlists and tiles: back to the top, or the list would stay on the tile it showed and hide what moved above.
@@ -989,7 +990,7 @@ fun LibraryScreen(bottomPadding: Dp) {
             extra = listOfNotNull(
                 pinItem(p),
                 com.prism.music.ui.components.SheetItem(PrismIcons.Folder, tr(R.string.move_to_a_folder)) { foldering = p },
-                com.prism.music.ui.components.SheetItem(PrismIcons.SwapVertical, tr(R.string.rearrange_playlists)) { saveOrder(sortedPlaylists); rearranging = true },
+                com.prism.music.ui.components.SheetItem(PrismIcons.SwapVertical, tr(R.string.rearrange_playlists)) { saveOrder(sortedPlaylistsNow()); rearranging = true },
                 if (deletable) com.prism.music.ui.components.SheetItem(PrismIcons.Delete, tr(R.string.delete_playlist_2), danger = true) { deleting = p } else null,
             ),
         ) { menuFor = null }
