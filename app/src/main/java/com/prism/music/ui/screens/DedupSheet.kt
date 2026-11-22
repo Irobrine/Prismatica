@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -47,10 +48,21 @@ internal fun DedupSheet(onDismiss: () -> Unit) {
     val progress by c.dedup.scanner.progress.collectAsState()
     val running by c.dedup.scanner.running.collectAsState()
     val outdated by c.dedup.scanner.indexOutdated.collectAsState()
-    // What the groups refer to, for the labels; the ids persist even when a song is not in the current list.
-    val known = remember(c.library.liked.value, c.localMusic.tracks.collectAsState().value) {
-        (c.library.liked.value + c.localMusic.tracks.value.map { it.song }).associateBy { it.id }
+    // The groups keep stable ids, so a pair may name a song that is not on the current screen. Look every id up in the
+    // library as well as the in-memory lists, so the menu shows titles rather than raw video/local ids.
+    val wanted = remember(groups, suggestions) {
+        (groups.flatMap { it.members } + suggestions.flatMap { listOf(it.a, it.b) }).distinct()
     }
+    val fromLibrary by produceState(emptyMap<String, Song>(), wanted) {
+        value = if (wanted.isEmpty()) emptyMap() else runCatching {
+            c.db.songs().getAll(wanted).associate { it.id to it.toSong() }
+        }.getOrDefault(emptyMap())
+    }
+    val known = remember(fromLibrary) {
+        fromLibrary + c.dedup.knownSongs() +
+            c.downloadState.value.values.mapNotNull { it.song }.associateBy { it.id }
+    }
+    fun titleOf(id: String): String = known[id]?.title?.takeIf { it.isNotBlank() } ?: tr(R.string.unknown_song)
     var removing by remember { mutableStateOf<Pair<String, String>?>(null) }
     var moving by remember { mutableStateOf<String?>(null) }
     var adding by remember { mutableStateOf<String?>(null) }
@@ -96,7 +108,7 @@ internal fun DedupSheet(onDismiss: () -> Unit) {
                                 val isRep = id == representativeOf(group.members, pins, known)
                                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
-                                        Text(song?.title ?: id, style = MaterialTheme.typography.bodyMedium,
+                                        Text(titleOf(id), style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = if (isRep) FontWeight.Bold else FontWeight.Normal)
                                         val warned = relations.any { it.involves(id) && (it.changedA || it.changedB) }
                                         val meta = listOfNotNull(label(song, isRep).takeIf { it.isNotBlank() }, quality(id).takeIf { it.isNotBlank() })
@@ -131,7 +143,7 @@ internal fun DedupSheet(onDismiss: () -> Unit) {
                 }
                 suggestions.forEach { relation ->
                     item("s:${relation.pair.first}:${relation.pair.second}") {
-                        SuggestionRow(relation, known,
+                        SuggestionRow(relation, ::titleOf,
                             onConfirm = { scope.launch { c.dedup.confirm(it.a, it.b) } },
                             onSeparate = { scope.launch { c.dedup.separate(it.a, it.b) } },
                             onCompare = { r ->
@@ -165,7 +177,7 @@ internal fun DedupSheet(onDismiss: () -> Unit) {
                         val from = groups.firstOrNull { id in it.members }?.members.orEmpty()
                         scope.launch { c.dedup.move(id, from, target.members) }
                         moving = null
-                    }) { Text(known[target.members.minOrNull()]?.title ?: target.id) }
+                    }) { Text(target.members.minOrNull()?.let(::titleOf) ?: tr(R.string.unknown_song)) }
                 }
             }
         },
@@ -217,7 +229,7 @@ internal fun DedupSheet(onDismiss: () -> Unit) {
                             val mine = groups.firstOrNull { it.id == groupId }?.members.orEmpty()
                             scope.launch { c.dedup.mergeGroups(mine, target.members) }
                             merging = null
-                        }) { Text(known[target.members.minOrNull()]?.title ?: target.id) }
+                        }) { Text(target.members.minOrNull()?.let(::titleOf) ?: tr(R.string.unknown_song)) }
                     }
                 }
             },
@@ -234,14 +246,14 @@ private fun representativeOf(members: Set<String>, pins: Set<String>, known: Map
 @Composable
 private fun SuggestionRow(
     relation: Relation,
-    known: Map<String, Song>,
+    titleOf: (String) -> String,
     onConfirm: (Relation) -> Unit,
     onSeparate: (Relation) -> Unit,
     onCompare: (Relation) -> Unit,
 ) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(listOf(known[relation.a]?.title ?: relation.a, known[relation.b]?.title ?: relation.b).joinToString(" · "),
+            Text(listOf(titleOf(relation.a), titleOf(relation.b)).joinToString(" · "),
                 style = MaterialTheme.typography.bodyMedium)
             Text(tr(R.string.dedup_suggested), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
