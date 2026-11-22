@@ -127,8 +127,7 @@ class DedupManager(
             val cached = File(scratch, "download_${id.hashCode()}.audio")
             container.audioOnPhone(id, id, cached) ?: error("the downloaded audio is not on the phone")
         } else Uri.parse(ref.uri)
-        val pcm = File(scratch, "pcm_${ref.key.hashCode()}.raw")
-        DedupFingerprinter.of(container, input, pcm, ref.durationMs) { scanner.running.value.not() }
+        DedupFingerprinter.of(container.app, input, ref.durationMs) { scanner.running.value.not() }
     }
 
     /** Whether a scope is currently deduplicated: its override, or the global default when it inherits. */
