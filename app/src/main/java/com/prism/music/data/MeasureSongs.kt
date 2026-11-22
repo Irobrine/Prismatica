@@ -26,6 +26,11 @@ import kotlinx.coroutines.launch
  * count ([stop]), and [resume] carries on with the same set from where it stopped: what's been measured isn't walked
  * again, so a second tap never starts the work over. Null when no walk is under way, or when the last one measured
  * everything.
+ *
+ * A song the walk walked but couldn't measure (a stream that can't play, no network for it) is still work: [couldnt]
+ * says which, so the page tells the listener instead of finishing as if they had all been done. A song that can't be
+ * measured at all can be kept from being scanned ([skipFailed]): it leaves the count and the report, and [scanAgain]
+ * brings it back.
  */
 class MeasureSongs(
     private val scope: CoroutineScope,
@@ -43,11 +48,23 @@ class MeasureSongs(
     private val width: () -> Int = { 1 },
     /** Whether the network is unmetered now (Wi-Fi): songs not on the phone may then be fetched to scan them. */
     private val unmetered: () -> Boolean,
+    /** Whether [id] (a form, or a song) is kept from being scanned ([com.prism.music.playback.MixTempo.skipped]): not work. */
+    private val skipped: (String) -> Boolean = { false },
+    /** Keeps a form and the song it plays for from being scanned again ([com.prism.music.playback.MixTempo.skip]). */
+    private val skip: (Collection<String>) -> Unit = {},
+    /** Lets every song kept from being scanned be scanned again ([com.prism.music.playback.MixTempo.unskipAll]). */
+    private val unskipAll: () -> Unit = {},
 ) {
     val progress = MutableStateFlow<Pair<Int, Int>?>(null)
 
     /** Whether a walk is moving [progress] now: a stopped one keeps its count still, for [resume] to carry on. */
     val running = MutableStateFlow(false)
+
+    /**
+     * The last walk's songs it walked but couldn't measure (a scan that failed, no network for a stream), as form to song:
+     * what the page says it couldn't measure. Null when there are none (or a walk is under way).
+     */
+    val couldnt = MutableStateFlow<List<Pair<String, String>>?>(null)
 
     private var job: Job? = null
     /** Which walk is the current one: an older walk's last step and end are not its to show ([start]). */
@@ -64,10 +81,28 @@ class MeasureSongs(
 
     /**
      * The pairs a walk over [songIds] would measure: each song's [formOf] with the song it plays for, once per form (two
-     * songs that play as one recording are one scan of it), leaving out what's measured already ([measured]).
+     * songs that play as one recording are one scan of it), leaving out what's measured already ([measured]) and what's
+     * kept from being scanned ([skipped]).
      */
     fun pending(songIds: List<String>): List<Pair<String, String>> =
-        songIds.map { formOf(it) to it }.distinctBy { it.first }.filter { !measured(it.first) }
+        songIds.map { formOf(it) to it }.distinctBy { it.first }
+            .filter { !measured(it.first) && !skipped(it.first) && !skipped(it.second) }
+
+    /** How many of [songIds] are left out of [pending] because they're kept from being scanned, once per form. */
+    fun kept(songIds: List<String>): Int =
+        songIds.map { formOf(it) to it }.distinctBy { it.first }.count { skipped(it.first) || skipped(it.second) }
+
+    /**
+     * Keeps a song the walk couldn't measure from being scanned again: [form] and the song it plays for ([skipped]), so it
+     * leaves the count and [couldnt] — the listener chose not to have it tried every time. [scanAgain] undoes it.
+     */
+    fun skipFailed(form: String, song: String) {
+        skip(listOf(form, song))
+        couldnt.value = couldnt.value?.filterNot { it.first == form }?.takeIf { it.isNotEmpty() }
+    }
+
+    /** Lets every song kept from being scanned be scanned again ([skipFailed]): the work is back for the next walk. */
+    fun scanAgain() = unskipAll()
 
     /**
      * Walks [pairs] ([pending]'s, as form to song) on [network] (whether songs not on the phone are fetched), one song at
@@ -78,6 +113,7 @@ class MeasureSongs(
      */
     fun start(pairs: List<Pair<String, String>>, network: Boolean) {
         job?.cancel()
+        couldnt.value = null
         walkSet = pairs
         this.network = network
         if (pairs.isEmpty()) {
@@ -95,7 +131,8 @@ class MeasureSongs(
      */
     fun resume() {
         if (running.value) return
-        val left = walkSet.filter { !measured(it.first) }
+        couldnt.value = null
+        val left = walkSet.filter { !measured(it.first) && !skipped(it.first) && !skipped(it.second) }
         if (left.isEmpty()) {
             progress.value = null
             return
@@ -151,8 +188,12 @@ class MeasureSongs(
                 if (mine == walk) {
                     running.value = false
                     // Everything walked and measured: the row asks for a set again. A stop leaves the count where it got
-                    // to, for [resume] to carry on from.
-                    if (finished) progress.value = null
+                    // to, for [resume] to carry on from. Songs walked but left unmeasured (a scan that failed, no network
+                    // for a stream) are said instead: the count would otherwise clear as if they had all been done.
+                    if (finished) {
+                        progress.value = null
+                        couldnt.value = items.filter { !measured(it.first) }.takeIf { it.isNotEmpty() }
+                    }
                 }
             }
         }

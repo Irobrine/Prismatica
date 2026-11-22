@@ -325,6 +325,8 @@ class MixTempo(
     private val keyPrefs = context.getSharedPreferences("song_key", Context.MODE_PRIVATE)
     /** Form id -> when its scan last failed: a failure isn't forever (a file back on the phone, a read that went wrong). */
     private val failed = ConcurrentHashMap<String, Long>()
+    /** Form or song id -> kept from being scanned ([skip]): a stream that can't play, so no figure can ever be had. */
+    private val skippedPrefs = context.getSharedPreferences("mix_skipped", Context.MODE_PRIVATE)
     /**
      * Whole scans at once (see [scanSlots]): decoding a whole song is the heaviest thing Prism does in the background,
      * so it's one unless a walk the listener started has the processor to itself ([mayScanTwice]) — then two, which
@@ -339,6 +341,31 @@ class MixTempo(
      */
     private fun hasFailed(id: String): Boolean =
         failed[id]?.let { android.os.SystemClock.elapsedRealtime() - it < FAILED_RETRY_MS } == true
+
+    /**
+     * Whether [id] (a form, or a song kept with the form it plays as) is one the listener has kept from being scanned
+     * ([skip]): a stream that can't play, a file that won't decode. Its figure can't be had, so no scan starts for it.
+     */
+    fun skipped(id: String): Boolean = skippedPrefs.getBoolean(id, false)
+
+    /** Keeps [ids] from being scanned, now and after a restart: "Measure songs now" leaves them out, and no scan starts. */
+    fun skip(ids: Collection<String>) {
+        val keep = ids.filter { it.isNotBlank() }.toSet()
+        if (keep.isEmpty()) return
+        skippedPrefs.edit().apply { keep.forEach { putBoolean(it, true) } }.apply()
+        failed.keys.removeAll(keep)
+    }
+
+    /** Lets [ids] be scanned again ([skip]). */
+    fun unskip(ids: Collection<String>) {
+        val again = ids.filter { it.isNotBlank() }.toSet()
+        if (again.isEmpty()) return
+        skippedPrefs.edit().apply { again.forEach { remove(it) } }.apply()
+        failed.keys.removeAll(again)
+    }
+
+    /** Lets every song kept from being scanned be scanned again ([skip]). */
+    fun unskipAll() = skippedPrefs.edit().clear().apply()
 
     /**
      * Forgets what was measured of [id] as a song's sound for Mix (tempo, edges, key, DJ mode's quick scan), so it's
@@ -533,6 +560,8 @@ class MixTempo(
     ): Tempo? {
         fun done() = scanned(id) && !(edges && old(id)) && !(key && !keyed(id)) && !(wave && waves?.has(id) == false) &&
             !(peak && (noPeak(id) || loudnessOld(id)))
+        // Kept from being scanned ([skip]): its figure can't be had, so neither a walk nor a play asks again.
+        if (skipped(id) || (sourceSongId != null && skipped(sourceSongId))) return cached(id)
         if (done() || hasFailed(id)) return cached(id)
         if (priority) scanPriority.playingWants()
         try {

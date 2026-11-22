@@ -12,6 +12,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
@@ -200,6 +201,41 @@ class MeasureSongsTest {
         second.complete(Unit)
         until("its end") { e.progress.value == null && !e.running.value }
         assertFalse("the first walk was stopped, not waited for", first.isCompleted)
+    }
+
+    /**
+     * A song the scan couldn't measure (a stream that can't play, no network for it) is still work: the walk says what it
+     * couldn't measure instead of finishing as though it had done it, and a song kept from being scanned leaves the count
+     * and the report, until [MeasureSongs.scanAgain] lets it back.
+     */
+    @Test fun whatCouldntBeMeasuredIsSaidAndCanBeKeptFromBeingScanned() {
+        val kept = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+        val e = MeasureSongs(
+            scope,
+            // The scan runs but leaves no figure: a stream that can't play, say.
+            { form, _, _ -> asked += Triple(form, null, false) },
+            { it in measuredNow },
+            { versions[it] ?: it },
+            unmetered = { false },
+            skipped = { it in kept },
+            skip = { ids -> kept += ids },
+            unskipAll = { kept.clear() },
+        )
+        assertEquals(listOf("a" to "a"), e.pending(listOf("a")))
+        e.start(listOf("a" to "a"), network = false)
+        until("the walk") { e.progress.value == null && !e.running.value }
+        assertEquals("it says what it couldn't measure", listOf("a" to "a"), e.couldnt.value)
+        assertEquals("and it's still the work left", 1, e.pending(listOf("a")).size)
+        // Kept from being scanned: out of the work and out of the report.
+        e.skipFailed("a", "a")
+        assertEquals(setOf("a"), kept)
+        assertNull(e.couldnt.value)
+        assertEquals("not work any more", emptyList<Pair<String, String>>(), e.pending(listOf("a")))
+        assertEquals("and counted as kept", 1, e.kept(listOf("a")))
+        // Let back: the work is there again.
+        e.scanAgain()
+        assertEquals(1, e.pending(listOf("a")).size)
+        assertEquals(0, e.kept(listOf("a")))
     }
 
     /** Songs not on the phone are fetched on an unmetered network, or with mobile data allowed for measuring. */

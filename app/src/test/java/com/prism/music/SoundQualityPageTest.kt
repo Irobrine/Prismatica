@@ -3,6 +3,9 @@ package com.prism.music
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.prism.music.data.db.toEntity
 import com.prism.music.data.local.LocalLossless
 import com.prism.music.data.model.Song
@@ -21,6 +24,7 @@ import com.prism.music.ui.screens.settings.SettingsTarget
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -246,6 +250,37 @@ class SoundQualityPageTest : ListeningPageHarness(SettingsPageId.SOUND_QUALITY) 
         tap(measureSongs)
         assertEquals(songCount(0), valueOf(t(R.string.liked_songs)))
         compose.onNode(rowIs(t(R.string.liked_songs))).assertIsNotEnabled()
+    }
+
+    /**
+     * A song a walk walked but couldn't measure (a stream that can't play, say) is said in the row and the sheet, with its
+     * title; it can be kept from being scanned — which takes it out of the count — or tried again, and "Scan again" puts
+     * a kept song back in the work.
+     */
+    @Test fun aSongThatCantBeMeasuredIsSaidAndCanBeKeptFromBeingScanned() {
+        val id = "${Song.LOCAL_PREFIX}9003"
+        runBlocking { container.db.songs().upsertAll(listOf(Song(id, "Own song").toEntity().copy(liked = true, likedAt = 1L))) }
+        show()
+        compose.waitUntil(5_000) { container.library.likedIds.value == setOf(id) }
+        container.measureSongs.couldnt.value = listOf(id to id)
+        compose.waitForIdle()
+        assertEquals("the row says it couldn't measure it", tr(R.string.measure_songs_couldnt_measure, songCount(1)), valueOf(measureSongs))
+        tap(measureSongs)
+        assertEquals(1, sheets())
+        compose.waitUntil(5_000) { compose.onAllNodes(hasText("Own song")).fetchSemanticsNodes().isNotEmpty() }
+        // Kept from being scanned: out of the work and the report, and the sheet offers to scan it again.
+        compose.onNodeWithText(tr(R.string.measure_songs_dont_scan)).performClick()
+        compose.waitUntil(5_000) { container.measureSongs.pending(listOf(id)).isEmpty() }
+        assertTrue("kept from being scanned", container.mixTempo.skipped(id))
+        assertNull(container.measureSongs.couldnt.value)
+        assertEquals("", valueOf(measureSongs))
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(hasText(tr(R.string.measure_songs_not_scanned, songCount(1)))).fetchSemanticsNodes().isNotEmpty()
+        }
+        // Let back: the work returns.
+        compose.onNodeWithText(tr(R.string.measure_songs_scan_again)).performClick()
+        compose.waitUntil(5_000) { container.measureSongs.pending(listOf(id)).size == 1 }
+        assertFalse(container.mixTempo.skipped(id))
     }
 
     /** eq: the Equalizer is its own screen; the row opens it and says whether it's on. */

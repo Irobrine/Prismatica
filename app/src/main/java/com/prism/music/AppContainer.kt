@@ -646,6 +646,10 @@ class AppContainer(val app: Application) {
             // Two at once on a phone that can spare them: one song's decoding overlaps the other's analysis (1.9).
             { if (mixTempo.mayScanTwice()) 2 else 1 },
             unmetered = { app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false },
+            // A song that couldn't be measured (a stream that can't play) can be kept from being scanned again, and let back.
+            skipped = { id -> mixTempo.skipped(id) },
+            skip = { ids -> mixTempo.skip(ids) },
+            unskipAll = { mixTempo.unskipAll() },
         )
     }
     /** The listener's Prism Account: a name and picture kept on this phone ([com.prism.music.data.PrismAccount]). */
