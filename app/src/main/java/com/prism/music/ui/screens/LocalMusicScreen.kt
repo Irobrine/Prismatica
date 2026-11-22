@@ -6,6 +6,7 @@ import com.prism.music.tr
 import com.prism.music.trp
 import com.prism.music.ui.components.PrismButton
 import com.prism.music.ui.components.rememberDedupList
+import com.prism.music.ui.components.DedupToggle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -392,11 +393,7 @@ fun LocalMusicScreen(bottomPadding: Dp) {
                     RoundAction(PrismIcons.Song, tr(R.string.go_to_the_playing_song)) { go() }
                     Spacer(Modifier.width(8.dp))
                 }
-                RoundAction(PrismIcons.Copy, tr(R.string.dedup_hide)) {
-                    c.settings.setDedupOverride(com.prism.music.data.dedup.DedupScope.LOCAL_FILES, !dedup.enabled)
-                }
-                Spacer(Modifier.width(8.dp))
-                RoundAction(PrismIcons.Song, tr(R.string.dedup_settings)) { dedupSheet = true }
+                DedupToggle(com.prism.music.data.dedup.DedupScope.LOCAL_FILES, dedup.enabled) { dedupSheet = true }
                 Spacer(Modifier.width(8.dp))
                 RoundAction(PrismIcons.Shuffle, tr(R.string.shuffle)) {
                     val (list, title) = playable()

@@ -1,9 +1,17 @@
 package com.prism.music.ui.components
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.prism.music.R
+import com.prism.music.tr
+import com.prism.music.ui.theme.PrismIcons
 import com.prism.music.data.dedup.DedupScope
 import com.prism.music.data.dedup.DedupSettingsLogic
 import com.prism.music.data.dedup.DedupViews
@@ -40,6 +48,24 @@ class DedupListState(
 ) {
     /** The songs to hand to `playQueue`: representatives and ungrouped songs, in their displayed order. */
     fun queue(songs: List<Song>): List<Song> = if (!enabled) songs else songs.filterNot { it.id in hidden }
+}
+
+/**
+ * The header toggle for one scope: a tap switches hiding, a long press opens the duplicate sheet, and a small cross
+ * marks it when it is on. One control instead of a second button that stole the "find the playing song" icon.
+ */
+@Composable
+fun DedupToggle(scope: DedupScope, enabled: Boolean, onOpenSheet: () -> Unit) {
+    val c = LocalContainer.current
+    RoundAction(
+        icon = PrismIcons.Copy,
+        description = tr(R.string.dedup_hide),
+        onLongClick = onOpenSheet,
+        onLongClickLabel = tr(R.string.dedup_settings),
+        badge = if (enabled) {
+            { Icon(PrismIcons.Close, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onPrimary) }
+        } else null,
+    ) { c.settings.setDedupOverride(scope, !enabled) }
 }
 
 /** Builds the view for one list and one scope, reading the current groups and settings. */

@@ -124,14 +124,38 @@ fun FloatingDisc(modifier: Modifier = Modifier, content: @Composable androidx.co
     ) { content(ink) }
 }
 
-/** A header action: a round of glass (a floating disc, [FloatingDisc], when it floats over a photo or artwork). */
+/**
+ * A header action: a round of glass (a floating disc, [FloatingDisc], when it floats over a photo or artwork).
+ *
+ * [onLongClick] opens a detail action without taking a second button in a crowded header. [badge] draws over the icon,
+ * for a state a listener should see at a glance (a cross over a toggle that is on, say).
+ */
 @Composable
-fun RoundAction(icon: ImageVector, description: String, modifier: Modifier = Modifier, glass: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
+fun RoundAction(
+    icon: ImageVector,
+    description: String,
+    modifier: Modifier = Modifier,
+    glass: Boolean = false,
+    enabled: Boolean = true,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
+    badge: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit,
+) {
     val tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.38f)
+    fun Modifier.press() = if (onLongClick == null) {
+        clickable(enabled = enabled, onClickLabel = description, onClick = onClick)
+    } else {
+        combinedClickable(enabled = enabled, onClickLabel = description, onLongClickLabel = onLongClickLabel, onClick = onClick, onLongClick = onLongClick)
+    }
     if (glass) {
         FloatingDisc(modifier) { ink ->
-            Box(Modifier.fillMaxSize().clickable(enabled = enabled, onClickLabel = description, onClick = onClick), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxSize().press(), contentAlignment = Alignment.Center) {
                 Icon(icon, description, Modifier.size(22.dp), tint = ink.copy(alpha = if (enabled) 1f else 0.38f))
+                if (badge != null) Box(
+                    Modifier.align(Alignment.BottomEnd).size(18.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center,
+                ) { badge() }
             }
         }
     } else {
@@ -139,9 +163,15 @@ fun RoundAction(icon: ImageVector, description: String, modifier: Modifier = Mod
         Box(
             modifier.size(42.dp).clip(CircleShape)
                 .then(if (material) Modifier else Modifier.background(glassFill(1.4f)).border(1.dp, glassEdge(), CircleShape))
-                .clickable(enabled = enabled, onClickLabel = description, onClick = onClick),
+                .press(),
             contentAlignment = Alignment.Center,
-        ) { Icon(icon, description, Modifier.size(22.dp), tint = tint) }
+        ) {
+            Icon(icon, description, Modifier.size(22.dp), tint = tint)
+            if (badge != null) Box(
+                Modifier.align(Alignment.BottomEnd).size(18.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) { badge() }
+        }
     }
 }
 

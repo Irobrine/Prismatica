@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import com.prism.music.ui.components.PrismButton
 import com.prism.music.ui.components.PrismTextButton
 import com.prism.music.ui.components.rememberDedupList
+import com.prism.music.ui.components.DedupToggle
 import com.prism.music.ui.theme.PrismIcons
 import com.prism.music.data.friendlyMessage
 import com.prism.music.data.prefs.LibraryTile
@@ -801,11 +802,7 @@ fun LibraryScreen(bottomPadding: Dp) {
                                     com.prism.music.ui.components.RoundAction(PrismIcons.Song, tr(R.string.go_to_the_playing_song)) { go() }
                                 }
                                 Spacer(Modifier.width(8.dp))
-                                com.prism.music.ui.components.RoundAction(PrismIcons.Copy, tr(R.string.dedup_hide)) {
-                                    c.settings.setDedupOverride(com.prism.music.data.dedup.DedupScope.SONGS, !dedup.enabled)
-                                }
-                                Spacer(Modifier.width(8.dp))
-                                com.prism.music.ui.components.RoundAction(PrismIcons.Song, tr(R.string.dedup_settings)) { dedupSheet = true }
+                                com.prism.music.ui.components.DedupToggle(com.prism.music.data.dedup.DedupScope.SONGS, dedup.enabled) { dedupSheet = true }
                                 Spacer(Modifier.width(8.dp))
                                 com.prism.music.ui.components.RoundAction(PrismIcons.Shuffle, tr(R.string.shuffle)) { if (songsQueue.isNotEmpty()) c.player.playQueue(songsQueue, 0, source, shuffle = true) }
                                 Spacer(Modifier.width(8.dp))
