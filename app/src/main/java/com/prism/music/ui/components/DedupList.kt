@@ -1,14 +1,9 @@
 package com.prism.music.ui.components
 
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.prism.music.R
 import com.prism.music.tr
 import com.prism.music.ui.theme.PrismIcons
@@ -51,8 +46,8 @@ class DedupListState(
 }
 
 /**
- * The header toggle for one scope: a tap switches hiding, a long press opens the duplicate sheet, and a small cross
- * marks it when it is on. One control instead of a second button that stole the "find the playing song" icon.
+ * The header toggle for one scope: a tap switches hiding, a long press opens the duplicate sheet, and a slash across
+ * the icon marks it when it is on. One control instead of a second button that stole the "find the playing song" icon.
  */
 @Composable
 fun DedupToggle(scope: DedupScope, enabled: Boolean, onOpenSheet: () -> Unit) {
@@ -62,9 +57,7 @@ fun DedupToggle(scope: DedupScope, enabled: Boolean, onOpenSheet: () -> Unit) {
         description = tr(R.string.dedup_hide),
         onLongClick = onOpenSheet,
         onLongClickLabel = tr(R.string.dedup_settings),
-        badge = if (enabled) {
-            { Icon(PrismIcons.Close, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onPrimary) }
-        } else null,
+        slashed = enabled,
     ) { c.settings.setDedupOverride(scope, !enabled) }
 }
 

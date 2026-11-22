@@ -6,6 +6,7 @@ import com.prism.music.ui.theme.PrismIcons
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -50,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -127,8 +129,8 @@ fun FloatingDisc(modifier: Modifier = Modifier, content: @Composable androidx.co
 /**
  * A header action: a round of glass (a floating disc, [FloatingDisc], when it floats over a photo or artwork).
  *
- * [onLongClick] opens a detail action without taking a second button in a crowded header. [badge] draws over the icon,
- * for a state a listener should see at a glance (a cross over a toggle that is on, say).
+ * [onLongClick] opens a detail action without taking a second button in a crowded header. [slashed] draws a diagonal
+ * stroke across the icon in the icon's own colour, for a state a listener should see at a glance.
  */
 @Composable
 fun RoundAction(
@@ -139,7 +141,7 @@ fun RoundAction(
     enabled: Boolean = true,
     onLongClick: (() -> Unit)? = null,
     onLongClickLabel: String? = null,
-    badge: (@Composable () -> Unit)? = null,
+    slashed: Boolean = false,
     onClick: () -> Unit,
 ) {
     val tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.38f)
@@ -152,10 +154,7 @@ fun RoundAction(
         FloatingDisc(modifier) { ink ->
             Box(Modifier.fillMaxSize().press(), contentAlignment = Alignment.Center) {
                 Icon(icon, description, Modifier.size(22.dp), tint = ink.copy(alpha = if (enabled) 1f else 0.38f))
-                if (badge != null) Box(
-                    Modifier.align(Alignment.BottomEnd).size(18.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center,
-                ) { badge() }
+                if (slashed) Slash(ink.copy(alpha = if (enabled) 1f else 0.38f))
             }
         }
     } else {
@@ -167,12 +166,22 @@ fun RoundAction(
             contentAlignment = Alignment.Center,
         ) {
             Icon(icon, description, Modifier.size(22.dp), tint = tint)
-            if (badge != null) Box(
-                Modifier.align(Alignment.BottomEnd).size(18.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center,
-            ) { badge() }
+            if (slashed) Slash(tint)
         }
     }
+}
+
+/** A stroke from the top left of the icon to its bottom right, in the icon's colour. */
+@Composable
+private fun Slash(color: Color) = Canvas(Modifier.size(22.dp)) {
+    val inset = 2.dp.toPx()
+    drawLine(
+        color = color,
+        start = Offset(inset, inset),
+        end = Offset(size.width - inset, size.height - inset),
+        strokeWidth = 2.dp.toPx(),
+        cap = StrokeCap.Round,
+    )
 }
 
 /** The widest a [SubPage]'s content gets; wider windows centre it. */
