@@ -114,10 +114,11 @@ class DedupScannerTest {
             assertEquals(1 to 3, scanner.progress.value)
             assertEquals(false, scanner.running.value)
 
+            handed = emptyList() // only the files still to do may be handed to the fingerprinter on resume
             scanner.start() // resumes b and c, over the same total of three
             repeat(200) { if (scanner.progress.value != null) kotlinx.coroutines.delay(20) }
             assertEquals(null, scanner.progress.value) // finished walks clear the row
-            assertEquals(setOf("a", "b", "c"), handed.toSet())
+            assertEquals(listOf("b", "c"), handed) // a must not be fingerprinted again: that is the reset
             assertEquals(3, store.fingerprints().count { it.state == "ok" })
         } finally {
             scope.cancel()

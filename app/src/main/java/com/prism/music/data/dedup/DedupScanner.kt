@@ -58,13 +58,15 @@ class DedupScanner(
     private suspend fun remaining(set: List<FileRef>): List<FileRef> = withContext(Dispatchers.IO) {
         val cached = store.fingerprints().associateBy { it.key }
         val excluded = store.exclusions()
-        val algorithm = store.meta(DedupStore.META_ALGORITHM)?.toIntOrNull() ?: 0
+        // Each cached row carries its own algorithm version. Comparing against a separate "last completed walk"
+        // marker would make every finished file look stale again while a walk is stopped, resetting progress to zero
+        // on the next press. The row's version is the authoritative check (and still forces a re-scan after a change).
         changed = set.filter { ref ->
             cached[ref.key]?.let { row -> row.sizeBytes != ref.sizeBytes || row.modifiedMs != ref.modifiedMs } ?: false
         }.map { it.key }.toSet()
         set.filter { ref ->
             ref.key !in excluded && cached[ref.key]?.let { row ->
-                row.version != algorithm || row.state != "ok" || row.sizeBytes != ref.sizeBytes || row.modifiedMs != ref.modifiedMs
+                row.version != AudioFingerprint.VERSION || row.state != "ok" || row.sizeBytes != ref.sizeBytes || row.modifiedMs != ref.modifiedMs
             } ?: true
         }
     }
