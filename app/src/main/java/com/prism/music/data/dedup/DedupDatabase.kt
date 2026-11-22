@@ -34,6 +34,19 @@ data class FingerprintRow(
     val updatedAt: Long,
 )
 
+/**
+ * Just the change-detection fields of a cached fingerprint, without its blob. A library of thousands of fingerprints
+ * cannot have every blob loaded at once (that was an OOM at startup); the walk only needs this to decide what to redo.
+ */
+data class FingerprintMeta(
+    val key: String,
+    val version: Int,
+    val sizeBytes: Long,
+    val modifiedMs: Long,
+    val durationMs: Long,
+    val state: String,
+)
+
 /** One persisted pairwise statement. Only AUTO rows are rewritten by a scan. */
 @Entity(
     tableName = "dedup_relations",
@@ -67,6 +80,12 @@ data class MetaRow(@PrimaryKey val key: String, val value: String)
 interface DedupDao {
     @Query("SELECT * FROM dedup_fingerprints")
     fun fingerprints(): List<FingerprintRow>
+
+    @Query("SELECT key, version, sizeBytes, modifiedMs, durationMs, state FROM dedup_fingerprints")
+    fun fingerprintMetas(): List<FingerprintMeta>
+
+    @Query("DELETE FROM dedup_fingerprints WHERE version != :version")
+    fun deleteOldVersions(version: Int)
 
     @Query("SELECT * FROM dedup_fingerprints WHERE `key` = :key")
     fun fingerprint(key: String): FingerprintRow?

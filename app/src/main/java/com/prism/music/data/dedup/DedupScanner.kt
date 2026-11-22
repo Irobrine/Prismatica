@@ -56,7 +56,7 @@ class DedupScanner(
     private var changed = emptySet<String>()
 
     private suspend fun remaining(set: List<FileRef>): List<FileRef> = withContext(Dispatchers.IO) {
-        val cached = store.fingerprints().associateBy { it.key }
+        val cached = store.fingerprintMetas().associateBy { it.key }
         val excluded = store.exclusions()
         // Each cached row carries its own algorithm version. Comparing against a separate "last completed walk"
         // marker would make every finished file look stale again while a walk is stopped, resetting progress to zero
@@ -76,7 +76,7 @@ class DedupScanner(
         val current = files()
         val todo = remaining(current)
         // A new file is not hidden: it shows at once, and the index hint says a scan would group it.
-        val cached = store.fingerprints().associateBy { it.key }
+        val cached = store.fingerprintMetas().associateBy { it.key }
         val outdated = current.any { it.key !in cached } || todo.isNotEmpty()
         indexOutdated.value = outdated
         store.setMeta(DedupStore.META_INDEX_OUTDATED, outdated.toString())
@@ -92,6 +92,8 @@ class DedupScanner(
         val mine = ++walk
         job?.cancel()
         scope.launch(Dispatchers.IO) {
+            // Old-format blobs are large; drop them once, at the start of a walk, before new ones are written.
+            store.dropOldVersions()
             val resuming = !finished && walkSet.isNotEmpty()
             val todo = if (resuming) remaining(walkSet) else pending()
             if (todo.isEmpty()) {
@@ -143,19 +145,22 @@ class DedupScanner(
 
     /** Compares cached fingerprints and hands the automatic statements to the caller for persistence. */
     private suspend fun recompute() = withContext(Dispatchers.IO) {
-        val rows = store.fingerprints().filter { it.state == "ok" && it.version == AudioFingerprint.VERSION }
+        // Read the small rows first, then each blob one at a time: loading every fingerprint at once was the OOM.
+        val metas = store.fingerprintMetas().filter { it.state == "ok" && it.version == AudioFingerprint.VERSION }
         val refs = files().associateBy { it.key }
         // A file that was deleted (or removed from the scope) leaves no fingerprint behind.
-        rows.filter { it.key !in refs }.forEach { store.forget(it.key) }
-        val usable = rows.mapNotNull { row ->
-            val songId = refs[row.key]?.songId ?: return@mapNotNull null
-            val fp = runCatching { AudioFingerprint.decode(row.blob) }.getOrNull() ?: return@mapNotNull null
-            if (fp.size == 0) null else songId to fp
-        }.distinctBy { it.first }
+        metas.filter { it.key !in refs }.forEach { store.forget(it.key) }
+        val usable = ArrayList<Pair<String, AudioFingerprint>>()
+        for (meta in metas) {
+            val songId = refs[meta.key]?.songId ?: continue
+            val fp = store.fingerprint(meta.key) ?: continue
+            if (fp.size > 0) usable += songId to fp
+        }
+        val distinct = usable.distinctBy { it.first }
         val fresh = ArrayList<Relation>()
-        for (i in usable.indices) for (j in i + 1 until usable.size) {
-            val (aId, a) = usable[i]
-            val (bId, b) = usable[j]
+        for (i in distinct.indices) for (j in i + 1 until distinct.size) {
+            val (aId, a) = distinct[i]
+            val (bId, b) = distinct[j]
             val m = Matcher.compare(a, b)
             if (m.level != Matcher.Level.NONE) {
                 fresh += Relation(aId, bId, RelationSource.AUTO, m.votes.toDouble(), at = System.currentTimeMillis())

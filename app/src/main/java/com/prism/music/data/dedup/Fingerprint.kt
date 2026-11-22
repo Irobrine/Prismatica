@@ -42,7 +42,7 @@ class AudioFingerprint(
     }
 
     companion object {
-        const val VERSION = 1
+        const val VERSION = 2
         private const val MAGIC = 0x50524446 // "PRDF"
         private const val HEADER = 24
 
@@ -73,7 +73,7 @@ internal object Landmarks {
     private const val BIN_STEP = 256
 
     fun of(signature: ShazamSignature, limit: Int = MAX_LANDMARKS): LongArray {
-        val out = LongArray(limit)
+        val generated = LongArray(WORKING_CAP)
         var n = 0
         for (peaks in signature.bands.values) {
             // The generator appends peaks in time order within a band.
@@ -87,19 +87,32 @@ internal object Landmarks {
                     val f1 = (a.correctedBin / BIN_STEP).coerceIn(0, 255)
                     val f2 = (b.correctedBin / BIN_STEP).coerceIn(0, 255)
                     val hash = (f1 shl 16) or (f2 shl 8) or gap
-                    out[n] = (hash.toLong() shl 32) or (a.fftPassNumber.toLong() and 0xffffffffL)
+                    generated[n] = (hash.toLong() shl 32) or (a.fftPassNumber.toLong() and 0xffffffffL)
                     n++
-                    if (n == limit) return out.copyOf(n)
+                    if (n == WORKING_CAP) return spread(generated, limit)
                 }
             }
         }
-        return out.copyOf(n)
+        return spread(generated, limit, n)
+    }
+
+    /** Keeps landmarks spread over the whole recording instead of only the first few seconds. */
+    private fun spread(from: LongArray, limit: Int, have: Int = from.size): LongArray {
+        val count = minOf(have, limit)
+        if (count == 0) return LongArray(0)
+        if (have == count) return from.copyOf(count)
+        val stride = have.toDouble() / count
+        return LongArray(count) { k -> from[minOf(have - 1, (k * stride).toInt())] }
     }
 
     fun hash(word: Long): Int = (word ushr 32).toInt()
 
     fun time(word: Long): Int = word.toInt()
 
-    /** Cap for a very long song: enough landmarks for a confident match without an unbounded fingerprint. */
-    private const val MAX_LANDMARKS = 120_000
+    /**
+     * A few thousand landmarks are plenty for offset-vote matching (a real copy still matches most of them), while an
+     * unbounded fingerprint made a library's cache hundreds of megabytes and OOM'd the app at startup.
+     */
+    private const val MAX_LANDMARKS = 1_200
+    private const val WORKING_CAP = 60_000
 }

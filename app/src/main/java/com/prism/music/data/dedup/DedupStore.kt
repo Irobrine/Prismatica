@@ -36,6 +36,12 @@ class DedupStore(private val dao: DedupDao) {
 
     suspend fun fingerprints(): List<FingerprintRow> = withContext(Dispatchers.IO) { dao.fingerprints() }
 
+    /** Change-detection fields only — safe to call on every launch with a large cache. */
+    suspend fun fingerprintMetas(): List<FingerprintMeta> = withContext(Dispatchers.IO) { dao.fingerprintMetas() }
+
+    /** Drops blobs made by an older fingerprint format; pairwise decisions are left alone. */
+    suspend fun dropOldVersions() = withContext(Dispatchers.IO) { dao.deleteOldVersions(AudioFingerprint.VERSION) }
+
     suspend fun fingerprint(key: String): AudioFingerprint? = withContext(Dispatchers.IO) {
         dao.fingerprint(key)?.let { AudioFingerprint.decode(it.blob) }
     }
