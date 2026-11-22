@@ -7,10 +7,12 @@ import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.prism.music.baselineprofile.Journeys.backFromSettings
 import com.prism.music.baselineprofile.Journeys.pastOnboarding
 import com.prism.music.baselineprofile.Journeys.playAndOpenPlayer
 import com.prism.music.baselineprofile.Journeys.scrollHome
 import com.prism.music.baselineprofile.Journeys.search
+import com.prism.music.baselineprofile.Journeys.switchTabs
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,6 +34,8 @@ class JankBenchmark {
     @Test fun searchAndPlayerWithProfile() = searchAndPlayer(CompilationMode.Partial(BaselineProfileMode.Require))
     @Test fun startupNoProfile() = startup(CompilationMode.None())
     @Test fun startupWithProfile() = startup(CompilationMode.Partial(BaselineProfileMode.Require))
+    @Test fun tabsAndBackNoProfile() = tabsAndBack(CompilationMode.None())
+    @Test fun tabsAndBackWithProfile() = tabsAndBack(CompilationMode.Partial(BaselineProfileMode.Require))
 
     private fun homeScroll(mode: CompilationMode) = rule.measureRepeated(
         packageName = PACKAGE,
@@ -61,4 +65,16 @@ class JankBenchmark {
         iterations = 5,
         startupMode = StartupMode.COLD,
     ) { startActivityAndWait() }
+
+    private fun tabsAndBack(mode: CompilationMode) = rule.measureRepeated(
+        packageName = PACKAGE,
+        metrics = listOf(FrameTimingMetric()),
+        compilationMode = mode,
+        iterations = 3,
+        startupMode = StartupMode.COLD,
+        setupBlock = { startActivityAndWait(); pastOnboarding() },
+    ) {
+        switchTabs()
+        backFromSettings()
+    }
 }

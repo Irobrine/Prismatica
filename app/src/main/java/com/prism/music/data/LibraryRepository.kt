@@ -413,7 +413,10 @@ class LibraryRepository(private val c: AppContainer) {
     }
 
     fun syncInBackground() {
-        c.scope.launch { sync() }
+        // MainActivity asks for this while it is still drawing the first screen. The sync reads the network and the
+        // database, so let that screen come up (Prism is visible from onStart on) before spending either. The wait is
+        // bounded, so a sync asked for without an activity (a job, a test, an account switch) still always runs.
+        c.afterFirstFrame { sync() }
     }
 
     /**

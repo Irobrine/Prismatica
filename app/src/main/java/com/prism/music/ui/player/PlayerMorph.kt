@@ -4,24 +4,26 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -38,7 +40,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp as lerpDp
-import androidx.compose.ui.unit.sp
 import com.prism.music.data.prefs.MiniPlayerStyle
 import com.prism.music.data.prefs.TransportStyle
 import com.prism.music.ui.theme.LocalAppSettings
@@ -475,9 +476,16 @@ internal fun panelRise(fade: Float): Dp = PANEL_RISE_DP.dp * (1f - fade.coerceIn
  * picture of the hand-over, not another thing to touch.
  */
 @Composable
-fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
-    val t = PlayerMorph.progress
-    if (!PlayerMorph.drawsOverlay()) return
+fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean? = null) {
+    // The morph's number is read only inside the layers below: a read here recomposed this whole overlay every frame.
+    val t: () -> Float = { PlayerMorph.progress }
+    // Even the gate goes through a derived state: the yes/no changes twice a morph, where a direct read of the number
+    // invalidated this composition on every frame.
+    val shows by remember { derivedStateOf { PlayerMorph.drawsOverlay() } }
+    if (!shows) return
+    // The player's own playing state comes from the app when called with two arguments; the optional argument keeps
+    // callers that supply it themselves (the morph's own tests) working unchanged.
+    val playing = isPlaying ?: com.prism.music.ui.components.LocalMusicPlaying.current()
     val settings = LocalAppSettings.current
     val typography = MaterialTheme.typography
     val scheme = MaterialTheme.colorScheme
@@ -487,21 +495,21 @@ fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
     val toArtist = PlayerMorph.playerArtist
     val fromPlay = PlayerMorph.miniPlay
     val toPlay = PlayerMorph.playerPlay
-    val titleStyle = lerpStyle(typography.titleSmall, playerTitleStyle(typography, settings), t)
-    val artistStyle = lerpStyle(typography.bodySmall, playerArtistStyle(typography, settings), t)
-    // The words turn white sooner than they grow: over the player's dark picture they must stay readable all the way.
-    val ink = (t * 1.6f).coerceAtMost(1f)
     val playerTitle = if (PlayerInk.light) PlayerInk.over(Color.White) else Color.White
     val playerArtist = if (PlayerInk.light) PlayerInk.over(Color.White.copy(alpha = 0.6f)) else Color.White.copy(alpha = 0.6f)
-    val titleColor = lerp(scheme.onSurface, playerTitle, ink)
-    val artistColor = lerp(scheme.onSurfaceVariant, playerArtist, ink)
     if (fromTitle != null && toTitle != null) {
-        MorphLine(title, fromTitle, toTitle, t, titleStyle, titleColor, "playerMorphTitle")
+        MorphLine(
+            title, fromTitle, toTitle, t, "playerMorphTitle",
+            typography.titleSmall, playerTitleStyle(typography, settings), scheme.onSurface, playerTitle,
+        )
     }
     if (fromArtist != null && toArtist != null && artist.isNotBlank()) {
-        MorphLine(artist, fromArtist, toArtist, t, artistStyle, artistColor, "playerMorphArtist")
+        MorphLine(
+            artist, fromArtist, toArtist, t, "playerMorphArtist",
+            typography.bodySmall, playerArtistStyle(typography, settings), scheme.onSurfaceVariant, playerArtist,
+        )
     }
-    if (fromPlay != null && toPlay != null) MorphPlay(fromPlay, toPlay, t, isPlaying)
+    if (fromPlay != null && toPlay != null) MorphPlay(fromPlay, toPlay, t, playing)
     val fromPrev = PlayerMorph.miniPrev
     val toPrev = PlayerMorph.playerPrev
     if (fromPrev != null && toPrev != null) {
@@ -527,12 +535,23 @@ fun PlayerMorphLayer(title: String, artist: String, isPlaying: Boolean) {
 }
 
 /**
+ * A size read at measure time: the morph's number never reaches composition, only this layout lambda. Under the fixed
+ * constraints of the moving box this measures and reports just what `Modifier.size` did, child position included.
+ */
+private fun Modifier.morphSize(size: () -> Dp): Modifier = layout { m, _ ->
+    val px = size().roundToPx().coerceAtLeast(1)
+    val child = m.measure(Constraints.fixed(px, px))
+    // Like `Modifier.size`, report the requested size (the parent's Box centres it in the moving rectangle).
+    layout(px, px) { child.place(0, 0) }
+}
+
+/**
  * The play control between its two homes. Its disc and glyph are the ones the full player draws: with "Play button" it
  * lands on the white disc and its black glyph, with "Rings" on the glass disc and its ring, and with "Classic" on the
  * bare oversized glyph. The moving copy used to keep one white glyph of its own, so only Classic landed without a jump.
  */
 @Composable
-private fun MorphPlay(from: Rect, to: Rect, t: Float, isPlaying: Boolean) {
+private fun MorphPlay(from: Rect, to: Rect, t: () -> Float, isPlaying: Boolean) {
     val settings = LocalAppSettings.current
     val style = settings.transportStyle
     val mini = settings.miniPlayerStyle
@@ -556,27 +575,33 @@ private fun MorphPlay(from: Rect, to: Rect, t: Float, isPlaying: Boolean) {
     // Exactly the two ends the real controls draw (the mini player's and the full player's), so neither hand-over
     // changes color: [miniPlayColors] and [playDiscColors] are what those two read.
     val (miniDiscColor, miniTint) = miniPlayColors(mini)
-    val (playerDisc, playerTint) = when (style) {
+    val (playerDisc, playerTint0) = when (style) {
         TransportStyle.GLYPHS -> Color.Transparent to Color.White
         TransportStyle.BUTTON, TransportStyle.OUTLINE -> playDiscColors(filled = style == TransportStyle.BUTTON)
     }
     // Over the White player (and Material You's light one) the real controls are drawn through [PlayerInk]: the copy
     // lands on what they read as there, so the hand-over there doesn't invert it in a single frame.
     val discColor = if (PlayerInk.light) PlayerInk.over(playerDisc) else playerDisc
-    // The words turn white sooner than they grow; the control does the same on its way over the player's dark picture.
-    val ink = (t * 1.6f).coerceAtMost(1f)
-    val tint = lerp(miniTint, if (PlayerInk.light) PlayerInk.over(playerTint) else playerTint, ink)
+    val playerTint = if (PlayerInk.light) PlayerInk.over(playerTint0) else playerTint0
     val ring = style != TransportStyle.GLYPHS && settings.view.playRing && !material
     // The ring is the one drawn thing the White player's ink has to be worked out for by hand (a brush, not a color);
-    // without it the copy would land with the ring's colors reading the other way round.
-    val ringBrush = if (ring && PlayerInk.light) androidx.compose.ui.graphics.Brush.sweepGradient(
-        PrismTokens.ringOf(PrismTokens.white, PrismTokens.whiteAccent, PrismTokens.light).map { PlayerInk.over(it) },
-    ) else PrismTokens.spectrumRing()
-    val r = lerpRect(from, to, t)
+    // without it the copy would land with the ring's colors reading the other way round. It only depends on settings
+    // and the ink, so keep the brush out of the per-frame path.
+    val ringBrush = remember(ring, PlayerInk.light) {
+        if (ring && PlayerInk.light) androidx.compose.ui.graphics.Brush.sweepGradient(
+            PrismTokens.ringOf(PrismTokens.white, PrismTokens.whiteAccent, PrismTokens.light).map { PlayerInk.over(it) },
+        ) else PrismTokens.spectrumRing()
+    }
+    // The disc appears once it has grown past half a pixel. A derived boolean changes the branch only at that point,
+    // where a read of the float itself invalidated this composition on every frame.
+    val showDisc by remember(miniDisc, disc) { derivedStateOf { lerpDp(miniDisc, disc, t()) > 0.5.dp } }
     Box(
         Modifier
             .clearAndSetSemantics { testTag = "playerMorphPlay" }
             .layout { m, c ->
+                // The number is read here, in layout: the copy follows the finger without recomposing.
+                val f = t()
+                val r = lerpRect(from, to, f)
                 val w = r.width.roundToInt().coerceAtLeast(1)
                 val h = r.height.roundToInt().coerceAtLeast(1)
                 val p = m.measure(Constraints.fixed(w, h))
@@ -584,40 +609,54 @@ private fun MorphPlay(from: Rect, to: Rect, t: Float, isPlaying: Boolean) {
             },
         contentAlignment = Alignment.Center,
     ) {
-        val d = lerpDp(miniDisc, disc, t)
-        if (d > 0.5.dp) Box(
-            Modifier.size(d).clip(CircleShape).background(lerp(miniDiscColor, discColor, t)).drawWithContent {
-                drawContent()
-                // The ring comes in with the disc, not all at once at the end.
-                if (ring) drawCircle(ringBrush, radius = size.minDimension / 2f, style = Stroke(2.dp.toPx()), alpha = t)
-            },
+        if (showDisc) Box(
+            Modifier
+                .morphSize { lerpDp(miniDisc, disc, t()) }
+                .clip(CircleShape)
+                .drawBehind {
+                    // Color and ring alpha move with the number, but only this layer is redrawn.
+                    val f = t()
+                    drawRect(color = lerp(miniDiscColor, discColor, f))
+                    // The ring comes in with the disc, not all at once at the end.
+                    if (ring) drawCircle(ringBrush, radius = size.minDimension / 2f, style = Stroke(2.dp.toPx()), alpha = f)
+                },
         )
         Icon(
             if (isPlaying) PrismIcons.Pause else PrismIcons.Play, null,
-            Modifier.size(lerpDp(miniIcon, icon, t)),
-            tint = tint,
+            Modifier.morphSize { lerpDp(miniIcon, icon, t()) }.graphicsLayer {
+                // The glyph's tint is the only part that moves; a color filter on the layer needs no recomposition.
+                colorFilter = ColorFilter.tint(lerp(miniTint, playerTint, (t() * 1.6f).coerceAtMost(1f)))
+            },
+            // An opaque base for the layer's color filter: the glyph is tinted in the layer with the morph's color.
+            tint = Color.White,
         )
     }
 }
 
 /** Previous or next between its two homes, at the player's own glyph size, height and weight. */
 @Composable
-private fun MorphSkip(from: Rect, to: Rect, t: Float, miniIcon: ImageVector, playerIcon: ImageVector, enabled: Boolean, tag: String) {
+private fun MorphSkip(from: Rect, to: Rect, t: () -> Float, miniIcon: ImageVector, playerIcon: ImageVector, enabled: Boolean, tag: String) {
     val settings = LocalAppSettings.current
     val scheme = MaterialTheme.colorScheme
     val compact = PlayerMorph.playCompact
     val glyphs = settings.transportStyle == TransportStyle.GLYPHS
     val size: Dp = (if (compact) 44.dp else 53.dp) * (if (glyphs) 1f else 0.82f)
     val heightScale = if (glyphs) 0.85f else 1f
-    val ink = (t * 1.6f).coerceAtMost(1f)
-    val tint = lerp(scheme.onSurface, if (PlayerInk.light) PlayerInk.over(Color.White) else Color.White, ink)
-    // The player dims a control it can't use (the queue's ends); the copy dims with it.
-    val weight = 1f + (if (enabled) 0f else -0.7f) * t
-    val r = lerpRect(from, to, t)
+    val playerInk = if (PlayerInk.light) PlayerInk.over(Color.White) else Color.White
+    // Size, height, tint and weight all live in layers now; reading the number in composition recomposed this row
+    // every frame. The two ends of the tint are fixed here, and the in-between is worked out in the layer's lambda.
+    val glyph = Modifier
+        .morphSize { lerpDp(24.dp, size, t()) }
+        .graphicsLayer {
+            scaleY = 1f + (heightScale - 1f) * t()
+            colorFilter = ColorFilter.tint(lerp(scheme.onSurface, playerInk, (t() * 1.6f).coerceAtMost(1f)))
+        }
     Box(
         Modifier
             .clearAndSetSemantics { testTag = tag }
             .layout { m, c ->
+                val f = t()
+                val r = lerpRect(from, to, f)
                 val w = r.width.roundToInt().coerceAtLeast(1)
                 val h = r.height.roundToInt().coerceAtLeast(1)
                 val p = m.measure(Constraints.fixed(w, h))
@@ -625,14 +664,14 @@ private fun MorphSkip(from: Rect, to: Rect, t: Float, miniIcon: ImageVector, pla
             },
         contentAlignment = Alignment.Center,
     ) {
-        val glyph = Modifier.size(lerpDp(24.dp, size, t)).graphicsLayer { scaleY = 1f + (heightScale - 1f) * t }
-        Box(Modifier.graphicsLayer { alpha = weight }, contentAlignment = Alignment.Center) {
+        // The player dims a control it can't use (the queue's ends); the copy dims with it.
+        Box(Modifier.graphicsLayer { alpha = 1f + (if (enabled) 0f else -0.7f) * t() }, contentAlignment = Alignment.Center) {
             if (miniIcon === playerIcon) {
-                Icon(playerIcon, null, glyph, tint = tint)
+                Icon(playerIcon, null, glyph, tint = Color.White)
             } else {
                 // Classic's glyph is a different one from the mini player's: they hand over rather than cut.
-                Icon(miniIcon, null, glyph.graphicsLayer { alpha = 1f - ink }, tint = tint)
-                Icon(playerIcon, null, glyph.graphicsLayer { alpha = ink }, tint = tint)
+                Icon(miniIcon, null, glyph.graphicsLayer { alpha = 1f - (t() * 1.6f).coerceAtMost(1f) }, tint = Color.White)
+                Icon(playerIcon, null, glyph.graphicsLayer { alpha = (t() * 1.6f).coerceAtMost(1f) }, tint = Color.White)
             }
         }
     }
@@ -640,18 +679,24 @@ private fun MorphSkip(from: Rect, to: Rect, t: Float, miniIcon: ImageVector, pla
 
 /** One line of the hand-over: the words, at the size and place between [from] and [to] the finger has reached. */
 @Composable
-private fun MorphLine(text: String, from: Rect, to: Rect, t: Float, style: TextStyle, color: Color, tag: String) {
-    val r = lerpRect(from, to, t)
+private fun MorphLine(
+    text: String, from: Rect, to: Rect, t: () -> Float, tag: String,
+    miniStyle: TextStyle, playerStyle: TextStyle, miniColor: Color, playerColor: Color,
+) {
+    // This one leaf reads the morph number in composition: it is small, and `Text` is what gives the tagged node its
+    // measurable bounds (a draw-only version made the copy invisible to accessibility tests). Nothing above it is
+    // recomposed by this read — PlayerMorphLayer's gate and the other moving parts use derived states or draw lambdas.
+    val f = t()
+    val r = lerpRect(from, to, f)
     // The room the line has is the wider of its two homes, not a width of its own that changes every frame: it never
     // truncates for room the player's row has, and the ellipsis doesn't come and go as the copy moves.
     val room = morphRoom(from, to)
     Text(
         text,
-        style = style,
-        color = color,
-        maxLines = 1,
-        softWrap = false,
-        overflow = TextOverflow.Ellipsis,
+        style = lerpStyle(miniStyle, playerStyle, f),
+        // The words turn white sooner than they grow: over the player's dark picture they must stay readable.
+        color = lerp(miniColor, playerColor, (f * 1.6f).coerceAtMost(1f)),
+        maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
         modifier = Modifier
             .clearAndSetSemantics { testTag = tag }
             .layout { m, c ->

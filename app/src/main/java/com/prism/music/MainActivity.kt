@@ -410,10 +410,13 @@ internal class PageSlides(on: Boolean, rtl: Boolean, sideAt: Int? = null) {
     // The same length as the cross-fade a page gets (PrismTokens.Motion.SCREEN): moving between screens shouldn't
     // take longer just because it slides.
     private val ms = 300
+    // Back (and predictive back) hands over quicker than a page opening: no delayed fade, so the old page starts
+    // giving way as soon as the gesture commits instead of sitting opaque for half the animation.
+    private val popMs = 150
     val enter: EnterTransition? = if (!on) null else slideInHorizontally(tween(ms)) { it * side } + fadeIn(tween(ms / 2))
     val exit: ExitTransition? = if (!on) null else slideOutHorizontally(tween(ms)) { -it * side / 4 } + fadeOut(tween(ms))
-    val popEnter: EnterTransition? = if (!on) null else slideInHorizontally(tween(ms)) { -it * side / 4 } + fadeIn(tween(ms))
-    val popExit: ExitTransition? = if (!on) null else slideOutHorizontally(tween(ms)) { it * side } + fadeOut(tween(ms / 2, delayMillis = ms / 2))
+    val popEnter: EnterTransition? = if (!on) null else slideInHorizontally(tween(popMs)) { -it * side / 4 } + fadeIn(tween(popMs))
+    val popExit: ExitTransition? = if (!on) null else slideOutHorizontally(tween(popMs)) { it * side } + fadeOut(tween(popMs))
 }
 
 private fun miniHeight(style: MiniPlayerStyle): Dp = when (style) {
@@ -536,30 +539,44 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                 else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
         val navController = rememberNavController()
-        var playerOpen by rememberSaveable { mutableStateOf(false) }
+        // Keep the state object (not just its value) so the remembered open/close lambdas below can read it at call time
+        // instead of capturing a value that would go stale between root recompositions.
+        val playerOpenState = rememberSaveable { mutableStateOf(false) }
+        var playerOpen by playerOpenState
         val motionScope = rememberCoroutineScope()
         // One way in and one way out, for taps, buttons, links and actions alike: the same morph (PlayerMorph), and the
-        // page the action names (the queue, the lyrics) is what the player opens on.
-        fun openPlayer() {
-            playerOpen = true
-            PlayerMorph.open(motionScope, c.settings.current.reduceMotion)
+        // page the action names (the queue, the lyrics) is what the player opens on. Remembered on stable state holders so
+        // the mini player and Navigator don't get a fresh lambda on every root recomposition.
+        val openPlayer = remember(motionScope, c, playerOpenState) {
+            {
+                playerOpenState.value = true
+                PlayerMorph.open(motionScope, c.settings.current.reduceMotion)
+            }
         }
-        fun closePlayer() {
-            if (!playerOpen && PlayerMorph.progress <= 0f) return
-            playerOpen = false
-            PlayerMorph.close(motionScope, c.settings.current.reduceMotion)
+        val closePlayer = remember(motionScope, c, playerOpenState) {
+            {
+                if (playerOpenState.value || PlayerMorph.progress > 0f) {
+                    playerOpenState.value = false
+                    PlayerMorph.close(motionScope, c.settings.current.reduceMotion)
+                }
+            }
         }
         // Restored already open (a rotation, the task coming back): the player is there, not half-way in. Restored
         // closed, no number is left over from a close cut short by the rotation.
         LaunchedEffect(Unit) { PlayerMorph.snap(if (playerOpen) 1f else 0f) }
         SideEffect {
-            PlayerMorph.animationsOff = settings.reduceMotion
+            // Snapshot writes are no-ops at equal values; guard them anyway so a root recomposition doesn't touch globals.
+            if (PlayerMorph.animationsOff != settings.reduceMotion) PlayerMorph.animationsOff = settings.reduceMotion
             // Only with both the flight and its return picked is a closing morph a return.
-            com.prism.music.ui.player.CoverFlight.backOn =
-                settings.view.coverFlight && settings.view.coverFlightBack && !settings.reduceMotion
+            val back = settings.view.coverFlight && settings.view.coverFlightBack && !settings.reduceMotion
+            if (com.prism.music.ui.player.CoverFlight.backOn != back) com.prism.music.ui.player.CoverFlight.backOn = back
         }
         val navigator = remember(navController) {
-            Navigator(navController, openPlayer = { playerOpen = true; PlayerMorph.request(null); PlayerMorph.open(motionScope, c.settings.current.reduceMotion) }, playMix = { mix ->
+            Navigator(navController, openPlayer = {
+                playerOpenState.value = true
+                PlayerMorph.request(null)
+                PlayerMorph.open(motionScope, c.settings.current.reduceMotion)
+            }, playMix = { mix ->
                 c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
                     val r = runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { c.radio(mix.seedVideoId, mix.id, mix.params, keepFirst = true) } }.getOrNull()
                     if (r == null || r.songs.isEmpty()) {
@@ -581,14 +598,18 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
         LaunchedEffect(Unit) { c.player.showPlayer.collect { PlayerMorph.request(null); openPlayer() } }
         com.prism.music.ui.components.LyricsToFilesHost()
         val haze = rememberHazeState()
-        val backStack by navController.currentBackStackEntryAsState()
-        val route = backStack?.destination?.route
+        val backStackState = navController.currentBackStackEntryAsState()
+        // Only the two things the root actually uses are derived from the entry. Reading the whole entry with `by`
+        // recomposed the root on every back-stack change, even when the visible route and chrome stayed the same.
+        val route by remember(backStackState) { derivedStateOf { backStackState.value?.destination?.route } }
+        val onboardingArg by remember(backStackState) { derivedStateOf { backStackState.value?.arguments?.getBoolean("onboarding") == true } }
         // The artist picker right after the welcome screen is part of setting up too: no tab bar or rail over it (its
         // Done button sat under the tab bar on phones, which it measures itself against when it's opened from Settings).
-        val onboardingPicker = (route?.startsWith(Routes.PICK_ARTISTS) == true || route?.startsWith(Routes.ACCOUNT) == true) &&
-            backStack?.arguments?.getBoolean("onboarding") == true
+        val onboardingPicker = (route?.startsWith(Routes.PICK_ARTISTS) == true || route?.startsWith(Routes.ACCOUNT) == true) && onboardingArg
         val showChrome = route != Routes.LOGIN && route != Routes.LOGIN_ADD && route != Routes.DISCORD_LOGIN && route != Routes.WELCOME && !onboardingPicker
-        val tabs = settings.navTabs.map { it.tab(settings.tabNames[it]) }
+        // Stable identity: the tab list feeds TabBar, NavRail, swipeBetweenTabs and the NavHost transition specs. A fresh
+        // list every root recomposition would restart the pointer input and rebuild all of those.
+        val tabs = remember(settings.navTabs, settings.tabNames) { settings.navTabs.map { it.tab(settings.tabNames[it]) } }
 
         val together by c.together.state.collectAsState()
         val inSession = together is com.prism.music.playback.together.TogetherState.Hosting || together is com.prism.music.playback.together.TogetherState.Guest
@@ -630,32 +651,32 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
         // screen is a real destination, so signing in from it navigates inside a graph that already exists.
         val root = remember { (settings.startTab.takeIf { it in settings.navTabs } ?: settings.navTabs.first()).tab().route }
         val start = remember { if (!settings.onboarded && !settings.isLoggedIn) Routes.WELCOME else root }
-        val goRoot: () -> Unit = {
-            navController.navigate(root) {
-                popUpTo(navController.graph.id) { inclusive = true }
-                launchSingleTop = true
+        val goRoot: () -> Unit = remember(navController, root) {
+            {
+                navController.navigate(root) {
+                    popUpTo(navController.graph.id) { inclusive = true }
+                    launchSingleTop = true
+                }
             }
         }
 
-        // The tab bar shrinks while you scroll down a page and grows back as you scroll up.
-        var barCompact by remember { mutableStateOf(false) }
-        val barScroll = remember {
+        // The tab bar shrinks while you scroll down a page and grows back as you scroll up. The state is held as an
+        // object so only the two writes (scroll threshold, route change) touch it; the per-frame animation lives in
+        // TabBar itself, where it can't recompose the whole app on every frame of the scroll.
+        val barCompact = remember { mutableStateOf(false) }
+        val barScroll = remember(barCompact) {
             object : NestedScrollConnection {
                 var acc = 0f
                 override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                     val dy = available.y
                     if (dy == 0f || abs(available.x) > abs(dy)) return Offset.Zero
                     acc = if ((acc < 0) == (dy < 0)) acc + dy else dy
-                    if (acc < -28f) barCompact = true else if (acc > 28f) barCompact = false
+                    if (acc < -28f) barCompact.value = true else if (acc > 28f) barCompact.value = false
                     return Offset.Zero
                 }
             }
         }
-        LaunchedEffect(route) { barCompact = false }
-        val barT by animateFloatAsState(
-            if (barCompact && settings.navHideOnScroll) 1f else 0f,
-            spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow), label = "bar",
-        )
+        LaunchedEffect(route) { barCompact.value = false }
         // The chrome (mini player, Together pill, the selection bar) rises into place and leaves the same way, at one
         // speed everywhere; with reduced motion it's there at once.
         val chromeMs = if (settings.reduceMotion) 0 else com.prism.music.ui.theme.PrismTokens.Motion.STANDARD
@@ -683,7 +704,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
             deepLink.collect { uri -> if (uri != null) { handleDeepLink(uri, navigator, c); deepLink.value = null } }
         }
 
-        val selectTab: (String) -> Unit = { r ->
+        val selectTab: (String) -> Unit = remember(navController, navigator, tabs, root, goRoot) { { r ->
             // The tab whose pages are showing: the first tab page above the root, else the root's own.
             val tabRoutes = tabs.map { it.route }.toSet()
             // Optional arguments aside ("liked?genre={genre}" is the Liked songs tab).
@@ -708,7 +729,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
             // Search's tab tapped while Search is already showing (1.8.6): its keyboard comes up. Tapping it to open
             // Search leaves the keyboard down when "Tapping Search again" is picked.
             if (r == Routes.SEARCH && r == currentTab) navigator.requestSearchKeyboard()
-        }
+        } }
 
         // "Customize this" (1.7.3): the element tapped and, for a Home section, which one.
         var customizing by remember { mutableStateOf<Pair<com.prism.music.ui.components.CustomizeTarget, String?>?>(null) }
@@ -766,6 +787,10 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                     }
                     val fadeEase = com.prism.music.ui.theme.PrismTokens.Motion.Ease
                     val fadeSpec = tween<Float>(fadeMs, easing = fadeEase)
+                    // Back (and predictive back) uses the quick fade, so the previous page resolves as the gesture
+                    // commits. Opening a page keeps the longer cross-fade.
+                    val popFadeMs = if (fadeMs == 0) 0 else minOf(fadeMs, com.prism.music.ui.theme.PrismTokens.Motion.QUICK)
+                    val popFadeSpec = tween<Float>(popFadeMs, easing = fadeEase)
                     // Between two tabs, the bar has already said what happened: the pages hand over quicker than a page
                     // opening from a list or a card does. (A tab's page with arguments, "liked?genre=…", is still its tab.)
                     val tabRoutesList = tabs.map { it.route.substringBefore('?') }
@@ -794,22 +819,22 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                             // A tab tapped on the bar is a move between two tabs even when Back to it pops: it still
                             // comes from its side of the bar, not from the "back" side.
                             (if (isTabSwap(initialState, targetState)) slides.enter else slides.popEnter)
-                                ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                                ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else popFadeSpec)
                         },
                         popExitTransition = {
                             val slides = slidesOf(initialState, targetState)
                             (if (isTabSwap(initialState, targetState)) slides.exit else slides.popExit)
-                                ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                                ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else popFadeSpec)
                         },
                         predictivePopEnterTransition = {
                             val slides = slidesOf(initialState, targetState)
                             (if (isTabSwap(initialState, targetState)) slides.enter else slides.popEnter)
-                                ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                                ?: if (fadeMs == 0) EnterTransition.None else fadeIn(if (isTabSwap(initialState, targetState)) tabFadeSpec else popFadeSpec)
                         },
                         predictivePopExitTransition = {
                             val slides = slidesOf(initialState, targetState)
                             (if (isTabSwap(initialState, targetState)) slides.exit else slides.popExit)
-                                ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else fadeSpec)
+                                ?: if (fadeMs == 0) ExitTransition.None else fadeOut(if (isTabSwap(initialState, targetState)) tabFadeSpec else popFadeSpec)
                         },
                     ) {
                         composable(Routes.WELCOME) {
@@ -1066,7 +1091,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                                 }
                             }
                         })
-                        Box(Modifier.customizable(com.prism.music.ui.components.CustomizeTarget.TAB_BAR)) { TabBar(tabs, route, barT, settings, joinedMini, selectTab) }
+                        Box(Modifier.customizable(com.prism.music.ui.components.CustomizeTarget.TAB_BAR)) { TabBar(tabs, route, barCompact, settings, joinedMini, selectTab) }
                     }
                 }
                 AnimatedVisibility(
@@ -1087,8 +1112,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                 if (artAhead != null) {
                     val warmContext = androidx.compose.ui.platform.LocalContext.current
                     LaunchedEffect(artAhead, settings.fullBleedArtwork, settings.playerBackground, settings.playerBlur) {
-                        // Not as the song starts, whose own start comes first, nor for a song skipped straight past.
-                        kotlinx.coroutines.delay(1_500)
+                        // Let playback start settle, then have the art ready well before the player is opened: waiting
+                        // 1.5 s left decode/blur work landing in the middle of a quick open (the art was cold).
+                        kotlinx.coroutines.delay(200)
                         runCatching {
                             com.prism.music.ui.player.warmPlayerArt(
                                 warmContext, artAhead, settings.fullBleedArtwork,
@@ -1105,8 +1131,8 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                 val playerLeaving by remember { derivedStateOf { !playerOpen && PlayerMorph.progress > 0f } }
                 if (playerOpen || morphKeepsPlayer) {
                     androidx.compose.runtime.SideEffect {
-                        playerCover.settled = playerSettled
-                        playerCover.leaving = playerLeaving
+                        if (playerCover.settled != playerSettled) playerCover.settled = playerSettled
+                        if (playerCover.leaving != playerLeaving) playerCover.leaving = playerLeaving
                     }
                     androidx.compose.runtime.DisposableEffect(Unit) {
                         onDispose {
@@ -1156,8 +1182,10 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                 // The cover, title, artist and play control between the two players' places, on the same number.
                 val shownMorph = (song ?: lastChromeSong.value)?.let { com.prism.music.data.SongVersions.shownOf(it) }
                 com.prism.music.ui.player.CoverFlightLayer((song ?: lastChromeSong.value)?.let { com.prism.music.data.PlaylistCovers.artOf(it) })
+                // The overlay reads LocalMusicPlaying itself; reading the play state here would invalidate the whole
+                // root — and every screen in the NavHost — on every play/pause.
                 if (shownMorph != null) com.prism.music.ui.player.PlayerMorphLayer(
-                    shownMorph.title, shownMorph.artistText, musicPlaying.value,
+                    shownMorph.title, shownMorph.artistText,
                 )
 
                 // Looks (1.7.3): "Undo" after each change to the look, and "Customize this" while it's on.
@@ -1318,14 +1346,18 @@ private fun isSelected(tab: Tab, route: String?): Boolean =
 /** The tabs' own row (bar or rail), for in-app tests: a page's chip can carry a tab's name too ("Replay", 1.8.5). */
 const val NAV_TABS_TAG = "nav:tabs"
 
-/** @param compact 0 = full bar, 1 = slim bar (while scrolling down). */
+/** @param compactTarget Whether the list is scrolled down; the bar eases between the two heights here, in its own scope. */
 @Composable
 private fun TabBar(
-    tabs: List<Tab>, route: String?, compact: Float, settings: AppSettings,
+    tabs: List<Tab>, route: String?, compactTarget: androidx.compose.runtime.State<Boolean>, settings: AppSettings,
     /** The mini player joined on top of a floating bar, in the same glass (1.7.6). */
     joined: (@Composable () -> Unit)? = null,
     onSelect: (String) -> Unit,
 ) {
+    val compact by animateFloatAsState(
+        if (compactTarget.value && settings.navHideOnScroll) 1f else 0f,
+        spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow), label = "bar",
+    )
     val barSize = settings.navBarSize
     val tint = navFill(settings.navBarFill)
     val material = com.prism.music.ui.theme.LocalUi.current.material

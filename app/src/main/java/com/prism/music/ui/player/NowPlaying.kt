@@ -518,7 +518,10 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
             if (!leaving && closing) closing = false
         }
     }
-    BackHandler {
+    // While the player is sliding closed, slideClosed() returns early: an enabled handler would swallow Back for the
+    // whole 380 ms window. Letting go of the handler as soon as the close starts keeps Back live during that time;
+    // the dismissal itself (the morph and its delay) is untouched.
+    BackHandler(enabled = !closing) {
         when {
             fullscreenVideo || (videoMode && sidewaysFull) -> leaveFullscreenVideo()
             // A wide player always shows its lyrics pane: "open" (left from portrait) isn't something Back undoes there.
@@ -559,16 +562,22 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         if (menuBySwipe && !showActions) menuBySwipe = false
     }
     val p: () -> Float = { panelShift.value }
-    val collapsePastHalf = panelShift.value >= 0.5f
+    // The thresholds that steer composable branches go through derived states: each flips only when the panel's number
+    // crosses it, where a direct read invalidated this whole composition on every frame of the panel's morph.
+    val collapsePastHalf by remember { derivedStateOf { panelShift.value >= 0.5f } }
+    val panelFull by remember { derivedStateOf { panelShift.value >= 1f } }
+    val panelAlmostClosed by remember { derivedStateOf { panelShift.value < 0.999f } }
+    val panelAtStart by remember { derivedStateOf { panelShift.value < 0.01f } }
     // What the player was left showing is kept once the panel has settled (not from a pull that turned back).
-    LaunchedEffect(lyricsOpen, queueOpen, pageMemory, wide, panelShift.value >= 1f) {
-        if (!wide && panelShift.value >= 1f) pageMemory?.keep(PlayerPage.of(lyricsOpen, queueOpen))
+    LaunchedEffect(lyricsOpen, queueOpen, pageMemory, wide, panelFull) {
+        if (!wide && panelFull) pageMemory?.keep(PlayerPage.of(lyricsOpen, queueOpen))
     }
     // Settings → Player → What's on the player (1.8.0): a hidden part leaves the player; the cover, title and buttons come
     // back in the header over the lyrics and the queue, where they say which song it is.
     val inHeader = { part: PlayerPart -> settings.shows(part) || collapsePastHalf }
-    // The panel itself comes in with the morph's last part, and follows a finger pulling it away.
-    val panelFade = ((panelShift.value - 0.55f) / 0.45f).coerceIn(0f, 1f)
+    // The panel itself comes in with the morph's last part, and follows a finger pulling it away. Its number is read
+    // where it is used, inside the three layers below.
+    val panelFade: () -> Float = { ((panelShift.value - 0.55f) / 0.45f).coerceIn(0f, 1f) }
     // The listener's own Reduce motion, not Performance mode's (Reddit, 1.7.9.3: Performance mode turns Reduce motion on,
     // which took the shrink away too; it's one scale of one layer, nothing to save).
     val ownReduceMotion = c.settings.stored.collectAsState().value.reduceMotion
@@ -647,8 +656,11 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         (material && !com.prism.music.ui.theme.LocalIsDark.current && settings.playerBackground == com.prism.music.data.prefs.PlayerBackground.THEME)) &&
         !wide && !canvasBehind && !videoBehind &&
         fullBlur < 0.5f && !(settings.immersivePlayer && (!videoMode || settings.view.immersiveVideo))
-    PlayerInk.light = inkLight
-    PlayerInk.accentAdapted = inkLight && material
+    // These are global snapshot states: writing the same value on every recomposition invalidated every reader for
+    // nothing. Only write when the value actually changes.
+    if (PlayerInk.light != inkLight) PlayerInk.light = inkLight
+    val accentAdapted = inkLight && material
+    if (PlayerInk.accentAdapted != accentAdapted) PlayerInk.accentAdapted = accentAdapted
     DisposableEffect(Unit) { onDispose { PlayerInk.light = false; PlayerInk.accentAdapted = false } }
     // The status bar's and the navigation bar's icons dark over it too.
     DisposableEffect(inkLight, settings.playerNavBand) {
@@ -672,7 +684,9 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     // Collapsed into the header thumbnail, the sleeve keeps gentle corners whatever the setting.
     // A Full width cover meets the screen's edges, so it has square corners until it shrinks into the header.
     val artCorners = if (settings.coverSize == com.prism.music.data.prefs.CoverSize.FULL) 0.dp else settings.playerArtCorners.dp
-    // Another shape picked for the player's cover (1.7.7) keeps it all the way into the header.
+    // Another shape picked for the player's cover (1.7.7) keeps it all the way into the header. Its corner follows the
+    // panel's number, but the shape is also the shadow's and the play flash's, both composition-level arguments: moving
+    // just the clip to a graphicsLayer would change how those land, so this read stays here.
     val artShape = when {
         material -> RoundedCornerShape(lerp(artCorners, 8.dp, panelShift.value))
         vinyl -> CircleShape
@@ -1163,7 +1177,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         .clip(RoundedCornerShape(2.dp))
                         .background(Color.White.copy(alpha = 0.6f)),
                 )
-                if (panelShift.value < 0.999f && settings.showPlayingFrom && originAlbum != null) PlaybackOriginCaption(
+                if (panelAlmostClosed && settings.showPlayingFrom && originAlbum != null) PlaybackOriginCaption(
                     // The song's own album, which needn't be what's playing (a playlist, a radio): not "Playing from".
                     tr(R.string.from_the_album_2, originAlbum.title),
                     Modifier.align(Alignment.BottomCenter).graphicsLayer { alpha = 1f - p() },
@@ -1406,7 +1420,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             },
                             horizontalAlignment = if (centred) Alignment.CenterHorizontally else Alignment.Start,
                         ) {
-                            val scrolls = panelShift.value < 0.01f && !covered && settings.playerTitleScroll
+                            val scrolls = panelAtStart && !covered && settings.playerTitleScroll
                             // With the ⋯ button hidden (1.8.0), a long press on the title or the artist opens the menu.
                             val menuHeld: (() -> Unit)? = if (settings.shows(PlayerPart.MENU)) null else ({ showActions = true })
                             // #328: the title, artists and album of the version picked to play in its place, if any.
@@ -1487,8 +1501,9 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             onRevealControls = { lyricsControlsOpen = true },
                             onHideControls = { if (!controlsStay) lyricsControlsOpen = false },
                             modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT).graphicsLayer {
-                                alpha = panelFade
-                                translationY = panelRise(panelFade).toPx()
+                                val fade = panelFade()
+                                alpha = fade
+                                translationY = panelRise(fade).toPx()
                             },
                             onChangeSource = { showProviders = true },
                         )
@@ -1496,8 +1511,9 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                     if (statsOpen) {
                         NerdStatsPanel(
                             Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
-                                alpha = panelFade
-                                translationY = panelRise(panelFade).toPx()
+                                val fade = panelFade()
+                                alpha = fade
+                                translationY = panelRise(fade).toPx()
                             },
                         )
                     }
@@ -1507,8 +1523,9 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             onHidePlayer = { if (!controlsStay) queueControlsOpen = false },
                             onClose = { haptics.gestureEnd(); toggleQueue() },
                             modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
-                                alpha = panelFade
-                                translationY = panelRise(panelFade).toPx()
+                                val fade = panelFade()
+                                alpha = fade
+                                translationY = panelRise(fade).toPx()
                             },
                         )
                     }
@@ -1625,6 +1642,8 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         // the deck's height eased after them: a jump up and then a slide down on opening, the same the
                         // other way round on closing.)
                         val panelsUp = lyricsOpen || queueOpen || statsOpen
+                        // The deck genuinely needs the number in composition: it decides which parts are on screen and
+                        // how tall each one is at that instant, so there is no single layer property to defer this to.
                         val panel = panelShift.value
                         // Small (#230): over the lyrics or the queue, only the progress, a smaller transport and the
                         // buttons (they switch between lyrics and queue), so the list keeps most of the screen.

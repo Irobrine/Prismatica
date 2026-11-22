@@ -54,6 +54,10 @@ import java.util.concurrent.TimeUnit
 /** About 10 seconds of a song's stream (Opus ~160 kbps, AAC up to 256 kbps), saved ahead by [AppContainer.warmUp]. */
 private const val PREBUFFER_BYTES = 320L * 1024
 private const val YIELD_MS = 8_000L
+/** How long startup work waits for the first screen before going ahead anyway. */
+private const val FIRST_FRAME_WAIT_MS = 5_000L
+/** A moment after the screen is up, so its first frame has been drawn before the work starts. */
+private const val FIRST_FRAME_SETTLE_MS = 500L
 
 class PrismApp : Application(), coil3.SingletonImageLoader.Factory {
     lateinit var container: AppContainer
@@ -123,6 +127,10 @@ class PrismApp : Application(), coil3.SingletonImageLoader.Factory {
         CrashLog.install(this)
         // A restore from a backup goes in before anything opens the files it replaces.
         com.prism.music.data.Backup.applyPending(this)
+        // AppContainer's constructor reads the stored settings synchronously (the first screen needs the real values,
+        // not defaults). Open the store on IO first, after any restore has put its file in place, so that read finds
+        // DataStore's in-memory copy instead of waiting for the file here on the main thread.
+        com.prism.music.data.prefs.SettingsRepository.warm(this)
         // Before any icon is built: they're drawn in the style picked in Settings → Appearance → Icons.
         com.prism.music.ui.theme.IconStyle.load(this)
         com.prism.music.ui.theme.AppFonts.init(this)
@@ -303,6 +311,21 @@ class AppContainer(val app: Application) {
 
     /** One of Prism's screens is showing (an activity is started); set by [PrismApp]. */
     val visible = MutableStateFlow(false)
+
+    /**
+     * Runs [work] off the main thread once the first screen has had a chance to draw. [PrismApp] sets [visible] in
+     * onStart, which is after the activity's onCreate (where the startup calls come from) has laid out its content,
+     * so waiting for it puts the work behind the first frame. The wait is bounded: work asked for with no activity
+     * still always runs. Used by the library sync and the local-music / lossless scans, none of which the first frame
+     * needs.
+     */
+    internal fun afterFirstFrame(work: suspend () -> Unit) {
+        scope.launch(Dispatchers.IO) {
+            if (!visible.value) kotlinx.coroutines.withTimeoutOrNull(FIRST_FRAME_WAIT_MS) { visible.first { it } }
+            kotlinx.coroutines.delay(FIRST_FRAME_SETTLE_MS)
+            work()
+        }
+    }
 
     /**
      * Shows Android's notification prompt (set by the activity on screen). It isn't asked at start-up any more, with
@@ -544,6 +567,11 @@ class AppContainer(val app: Application) {
     }
     /** Shrinks the song cache to fit, after Smart Downloads' space or its picks changed. */
     fun trimSongCache() { scope.launch(Dispatchers.IO) { runCatching { cacheEvictor.trim(playerCache) } } }
+    init {
+        // SimpleCache opens its own database the first time it is touched. Warm it on IO so a composition asking
+        // availableOffline() never has to construct it (or open that database) on the main thread.
+        scope.launch(Dispatchers.IO) { runCatching { playerCache } }
+    }
     val downloadCache: SimpleCache by lazy {
         SimpleCache(File(app.filesDir, "downloads"), NoOpCacheEvictor(), databaseProvider)
     }
@@ -568,16 +596,20 @@ class AppContainer(val app: Application) {
     val models = com.prism.music.data.ModelStore(app, http)
     /** Library → Local music: the phone's own music files. */
     val localMusic = com.prism.music.data.local.LocalMusic(app, scope) { settings.current.behavior.localSkipFolders }.also { music ->
-        // Before the first scan, so its titles' Japanese kanji can be read if the dictionary is already here (#363).
-        com.prism.music.data.local.SearchTags.watch(models)
-        music.start()
+        // The MediaStore observer is a system call and the scan reads the phone's files: both can wait until the
+        // first screen is up. Setting the tags' model still happens before the first scan (#363).
+        afterFirstFrame {
+            com.prism.music.data.local.SearchTags.watch(models)
+            music.start()
+        }
         // #207, #249: folders ticked or unticked (or brought back by a restored backup).
         scope.launch { settings.flow.map { it.behavior.localSkipFolders }.distinctUntilChanged().drop(1).collect { music.rescan() } }
     }
     val losslessSync by lazy { com.prism.music.download.LosslessSync(app, this) }
     // Started only after localLossless exists: a launch from an earlier init block can run on a
-    // background thread before this property is assigned.
-    init { losslessSync.start() }
+    // background thread before this property is assigned. Its observer and WorkManager schedule are
+    // set up behind the first screen too, off the main thread (as with the local-music scan above).
+    init { afterFirstFrame { losslessSync.start() } }
     val taste = com.prism.music.data.TasteRepository(this)
     /** Playlists and saved albums kept on the phone (no account needed). */
     val prismLibrary = com.prism.music.data.PrismLibrary(java.io.File(app.filesDir, "library"))
@@ -885,10 +917,16 @@ class AppContainer(val app: Application) {
     /** Data saver is on and the phone is on mobile data (#40): smaller pictures, no artist photos or animated covers. */
     fun dataSaving(): Boolean = settings.current.dataSaver && network.metered.value
 
-    /** Whether a song plays without the network: a file on the phone, a finished download, or a song cached whole. */
+    /**
+     * Whether a song plays without the network: a file on the phone, a finished download, or a song cached whole.
+     * The download part reads [downloadState] (the same map the download repository publishes to its own state) rather
+     * than touching the downloads lazy: screens call this from composition, and constructing the download manager
+     * there opens its database on the main thread. [playerCache]'s metadata read is still done here, but the cache
+     * itself is opened on IO at start (see its init block above).
+     */
     fun availableOffline(id: String): Boolean =
         id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX) || versions.fileOf(id) != null ||
-            downloads.isDownloaded(id) ||
+            downloadState.value[id]?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED ||
             runCatching { playerCache.fullyCached(songCacheKey(id), 0, C.LENGTH_UNSET.toLong()) }.getOrDefault(false)
 
     private fun Cache.fullyCached(key: String, position: Long, length: Long): Boolean {

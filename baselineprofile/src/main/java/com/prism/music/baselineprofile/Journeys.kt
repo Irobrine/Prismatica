@@ -199,6 +199,35 @@ object Journeys {
         device.waitForIdle(1_000)
     }
 
+    /** Tap through every main tab and back to Home: each switch composes a new screen, then settles. */
+    fun MacrobenchmarkScope.switchTabs() {
+        tab("Home")
+        device.waitForIdle(1_000)
+        tab("Search")
+        device.waitForIdle(1_000)
+        tab("Library")
+        device.waitForIdle(1_000)
+        tab("Settings")
+        device.waitForIdle(1_000)
+        tab("Home")
+        device.waitForIdle(1_000)
+    }
+
+    /**
+     * Open a Settings sub-page (as [settings] does), then Back twice: to the Settings root, then to the tab bar.
+     * [tab] gets past onboarding and any late prompt, so this works on a fresh signed-out install.
+     */
+    fun MacrobenchmarkScope.backFromSettings() {
+        tab("Settings")
+        if (device.wait(Until.findObject(By.text("Customize Prism")), WAIT)?.tap() != true) return
+        device.waitForIdle(2_000)
+        flingPage(down = true, times = 2)
+        device.pressBack()
+        device.waitForIdle(1_000)
+        device.pressBack()
+        device.waitForIdle(1_000)
+    }
+
     /** A click that tolerates the view being redrawn between finding and clicking it (the lyrics button does). */
     private fun UiObject2.tap(): Boolean = try {
         click(); true

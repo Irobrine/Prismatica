@@ -16,6 +16,10 @@ import com.prism.music.container
 import com.prism.music.data.db.PlayEventEntity
 import com.prism.music.data.db.toEntity
 import com.prism.music.data.model.Song
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import kotlin.math.exp
@@ -179,6 +183,13 @@ class SmartDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
         /** The share of Smart Downloads' space its picks may fill; the song cache keeps the rest. */
         const val PICK_SHARE = 0.75
 
+        /**
+         * WorkManager opens its own database the first time it is asked for. MainActivity calls [schedule] and
+         * [runNow] while its first screen is being made, so all of WorkManager's access and enqueuing happens here,
+         * off the caller's thread. The jobs and their constraints are unchanged.
+         */
+        private val workScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
         /** Wi-Fi only, unless Smart Downloads may use mobile data. */
         private fun constraints(cellular: Boolean) = Constraints.Builder()
             .setRequiredNetworkType(if (cellular) NetworkType.CONNECTED else NetworkType.UNMETERED)
@@ -188,26 +199,32 @@ class SmartDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
 
         /** [cellular]: whether it may run on mobile data (the setting, unless it's just been changed). */
         fun schedule(context: Context, enabled: Boolean, cellular: Boolean = context.container.settings.current.smartDownloadsCellular) {
-            val wm = WorkManager.getInstance(context)
-            if (!enabled) {
-                wm.cancelUniqueWork("smart_downloads")
-                return
+            val app = context.applicationContext
+            workScope.launch {
+                val wm = WorkManager.getInstance(app)
+                if (!enabled) {
+                    wm.cancelUniqueWork("smart_downloads")
+                    return@launch
+                }
+                val req = PeriodicWorkRequestBuilder<SmartDownloadWorker>(12, TimeUnit.HOURS).setConstraints(constraints(cellular)).build()
+                wm.enqueueUniquePeriodicWork("smart_downloads", ExistingPeriodicWorkPolicy.UPDATE, req)
             }
-            val req = PeriodicWorkRequestBuilder<SmartDownloadWorker>(12, TimeUnit.HOURS).setConstraints(constraints(cellular)).build()
-            wm.enqueueUniquePeriodicWork("smart_downloads", ExistingPeriodicWorkPolicy.UPDATE, req)
         }
 
         private const val KEY_FORCE = "force"
 
         /** [force] lets this run add a slice even if one was added recently (e.g. the size setting changed). */
         fun runNow(context: Context, force: Boolean = true, cellular: Boolean = context.container.settings.current.smartDownloadsCellular) {
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                "smart_downloads_now", ExistingWorkPolicy.REPLACE,
-                OneTimeWorkRequestBuilder<SmartDownloadWorker>()
-                    .setConstraints(constraints(cellular))
-                    .setInputData(androidx.work.workDataOf(KEY_FORCE to force))
-                    .build(),
-            )
+            val app = context.applicationContext
+            workScope.launch {
+                WorkManager.getInstance(app).enqueueUniqueWork(
+                    "smart_downloads_now", ExistingWorkPolicy.REPLACE,
+                    OneTimeWorkRequestBuilder<SmartDownloadWorker>()
+                        .setConstraints(constraints(cellular))
+                        .setInputData(androidx.work.workDataOf(KEY_FORCE to force))
+                        .build(),
+                )
+            }
         }
     }
 }

@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -62,7 +64,10 @@ object CoverFlight {
 /** The flying cover, over everything, while [CoverFlight.flying]. */
 @Composable
 fun CoverFlightLayer(thumbnail: String?) {
-    if (!CoverFlight.flying) return
+    // `flying` looks at the morph's number. Read through a derived state, this gate flips only when the flight starts
+    // or ends, instead of recomposing the layer on every frame of it (the number itself is read in the two lambdas).
+    val flying by remember { derivedStateOf { CoverFlight.flying } }
+    if (!flying) return
     val from = CoverFlight.mini ?: return
     val to = CoverFlight.player ?: return
     val density = LocalDensity.current

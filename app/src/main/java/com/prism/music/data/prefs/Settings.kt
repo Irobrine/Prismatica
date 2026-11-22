@@ -15,6 +15,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -3335,6 +3337,19 @@ class SettingsRepository(
     }
 
     companion object {
+        /** The store is opened once for the process; one read is enough to warm DataStore's in-memory copy. */
+        private val warmScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        /**
+         * Reads the settings file on IO before this repository's constructor asks for it synchronously. The first
+         * screen reads `current` straight after construction, so `raw` must still hold the real stored values there;
+         * this only makes that read find DataStore's in-memory copy instead of the file.
+         * PrismApp calls it at the start of onCreate, after a restore has put its file in place.
+         */
+        fun warm(context: Context) {
+            warmScope.launch { runCatching { context.dataStore.data.first() } }
+        }
+
         private val lyricsOnPhoneSplit = booleanPreferencesKey("car_lyrics_on_phone_split_184")
 
         /**

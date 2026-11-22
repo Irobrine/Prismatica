@@ -171,6 +171,14 @@ ksp {
     arg("room.generateKotlin", "true")
 }
 
+// Compose compiler metrics and reports, for chasing recomposition/stability regressions (written under build/, so
+// never committed). Reports only: nothing here changes the compiler's output, no strong skipping, no stability config.
+// `composeCompiler` is the extension the org.jetbrains.kotlin.plugin.compose plugin (2.4.20) adds.
+composeCompiler {
+    reportsDestination = layout.buildDirectory.dir("compose_compiler")
+    metricsDestination = layout.buildDirectory.dir("compose_compiler")
+}
+
 // The builds :baselineprofile makes from release (benchmarkRelease, nonMinifiedRelease) can be traced and profiled from
 // adb, as the side-by-side test copy can; the real release can't.
 androidComponents {

@@ -213,16 +213,22 @@ fun rememberCoverGradient(url: String?): CoverGradient? {
  */
 @Composable
 fun CoverGradientBackdrop(gradient: CoverGradient?, depth: Float, modifier: Modifier = Modifier) {
-    val stops = gradient?.stops(depth)
+    // `stops` runs a handful of ColorUtils binary searches: its only inputs are the cover's colors and the depth,
+    // so work it out when those change rather than on every recomposition of the player.
+    val stops = remember(gradient, depth) { gradient?.stops(depth) }
     val quick = com.prism.music.ui.theme.LocalUi.current.reduceMotion
-    val spec = tween<Color>(if (quick) 0 else 900, easing = FastOutSlowInEasing)
-    val top by animateColorAsState(Color(stops?.top ?: PlayerFallbackBackdrop.toArgb()), spec, label = "gradientTop")
-    val middle by animateColorAsState(Color(stops?.middle ?: PlayerFallbackBackdrop.toArgb()), spec, label = "gradientMiddle")
-    val foot by animateColorAsState(Color(stops?.foot ?: PlayerFallbackBackdrop.toArgb()), spec, label = "gradientFoot")
+    val spec = remember(quick) { tween<Color>(if (quick) 0 else 900, easing = FastOutSlowInEasing) }
+    // Hold the animating states instead of delegating them here: reading their values in composition recomposed the
+    // whole player for every frame of the fade. Drawing reads them below, which only invalidates this layer.
+    val top = animateColorAsState(Color(stops?.top ?: PlayerFallbackBackdrop.toArgb()), spec, label = "gradientTop")
+    val middle = animateColorAsState(Color(stops?.middle ?: PlayerFallbackBackdrop.toArgb()), spec, label = "gradientMiddle")
+    val foot = animateColorAsState(Color(stops?.foot ?: PlayerFallbackBackdrop.toArgb()), spec, label = "gradientFoot")
     Spacer(
         modifier.fillMaxSize().graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithCache {
-            val paint = gradientPaint(top.toArgb(), middle.toArgb(), foot.toArgb(), size.width, size.height)
-            onDrawBehind { drawIntoCanvas { it.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint) } }
+            onDrawBehind {
+                val paint = gradientPaint(top.value.toArgb(), middle.value.toArgb(), foot.value.toArgb(), size.width, size.height)
+                drawIntoCanvas { it.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint) }
+            }
         },
     )
 }
