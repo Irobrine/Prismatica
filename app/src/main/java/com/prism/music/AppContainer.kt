@@ -131,10 +131,11 @@ class PrismApp : Application(), coil3.SingletonImageLoader.Factory {
         com.prism.music.playback.BackgroundBudget.where = {
             com.prism.music.playback.BackgroundBudget.whereOf(
                 onScreen = container.visible.value,
-                // A measuring walk or an enhancement batch the listener started runs under its own foreground service
-                // (MeasureService, EnhanceService): kept to a core's worth, as music playing is, rather than rested to
-                // nothing out of sight (1.1.3).
-                measuring = container.measureSongs.running.value,
+                // A measuring walk, a duplicate-finding walk or an enhancement batch the listener started runs under
+                // its own foreground service (MeasureService, DedupScanService, EnhanceService): kept to a core's worth,
+                // as music playing is, rather than rested to nothing out of sight (1.1.3). Without the dedup flag the
+                // budget calls it AWAY once the screen is off, and the decode pauses until the app is opened again.
+                measuring = container.measureSongs.running.value || container.dedup.scanner.running.value,
                 enhancing = container.enhancing,
                 playing = container.player.isPlaying.value || container.player.buffering.value,
             )
