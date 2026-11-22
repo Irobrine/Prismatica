@@ -126,6 +126,7 @@ fun HomeLibraryPage(bottomPadding: Dp, find: String? = null, showBack: Boolean =
     val offered = LibraryTile.offered(c.uploads.has.collectAsState().value)
     var arranging by rememberSaveable { mutableStateOf(false) }
     var editingTiles by rememberSaveable { mutableStateOf(false) }
+    var dedupSettings by rememberSaveable { mutableStateOf(false) }
 
     SettingsPageScaffold(page.title, bottomPadding, showBack = showBack, onSearch = onSearch, find = find, reset = reset.pageReset()) {
         group(HlGroups.home) {
@@ -183,6 +184,9 @@ fun HomeLibraryPage(bottomPadding: Dp, find: String? = null, showBack: Boolean =
                 tr(R.string.a_song_and_its_video_as), s.mergeLikedVideos,
                 info = tr(R.string.liked_both_they_show_once_as) + ". " + tr(R.string.when_you_ve_liked_a_song), changed = songAndVideoChanged,
             ) { prefs.setMergeLikedVideos(it) }
+            // The detailed duplicate settings live in their own sheet, so this page keeps its six-group budget.
+            LinkRow(tr(R.string.dedup_settings), value = tr(if (s.behavior.dedup.enabled) R.string.dedup_on else R.string.dedup_off),
+                icon = PrismIcons.Copy) { dedupSettings = true }
         }
         group(HlGroups.lists) {
             // Two switches as chips (plan §2.6); each is also in its list's sort menu.
@@ -217,6 +221,7 @@ fun HomeLibraryPage(bottomPadding: Dp, find: String? = null, showBack: Boolean =
     }
     if (arranging) ArrangeSearchSheet { arranging = false }
     if (editingTiles) LibraryTilesSheet { editingTiles = false }
+    if (dedupSettings) DedupSettingsSheet { dedupSettings = false }
 }
 
 /**
@@ -374,6 +379,9 @@ val homeLibraryIndex: List<SettingEntry> by lazy {
         SettingEntry(page, g.library, tr(R.string.details_under_each_one), tr(R.string.subtitles_counts_song_count_owner_year)),
         SettingEntry(page, g.library, tr(R.string.open_library_on), tr(R.string.start_tab)),
         SettingEntry(page, g.library, tr(R.string.a_song_and_its_video_as), words(R.string.merge_liked_music_video_duplicate_same, R.string.liked_songs)),
+        SettingEntry(page, g.library, tr(R.string.dedup_settings), words(R.string.dedup_hide, R.string.dedup_inherit, R.string.dedup_scan_now)),
+        SettingEntry(page, g.library, tr(R.string.dedup_global_default), words(R.string.dedup_hide, R.string.dedup_settings)),
+        SettingEntry(page, g.library, tr(R.string.dedup_scan_cellular), words(R.string.dedup_scan_now)),
         // Lists: the two chips of Show by their own names.
         SettingEntry(page, g.lists, tr(R.string.genres_on_playlists), tr(R.string.genres_on_playlists_keywords)),
         SettingEntry(page, g.lists, tr(R.string.album_names_in_downloads), tr(R.string.album_names_in_downloads_keywords)),

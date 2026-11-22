@@ -8,6 +8,7 @@ import com.prism.music.ui.theme.lit
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.border
 import com.prism.music.ui.components.PrismTextButton
+import com.prism.music.ui.components.rememberDedupList
 import com.prism.music.ui.theme.PrismIcons
 import com.prism.music.data.friendlyMessage
 import com.prism.music.data.albumFromPhone
@@ -446,6 +447,16 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
             SortMode.OLDEST -> filtered.asReversed()
         }
     }
+    // Duplicate hiding is per scope: an album, a playlist (and Liked, a tag's list, a mix) and Downloads each decide
+    // for themselves, inheriting the global default unless a page override was stored.
+    val dedupScope = when (type) {
+        CollectionType.ALBUM -> com.prism.music.data.dedup.DedupScope.ALBUMS
+        CollectionType.DOWNLOADS -> com.prism.music.data.dedup.DedupScope.DOWNLOADS
+        else -> com.prism.music.data.dedup.DedupScope.PLAYLISTS
+    }
+    val expandedDedup = remember(page.id) { mutableStateOf<Set<String>>(emptySet()) }
+    val dedup = rememberDedupList(visible, dedupScope, expandedDedup.value)
+    val dedupOutdated by c.dedup.scanner.indexOutdated.collectAsState()
     // The page's own id goes with the queue: exclusions ("leave this playlist out of my taste") and Smart Shuffle's
     // "Add to this playlist" know which playlist is playing.
     val source = QueueSource(
@@ -460,7 +471,8 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
     // Offline (#55): only songs on the phone (downloaded, cached whole, or files) play; the rest show greyed out.
     val online by c.network.online.collectAsState()
     val ready = remember(songs, downloads, online) { if (online) null else songs.filter { c.availableOffline(it.id) }.map { it.id }.toSet() }
-    val playable = remember(visible, ready) { if (ready == null) visible else visible.filter { it.id in ready } }
+    // A collection queue carries one version per group; a direct tap on a song still plays that exact version below.
+    val playable = remember(visible, ready, dedup) { dedup.queue(if (ready == null) visible else visible.filter { it.id in ready }) }
     val playFrom: (List<Song>, Song, QueueSource) -> Unit = { list, s, src ->
         if (ready != null && s.id !in ready) Toast.makeText(context, tr(R.string.you_re_offline_and_this_song), Toast.LENGTH_SHORT).show()
         else {
@@ -476,7 +488,7 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
     // A music video row played as its song (Songs in radios) is the playing row too: the queue knows the pair.
     val playingVideo = current?.id?.let { c.queue.counterparts[it] }
     val playingAt = remember(visible, current?.id, playingVideo) { com.prism.music.ui.components.LocatePlaying.indexIn(visible, current?.id, playingVideo) }
-    val playingRowId = com.prism.music.ui.components.LocatePlaying.rowId(visible, playingAt, current?.id)
+    val playingRowId = com.prism.music.ui.components.LocatePlaying.rowId(dedup.lines.map { it.song }, playingAt, current?.id)
     val songRows = remember { com.prism.music.ui.components.SongRowPlaces() }
     // A video row downloaded as its song counts as downloaded (#315).
     val standIns by c.downloadStandIns.collectAsState()
@@ -748,6 +760,8 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
     var addSongsSheet by remember { mutableStateOf(false) }
     // Duplicates found (1.8.3), shown in a sheet to take the extra copies out.
     var dupes by remember { mutableStateOf<List<com.prism.music.data.Duplicates.Group>?>(null) }
+    // The audio-fingerprint duplicate sheet: groups, suggestions, the manual scan and its settings.
+    var dedupSheet by remember { mutableStateOf(false) }
     var title by remember(page.id) { mutableStateOf(page.title) }
     // A smart playlist renamed in its rules' editor.
     LaunchedEffect(live.page.title) { title = live.page.title }
@@ -852,6 +866,11 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 6.dp),
                     )
                 }
+                if (dedup.enabled && dedupOutdated) item("dedupOutdated") {
+                    Text(tr(R.string.dedup_index_outdated), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp))
+                }
                 if (!sideBySide) item("play") { playRow() }
                 // Songs a smart playlist's Sound rules can't see yet, and Measure now (1.8.3).
                 if (smartRules != null && (live.unmeasured > 0 || measuring != null)) item("measure") {
@@ -883,6 +902,16 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
                                 HorizontalDivider()
                                 if (showGenres) DropdownMenuItem({ Text(tr(R.string.group_by_genre)) }, { toggleGenreGroups(); sortMenu = false }, trailingIcon = { if (groupByGenre) Icon(PrismIcons.Check, null) })
                                 DropdownMenuItem({ Text(tr(R.string.show_genres)) }, { c.settings.setPlaylistGenres(!showGenres); sortMenu = false }, trailingIcon = { if (showGenres) Icon(PrismIcons.Check, null) })
+                                // Quick duplicate toggle near the other list controls; detailed settings have an Inherit choice.
+                                DropdownMenuItem(
+                                    { Text(tr(if (dedup.enabled) R.string.dedup_on else R.string.dedup_off)) },
+                                    { c.settings.setDedupOverride(dedupScope, !dedup.enabled); sortMenu = false },
+                                    trailingIcon = { if (dedup.enabled) Icon(PrismIcons.Check, null) },
+                                )
+                                if (settings.behavior.dedup.overrides.split(',').any { it.startsWith(dedupScope.setting + ":") }) DropdownMenuItem(
+                                    { Text(tr(R.string.dedup_inherit)) },
+                                    { c.settings.setDedupOverride(dedupScope, null); sortMenu = false },
+                                )
                                 // #310: the album's name under each download, or just the artist.
                                 if (type == CollectionType.DOWNLOADS) DropdownMenuItem(
                                     { Text(tr(R.string.show_album_names)) }, { c.settings.setDownloadsAlbums(!showAlbums); sortMenu = false },
@@ -934,9 +963,22 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
                 } else {
                     songRows.grouped = null
                     songRows.start = added
-                    itemsIndexed(visible, key = { i, s -> "${s.id}:$i" }) { i, s ->
+                    itemsIndexed(dedup.lines, key = { i, line -> "${line.song.id}:$i" }) { i, line ->
+                        val s = line.song
+                        // A representative is tinted and says how many versions it stands for; an alternative shown
+                        // after opening the group says it belongs to that group. Neither is removed from the list data.
+                        val rowModifier = Modifier.locatePulse(locate, s.id)
+                            .then(if (line.representative) Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)) else Modifier)
+                        val groupActions = if (line.isGroup && line.groupId != null) listOf(
+                            SheetItem(
+                                PrismIcons.Copy,
+                                if (line.groupId in expandedDedup.value) tr(R.string.dedup_off) else tr(R.string.dedup_versions, line.count),
+                            ) {
+                                expandedDedup.value = if (line.groupId in expandedDedup.value) expandedDedup.value - line.groupId!! else expandedDedup.value + line.groupId!!
+                            },
+                        ) else emptyList()
                         // Swipe right: play next; left: add to the queue.
-                        com.prism.music.ui.components.SwipeToQueue(s, Modifier.locatePulse(locate, s.id)) {
+                        com.prism.music.ui.components.SwipeToQueue(s, rowModifier) {
                             SongRow(
                                 s,
                                 dim(s),
@@ -944,13 +986,21 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
                                 starred = s.id in popular,
                                 playing = playingRowId == s.id,
                                 // #314: a song playing from one of your own files says so ("MP3 · 320 kbps, from your file").
-                                trailingInfo = if (skippedCount > 0 && type != CollectionType.DOWNLOADS && com.prism.music.download.PlaylistDownloads.isSkipped(s.id, skipped, standIns)) tr(R.string.skipped_in_downloads)
-                                else if (type == CollectionType.ALBUM) formatDuration(s.durationSec)
-                                else if (type == CollectionType.DOWNLOADS && downloads[s.id]?.ownFile != null) tr(R.string.x_from_your_file, downloads[s.id]?.ownFile)
-                                else genreVersion.let { genres[s.id] }?.takeIf { sort == SortMode.GENRE || genreFilter == null && showGenres }?.let { g -> listOfNotNull(s.album?.title?.takeIf { showAlbums }, com.prism.music.data.meta.Genres.shown(g)).joinToString(" • ") },
-                                extraActions = removeAction(s) + skipAction(s),
+                                trailingInfo = when {
+                                    line.representative -> tr(R.string.dedup_versions, line.count)
+                                    line.alternative -> tr(R.string.dedup_group)
+                                    skippedCount > 0 && type != CollectionType.DOWNLOADS && com.prism.music.download.PlaylistDownloads.isSkipped(s.id, skipped, standIns) -> tr(R.string.skipped_in_downloads)
+                                    type == CollectionType.ALBUM -> formatDuration(s.durationSec)
+                                    type == CollectionType.DOWNLOADS && downloads[s.id]?.ownFile != null -> tr(R.string.x_from_your_file, downloads[s.id]?.ownFile)
+                                    else -> genreVersion.let { genres[s.id] }?.takeIf { sort == SortMode.GENRE || genreFilter == null && showGenres }?.let { g -> listOfNotNull(s.album?.title?.takeIf { showAlbums }, com.prism.music.data.meta.Genres.shown(g)).joinToString(" • ") }
+                                },
+                                extraActions = removeAction(s) + skipAction(s) + groupActions,
                                 showAlbum = showAlbums,
-                            ) { playFrom(visible, s, source) }
+                            ) {
+                                // Tapping a version plays that exact version; the collection's Play button uses the
+                                // deduplicated queue, so a normal play never repeats a recording.
+                                playFrom(if (line.alternative) visible else dedup.queue(visible), s, source)
+                            }
                         }
                     }
                 }
@@ -1075,6 +1125,7 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
                     add(SheetItem(PrismIcons.Delete, tr(R.string.delete_tag), danger = true) { deleting = true })
                 }
                 // 1.8.3: the same song twice (a video and its song, two uploads), from a list one can take songs out of.
+                add(SheetItem(PrismIcons.Copy, tr(R.string.dedup_title)) { dedupSheet = true })
                 if (selectRemover != null && type != CollectionType.TAG) add(SheetItem(PrismIcons.Copy, tr(R.string.find_duplicates)) {
                     val found = com.prism.music.data.Duplicates.find(songs)
                     if (found.isEmpty()) Toast.makeText(context, tr(R.string.no_song_is_here_twice), Toast.LENGTH_SHORT).show() else dupes = found
@@ -1094,6 +1145,8 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
         }
 
         if (addSongsSheet) AddSongsSheet(page.id, title) { addSongsSheet = false }
+
+        if (dedupSheet) DedupSheet(onDismiss = { dedupSheet = false })
 
         dupes?.let { groups ->
             DuplicatesSheet(groups, youTube = type == CollectionType.PLAYLIST, onDismiss = { dupes = null }) { extras ->

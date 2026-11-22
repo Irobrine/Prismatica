@@ -6,6 +6,7 @@ import com.prism.music.trp
 import androidx.compose.foundation.border
 import com.prism.music.ui.components.PrismButton
 import com.prism.music.ui.components.PrismTextButton
+import com.prism.music.ui.components.rememberDedupList
 import com.prism.music.ui.theme.PrismIcons
 import com.prism.music.data.friendlyMessage
 import com.prism.music.data.prefs.LibraryTile
@@ -375,6 +376,11 @@ fun LibraryScreen(bottomPadding: Dp) {
             else -> sortedSongs.filter { s -> words.all { it in songHay[s.id].orEmpty() } }
         }
     }
+    // Library Songs has its own dedup scope, independent of a playlist's or Downloads' choice.
+    val dedup = rememberDedupList(shownSongs, com.prism.music.data.dedup.DedupScope.SONGS)
+    var dedupSheet by remember { mutableStateOf(false) }
+    val songsShown = remember(shownSongs, dedup) { dedup.lines.map { it.song } }
+    val songsQueue = remember(shownSongs, dedup) { dedup.queue(shownSongs) }
     val albumSongs = remember(mine) { mine.filter { it.album?.id != null }.groupBy { it.album!!.id!! } }
     // Downloaded songs per album: by the album's id, and by its title for albums YouTube lists under another edition's id.
     val downloadedPerAlbum = remember(dls) {
@@ -795,19 +801,25 @@ fun LibraryScreen(bottomPadding: Dp) {
                                     com.prism.music.ui.components.RoundAction(PrismIcons.Song, tr(R.string.go_to_the_playing_song)) { go() }
                                 }
                                 Spacer(Modifier.width(8.dp))
-                                com.prism.music.ui.components.RoundAction(PrismIcons.Shuffle, tr(R.string.shuffle)) { if (shownSongs.isNotEmpty()) c.player.playQueue(shownSongs, 0, source, shuffle = true) }
+                                com.prism.music.ui.components.RoundAction(PrismIcons.Copy, tr(R.string.dedup_hide)) {
+                                    c.settings.setDedupOverride(com.prism.music.data.dedup.DedupScope.SONGS, !dedup.enabled)
+                                }
                                 Spacer(Modifier.width(8.dp))
-                                com.prism.music.ui.components.RoundAction(PrismIcons.Play, tr(R.string.widget_play)) { if (shownSongs.isNotEmpty()) c.player.playQueue(shownSongs, 0, source) }
+                                com.prism.music.ui.components.RoundAction(PrismIcons.Song, tr(R.string.dedup_settings)) { dedupSheet = true }
+                                Spacer(Modifier.width(8.dp))
+                                com.prism.music.ui.components.RoundAction(PrismIcons.Shuffle, tr(R.string.shuffle)) { if (songsQueue.isNotEmpty()) c.player.playQueue(songsQueue, 0, source, shuffle = true) }
+                                Spacer(Modifier.width(8.dp))
+                                com.prism.music.ui.components.RoundAction(PrismIcons.Play, tr(R.string.widget_play)) { if (songsQueue.isNotEmpty()) c.player.playQueue(songsQueue, 0, source) }
                             }
                         }
                         if (songsBase.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) {
                             // With playlists' songs too, the first order is liked songs, then each playlist's own order.
-                            SortBar(com.prism.music.data.model.songCount(shownSongs.size), SongSort.entries, songSort, {
+                            SortBar(com.prism.music.data.model.songCount(songsShown.size), SongSort.entries, songSort, {
                                 if (it == SongSort.RECENT && !songsFrom.isDefault) tr(R.string.original_order) else it.label
                             }) { songSort = it; c.library.setSort("library:songs", it.name) }
                         }
-                        items(shownSongs, key = { "s" + it.id }, span = { GridItemSpan(maxLineSpan) }) { s ->
-                            SongRow(s, Modifier.locatePulse(locate, s.id), swipe = settings.behavior.songSwipeLibrary) { c.player.playQueue(shownSongs, shownSongs.indexOf(s), source) }
+                        items(songsShown, key = { "s" + it.id }, span = { GridItemSpan(maxLineSpan) }) { s ->
+                            SongRow(s, Modifier.locatePulse(locate, s.id), swipe = settings.behavior.songSwipeLibrary) { c.player.playQueue(songsQueue, songsQueue.indexOf(s).coerceAtLeast(0), source) }
                         }
                         if (songsBase.isNotEmpty() && shownSongs.isEmpty() && songQuery.isNotBlank()) nothingFound(tr(R.string.songs), songQuery)
                     }
@@ -1001,6 +1013,7 @@ fun LibraryScreen(bottomPadding: Dp) {
             dismissButton = { PrismTextButton(onClick = { deleting = null }) { Text(tr(R.string.cancel)) } },
         )
     }
+    if (dedupSheet) DedupSheet(onDismiss = { dedupSheet = false })
 }
 /**
  * The playlists as a list to put in order: hold and drag a row, or drag its grip (which also carries TalkBack's moves and

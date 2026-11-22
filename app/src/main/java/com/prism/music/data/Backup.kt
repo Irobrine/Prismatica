@@ -196,7 +196,7 @@ class Backup(private val c: AppContainer) {
     private fun filesToBackUp(parts: Set<BackupPart>): List<File> {
         val keep = mutableListOf<File>()
         File(data, "databases").listFiles()?.forEach { f ->
-            if ((BackupPart.HISTORY in parts && f.name.startsWith(DB)) || (BackupPart.DOWNLOADS in parts && f.name.startsWith(EXO_DB))) keep += f
+            if ((BackupPart.HISTORY in parts && (f.name.startsWith(DB) || f.name.startsWith(DEDUP_DB))) || (BackupPart.DOWNLOADS in parts && f.name.startsWith(EXO_DB))) keep += f
         }
         File(data, "shared_prefs").listFiles()?.forEach { f ->
             if (!f.name.endsWith(".xml")) return@forEach
@@ -461,6 +461,8 @@ class Backup(private val c: AppContainer) {
         /** A restored backup's settings, waiting for the settings store to open after the restart. */
         private const val RESTORED_SETTINGS = "restore_settings.json"
         private const val DB = "prism.db"
+        /** The duplicate-fingerprint cache and pairwise decisions; they travel with the library's history. */
+        private const val DEDUP_DB = "prism_dedup.db"
         private const val EXO_DB = "exoplayer_internal.db"
         private val ALLOWED = listOf("databases/", "shared_prefs/", "datastore/", "files/")
         private val SETTINGS_MAP = MapSerializer(String.serializer(), String.serializer())
@@ -688,7 +690,7 @@ class Backup(private val c: AppContainer) {
                 val f = name.removePrefix("databases/")
                 when {
                     f.contains('/') -> null
-                    f.startsWith(DB) -> BackupPart.HISTORY
+                    f.startsWith(DB) || f.startsWith(DEDUP_DB) -> BackupPart.HISTORY
                     f.startsWith(EXO_DB) -> BackupPart.DOWNLOADS
                     else -> null
                 }

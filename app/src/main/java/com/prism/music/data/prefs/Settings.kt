@@ -496,6 +496,8 @@ data class BehaviorPrefs(
     val resumeOnReturn: Boolean = false,
     /** #464 (1.8.5): with the lyrics open, a tap on the small cover plays or pauses and a long press closes them; off, a tap closes them. */
     val lyricsCoverPlays: Boolean = false,
+    /** Configurable duplicate-song hiding: the global default, per-page overrides and the scan's data choice. Nested here so AppSettings' constructor stays under the JVM's slot limit. */
+    val dedup: DedupPrefs = DedupPrefs(),
 ) {
     companion object {
         /** #404: how far [lyricsOffsetMs] goes either way. */
@@ -1520,6 +1522,19 @@ val defaultLyricsOrder = listOf(
 /** "Room for sung songs" at its last step: no limit (#238). */
 const val SING_ROOM_UNLIMITED = Int.MAX_VALUE
 
+/**
+ * Configurable duplicate-song hiding. A nested class (like [LyricsLookPrefs]) so it does not use three slots of
+ * [AppSettings]' constructor, which is close to the JVM's argument limit.
+ *
+ * [enabled] is the global default; [overrides] holds "scope:true"/"scope:false" entries and a scope with no entry
+ * inherits the default; [cellular] allows the manual scan to use mobile data for audio that isn't on the phone.
+ */
+data class DedupPrefs(
+    val enabled: Boolean = false,
+    val overrides: String = "",
+    val cellular: Boolean = false,
+)
+
 data class AppSettings(
     val onboarded: Boolean = false,
     // Account
@@ -2337,6 +2352,9 @@ class SettingsRepository(
             listOf(lyricsMotion to 's', lyricsWordByWord to 'b', lyricsCard to 'b', lyricsHalo to 'b', lyricsBoldLines to 'b')
         }
         val mergeLikedVideos = booleanPreferencesKey("merge_liked_videos")
+        val dedupEnabled = booleanPreferencesKey("dedup_enabled")
+        val dedupOverrides = stringPreferencesKey("dedup_overrides")
+        val dedupScanCellular = booleanPreferencesKey("dedup_scan_cellular")
         val hideStatusBar = booleanPreferencesKey("hide_status_bar")
         val volumeControl = stringPreferencesKey("volume_control")
         val appVolume = floatPreferencesKey("app_volume")
@@ -2574,7 +2592,8 @@ class SettingsRepository(
                 "performance_mode", "performance_offered", "share_youtube_links", "mix_keep_albums",
                 "player_menu_hidden", "player_menu_tiles",
                 "lyrics_file_words", "lyrics_file_translation",
-                "merge_liked_videos", "volume_control", "app_volume", "speed_dial_youtube_only", "swipe_tabs",
+                "merge_liked_videos", "dedup_enabled", "dedup_overrides", "dedup_scan_cellular",
+                "volume_control", "app_volume", "speed_dial_youtube_only", "swipe_tabs",
                 "onboarded", "cookie", "visitor_data", "data_sync_id", "auth_user", "discord_presence", "account_name", "account_email",
                 "account_avatar", "haptics", "immersive_player", "preload", "preload_cellular", "canvas_enabled", "canvas_on_cellular",
                 "soft_spatial", "soft_spatial_amount", "lyrics_on_player", "lyrics_order", "lyrics_off", "prefer_synced", "skip_censored",
@@ -2995,6 +3014,11 @@ class SettingsRepository(
                 faceDownPause = p[K.faceDownPause] ?: d.behavior.faceDownPause,
                 resumeOnReturn = p[K.resumeOnReturn] ?: d.behavior.resumeOnReturn,
                 lyricsCoverPlays = p[K.lyricsCoverPlays] ?: d.behavior.lyricsCoverPlays,
+                dedup = DedupPrefs(
+                    enabled = p[K.dedupEnabled] ?: d.behavior.dedup.enabled,
+                    overrides = p[K.dedupOverrides] ?: d.behavior.dedup.overrides,
+                    cellular = p[K.dedupScanCellular] ?: d.behavior.dedup.cellular,
+                ),
             ),
             tv = TvPrefs(
                 ambientMinutes = (p[K.tvAmbientMinutes] ?: d.tv.ambientMinutes).coerceIn(0, 60),
@@ -3858,6 +3882,13 @@ class SettingsRepository(
     fun setLyricsStripAlign(v: LyricsAlign) = edit { it[K.lyricsStripAlign] = v.name }
     fun setLyricsStripTwoLines(v: Boolean) = edit { it[K.lyricsStripTwoLines] = v }
     fun setMergeLikedVideos(v: Boolean) = edit { it[K.mergeLikedVideos] = v }
+    fun setDedupEnabled(v: Boolean) = edit { it[K.dedupEnabled] = v }
+    /** A page's override: null drops it and makes the page inherit the global setting again. */
+    fun setDedupOverride(scope: com.prism.music.data.dedup.DedupScope, v: Boolean?) = edit { p ->
+        val kept = (p[K.dedupOverrides] ?: "").split(',').filter { it.isNotBlank() && !it.startsWith(scope.setting + ":") }
+        p[K.dedupOverrides] = (kept + listOfNotNull(v?.let { "${scope.setting}:$it" })).joinToString(",")
+    }
+    fun setDedupScanCellular(v: Boolean) = edit { it[K.dedupScanCellular] = v }
     fun setHideStatusBar(v: Boolean) = edit { it[K.hideStatusBar] = v }
     fun setVolumeControl(v: VolumeControl) = edit { it[K.volumeControl] = v.name }
     fun setAppVolume(v: Float) = edit { it[K.appVolume] = v.coerceIn(0f, 1f) }

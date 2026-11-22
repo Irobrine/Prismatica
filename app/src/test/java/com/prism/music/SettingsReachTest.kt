@@ -116,6 +116,10 @@ class SettingsReachTest {
         Allowed("app_volume", Why.ELSEWHERE, "a level, not a setting: the player's volume slider (its choice, volume_control, has a row on Player)", "PlayerControls.kt" to "setAppVolume"),
         Allowed("queue_locked", Why.ELSEWHERE, "the queue's state: the lock button in the queue's header", "PlayerQueue.kt" to "setQueueLocked"),
         Allowed("dj_flow", Why.ELSEWHERE, "picked where DJ mode is switched on: the DJ chips in the queue", "PlayerQueue.kt" to "setDjFlow"),
+        // Duplicate hiding's detail sheet, opened by the Library's single "Duplicate songs" link row.
+        Allowed("dedup_enabled", Why.ELSEWHERE, "the global default: one switch in the duplicate settings sheet", "DedupSettingsSheet.kt" to "setDedupEnabled"),
+        Allowed("dedup_overrides", Why.ELSEWHERE, "each page's On/Off/Inherit choice in the duplicate settings sheet", "DedupSettingsSheet.kt" to "setDedupOverride"),
+        Allowed("dedup_scan_cellular", Why.ELSEWHERE, "the manual scan's data choice: one switch in the duplicate settings sheet", "DedupSettingsSheet.kt" to "setDedupScanCellular"),
         // Prism TV's own settings pages (the phone's map leaves the TV's screens alone, plan §2.2).
         Allowed("tv_ambient_minutes", Why.TV, "TV pages: Settings on the TV", "TvSettingsPages.kt" to "setTvAmbientMinutes"),
         Allowed("tv_lyrics_scale", Why.TV, "TV pages: Settings on the TV", "TvSettingsPages.kt" to "setTvLyricsScale"),

@@ -1335,6 +1335,22 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     /**
+     * Swaps the media item now playing for [song] without dropping the rest of the queue or the place in the song
+     * (duplicate hiding uses this when the playing version becomes hidden). Direct playback never goes through here.
+     */
+    fun swapCurrentWith(song: Song) = withPlayer { p ->
+        val at = p.currentMediaItemIndex
+        val position = p.currentPosition
+        if (at < 0 || at >= p.mediaItemCount) return@withPlayer
+        val wasPlaying = p.isPlaying
+        val items = (0 until p.mediaItemCount).map { i -> p.getMediaItemAt(i) }.toMutableList()
+        items[at] = song.toMediaItem()
+        p.setMediaItems(items, at, position)
+        p.prepare()
+        if (wasPlaying) p.play()
+    }
+
+    /**
      * Takes the song at [index] out (a swipe in the queue, #149) and returns how to put it back where it was, or null
      * when there's nothing there. The item itself goes back, so it keeps everything it was queued with.
      */

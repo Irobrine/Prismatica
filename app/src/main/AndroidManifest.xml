@@ -566,6 +566,12 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- A manual duplicate-finding walk keeps going out of sight, like the measure walk. -->
+        <service
+            android:name=".playback.DedupScanService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!-- Lyrics enhancement's queue, likewise: a batch of songs can run for an hour once the screen is off. -->
         <service
             android:name=".data.enhance.EnhanceService"

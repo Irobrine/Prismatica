@@ -78,7 +78,7 @@ class HomeLibraryPageTest : HomePagesHarness() {
         assertBudgets("defaults")
         // The ledger's layout with a fresh install's settings.
         assertEquals(groups, groupTitles())
-        assertEquals(listOf(4, 2, 2, 6, 3, 1), groupSizes())
+        assertEquals(listOf(4, 2, 2, 7, 3, 1), groupSizes())
         assertEquals("nothing differs from how Prism comes", 0, changedRows())
         // No group is named as the page; the jump chips are there (four or more groups).
         assertTrue(groupTitles().none { it == SettingsPageId.HOME_LIBRARY.title })
@@ -235,7 +235,7 @@ class HomeLibraryPageTest : HomePagesHarness() {
         until("everything changed") { it.behavior.artistBio != d.behavior.artistBio && it.homeContinue != d.homeContinue }
         showAt(PAGE)
         assertBudgets("everything changed")
-        assertEquals(listOf(4, 2, 2, 6, 3, 1), groupSizes())
+        assertEquals(listOf(4, 2, 2, 7, 3, 1), groupSizes())
         // Every row but the link to Customize Home (a screen of its own) differs, and says so.
         assertEquals(17, changedRows())
         // The root's line is live and short.

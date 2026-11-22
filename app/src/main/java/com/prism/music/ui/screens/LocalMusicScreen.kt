@@ -5,6 +5,7 @@ import com.prism.music.data.SongMetadata
 import com.prism.music.tr
 import com.prism.music.trp
 import com.prism.music.ui.components.PrismButton
+import com.prism.music.ui.components.rememberDedupList
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -334,18 +335,24 @@ fun LocalMusicScreen(bottomPadding: Dp) {
     val section = sections.getOrNull(pager.currentPage)
     // "Go to the playing song" (D54) for whichever list of songs is showing.
     val locate = remember { LocateState() }
-    fun playable(): Pair<List<Song>, String> = when {
-        query.isNotBlank() && album == null && artist == null && !openRecent -> found to tr(R.string.local_files)
-        album != null -> album.tracks.map { it.song } to album.title
-        artist != null -> artist.albums.flatMap { a -> a.tracks.filter { t -> t in artist.tracks } }.map { it.song } to artist.name
-        openRecent -> recent to tr(R.string.recently_played)
-        else -> when (section) {
-            LocalSection.FAVOURITES -> favourites to tr(R.string.favorites)
-            LocalSection.ADDED_SONGS -> addedSongs to tr(R.string.recently_added)
-            LocalSection.ADDED_ALBUMS -> addedAlbums.flatMap { a -> a.tracks.map { it.song } } to tr(R.string.added_albums)
-            LocalSection.DOWNLOADS -> downloads to tr(R.string.downloads)
-            else -> songsSorted to tr(R.string.local_files)
+    // Local files have their own scope; a collection queue keeps one version of each recording.
+    val dedup = rememberDedupList(songsSorted, com.prism.music.data.dedup.DedupScope.LOCAL_FILES)
+    var dedupSheet by remember { mutableStateOf(false) }
+    fun playable(): Pair<List<Song>, String> {
+        val (list, name) = when {
+            query.isNotBlank() && album == null && artist == null && !openRecent -> found to tr(R.string.local_files)
+            album != null -> album.tracks.map { it.song } to album.title
+            artist != null -> artist.albums.flatMap { a -> a.tracks.filter { t -> t in artist.tracks } }.map { it.song } to artist.name
+            openRecent -> recent to tr(R.string.recently_played)
+            else -> when (section) {
+                LocalSection.FAVOURITES -> favourites to tr(R.string.favorites)
+                LocalSection.ADDED_SONGS -> addedSongs to tr(R.string.recently_added)
+                LocalSection.ADDED_ALBUMS -> addedAlbums.flatMap { a -> a.tracks.map { it.song } } to tr(R.string.added_albums)
+                LocalSection.DOWNLOADS -> downloads to tr(R.string.downloads)
+                else -> songsSorted to tr(R.string.local_files)
+            }
         }
+        return dedup.queue(list) to name
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -385,6 +392,12 @@ fun LocalMusicScreen(bottomPadding: Dp) {
                     RoundAction(PrismIcons.Song, tr(R.string.go_to_the_playing_song)) { go() }
                     Spacer(Modifier.width(8.dp))
                 }
+                RoundAction(PrismIcons.Copy, tr(R.string.dedup_hide)) {
+                    c.settings.setDedupOverride(com.prism.music.data.dedup.DedupScope.LOCAL_FILES, !dedup.enabled)
+                }
+                Spacer(Modifier.width(8.dp))
+                RoundAction(PrismIcons.Song, tr(R.string.dedup_settings)) { dedupSheet = true }
+                Spacer(Modifier.width(8.dp))
                 RoundAction(PrismIcons.Shuffle, tr(R.string.shuffle)) {
                     val (list, title) = playable()
                     if (list.isNotEmpty()) c.player.playQueue(list, 0, source(title), shuffle = true)
@@ -460,6 +473,7 @@ fun LocalMusicScreen(bottomPadding: Dp) {
     }
     if (editing) SectionsEditor(sections, onFolders = { choosingFolders = true }) { editing = false }
     if (choosingFolders) LocalFoldersSheet { choosingFolders = false }
+    if (dedupSheet) DedupSheet(onDismiss = { dedupSheet = false })
     // A long press on an album changes its cover, kept on this phone like a playlist's (#305).
     coverAlbum?.let { a ->
         val albumId = a.tracks.firstOrNull()?.albumId ?: 0L
