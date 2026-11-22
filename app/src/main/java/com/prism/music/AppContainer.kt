@@ -588,6 +588,13 @@ class AppContainer(val app: Application) {
             com.prism.music.data.podcast.RssGuard.feedClient(TestHooks.network),
         )
     }
+    /**
+     * What's downloaded, for screens: empty until [downloads] has started, then kept in step by it. Screens read these
+     * rather than [downloads] itself, which reads the download index and cache from disk when first touched (1.7.8's
+     * check: Home's first frame waited 3.4 s for it on a slow phone). Declared before [library], whose derived lists
+     * depend on it; [downloads] starts in the background at launch.
+     */
+    val downloadState = kotlinx.coroutines.flow.MutableStateFlow<Map<String, com.prism.music.download.DownloadInfo>>(emptyMap())
     val library = LibraryRepository(this)
     /** Liked songs mirrored into a real YouTube Music playlist, when the listener turns that on. */
     val likedPlaylist = com.prism.music.data.LikedPlaylist(this)
@@ -759,12 +766,6 @@ class AppContainer(val app: Application) {
     }
     val downloads by lazy { DownloadRepository(app, this, scope) }
 
-    /**
-     * What's downloaded, for screens: empty until [downloads] has started, then kept in step by it. Screens read these
-     * rather than [downloads] itself, which reads the download index and cache from disk when first touched (1.7.8's
-     * check: Home's first frame waited 3.4 s for it on a slow phone). [downloads] starts in the background at launch.
-     */
-    val downloadState = kotlinx.coroutines.flow.MutableStateFlow<Map<String, com.prism.music.download.DownloadInfo>>(emptyMap())
     val videoState = kotlinx.coroutines.flow.MutableStateFlow<Map<String, com.prism.music.download.VideoDownload>>(emptyMap())
     /** Music videos downloaded as their song, video id -> song id ([com.prism.music.download.forRow], #315). */
     val downloadStandIns = kotlinx.coroutines.flow.MutableStateFlow<Map<String, String>>(emptyMap())

@@ -10,6 +10,7 @@ import com.prism.music.data.model.BrowseItem
 import com.prism.music.data.model.PlaylistItem
 import com.prism.music.data.model.Song
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
@@ -69,6 +70,29 @@ class LibraryRepository(private val c: AppContainer) {
         kotlinx.coroutines.flow.combine(liked, c.settings.flow.map { it.mergeLikedVideos }.distinctUntilChanged()) { list, merge ->
             if (merge) LikedMerge.merge(list, c.queue.counterparts) else list
         }.flowOn(kotlinx.coroutines.Dispatchers.Default).stateIn(c.scope, SharingStarted.Eagerly, emptyList())
+
+    // The Library's list derivations used to be plain `remember`s inside LibraryScreen. Navigation disposes that
+    // composition on every tab switch, so returning to Library rebuilt and sorted these lists on the main thread —
+    // the stutter when entering the tab and the delay before a Back gesture to it settled. Derived once, off-main,
+    // from the same hot sources; every screen still reads exactly the same values.
+    /** Liked and completed-download songs, once each: what a signed-out Library builds its Albums/Artists from. */
+    val mineSongs: StateFlow<List<Song>> = combine(likedShown, c.downloadState) { likedSongs, downloads ->
+        (likedSongs + downloads.values.filter { it.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED }.mapNotNull { it.song })
+            .distinctBy { it.id }
+    }.flowOn(Dispatchers.Default).stateIn(c.scope, SharingStarted.Eagerly, emptyList())
+
+    /** Albums and artists of [mineSongs], ordered most songs first (LibraryScreen no longer sorts them on entry). */
+    val albumsFromSongs: StateFlow<List<AlbumItem>> = mineSongs.map { LibraryRepository.albumsFrom(it) }
+        .flowOn(Dispatchers.Default).stateIn(c.scope, SharingStarted.Eagerly, emptyList())
+    val artistsFromSongs: StateFlow<List<ArtistItem>> = mineSongs.map { LibraryRepository.artistsFrom(it) }
+        .flowOn(Dispatchers.Default).stateIn(c.scope, SharingStarted.Eagerly, emptyList())
+    /** Per-album songs and per-artist counts, so the sort orders need no O(n) grouping when Library recomposes. */
+    val albumSongs: StateFlow<Map<String, List<Song>>> = mineSongs.map { songs ->
+        songs.filter { it.album?.id != null }.groupBy { it.album!!.id!! }
+    }.flowOn(Dispatchers.Default).stateIn(c.scope, SharingStarted.Eagerly, emptyMap())
+    val artistSongs: StateFlow<Map<String, Int>> = mineSongs.map { songs ->
+        songs.flatMap { s -> s.artists.mapNotNull { it.id } }.groupingBy { it }.eachCount()
+    }.flowOn(Dispatchers.Default).stateIn(c.scope, SharingStarted.Eagerly, emptyMap())
 
     val recent = songs.recentFlow(40).resilient("recent songs").distinctUntilChanged().map { list -> list.map { it.toSong() } }
         .stateIn(c.scope, SharingStarted.Eagerly, emptyList())

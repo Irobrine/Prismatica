@@ -96,6 +96,13 @@ private data class HistoryEntry(val song: com.prism.music.data.model.Song, val a
 
 /** Plays on this phone under day headings (Today, Yesterday, the weekday, then the date), repeats in a row folded into one. */
 private fun historyByDay(rows: List<com.prism.music.data.db.HistoryRow>, now: Long = System.currentTimeMillis()): List<Pair<String, List<HistoryEntry>>> {
+    // History groups a few hundred plays by day; one Calendar reused for the whole pass gives the same local-midnight
+    // answer without allocating one per row and per comparison while the page is composed.
+    val calendar = java.util.Calendar.getInstance()
+    fun dayStart(at: Long): Long = calendar.apply {
+        timeInMillis = at
+        set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+    }.timeInMillis
     val entries = mutableListOf<HistoryEntry>()
     for (r in rows) {
         val last = entries.lastOrNull()
@@ -116,11 +123,6 @@ private fun historyByDay(rows: List<com.prism.music.data.db.HistoryRow>, now: Lo
         title to list
     }
 }
-
-private fun dayStart(at: Long): Long = java.util.Calendar.getInstance().apply {
-    timeInMillis = at
-    set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
-}.timeInMillis
 
 /**
  * "Removed from history" with Undo (#469), as the look's Undo bar shows it (the same bar, glass or plain), for five
@@ -281,21 +283,22 @@ fun LibraryScreen(bottomPadding: Dp) {
         }
     }
 
-    // The account's saved albums / artists first, then the ones your liked and downloaded songs come from.
-    val mine = remember(liked, dls) {
-        (liked + dls.values.filter { it.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED }.mapNotNull { it.song }).distinctBy { it.id }
-    }
+    // The account's saved albums / artists first, then the ones your liked and downloaded songs come from. The hot
+    // flows keep this grouping off the main thread and ready when the tab is recomposed after a switch.
+    val mine by c.library.mineSongs.collectAsState()
     // Signed in, Albums is the account's saved albums (and ones saved in Prism), as in YouTube Music (#191: 56 saved
     // showed as many more, singles too, since the albums of every liked and downloaded song were added). Without an
     // account, those songs' albums are all there is to show. Downloaded albums are on the Downloads page either way.
     val signedIn = settings.isLoggedIn
-    val albums = remember(remoteAlbums, mine, savedAlbums, signedIn) {
-        (savedAlbums.map { it.item() } + remoteAlbums + if (signedIn) emptyList() else LibraryRepository.albumsFrom(mine)).distinctBy { it.id }
+    val albumsFromSongs by c.library.albumsFromSongs.collectAsState()
+    val artistsFromSongs by c.library.artistsFromSongs.collectAsState()
+    val albums = remember(remoteAlbums, albumsFromSongs, savedAlbums, signedIn) {
+        (savedAlbums.map { it.item() } + remoteAlbums + if (signedIn) emptyList() else albumsFromSongs).distinctBy { it.id }
     }
     // Starred artists lead, marked as favourites.
-    val artists = remember(remoteArtists, mine, thumbs, favorites) {
+    val artists = remember(remoteArtists, artistsFromSongs, thumbs, favorites) {
         val starred = favorites.map { f -> ArtistItem(f.id, f.name, tr(R.string.favorite), f.thumbnail) }
-        (starred + remoteArtists + LibraryRepository.artistsFrom(mine)).distinctBy { it.id }.map { a ->
+        (starred + remoteArtists + artistsFromSongs).distinctBy { it.id }.map { a ->
             // Your own photo of them (1.7.6) first.
             val own = c.covers.custom(c.covers.artistKey(a.id))
             if (a is ArtistItem && own != null) a.copy(thumbnail = own)
@@ -339,7 +342,8 @@ fun LibraryScreen(bottomPadding: Dp) {
             // stays open: the rest of a big playlist comes by itself, without leaving the tab or reopening Prism.
             var more = false
             lists.forEach { id ->
-                val songs = c.playlistSongs.songs(id)
+                // songs() reads the kept copy from disk; produceState runs on Main, so read it on IO.
+                val songs = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { c.playlistSongs.songs(id) }
                 if (songs != null) value = value + (id to songs)
                 if (songs == null || !c.playlistSongs.isComplete(id)) more = true
             }
@@ -380,9 +384,11 @@ fun LibraryScreen(bottomPadding: Dp) {
     // Library Songs has its own dedup scope, independent of a playlist's or Downloads' choice.
     val dedup = rememberDedupList(shownSongs, com.prism.music.data.dedup.DedupScope.SONGS)
     var dedupSheet by remember { mutableStateOf(false) }
-    val songsShown = remember(shownSongs, dedup) { dedup.lines.map { it.song } }
-    val songsQueue = remember(shownSongs, dedup) { dedup.queue(shownSongs) }
-    val albumSongs = remember(mine) { mine.filter { it.album?.id != null }.groupBy { it.album!!.id!! } }
+    // With hiding off, DedupListState.lines is already shownSongs in the same order; copying thousands of songs into
+    // two more lists on every Library entry was pure allocation.
+    val songsShown = remember(shownSongs, dedup) { if (dedup.enabled) dedup.lines.map { it.song } else shownSongs }
+    val songsQueue = remember(shownSongs, dedup) { if (dedup.enabled) dedup.queue(shownSongs) else shownSongs }
+    val albumSongs by c.library.albumSongs.collectAsState()
     // Downloaded songs per album: by the album's id, and by its title for albums YouTube lists under another edition's id.
     val downloadedPerAlbum = remember(dls) {
         val done = dls.values.filter { it.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED }.mapNotNull { it.song }
@@ -410,7 +416,7 @@ fun LibraryScreen(bottomPadding: Dp) {
                 libraryMatches(albumQuery, spellings, arrayOf(a.title, *albumNames(a.subtitle, single).toTypedArray())))
         })
     }
-    val artistSongs = remember(mine) { mine.flatMap { s -> s.artists.mapNotNull { it.id } }.groupingBy { it }.eachCount() }
+    val artistSongs by c.library.artistSongs.collectAsState()
     val sortedArtists = remember(artists, artistSort, artistSongs, favorites) {
         val fav = favorites.map { it.id }.toSet()
         when (artistSort) {
@@ -506,7 +512,9 @@ fun LibraryScreen(bottomPadding: Dp) {
 
     LaunchedEffect(settings.isLoggedIn) {
         // Once per session (Prism also syncs at launch); the refresh button forces another.
-        if (settings.isLoggedIn && (playlists.isEmpty() || sync == SyncState.IDLE)) c.library.sync()
+        // Through the same deferral as startup: entering the tab must not start a sync (and the burst of library-flow
+        // emissions it causes) in the middle of the screen's first composition.
+        if (settings.isLoggedIn && (playlists.isEmpty() || sync == SyncState.IDLE)) c.library.syncInBackground()
     }
     // Whether the account has uploads (#332): one request every few hours, whatever comes of it.
     val hasUploads by c.uploads.has.collectAsState()
@@ -588,7 +596,12 @@ fun LibraryScreen(bottomPadding: Dp) {
             val playingId = if (tab == LibTab.SONGS) c.player.currentSong.collectAsState().value?.id else null
             // A music video row played as its song (Songs in radios) counts too: the queue knows the pair.
             val playingVideo = playingId?.let { c.queue.counterparts[it] }
-            val playingAt = remember(shownSongs, playingId, playingVideo) { com.prism.music.ui.components.LocatePlaying.indexIn(shownSongs, playingId, playingVideo) }
+            // LocatePlayingRow hides itself when the setting is off, so there's no reason to scan the whole song list
+            // for the playing row at every entry into the tab.
+            val locateOn = settings.behavior.locatePlaying
+            val playingAt = remember(shownSongs, playingId, playingVideo, locateOn) {
+                if (!locateOn || playingId == null) -1 else com.prism.music.ui.components.LocatePlaying.indexIn(shownSongs, playingId, playingVideo)
+            }
             val playingRowId = com.prism.music.ui.components.LocatePlaying.rowId(shownSongs, playingAt, playingId)
             /** The search at the top of a tab; once typed in, it stays whatever's left of the list. */
             fun androidx.compose.foundation.lazy.grid.LazyGridScope.findField(query: String, hint: String, count: Int, onChange: (String) -> Unit) {
