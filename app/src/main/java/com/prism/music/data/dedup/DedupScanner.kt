@@ -91,6 +91,8 @@ class DedupScanner(
     fun start() {
         val mine = ++walk
         job?.cancel()
+        // Set this before launching so a foreground service started by the same tap sees the walk as running at once.
+        running.value = true
         scope.launch(Dispatchers.IO) {
             // Old-format blobs are large; drop them once, at the start of a walk, before new ones are written.
             store.dropOldVersions()
@@ -106,7 +108,6 @@ class DedupScanner(
             if (!resuming) { walkSet = todo; done = 0; finished = false }
             val total = walkSet.size
             if (resuming) done = total - todo.size
-            running.value = true
             progress.value = done to total
             try {
                 for (ref in todo) {

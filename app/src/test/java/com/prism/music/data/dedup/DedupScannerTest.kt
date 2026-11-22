@@ -49,7 +49,7 @@ class DedupScannerTest {
             assertEquals(setOf("b"), scanner.pending().map { it.songId }.toSet())
 
             scanner.start()
-            repeat(50) { if (!scanner.running.value) kotlinx.coroutines.delay(20) }
+            repeat(100) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
             assertEquals(setOf("b"), processed.toSet())
             assertEquals("ok", store.fingerprints().first { it.key == b.key }.state)
             assertEquals("false", store.meta(DedupStore.META_INDEX_OUTDATED))
@@ -74,7 +74,7 @@ class DedupScannerTest {
                 if (r.songId == "b") error("can't decode") else fp
             }, { })
             scanner.start()
-            repeat(100) { if (!scanner.running.value) kotlinx.coroutines.delay(20) }
+            repeat(100) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
             assertEquals(setOf("a", "b"), handed.toSet())
             assertEquals("failed", store.fingerprints().first { it.key == "local:b" }.state)
             assertEquals("ok", store.fingerprints().first { it.key == "local:a" }.state)
