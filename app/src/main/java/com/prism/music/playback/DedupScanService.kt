@@ -11,9 +11,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.prism.music.AppContainer
-import com.prism.music.MainActivity
 import com.prism.music.R
 import com.prism.music.container
+import com.prism.music.data.Notifications
 import com.prism.music.tr
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -77,13 +77,8 @@ class DedupScanService : Service() {
         .setOngoing(true)
         .setSilent(true)
         .setOnlyAlertOnce(true)
-        .setContentIntent(
-            PendingIntent.getActivity(
-                this, 0,
-                Intent(this, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP },
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-            ),
-        )
+        // A tap returns to the Duplicate songs sheet, where the scan was started and its findings show.
+        .setContentIntent(Notifications.openIntent(this, Notifications.OPEN_DEDUP, 0))
         .addAction(
             0, tr(R.string.stop),
             PendingIntent.getService(

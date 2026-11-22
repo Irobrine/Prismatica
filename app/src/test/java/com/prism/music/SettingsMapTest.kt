@@ -233,7 +233,9 @@ class SettingsMapTest {
         assertTrue("the call sites were read (${sites.size})", sites.size >= 25)
         // A key taken from a value whose type is SettingsSection or SettingsPageId (checked by the compiler; all of
         // either resolve, see above).
-        val fromOne = setOf("sec.key", "page.key", "it.key")
+        // A deep link takes its section from the URI's path ([MainActivity]'s prism://settings/<section> branch);
+        // SettingsMap.resolve accepts or refuses it at runtime, so there is no literal here to check.
+        val fromOne = setOf("sec.key", "page.key", "it.key", "path[0]")
         val unknown = ArrayList<String>()
         for ((file, arg) in sites) {
             val quoted = Regex("\"([a-z_]+)\"").matchEntire(arg)?.groupValues?.get(1)

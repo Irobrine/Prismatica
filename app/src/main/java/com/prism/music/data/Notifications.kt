@@ -29,6 +29,15 @@ object Notifications {
     /** The monthly recap and milestones (1.8.5), each off unless its switch is turned on. */
     const val REPLAY_NEWS = "replay_news"
 
+    /** Where a progress notification's tap lands: the menu the work was started from, not just Prism's front page. */
+    const val OPEN_DEDUP = "prism://dedup"
+    const val OPEN_ENHANCE = "prism://enhance"
+    const val OPEN_DOWNLOADS = "prism://downloads"
+
+    /** A link to a Settings page at a group ([find], its key or title), for a notification that jumps to an option. */
+    fun settingsLink(page: String, find: String? = null): String =
+        "prism://settings/$page" + (find?.let { "?find=${Uri.encode(it)}" } ?: "")
+
     fun createChannels(context: Context) {
         val nm = NotificationManagerCompat.from(context)
         nm.createNotificationChannel(

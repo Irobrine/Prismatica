@@ -880,6 +880,21 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                         composable(Routes.LIBRARY) { ScreenBackdrop(BackdropScreen.LIBRARY) { LibraryScreen(bottomPadding) } }
                         composable(Routes.REPLAY) { ScreenBackdrop(BackdropScreen.REPLAY) { ReplayScreen(bottomPadding) } }
                         composable(Routes.SETTINGS) { ScreenBackdrop(BackdropScreen.SETTINGS) { SettingsScreen(bottomPadding) } }
+                        // The progress notifications' destinations: the sheets themselves, over a matching backdrop.
+                        composable(Routes.DEDUP) {
+                            com.prism.music.ui.screens.StoredSettings {
+                                ScreenBackdrop(BackdropScreen.LIBRARY) {
+                                    com.prism.music.ui.screens.DedupSheet { navController.popBackStack() }
+                                }
+                            }
+                        }
+                        composable(Routes.ENHANCE) {
+                            com.prism.music.ui.screens.StoredSettings {
+                                ScreenBackdrop(BackdropScreen.SETTINGS) {
+                                    com.prism.music.ui.player.EnhanceSettingsSheet { navController.popBackStack() }
+                                }
+                            }
+                        }
                         composable(
                             Routes.BACKGROUNDS + "?player={player}",
                             listOf(navArgument("player") { type = NavType.BoolType; defaultValue = false }),
@@ -1600,6 +1615,12 @@ private fun handleDeepLink(uri: Uri, nav: Navigator, c: AppContainer) {
         uri.scheme == "prism" && uri.host == "home" -> nav.go(Routes.HOME)
         uri.scheme == "prism" && uri.host == "library" -> nav.go(Routes.LIBRARY)
         uri.scheme == "prism" && uri.host == "replay" -> nav.go(Routes.REPLAY)
+        // A progress notification's tap: the menu it came from. The sheets have their own destinations; an option in
+        // Settings is opened at the group that holds it (the translated title arrives URI-encoded by the notifier).
+        uri.scheme == "prism" && uri.host == "dedup" -> nav.go(Routes.DEDUP)
+        uri.scheme == "prism" && uri.host == "enhance" -> nav.go(Routes.ENHANCE)
+        uri.scheme == "prism" && uri.host == "settings" && path.isNotEmpty() ->
+            nav.go(Routes.settings(path[0], uri.getQueryParameter("find")))
         uri.scheme == "prism" && uri.host == "settings" -> nav.go(Routes.SETTINGS)
         uri.scheme == "prism" && uri.host == "local" -> nav.go(Routes.LOCAL)
         uri.scheme == "prism" && uri.host == "podcasts" -> nav.go(Routes.PODCASTS)

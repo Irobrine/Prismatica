@@ -65,6 +65,10 @@ object Routes {
     /** Song recognition: listening, and what it found. */
     const val RECOGNIZE = "recognize"
     const val RECOGNIZED = "recognized"
+    /** The Duplicate songs sheet, opened by the scan's notification. */
+    const val DEDUP = "dedup"
+    /** The Lyrics enhancement sheet, opened by a batch's notification. */
+    const val ENHANCE = "enhance"
     /** Every shared component of the 1.7 redesign (debug builds, from Settings → About). */
     const val DESIGN_GALLERY = "design_gallery"
     /** One of Prism's own mixes (Daily Mix 1, the time-of-day mix, Release Radar). */

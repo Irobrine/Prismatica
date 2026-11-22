@@ -25,6 +25,7 @@ import androidx.work.WorkerParameters
 import com.prism.music.AppContainer
 import com.prism.music.R
 import com.prism.music.container
+import com.prism.music.data.Notifications
 import com.prism.music.data.db.toEntity
 import com.prism.music.data.innertube.InnerTube
 import com.prism.music.data.model.Song
@@ -916,9 +917,8 @@ class PrismDownloadService : DownloadService(
             this, 0, Intent(this, CancelDownloadsReceiver::class.java),
             android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val open = packageManager.getLaunchIntentForPackage(packageName)?.let {
-            android.app.PendingIntent.getActivity(this, 0, it, android.app.PendingIntent.FLAG_IMMUTABLE)
-        }
+        // A tap goes to the Downloads menu, not just Prism's front page.
+        val open = Notifications.openIntent(this, Notifications.OPEN_DOWNLOADS, 1)
         return androidx.core.app.NotificationCompat.Builder(this, DOWNLOAD_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(com.prism.music.trp(R.plurals.downloading_n_songs, active.size.coerceAtLeast(1)))
@@ -928,7 +928,7 @@ class PrismDownloadService : DownloadService(
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
             .setSilent(true)
-            .apply { if (open != null) setContentIntent(open) }
+            .setContentIntent(open)
             .addAction(0, tr(R.string.cancel), cancel)
             .build()
     }

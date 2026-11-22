@@ -11,10 +11,11 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.prism.music.AppContainer
-import com.prism.music.MainActivity
 import com.prism.music.R
 import com.prism.music.container
+import com.prism.music.data.Notifications
 import com.prism.music.tr
+import com.prism.music.ui.screens.settings.SettingsPageId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -85,15 +86,8 @@ class MeasureService : Service() {
         .setOngoing(true)
         .setSilent(true)
         .setOnlyAlertOnce(true)
-        .setContentIntent(
-            PendingIntent.getActivity(
-                this, 0,
-                Intent(this, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                },
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-            ),
-        )
+        // A tap lands on the option that started the walk: Sound & quality's "Measure songs now" row.
+        .setContentIntent(Notifications.openIntent(this, measureLink(), 0))
         .addAction(
             0, tr(R.string.stop),
             PendingIntent.getService(
@@ -102,6 +96,9 @@ class MeasureService : Service() {
             ),
         )
         .build()
+
+    /** The group holding "Measure songs now" is the Sound group, the same one the player's Equalizer button opens. */
+    private fun measureLink() = Notifications.settingsLink(SettingsPageId.SOUND_QUALITY.key, tr(R.string.sound))
 
     /** The channel the walk's notification lives in: silent, so measuring says nothing aloud. */
     private fun createChannel() {
