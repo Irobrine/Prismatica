@@ -10,9 +10,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The manual "Find duplicate songs" walk. Nothing here runs at startup or when the setting is switched on: [start] is
- * only called from a button. Only unindexed, stale or failed files are decoded; the rest are read from the persistent
- * cache. A file that cannot be decoded is marked failed, skipped, and the walk carries on.
+ * The manual "Find duplicate songs" walk, following the same shape as [com.prism.music.data.MeasureSongs]: nothing runs
+ * at startup or when the setting changes; a press starts a walk, a stop keeps the count, and pressing again resumes the
+ * same set from where it stopped instead of starting a new set with a smaller total and a reset counter.
+ *
+ * Only unindexed, stale or failed files are decoded; the rest are read from the persistent cache. A file that cannot be
+ * decoded is marked failed, skipped, and the walk carries on.
  */
 class DedupScanner(
     private val scope: CoroutineScope,
@@ -43,43 +46,64 @@ class DedupScanner(
 
     private var job: Job? = null
     private var walk = 0
+    /** The set the current (or stopped) walk was over; kept so a second press continues it, not a new set. */
+    private var walkSet: List<FileRef> = emptyList()
+    /** Files processed in that walk; kept when it is stopped. */
+    private var done = 0
+    /** Whether the current walk finished. Only a finished walk's set is thrown away by the next press. */
+    private var finished = false
     /** Keys of cached files whose size or mtime changed since the last scan. */
     private var changed = emptySet<String>()
 
-    /** Files that need a fingerprint now: no cache, a changed size/mtime, an old algorithm, or a previous failure. */
-    suspend fun pending(): List<FileRef> = withContext(Dispatchers.IO) {
-        val current = files().associateBy { it.key }
+    private suspend fun remaining(set: List<FileRef>): List<FileRef> = withContext(Dispatchers.IO) {
         val cached = store.fingerprints().associateBy { it.key }
         val excluded = store.exclusions()
         val algorithm = store.meta(DedupStore.META_ALGORITHM)?.toIntOrNull() ?: 0
-        changed = current.values.filter { ref ->
+        changed = set.filter { ref ->
             cached[ref.key]?.let { row -> row.sizeBytes != ref.sizeBytes || row.modifiedMs != ref.modifiedMs } ?: false
         }.map { it.key }.toSet()
-        val pending = current.values.filter { ref ->
+        set.filter { ref ->
             ref.key !in excluded && cached[ref.key]?.let { row ->
                 row.version != algorithm || row.state != "ok" || row.sizeBytes != ref.sizeBytes || row.modifiedMs != ref.modifiedMs
             } ?: true
         }
-        // A new file is not hidden: it shows at once, and the index hint says a scan would group it.
-        val outdated = current.keys.any { it !in cached } || pending.isNotEmpty()
-        indexOutdated.value = outdated
-        store.setMeta(DedupStore.META_INDEX_OUTDATED, outdated.toString())
-        pending
     }
 
+    /** Files that need a fingerprint now: no cache, a changed size/mtime, an old algorithm, or a previous failure. */
+    suspend fun pending(): List<FileRef> {
+        val current = files()
+        val todo = remaining(current)
+        // A new file is not hidden: it shows at once, and the index hint says a scan would group it.
+        val cached = store.fingerprints().associateBy { it.key }
+        val outdated = current.any { it.key !in cached } || todo.isNotEmpty()
+        indexOutdated.value = outdated
+        store.setMeta(DedupStore.META_INDEX_OUTDATED, outdated.toString())
+        return todo
+    }
+
+    /**
+     * Starts a walk, or resumes the one a previous press stopped. A stopped walk keeps its count and its total, so
+     * pressing "Find duplicate songs now" again carries on from where it left off rather than showing a fresh count
+     * over only the files that are left.
+     */
     fun start() {
-        job?.cancel()
         val mine = ++walk
+        job?.cancel()
         scope.launch(Dispatchers.IO) {
-            val todo = pending()
+            val resuming = !finished && walkSet.isNotEmpty()
+            val todo = if (resuming) remaining(walkSet) else pending()
             if (todo.isEmpty()) {
-                progress.value = null
+                if (!resuming) {
+                    walkSet = emptyList(); done = 0; finished = true; progress.value = null
+                }
                 running.value = false
                 return@launch
             }
+            if (!resuming) { walkSet = todo; done = 0; finished = false }
+            val total = walkSet.size
+            if (resuming) done = total - todo.size
             running.value = true
-            var done = 0
-            progress.value = 0 to todo.size
+            progress.value = done to total
             try {
                 for (ref in todo) {
                     if (mine != walk || !isActive) throw CancellationException()
@@ -93,24 +117,26 @@ class DedupScanner(
                                 ref.sizeBytes, ref.modifiedMs, System.currentTimeMillis(), error = e.message ?: "could not decode")
                         }
                     done++
-                    if (mine == walk) progress.value = done to todo.size
+                    if (mine == walk) progress.value = done to total
                 }
                 if (mine == walk) {
                     recompute()
                     store.setMeta(DedupStore.META_ALGORITHM, AudioFingerprint.VERSION.toString())
                     store.setMeta(DedupStore.META_INDEX_OUTDATED, "false")
                     indexOutdated.value = false
+                    finished = true
+                    progress.value = null
                 }
             } finally {
                 if (mine == walk) {
                     running.value = false
-                    progress.value = null
+                    // A stop keeps [progress] and [walkSet] for the next press to resume.
                 }
             }
         }.also { job = it }
     }
 
-    /** Skips a walk part-way. What was already fingerprinted stays cached, so a later start resumes the rest. */
+    /** Skips a walk part-way. Its count and total stay on screen, and a later press resumes the same set. */
     fun stop() { job?.cancel() }
 
     /** Compares cached fingerprints and hands the automatic statements to the caller for persistence. */

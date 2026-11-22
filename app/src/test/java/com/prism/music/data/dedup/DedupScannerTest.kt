@@ -1,6 +1,7 @@
 package com.prism.music.data.dedup
 
 import androidx.room.Room
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -80,6 +81,44 @@ class DedupScannerTest {
             // A failed file is still pending on the next run; a successful one is not.
             store.setMeta(DedupStore.META_ALGORITHM, AudioFingerprint.VERSION.toString())
             assertEquals(setOf("b"), scanner.pending().map { it.songId }.toSet())
+        } finally {
+            scope.cancel()
+            db.close()
+        }
+    }
+
+    @Test
+    fun aStoppedWalkKeepsItsProgressAndTheNextPressResumesTheSameSet() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), DedupDatabase::class.java)
+            .allowMainThreadQueries().build()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val store = DedupStore(db.dao())
+            val files = listOf(ref("a", 100, 10), ref("b", 100, 10), ref("c", 100, 10))
+            val fp = AudioFingerprint(AudioFingerprint.VERSION, 30_000, 16_000, longArrayOf(1, 2, 3, 4))
+            val atB = CompletableDeferred<Unit>()
+            val releaseB = CompletableDeferred<Unit>()
+            var handed = emptyList<String>()
+            val scanner = DedupScanner(scope, store, { files }, { r ->
+                handed += r.songId
+                if (r.songId == "b") { atB.complete(Unit); releaseB.await() }
+                fp
+            }, { })
+
+            scanner.start()
+            atB.await() // a is done, b is in progress, c not started
+            scanner.stop()
+            releaseB.complete(Unit)
+            repeat(100) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
+            // Stopping keeps the count and the original total on screen.
+            assertEquals(1 to 3, scanner.progress.value)
+            assertEquals(false, scanner.running.value)
+
+            scanner.start() // resumes b and c, over the same total of three
+            repeat(200) { if (scanner.progress.value != null) kotlinx.coroutines.delay(20) }
+            assertEquals(null, scanner.progress.value) // finished walks clear the row
+            assertEquals(setOf("a", "b", "c"), handed.toSet())
+            assertEquals(3, store.fingerprints().count { it.state == "ok" })
         } finally {
             scope.cancel()
             db.close()
