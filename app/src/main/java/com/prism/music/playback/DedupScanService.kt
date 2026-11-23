@@ -20,7 +20,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.launch
 
 /**
@@ -47,12 +46,11 @@ class DedupScanService : Service() {
         startForeground(ID, notification(c.dedup.scanner.progress.value))
         watcher = scope.launch {
             combine(c.dedup.scanner.running, c.dedup.scanner.progress) { running, progress -> running to progress }
-                // The tap starts the walk before this service is bound. Wait for it to report running before looking
-                // for the end: an early "false" used to stop the service immediately, so the notice appeared only
-                // on the second tap, when the first walk was already running.
-                .dropWhile { (running, _) -> !running }
                 .collect { (running, progress) ->
                     if (!running) {
+                        // A tap starts the walk before this service is bound (DedupScanner.start sets running first),
+                        // so a walk that isn't running here is one that already finished or had nothing to do: the
+                        // service goes away rather than holding a foreground notice (and a wake lock) for no walk.
                         stopSelf()
                         return@collect
                     }
