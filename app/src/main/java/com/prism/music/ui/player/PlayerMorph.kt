@@ -464,6 +464,26 @@ internal class PanelShift(start: Float = 0f) {
     }
 }
 
+/**
+ * A pull down at the top of a panel's list (the queue's, with nothing above it left to scroll to) runs the panel's own
+ * morph back under the finger, as a swipe down on the deck or on the panel's title does: the panel fades and rises away
+ * as far as the hand has pulled, the cover, title and deck come back with it, and letting go settles it from wherever
+ * it is. [px] are the finger's own: how far it has pulled down since [begin].
+ */
+internal interface PanelPull {
+    /** The finger has started pulling the panel down. */
+    fun begin()
+
+    /** [px] pulled down since [begin]; 0 puts the panel back in its place. */
+    fun follow(px: Float)
+
+    /** Let go at [velocity] px a second, downward positive: settle open or closed from where the panel is. */
+    fun release(velocity: Float)
+
+    /** The panel was pulled back into its place before the finger lifted: stop following it and settle it there. */
+    fun cancel()
+}
+
 /** How far the lyrics, the queue and the stats rise as they fade in: the same 26 dp below their place. */
 private const val PANEL_RISE_DP = 26f
 

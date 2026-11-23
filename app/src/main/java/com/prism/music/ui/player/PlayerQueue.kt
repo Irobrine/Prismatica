@@ -45,13 +45,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.prism.music.data.model.Song
@@ -61,9 +65,20 @@ import com.prism.music.ui.theme.LocalContainer
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/** The queue, inside the player: now playing, what's next, then autoplay. */
+/**
+ * The queue, inside the player: now playing, what's next, then autoplay.
+ *
+ * [pull] given, scrolling up at the very top of the list (nothing above it left to show) takes the queue back down with
+ * the finger, into the player's own morph (see [PanelPull]).
+ */
 @Composable
-fun InlineQueue(onRevealPlayer: () -> Unit, onHidePlayer: () -> Unit, modifier: Modifier = Modifier, onClose: (() -> Unit)? = null) {
+internal fun InlineQueue(
+    onRevealPlayer: () -> Unit,
+    onHidePlayer: () -> Unit,
+    modifier: Modifier = Modifier,
+    onClose: (() -> Unit)? = null,
+    pull: PanelPull? = null,
+) {
     val c = LocalContainer.current
     val pc = c.player
     val queue by pc.queue.collectAsState()
@@ -77,6 +92,11 @@ fun InlineQueue(onRevealPlayer: () -> Unit, onHidePlayer: () -> Unit, modifier: 
     val nowItem = if (played.isEmpty()) 0 else played.size + 1
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = nowItem)
     LaunchedEffect(index) { if (listState.firstVisibleItemIndex != nowItem) listState.animateScrollToItem(nowItem) }
+    // Scrolled to the very top, a pull down has nothing above it to show: the queue follows the finger back into the
+    // player instead, through the same morph that closes it.
+    val topPull = remember(pull, listState) {
+        pull?.let { p -> QueuePullToClose(atTop = { !listState.canScrollBackward }, pull = p) }
+    }
 
     val now = queue.getOrNull(index)
     val autoplayFrom = if (autoplayStart > 0) autoplayStart else queue.size
@@ -240,7 +260,12 @@ fun InlineQueue(onRevealPlayer: () -> Unit, onHidePlayer: () -> Unit, modifier: 
         // A dropped song shows where it was dropped until the queue comes back with it moved (or a moment has passed).
         LaunchedEffect(queue, upNext) { if (dragging.value?.settled == true) dragging.value = null }
         LaunchedEffect(dragging.value) { if (dragging.value?.settled == true) { kotlinx.coroutines.delay(1_000); dragging.value = null } }
-        LazyColumn(state = listState, modifier = Modifier.fillMaxWidth().nestedScroll(controlsOnScroll), contentPadding = PaddingValues(bottom = 24.dp)) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxWidth().nestedScroll(controlsOnScroll)
+                .then(if (topPull != null) Modifier.nestedScroll(topPull) else Modifier),
+            contentPadding = PaddingValues(bottom = 24.dp),
+        ) {
             if (!headings) item(key = "h-gap") { Spacer(Modifier.height(8.dp)) }
             val rows = SectionRows(selected, toggle, startSelecting, { menuFor = it }, locked, onDragStart = onHidePlayer, settings.view.queueLengths, settings.view.queueTidy, dragging)
             if (played.isNotEmpty()) {
@@ -285,6 +310,55 @@ fun InlineQueue(onRevealPlayer: () -> Unit, onHidePlayer: () -> Unit, modifier: 
 
 /** How many played songs the queue lists above Now Playing (the latest ones). */
 private const val MAX_PLAYED = 100
+
+/**
+ * Scrolling up at the top of the queue takes the panel back down with the finger (see [PanelPull]): with nothing above
+ * the list left to show, the pull runs the player's own morph instead, as a swipe down on the deck does. Pulled back
+ * up, the panel returns to its place first, and the list only scrolls on once it is there; letting go settles it from
+ * where it is, at the speed the hand left it.
+ */
+internal class QueuePullToClose(
+    /** Whether the list is at its top: the only place a pull closes the queue. */
+    private val atTop: () -> Boolean,
+    private val pull: PanelPull,
+) : NestedScrollConnection {
+    /** How far the finger has pulled the panel down, in px (0: the panel in its place). */
+    private var pulled = 0f
+    /** Whether this drag has taken the panel out of its place. */
+    private var pulling = false
+
+    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+        if (source != NestedScrollSource.UserInput) return Offset.Zero
+        val dy = available.y
+        if (!pulling) {
+            // Down, with nothing above the list: the panel follows the finger instead of the list scrolling.
+            if (dy <= 0f || !atTop()) return Offset.Zero
+            pulling = true
+            pull.begin()
+        }
+        // Pulled back up, the panel comes back first, and the list scrolls once it's in its place.
+        val used = if (dy < 0f) maxOf(dy, -pulled) else dy
+        pulled += used
+        pull.follow(pulled)
+        if (pulled <= 0f) {
+            // Back in its place before the finger lifted: the panel is no longer dragged, and what's left of the drag
+            // is the list's. Ending the drag here is what lets the panel follow its own flags again after it.
+            pulled = 0f
+            pulling = false
+            pull.cancel()
+        }
+        return Offset(0f, used)
+    }
+
+    /** The finger is up: the panel settles from where it was left, open or closed. */
+    override suspend fun onPreFling(available: Velocity): Velocity {
+        if (!pulling) return Velocity.Zero
+        pulling = false
+        pulled = 0f
+        pull.release(available.y)
+        return available
+    }
+}
 
 /**
  * A section of the queue whose songs can be dragged: in the list itself, or while [shuffled] (the queue then shows the

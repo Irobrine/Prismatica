@@ -945,6 +945,31 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                 panelShift.animateTo(scope, 0f, reduce, velocity) { closePanelsNow() }
             } else panelShift.animateTo(scope, 1f, reduce, velocity)
         }
+        // The queue pulled down at its very top (with nothing above it left to scroll to) takes the panel back into the
+        // player under the finger: the same morph a swipe down on the deck runs, so the queue fades and rises away as
+        // far as the hand has pulled, and the cover, title and deck come back with it. Letting go settles it from where
+        // it is, at the speed it was let go.
+        val queuePull = remember(morphSpan) {
+            object : PanelPull {
+                /** Where the panel was when this pull began (the queue's own place, unless it was still on its way in). */
+                private var base = 1f
+                override fun begin() {
+                    base = panelShift.value
+                    panelShift.begin()
+                }
+                override fun follow(px: Float) {
+                    val v = base - px / morphSpan
+                    if (PlayerMorph.completes(panelShift.value, towardPlayer = false) != PlayerMorph.completes(v, towardPlayer = false)) haptics.threshold()
+                    panelShift.follow(v)
+                }
+                // A downward speed closes; the morph's own numbers (progress a second) are the other way round.
+                override fun release(velocity: Float) = settlePanel(startedOpen = true, velocity = -velocity / morphSpan)
+                override fun cancel() {
+                    panelShift.end()
+                    panelShift.animateTo(scope, 1f, c.settings.current.reduceMotion)
+                }
+            }
+        }
         fun settleMenuSwipe(velocity: Float = 0f) {
             panelShift.end()
             haptics.gestureEnd()
@@ -1522,6 +1547,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             onRevealPlayer = { queueControlsOpen = true },
                             onHidePlayer = { if (!controlsStay) queueControlsOpen = false },
                             onClose = { haptics.gestureEnd(); toggleQueue() },
+                            pull = queuePull,
                             modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
                                 val fade = panelFade()
                                 alpha = fade
