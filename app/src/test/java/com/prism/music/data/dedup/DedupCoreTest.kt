@@ -34,6 +34,24 @@ class DedupCoreTest {
         Landmarks.of(ShazamSignature.of(shorts)),
     )
 
+    /**
+     * The stretches of [samples] the duplicate scan fingerprints ([DedupFingerprinter] decodes
+     * [com.prism.music.playback.QuickScan.windows] of a file), joined: three ~25 s windows, or a short recording whole.
+     */
+    private fun windowed(samples: ShortArray): ShortArray {
+        val durationMs = samples.size * 1000L / ShazamSignature.RATE
+        val out = ArrayList<Short>(samples.size)
+        for ((startMs, lengthMs) in com.prism.music.playback.QuickScan.windows(durationMs)) {
+            val from = (startMs * ShazamSignature.RATE / 1000).toInt().coerceIn(0, samples.size)
+            val to = ((startMs + lengthMs) * ShazamSignature.RATE / 1000).toInt().coerceIn(from, samples.size)
+            for (i in from until to) out += samples[i]
+        }
+        return out.toShortArray()
+    }
+
+    /** The fingerprint the duplicate scan makes of a recording: its windows, joined (`DedupFingerprinter`). */
+    private fun windowedFp(samples: ShortArray): AudioFingerprint = fp(windowed(samples))
+
     @Test
     fun fingerprintSurvivesEncoding() {
         val a = fp(music(12, 1))
@@ -63,6 +81,36 @@ class DedupCoreTest {
         val part = fp(clip)
         val match = Matcher.compare(whole, part)
         println("partial: ${match.votes} votes, ratio ${match.ratio}, offset ${match.offsetFrames}, level ${match.level}")
+        assertEquals(Matcher.Level.HIGH, match.level)
+    }
+
+    /**
+     * The scan fingerprints three stretches of a recording, not the whole of it ([DedupFingerprinter]): the same
+     * recording re-encoded still matches, and a different one still doesn't.
+     */
+    @Test
+    fun theScansWindowsStillTellACopyFromAnotherRecording() {
+        val a = windowedFp(music(60, 1))
+        val copy = windowedFp(music(60, 1, gain = 0.82f))
+        val different = windowedFp(music(60, 7))
+        val match = Matcher.compare(a, copy)
+        println("windowed copy: ${match.votes} votes, ratio ${match.ratio}, level ${match.level}")
+        assertEquals(Matcher.Level.HIGH, match.level)
+        val other = Matcher.compare(a, different)
+        println("windowed other: ${other.votes} votes, ratio ${other.ratio}, level ${other.level}")
+        assertEquals(Matcher.Level.NONE, other.level)
+    }
+
+    /**
+     * A copy with a video's intro is still the same recording: its windows land on different parts of it, but most of
+     * each stretch's sound is shared, so the votes still agree.
+     */
+    @Test
+    fun aCopyWithAnIntroStillMatches() {
+        val song = music(60, 3)
+        val video = music(8, 5) + song // another tune's 8 s ahead of it, as a video's intro
+        val match = Matcher.compare(windowedFp(song), windowedFp(video))
+        println("windowed with intro: ${match.votes} votes, ratio ${match.ratio}, level ${match.level}")
         assertEquals(Matcher.Level.HIGH, match.level)
     }
 
