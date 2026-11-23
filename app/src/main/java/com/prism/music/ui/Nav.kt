@@ -75,7 +75,8 @@ object Routes {
     fun mix(id: String) = "mix/${Uri.encode(id)}"
     fun podcast(id: String) = "podcast/${Uri.encode(id)}"
     /** A settings page; [find] is the group to bring into view (a Settings search result, #73). */
-    fun settings(section: String, find: String? = null) = "settings/$section" + (find?.let { "?find=${Uri.encode(it)}" } ?: "")
+    fun settings(section: String, find: String? = null) =
+        "settings/${Uri.encode(section)}" + (find?.let { "?find=${Uri.encode(it)}" } ?: "")
     fun album(id: String) = "album/${Uri.encode(id)}"
     fun playlist(id: String) = "playlist/${Uri.encode(id)}"
     /** A folder of playlists in Library (1.7.6). */
