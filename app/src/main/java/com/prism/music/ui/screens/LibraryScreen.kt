@@ -328,8 +328,13 @@ fun LibraryScreen(bottomPadding: Dp) {
         songsFrom.playlists.mapNotNull { id -> playlistEdits[id.removePrefix("VL")]?.let { id to it } }
     }
     val handledEdits = remember { HashMap<String, Long>() }
+    // The songs this session already has for those playlists, so the first composition draws them instead of an empty
+    // list that is composed again a frame later (the whole reason entering the Library drew twice).
+    val fromCached = remember(songsFrom.playlists, playlistVersion) {
+        songsFrom.playlists.mapNotNull { id -> c.playlistSongs.peek(id)?.let { id to it } }.toMap()
+    }
     val fromLoaded by androidx.compose.runtime.produceState(
-        emptyMap<String, List<com.prism.music.data.model.Song>>(),
+        fromCached,
         listOf(songsFrom.playlists, fromEdits, playlistVersion),
     ) {
         fromEdits.forEach { (id, at) ->
@@ -359,12 +364,9 @@ fun LibraryScreen(bottomPadding: Dp) {
     var choosingFrom by remember { mutableStateOf(false) }
     var dedupSheet by remember { mutableStateOf(false) }
     val albumSongs by c.library.albumSongs.collectAsState()
-    // Downloaded songs per album: by the album's id, and by its title for albums YouTube lists under another edition's id.
-    val downloadedPerAlbum = remember(dls) {
-        val done = dls.values.filter { it.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED }.mapNotNull { it.song }
-        done.mapNotNull { s -> s.album?.id?.let { it to s } }.groupingBy { it.first }.eachCount() to
-            done.mapNotNull { s -> s.album?.title?.lowercase()?.let { it to s } }.groupingBy { it.first }.eachCount()
-    }
+    // Downloaded songs per album, by the album's id, and by its title for albums YouTube lists under another edition's id.
+    // Counted in LibraryRepository, off the main thread, and ready before the tab is composed.
+    val downloadedPerAlbum by c.library.downloadedPerAlbum.collectAsState()
     fun artistOf(a: com.prism.music.data.model.BrowseItem) = albumSongs[a.id]?.first()?.primaryArtist ?: a.subtitle.split(" • ").firstOrNull { it != "Album" && it != "Single" && it != "EP" } ?: ""
     var albumKind by remember { mutableStateOf(AlbumKind.entries.firstOrNull { it.name == c.library.sortOf("library:albums:kind") } ?: AlbumKind.ALL) }
     val artistSongs by c.library.artistSongs.collectAsState()

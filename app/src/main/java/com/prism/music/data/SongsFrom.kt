@@ -140,6 +140,12 @@ class PlaylistSongs(
         return disk.read(id)?.songs?.takeIf { it.isNotEmpty() }
     }
 
+    /**
+     * The playlist's songs already in memory this session (no disk, no network): what a screen can show in its very
+     * first composition instead of drawing an empty list and composing again a frame later.
+     */
+    fun peek(id: String): List<Song>? = kept[id]
+
     /** Whether [id]'s songs are kept whole (a read that stopped short isn't). */
     fun isComplete(id: String): Boolean = kept.containsKey(id)
 

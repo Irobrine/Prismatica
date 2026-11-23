@@ -101,6 +101,17 @@ class LibraryRepository(private val c: AppContainer) {
         songs.flatMap { s -> s.artists.mapNotNull { it.id } }.groupingBy { it }.eachCount()
     }.flowOn(Dispatchers.Default).stateIn(c.scope, SharingStarted.Eagerly, emptyMap())
 
+    /**
+     * Downloaded songs per album, by the album's id and by its lowercased title (YouTube lists the same album under
+     * another edition's id). Library's "Downloaded" sort and its Album rows read this; counting a large library's
+     * downloads did it on the main thread on every entry and again on every change of the download queue.
+     */
+    val downloadedPerAlbum: StateFlow<Pair<Map<String, Int>, Map<String, Int>>> = c.downloadState.map { dls ->
+        val done = dls.values.filter { it.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED }.mapNotNull { it.song }
+        done.mapNotNull { s -> s.album?.id?.let { it to s } }.groupingBy { it.first }.eachCount() to
+            done.mapNotNull { s -> s.album?.title?.lowercase()?.let { it to s } }.groupingBy { it.first }.eachCount()
+    }.flowOn(Dispatchers.Default).stateIn(c.scope, SharingStarted.Eagerly, emptyMap<String, Int>() to emptyMap())
+
     val recent = songs.recentFlow(40).resilient("recent songs").distinctUntilChanged().map { list -> list.map { it.toSong() } }
         .stateIn(c.scope, SharingStarted.Eagerly, emptyList())
 
