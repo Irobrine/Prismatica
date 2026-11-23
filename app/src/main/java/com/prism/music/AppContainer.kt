@@ -33,9 +33,11 @@ import com.prism.music.playback.PlayerConnection
 import com.prism.music.playback.QueueState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -318,13 +320,18 @@ class AppContainer(val app: Application) {
      * so waiting for it puts the work behind the first frame. The wait is bounded: work asked for with no activity
      * still always runs. Used by the library sync and the local-music / lossless scans, none of which the first frame
      * needs.
+     *
+     * Asked while a screen is already up (a pull-to-refresh, a sign-in, a handoff), there is no first frame to spare
+     * and [work] runs at once. The returned job says when it is over.
      */
-    internal fun afterFirstFrame(work: suspend () -> Unit) {
-        scope.launch(Dispatchers.IO) {
-            if (!visible.value) kotlinx.coroutines.withTimeoutOrNull(FIRST_FRAME_WAIT_MS) { visible.first { it } }
-            kotlinx.coroutines.delay(FIRST_FRAME_SETTLE_MS)
+    internal fun afterFirstFrame(work: suspend () -> Unit): Job = scope.launch(Dispatchers.IO) {
+        if (visible.value) {
             work()
+            return@launch
         }
+        kotlinx.coroutines.withTimeoutOrNull(FIRST_FRAME_WAIT_MS) { visible.first { it } }
+        delay(FIRST_FRAME_SETTLE_MS)
+        work()
     }
 
     /**
@@ -565,12 +572,14 @@ class AppContainer(val app: Application) {
     val playerCache: SimpleCache by lazy {
         SimpleCache(File(app.cacheDir, "song_cache"), cacheEvictor, databaseProvider)
     }
+    /** Whether [playerCache] is open already: a composition asks [availableOffline], which must never open it itself. */
+    @Volatile private var playerCacheOpen = false
     /** Shrinks the song cache to fit, after Smart Downloads' space or its picks changed. */
     fun trimSongCache() { scope.launch(Dispatchers.IO) { runCatching { cacheEvictor.trim(playerCache) } } }
     init {
         // SimpleCache opens its own database the first time it is touched. Warm it on IO so a composition asking
         // availableOffline() never has to construct it (or open that database) on the main thread.
-        scope.launch(Dispatchers.IO) { runCatching { playerCache } }
+        scope.launch(Dispatchers.IO) { runCatching { playerCache }.onSuccess { playerCacheOpen = true } }
     }
     val downloadCache: SimpleCache by lazy {
         SimpleCache(File(app.filesDir, "downloads"), NoOpCacheEvictor(), databaseProvider)
@@ -922,13 +931,23 @@ class AppContainer(val app: Application) {
      * Whether a song plays without the network: a file on the phone, a finished download, or a song cached whole.
      * The download part reads [downloadState] (the same map the download repository publishes to its own state) rather
      * than touching the downloads lazy: screens call this from composition, and constructing the download manager
-     * there opens its database on the main thread. [playerCache]'s metadata read is still done here, but the cache
-     * itself is opened on IO at start (see its init block above).
+     * there opens its database on the main thread. The cache part goes through [cachedWhole], which never opens
+     * [playerCache] (and its database) from a composition either.
      */
     fun availableOffline(id: String): Boolean =
         id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX) || versions.fileOf(id) != null ||
             downloadState.value[id]?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED ||
-            runCatching { playerCache.fullyCached(songCacheKey(id), 0, C.LENGTH_UNSET.toLong()) }.getOrDefault(false)
+            cachedWhole(id)
+
+    /**
+     * Whether the song's stream is wholly in the song cache. Off the main thread the cache is opened on first ask, as
+     * it always was (playback asks this from IO); on the main thread only once the start-up warm-up has opened it, so a
+     * row asking whether it plays offline never waits on that database in a frame.
+     */
+    private fun cachedWhole(id: String): Boolean {
+        if (!playerCacheOpen && android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) return false
+        return runCatching { playerCache.fullyCached(songCacheKey(id), 0, C.LENGTH_UNSET.toLong()) }.getOrDefault(false)
+    }
 
     private fun Cache.fullyCached(key: String, position: Long, length: Long): Boolean {
         val total = ContentMetadata.getContentLength(getContentMetadata(key))

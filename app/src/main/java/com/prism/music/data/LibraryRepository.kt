@@ -10,6 +10,7 @@ import com.prism.music.data.model.BrowseItem
 import com.prism.music.data.model.PlaylistItem
 import com.prism.music.data.model.Song
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 
 enum class SyncState { IDLE, SYNCING, DONE, ERROR }
@@ -52,6 +54,11 @@ private const val MAX_READ_TRIES = 20L
 /** Local mirror of the signed-in user's YouTube Music library, with two-way like sync. */
 class LibraryRepository(private val c: AppContainer) {
     private val songs = c.db.songs()
+
+    /** Held while a sync runs: a request that arrives during one is that one's work, so it is dropped, not repeated. */
+    private val syncGate = Mutex()
+    /** The background sync asked for last ([syncInBackground]): an ask while it is active is the same work. */
+    private var scheduledSync: Job? = null
 
     val likedIds: StateFlow<Set<String>> = songs.likedIdsFlow().resilient("liked ids").distinctUntilChanged().map { it.toSet() }
         .stateIn(c.scope, SharingStarted.Eagerly, emptySet())
@@ -254,7 +261,10 @@ class LibraryRepository(private val c: AppContainer) {
 
     /** Pulls liked songs, playlists, albums and artists from the account. */
     suspend fun sync() = withContext(Dispatchers.IO) {
-        if (!c.settings.current.isLoggedIn || syncState.value == SyncState.SYNCING) return@withContext
+        if (!c.settings.current.isLoggedIn) return@withContext
+        // One sync at a time. The launch's, the Library's and a pull-to-refresh can ask within the same moment (the
+        // startup ones are deferred to the same frame); the requests are the same work, so a second one is dropped.
+        if (!syncGate.tryLock()) return@withContext
         syncState.value = SyncState.SYNCING
         try {
             val remote = c.ytm.likedSongs()
@@ -296,6 +306,8 @@ class LibraryRepository(private val c: AppContainer) {
         } catch (e: Exception) {
             lastError.value = e.friendlyMessage()
             syncState.value = SyncState.ERROR
+        } finally {
+            syncGate.unlock()
         }
     }
 
@@ -436,11 +448,17 @@ class LibraryRepository(private val c: AppContainer) {
         orderPrefs.edit().apply { if (name == null) remove("sort:$list") else putString("sort:$list", name) }.apply()
     }
 
-    fun syncInBackground() {
+    /**
+     * Asks for a sync in the background; the job returned is the one doing (or waiting to do) it. A second ask while
+     * that job is still waiting or running is the same work and is dropped, so the launch's ask and the Library's —
+     * both deferred to the same moment — are one sync, not two.
+     */
+    fun syncInBackground(): Job {
+        scheduledSync?.takeIf { it.isActive }?.let { return it }
         // MainActivity asks for this while it is still drawing the first screen. The sync reads the network and the
         // database, so let that screen come up (Prism is visible from onStart on) before spending either. The wait is
         // bounded, so a sync asked for without an activity (a job, a test, an account switch) still always runs.
-        c.afterFirstFrame { sync() }
+        return c.afterFirstFrame { sync() }.also { scheduledSync = it }
     }
 
     /**
