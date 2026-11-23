@@ -55,7 +55,9 @@ internal fun DedupSheet(onDismiss: () -> Unit) {
     }
     val fromLibrary by produceState(emptyMap<String, Song>(), wanted) {
         value = if (wanted.isEmpty()) emptyMap() else runCatching {
-            c.db.songs().getAll(wanted).associate { it.id to it.toSong() }
+            // Chunked: older Androids' SQLite caps a statement's bound parameters at 999, and a big library's groups
+            // can name more songs than that.
+            wanted.chunked(500).flatMap { c.db.songs().getAll(it) }.associate { it.id to it.toSong() }
         }.getOrDefault(emptyMap())
     }
     val known = remember(fromLibrary) {

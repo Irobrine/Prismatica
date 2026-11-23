@@ -313,7 +313,8 @@ private fun MeasureSongsRow() {
     val failed by produceState(emptyMap<String, Song>(), couldnt) {
         val ids = couldnt.orEmpty().map { it.second }.distinct()
         value = if (ids.isEmpty()) emptyMap() else runCatching {
-            c.db.songs().getAll(ids).associate { it.id to it.toSong() }
+            // Chunked: a whole set walked with no network can name more songs than one statement may bind.
+            ids.chunked(500).flatMap { c.db.songs().getAll(it) }.associate { it.id to it.toSong() }
         }.getOrDefault(emptyMap())
     }
     fun walk(pairs: List<Pair<String, String>>) {
