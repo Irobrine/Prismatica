@@ -17,8 +17,8 @@ import com.prism.music.data.db.PlayEventEntity
 import com.prism.music.data.db.toEntity
 import com.prism.music.data.model.Song
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -187,8 +187,16 @@ class SmartDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
          * WorkManager opens its own database the first time it is asked for. MainActivity calls [schedule] and
          * [runNow] while its first screen is being made, so all of WorkManager's access and enqueuing happens here,
          * off the caller's thread. The jobs and their constraints are unchanged.
+         *
+         * One thread, in the order the calls were made: turning Smart Downloads off and on again (or the other way)
+         * in quick succession must not land the cancel after the enqueue — which would leave the setting on with no
+         * work — or the enqueue after the cancel, running downloads while it is off.
          */
-        private val workScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        private val workScope = CoroutineScope(
+            SupervisorJob() + java.util.concurrent.Executors
+                .newSingleThreadExecutor { r -> Thread(r, "smart-downloads-work").apply { isDaemon = true } }
+                .asCoroutineDispatcher(),
+        )
 
         /** Wi-Fi only, unless Smart Downloads may use mobile data. */
         private fun constraints(cellular: Boolean) = Constraints.Builder()
