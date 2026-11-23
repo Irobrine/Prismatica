@@ -141,6 +141,11 @@ android {
         unitTests.isReturnDefaultValues = true
         // Robolectric tests can read the app's own resources (strings, the widgets' layouts).
         unitTests.isIncludeAndroidResources = true
+        // A heap big enough that the collection the tests make doesn't pile up on the finalizer: Robolectric's native
+        // SQLite runtime finalizes statements as a native runtime is torn down between classes, and on a small heap that
+        // access violation killed the whole test JVM (EXCEPTION_ACCESS_VIOLATION in robolectric-nativeruntime.dll, on
+        // the Finalizer thread, several runs in five). 4 GB made every run green; the ceiling is only reached if needed.
+        unitTests.all { it.maxHeapSize = "4g" }
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
         animationsDisabled = true
     }
