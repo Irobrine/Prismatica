@@ -58,6 +58,17 @@ class SongsFromTest {
         assertNull("a playlist that won't load shows nothing, no crash", lists.songs("bad"))
     }
 
+    @Test fun theKeptCopySeedsAScreenWithoutReadingItAgain() = runBlocking {
+        var reads = 0
+        val lists = PlaylistSongs(load = { id, _ -> reads++; PlaylistRead(listOf(s("$id-1")), complete = true) })
+        assertNull("nothing kept before the first read", lists.peek("x"))
+        assertEquals("x-1", lists.songs("x")!!.single().id)
+        assertEquals("the same copy, with no second read", "x-1", lists.peek("x")!!.single().id)
+        assertEquals(1, reads)
+        lists.refresh("x")
+        assertNull("a refreshed playlist is not seeded from the old copy", lists.peek("x"))
+    }
+
     @Test fun aReadThatStoppedShortIsReadAgainNextTime() = runBlocking {
         var reads = 0
         val lists = PlaylistSongs(load = { id, _ ->

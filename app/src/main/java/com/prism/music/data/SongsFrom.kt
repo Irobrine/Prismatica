@@ -142,9 +142,10 @@ class PlaylistSongs(
 
     /**
      * The playlist's songs already in memory this session (no disk, no network): what a screen can show in its very
-     * first composition instead of drawing an empty list and composing again a frame later.
+     * first composition instead of drawing an empty list and composing again a frame later. Only a copy [songs] would
+     * take without reading anything is returned, so a stale one still goes the way it always did.
      */
-    fun peek(id: String): List<Song>? = kept[id]
+    fun peek(id: String): List<Song>? = kept[id]?.takeIf { fresh(id) }
 
     /** Whether [id]'s songs are kept whole (a read that stopped short isn't). */
     fun isComplete(id: String): Boolean = kept.containsKey(id)
