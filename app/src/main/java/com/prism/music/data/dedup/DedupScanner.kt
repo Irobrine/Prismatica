@@ -22,7 +22,7 @@ class DedupScanner(
     private val store: DedupStore,
     /** The files in the scope of the scan (local files and downloads), as (stable file key, stable song/form id, uri). */
     private val files: suspend () -> List<FileRef>,
-    /** Decodes one file and makes its fingerprint. Implemented with the app's PcmDecoder + ShazamSignature. */
+    /** Decodes one file and makes its fingerprint. Implemented with QuickScan's bounded stretches and ShazamSignature. */
     private val fingerprintOf: suspend (FileRef) -> AudioFingerprint,
     /** Called with freshly computed automatic statements after the walk. */
     private val onAutomatic: suspend (List<Relation>) -> Unit,
@@ -47,11 +47,13 @@ class DedupScanner(
     private var job: Job? = null
     private var walk = 0
     /** The set the current (or stopped) walk was over; kept so a second press continues it, not a new set. */
-    private var walkSet: List<FileRef> = emptyList()
+    @Volatile private var walkSet: List<FileRef> = emptyList()
+    /** The phone's files when [walkSet] was taken: one added or removed since means the next press starts afresh. */
+    @Volatile private var walkFiles: Set<String> = emptySet()
     /** Files processed in that walk; kept when it is stopped. */
-    private var done = 0
+    @Volatile private var done = 0
     /** Whether the current walk finished. Only a finished walk's set is thrown away by the next press. */
-    private var finished = false
+    @Volatile private var finished = false
     /** Keys of cached files whose size or mtime changed since the last scan. */
     private var changed = emptySet<String>()
 
@@ -72,8 +74,9 @@ class DedupScanner(
     }
 
     /** Files that need a fingerprint now: no cache, a changed size/mtime, an old algorithm, or a previous failure. */
-    suspend fun pending(): List<FileRef> {
-        val current = files()
+    suspend fun pending(): List<FileRef> = pending(files())
+
+    private suspend fun pending(current: List<FileRef>): List<FileRef> {
         val todo = remaining(current)
         // A new file is not hidden: it shows at once, and the index hint says a scan would group it.
         val cached = store.fingerprintMetas().associateBy { it.key }
@@ -87,6 +90,9 @@ class DedupScanner(
      * Starts a walk, or resumes the one a previous press stopped. A stopped walk keeps its count and its total, so
      * pressing "Find duplicate songs now" again carries on from where it left off rather than showing a fresh count
      * over only the files that are left.
+     *
+     * The set is only carried on while the phone's files are the ones it was taken over: a file added or removed since
+     * would be left out while the walk's end marked the index up to date, so a changed set starts over.
      */
     fun start() {
         val mine = ++walk
@@ -94,22 +100,41 @@ class DedupScanner(
         // Set this before launching so a foreground service started by the same tap sees the walk as running at once.
         running.value = true
         scope.launch(Dispatchers.IO) {
-            // Old-format blobs are large; drop them once, at the start of a walk, before new ones are written.
-            store.dropOldVersions()
-            val resuming = !finished && walkSet.isNotEmpty()
-            val todo = if (resuming) remaining(walkSet) else pending()
-            if (todo.isEmpty()) {
-                if (!resuming) {
-                    walkSet = emptyList(); done = 0; finished = true; progress.value = null
-                }
-                running.value = false
-                return@launch
-            }
-            if (!resuming) { walkSet = todo; done = 0; finished = false }
-            val total = walkSet.size
-            if (resuming) done = total - todo.size
-            progress.value = done to total
             try {
+                // Old-format blobs are large; drop them once, at the start of a walk, before new ones are written.
+                store.dropOldVersions()
+                val current = files()
+                val currentKeys = current.map { it.key }.toSet()
+                val continuing = !finished && walkSet.isNotEmpty() && currentKeys == walkFiles
+                val todo = if (continuing) {
+                    // The refs as they are now, not as they were when the walk stopped: a file re-encoded meanwhile is
+                    // walked again rather than counted as done by its old size.
+                    val keys = walkSet.map { it.key }.toSet()
+                    remaining(current.filter { it.key in keys })
+                } else {
+                    pending(current)
+                }
+                if (todo.isEmpty()) {
+                    if (continuing) {
+                        // Stopped after its last file (or the rest was scanned some other way): finish it, so the count
+                        // clears and the next press takes a new set. Its grouping may never have run, hence the compare.
+                        recompute()
+                        store.setMeta(DedupStore.META_ALGORITHM, AudioFingerprint.VERSION.toString())
+                        store.setMeta(DedupStore.META_INDEX_OUTDATED, "false")
+                        indexOutdated.value = false
+                        finished = true
+                        progress.value = null
+                    } else {
+                        walkSet = emptyList(); walkFiles = emptySet(); done = 0; finished = true; progress.value = null
+                    }
+                    return@launch
+                }
+                if (!continuing) {
+                    walkSet = todo; walkFiles = currentKeys; done = 0; finished = false
+                }
+                val total = walkSet.size
+                if (continuing) done = total - todo.size
+                progress.value = done to total
                 for (ref in todo) {
                     if (mine != walk || !isActive) throw CancellationException()
                     if (ref.key in changed) onFileChanged(ref)
@@ -127,8 +152,11 @@ class DedupScanner(
                 if (mine == walk) {
                     recompute()
                     store.setMeta(DedupStore.META_ALGORITHM, AudioFingerprint.VERSION.toString())
-                    store.setMeta(DedupStore.META_INDEX_OUTDATED, "false")
-                    indexOutdated.value = false
+                    // A file added or removed while the walk ran isn't in it: the index it just built no longer covers
+                    // the phone, so the hint stays on instead of saying everything is indexed.
+                    val outdated = files().map { it.key }.toSet() != walkFiles
+                    store.setMeta(DedupStore.META_INDEX_OUTDATED, outdated.toString())
+                    indexOutdated.value = outdated
                     finished = true
                     progress.value = null
                 }
@@ -154,7 +182,15 @@ class DedupScanner(
         val usable = ArrayList<Pair<String, AudioFingerprint>>()
         for (meta in metas) {
             val songId = refs[meta.key]?.songId ?: continue
-            val fp = store.fingerprint(meta.key) ?: continue
+            // One row whose blob won't decode (a write cut short, a damaged database) is skipped, as it always was:
+            // a single bad row must not take the whole walk — and the app — down with it.
+            val fp = try {
+                store.fingerprint(meta.key)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            } ?: continue
             if (fp.size > 0) usable += songId to fp
         }
         val distinct = usable.distinctBy { it.first }

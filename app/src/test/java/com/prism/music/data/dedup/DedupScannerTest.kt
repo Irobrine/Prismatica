@@ -125,4 +125,163 @@ class DedupScannerTest {
             db.close()
         }
     }
+
+    /**
+     * A walk stopped after its last file (or after everything it had left was measured some other way) must finish:
+     * the count clears and the next press takes a new set, instead of sitting on "N of N" and resuming an empty one
+     * forever. Its grouping may never have run, so it still compares what it has.
+     */
+    @Test
+    fun aStoppedWalkWithNothingLeftFinishes() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), DedupDatabase::class.java)
+            .allowMainThreadQueries().build()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val store = DedupStore(db.dao())
+            val a = ref("a", 100, 10)
+            val b = ref("b", 100, 10)
+            var files = listOf(a, b)
+            val fp = AudioFingerprint(AudioFingerprint.VERSION, 30_000, 16_000, longArrayOf(1, 2, 3, 4))
+            val atB = CompletableDeferred<Unit>()
+            val releaseB = CompletableDeferred<Unit>()
+            var handed = emptyList<String>()
+            val scanner = DedupScanner(scope, store, { files }, { r ->
+                handed += r.songId
+                if (r.songId == "b") { atB.complete(Unit); releaseB.await() }
+                fp
+            }, { })
+
+            scanner.start()
+            atB.await()
+            scanner.stop()
+            releaseB.complete(Unit)
+            repeat(100) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
+            assertEquals(1 to 2, scanner.progress.value)
+            // What was left is measured meanwhile (a file scanned by another press, say).
+            store.putFingerprint(b.key, fp, b.sizeBytes, b.modifiedMs, 5L)
+            handed = emptyList()
+
+            scanner.start() // nothing left: it finishes rather than holding "1 of 2"
+            repeat(100) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
+            assertEquals(null, scanner.progress.value)
+            assertEquals(emptyList<String>(), handed)
+
+            // And the next press is a new set over the files as they are: one added since is taken in.
+            files = listOf(a, b, ref("c", 100, 10))
+            scanner.start()
+            repeat(100) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
+            assertEquals(listOf("c"), handed)
+            assertEquals(null, scanner.progress.value)
+        } finally {
+            scope.cancel()
+            db.close()
+        }
+    }
+
+    /**
+     * A file added while a walk is stopped is not part of that walk's set: carrying it on would finish without the new
+     * file and mark the index up to date, so the press starts over what the phone has now.
+     */
+    @Test
+    fun aFileAddedWhileAWalkWasStoppedIsStillScanned() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), DedupDatabase::class.java)
+            .allowMainThreadQueries().build()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val store = DedupStore(db.dao())
+            val a = ref("a", 100, 10)
+            val b = ref("b", 100, 10)
+            var files = listOf(a, b)
+            val fp = AudioFingerprint(AudioFingerprint.VERSION, 30_000, 16_000, longArrayOf(1, 2, 3, 4))
+            val atB = CompletableDeferred<Unit>()
+            val releaseB = CompletableDeferred<Unit>()
+            var handed = emptyList<String>()
+            val scanner = DedupScanner(scope, store, { files }, { r ->
+                handed += r.songId
+                if (r.songId == "b") { atB.complete(Unit); releaseB.await() }
+                fp
+            }, { })
+
+            scanner.start()
+            atB.await()
+            scanner.stop()
+            releaseB.complete(Unit)
+            repeat(100) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
+            assertEquals(1 to 2, scanner.progress.value)
+
+            // A file arrives while the walk is stopped.
+            val c = ref("c", 100, 10)
+            files = listOf(a, b, c)
+            handed = emptyList()
+            scanner.start() // the set changed: a new walk over what is there, not a resume of the old two
+            repeat(200) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
+            assertEquals("the new file is fingerprinted too", listOf("b", "c"), handed)
+            assertEquals("and the index is up to date again", false, scanner.indexOutdated.value)
+            assertEquals("false", store.meta(DedupStore.META_INDEX_OUTDATED))
+            assertEquals(3, store.fingerprints().count { it.state == "ok" })
+        } finally {
+            scope.cancel()
+            db.close()
+        }
+    }
+
+    /**
+     * One cached row whose blob won't decode (a write cut short, a damaged database) is skipped: it must not take the
+     * walk — and, on a phone, the app — down with it.
+     */
+    @Test
+    fun aCorruptCachedFingerprintDoesNotStopTheWalk() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), DedupDatabase::class.java)
+            .allowMainThreadQueries().build()
+        val problems = java.util.concurrent.CopyOnWriteArrayList<Throwable>()
+        val scope = CoroutineScope(
+            SupervisorJob() + Dispatchers.Default + kotlinx.coroutines.CoroutineExceptionHandler { _, e -> problems += e },
+        )
+        try {
+            val store = DedupStore(db.dao())
+            val a = ref("a", 100, 10)
+            val b = ref("b", 100, 10)
+            val c = ref("c", 100, 10)
+            val fp = AudioFingerprint(AudioFingerprint.VERSION, 30_000, 16_000, longArrayOf(1, 2, 3, 4))
+            store.putFingerprint(a.key, fp, a.sizeBytes, a.modifiedMs, 1L)
+            // Not a fingerprint: the header is missing, so decoding it throws.
+            db.dao().putFingerprint(
+                FingerprintRow(b.key, byteArrayOf(1, 2, 3), AudioFingerprint.VERSION, b.sizeBytes, b.modifiedMs, 30_000, "ok", null, 1L),
+            )
+            var handed = emptyList<String>()
+            val scanner = DedupScanner(scope, store, { listOf(a, b, c) }, { r -> handed += r.songId; fp }, { })
+
+            scanner.start()
+            repeat(200) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
+            assertEquals(listOf("c"), handed) // only the unindexed file needed a fingerprint
+            assertEquals(null, scanner.progress.value)
+            assertEquals(false, scanner.running.value)
+            assertTrue("the walk must not fail on one bad row: $problems", problems.isEmpty())
+        } finally {
+            scope.cancel()
+            db.close()
+        }
+    }
+
+    /** A stop is a cancel, not a file that couldn't be decoded: no "failed" row is written for it. */
+    @Test
+    fun aStoppedFileIsNotRecordedAsAFailure() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), DedupDatabase::class.java)
+            .allowMainThreadQueries().build()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val store = DedupStore(db.dao())
+            val scanner = DedupScanner(
+                scope, store, { listOf(ref("a", 100, 10)) },
+                { throw kotlinx.coroutines.CancellationException("the scan was stopped") }, { },
+            )
+            scanner.start()
+            repeat(100) { if (scanner.running.value) kotlinx.coroutines.delay(20) }
+            assertTrue("no failed row for a stop: ${store.fingerprints()}", store.fingerprints().isEmpty())
+            assertEquals(false, scanner.running.value)
+        } finally {
+            scope.cancel()
+            db.close()
+        }
+    }
 }

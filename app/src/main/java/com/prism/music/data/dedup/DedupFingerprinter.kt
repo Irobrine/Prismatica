@@ -47,10 +47,12 @@ internal object DedupFingerprinter {
                 }
                 pieces.first[piece][at]
             }
-            if (cancelled()) error("the scan was stopped")
+            // A stop is a cancel, not a failure: a "failed" row would replace the cached fingerprint a changed file is
+            // being re-scanned for, and make a stop look like a file that can't be decoded.
+            if (cancelled()) throw kotlinx.coroutines.CancellationException("the scan was stopped")
             val at16 = Resampler.convert(mono, 1, pieces.second, ShazamSignature.RATE)
             val pcm = ShortArray(at16.size) { i -> (at16[i] * 32767f).toInt().coerceIn(-32768, 32767).toShort() }
-            if (cancelled()) error("the scan was stopped")
+            if (cancelled()) throw kotlinx.coroutines.CancellationException("the scan was stopped")
             val signature = ShazamSignature.of(pcm)
             return AudioFingerprint(AudioFingerprint.VERSION, durationMs, ShazamSignature.RATE, Landmarks.of(signature))
         } finally {
