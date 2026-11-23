@@ -57,33 +57,41 @@ class DedupScanner(
     /** Keys of cached files whose size or mtime changed since the last scan. */
     private var changed = emptySet<String>()
 
-    private suspend fun remaining(set: List<FileRef>): List<FileRef> = withContext(Dispatchers.IO) {
+    private suspend fun remaining(set: List<FileRef>): List<FileRef> = needed(set).todo
+
+    /** What a scan of [set] would do, and whether the index doesn't match it (the "new files" hint). */
+    private data class Need(val todo: List<FileRef>, val newFiles: Boolean)
+
+    private suspend fun needed(set: List<FileRef>): Need = withContext(Dispatchers.IO) {
         val cached = store.fingerprintMetas().associateBy { it.key }
         val excluded = store.exclusions()
+        val changedKeys = set.filter { ref ->
+            ref.key !in excluded && cached[ref.key]?.let { row -> row.sizeBytes != ref.sizeBytes || row.modifiedMs != ref.modifiedMs } ?: false
+        }.map { it.key }.toSet()
+        changed = changedKeys
         // Each cached row carries its own algorithm version. Comparing against a separate "last completed walk"
         // marker would make every finished file look stale again while a walk is stopped, resetting progress to zero
         // on the next press. The row's version is the authoritative check (and still forces a re-scan after a change).
-        changed = set.filter { ref ->
-            cached[ref.key]?.let { row -> row.sizeBytes != ref.sizeBytes || row.modifiedMs != ref.modifiedMs } ?: false
-        }.map { it.key }.toSet()
-        set.filter { ref ->
+        val todo = set.filter { ref ->
             ref.key !in excluded && cached[ref.key]?.let { row ->
                 row.version != AudioFingerprint.VERSION || row.state != "ok" || row.sizeBytes != ref.sizeBytes || row.modifiedMs != ref.modifiedMs
             } ?: true
         }
+        // The hint means the index doesn't match the phone: a file it has never seen, or one that changed since. A row
+        // that failed is not new — the file was seen, and the next scan retries it — so it must not hold the hint on for
+        // the life of the install; a file the listener set aside is not the index's to cover either.
+        Need(todo, set.any { it.key !in cached && it.key !in excluded } || changedKeys.isNotEmpty())
     }
 
     /** Files that need a fingerprint now: no cache, a changed size/mtime, an old algorithm, or a previous failure. */
     suspend fun pending(): List<FileRef> = pending(files())
 
     private suspend fun pending(current: List<FileRef>): List<FileRef> {
-        val todo = remaining(current)
-        // A new file is not hidden: it shows at once, and the index hint says a scan would group it.
-        val cached = store.fingerprintMetas().associateBy { it.key }
-        val outdated = current.any { it.key !in cached } || todo.isNotEmpty()
-        indexOutdated.value = outdated
-        store.setMeta(DedupStore.META_INDEX_OUTDATED, outdated.toString())
-        return todo
+        val need = needed(current)
+        // A new file is not hidden: it shows at once, and the hint says a scan would group it.
+        indexOutdated.value = need.newFiles
+        store.setMeta(DedupStore.META_INDEX_OUTDATED, need.newFiles.toString())
+        return need.todo
     }
 
     /**

@@ -59,6 +59,50 @@ class DedupScannerTest {
         }
     }
 
+    /**
+     * "New files — scan to find their duplicates" means the index doesn't match the phone. A file whose last scan
+     * failed (its row is there, and the next press retries it) and one the listener set aside are not new, so the hint
+     * stays off for them instead of showing for the life of the install; a file that changed since does ask for a scan.
+     */
+    @Test
+    fun onlyAFileTheIndexHasNeverSeenIsNew() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), DedupDatabase::class.java)
+            .allowMainThreadQueries().build()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val store = DedupStore(db.dao())
+            val scanned = ref("a", 100, 10)
+            val failed = ref("b", 100, 10)
+            val setAside = ref("c", 100, 10)
+            val fresh = ref("d", 100, 10)
+            val fp = AudioFingerprint(AudioFingerprint.VERSION, 30_000, 16_000, longArrayOf(1, 2, 3, 4))
+            store.putFingerprint(scanned.key, fp, scanned.sizeBytes, scanned.modifiedMs, 1L)
+            db.dao().putFingerprint(
+                FingerprintRow(failed.key, fp.encode(), AudioFingerprint.VERSION, failed.sizeBytes, failed.modifiedMs, 30_000, "failed", "could not decode", 1L),
+            )
+            store.setExclusion(setAside.key, true, "a cover I keep", 2L)
+            var files = listOf(scanned, failed, setAside)
+            val scanner = DedupScanner(scope, store, { files }, { fp }, { })
+
+            assertEquals("the failed file is still work", listOf("b"), scanner.pending().map { it.songId })
+            assertEquals("but not a new file", false, scanner.indexOutdated.value)
+            assertEquals("false", store.meta(DedupStore.META_INDEX_OUTDATED))
+
+            // The same file, re-encoded: the index no longer matches it, so a scan is wanted, as before.
+            files = listOf(ref("a", 999, 10), failed, setAside)
+            assertEquals("a changed file is work", setOf("a", "b"), scanner.pending().map { it.songId }.toSet())
+            assertEquals("and it asks for a scan", true, scanner.indexOutdated.value)
+
+            files = listOf(scanned, failed, setAside, fresh)
+            assertEquals("the new one is work too", setOf("b", "d"), scanner.pending().map { it.songId }.toSet())
+            assertEquals("and the hint says there are new files", true, scanner.indexOutdated.value)
+            assertEquals("true", store.meta(DedupStore.META_INDEX_OUTDATED))
+        } finally {
+            scope.cancel()
+            db.close()
+        }
+    }
+
     @Test
     fun failedFilesStayUnindexedAndAreSkippedNextTime() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), DedupDatabase::class.java)
