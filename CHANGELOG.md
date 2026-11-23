@@ -2,6 +2,48 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.3.2
+
+Duplicate recordings can be found and hidden, a blend says why it didn't happen, the queue pulls closed, and the Library, startup and song measuring are faster.
+
+### Duplicate songs
+
+- **Duplicate recordings, found and hidden** (off as Prism comes): Prism fingerprints the files on the phone — three short stretches of each, so an intro or outro doesn't matter — and groups the same recording: a song and its video, a re-encoded copy, a copy with an intro. A live take, remix, cover or another master stays apart.
+- **One row per recording** in every list: the shown version with a version count, and its alternatives, each to confirm, separate for good, move or add to another group, merge, pin to show everywhere, or keep out of the scan; "Compare" plays a suggested pair.
+- **A suggestion is not a match**: a pair that only partly agrees waits for you to confirm it, and a weak A–B–C chain never swallows an unrelated track.
+- **Five lists, each with its own choice** (Library Songs, Library Albums, Playlists, Local files, Downloads): a quick toggle in the list's controls, a long press for the sheet, and On, Off or "Inherit global setting" in Settings → Home & Library → Duplicate songs, under "Hide duplicate versions by default".
+- **The scan runs only when asked**: "Find duplicate songs now" never works at startup, carries on with Prism out of sight under a notification, stops and carries on with its count kept, marks new or changed files as "New files — scan to find their duplicates", and uses mobile data only when allowed.
+- **Queues and the player follow it**: a queue carries one version per group, tapping a version still plays that file, and a version hidden mid-play hands over to the shown one at the same position.
+
+### Mix
+
+- **Why two songs didn't blend**: the last refusal is kept and shown as "Last time: …" behind Crossfade's ⓘ in Settings → Playback and the queue's DJ ⓘ — repeat one, a music video, Sing or Listen together on, casting, too close to the end, and the rest.
+- **The ending song plays on the output you picked**, instead of wherever the system sends music.
+- **Every way out of a blend ends cleanly**: a skip fades over 150 ms rather than cutting, a pause lines the two players up again, the next song taken back comes up from where it was, and a failed second player no longer leaves the next song below full volume.
+
+### The player
+
+- **Pulling the queue down at its top closes it**, following the finger through the same morph a swipe down on the deck runs and settling by the player's own threshold and flick; the header's own pull is unchanged, and the wide player takes none.
+
+### Measuring songs
+
+- **A song that couldn't be measured is named**: the row says how many, the sheet lists them with "Try again" and "Don't scan", and a kept song leaves the count until "Scan again" puts it back.
+- **A progress notification opens the menu its work came from** — Duplicate songs, Lyrics enhancement, Downloads — instead of Prism's front page.
+
+### Library & startup
+
+- **Library composes only the tab you open**, with list derivations and download counts off the main thread, so a large library no longer stalls entry.
+- **Startup leaves the song cache and the library sync off the first frame**, and the launch and the Library ask for the sync once instead of twice.
+- **Duplicate lookups are indexed**, so entering the Library no longer scans every group for every song, and a menu's songs are read in chunks on older Androids.
+- **Smart Downloads keeps the order it was asked in**, and "Songs from" starts from the kept copy a read would return.
+
+### Under the hood
+
+- `docs/deduplication.md` describes detection, grouping and the choices; `DedupCoreTest`, `DedupScannerTest`, `DedupStoreTest`, `DedupScanServiceTest`, `MixBlendTest`, `MixWhyTest`, `MixTailPlayerTest`, `QueuePullTest`, `QueuePullListTest`, `ProgressNotificationLinksTest` and `SettingsLinkTest` cover the new paths.
+- Settings links encode their section, so a `#` or `/` can't break navigation from another app.
+- The unit-test JVM gets 4 GB so Robolectric's native SQLite teardown stops killing the run; JVM crash dumps and replay logs are ignored.
+- The new strings are in all 31 languages.
+
 ## 1.3.1
 
 A track of your own can follow the sleep timer, playback comes back when a Bluetooth output does, the download queue shows each download, and measuring songs uses more of the phone.
