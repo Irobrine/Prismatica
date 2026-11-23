@@ -77,7 +77,9 @@ fun rememberDedupList(songs: List<Song>, scope: DedupScope, expanded: Set<String
         } else {
             val byId = songs.associateBy { it.id }
             val views = DedupViews(groups, c.dedup.candidates(songs), enabled = true)
-            val rows = views.rows(songs.map { it.id })
+            // One ids list for both passes below, rather than a new list of every song for each.
+            val ids = songs.map { it.id }
+            val rows = views.rows(ids)
             val lines = ArrayList<DedupLine>()
             rows.forEach { row ->
                 when (row) {
@@ -92,7 +94,7 @@ fun rememberDedupList(songs: List<Song>, scope: DedupScope, expanded: Set<String
                     }
                 }
             }
-            DedupListState(lines, views.hidden(songs.map { it.id }), true, groups, suggestions)
+            DedupListState(lines, views.hidden(ids), true, groups, suggestions)
         }
     }
 }
