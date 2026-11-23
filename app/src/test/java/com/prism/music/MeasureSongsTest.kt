@@ -33,8 +33,12 @@ class MeasureSongsTest {
     /** The recording each song plays as, where that isn't the song itself (a version picked for it). */
     private val versions = mutableMapOf<String, String>()
 
-    /** What the walk asked for: the form, the song it plays for, and whether it could use the network. */
-    private val asked = java.util.Collections.synchronizedList(ArrayList<Triple<String, String?, Boolean>>())
+    /**
+     * What the walk asked for: the form, the song it plays for, and whether it could use the network. A copy-on-write
+     * list: the walk adds to it on its own threads while a test reads and iterates it, which a synchronized list does
+     * not make safe for an iterator.
+     */
+    private val asked = java.util.concurrent.CopyOnWriteArrayList<Triple<String, String?, Boolean>>()
 
     @After fun close() = scope.cancel()
 
@@ -84,13 +88,14 @@ class MeasureSongsTest {
         val at = AtomicInteger()
         val e = engine(measure = { form, _, _ -> asked += Triple(form, null, false); gates[at.getAndIncrement()].await() })
         e.start(listOf("a" to "a", "b" to "b", "c" to "c"), network = false)
-        until("the first song") { e.progress.value == (0 to 3) }
+        // The count is 0 of 3 before the first scan starts (the row says so at once): wait for the scan itself too.
+        until("the first song") { e.progress.value == (0 to 3) && asked.size == 1 }
         assertEquals("only the first is asked for", listOf("a"), asked.map { it.first })
         gates[0].complete(Unit)
-        until("the second song") { e.progress.value == (1 to 3) }
+        until("the second song") { e.progress.value == (1 to 3) && asked.size == 2 }
         assertEquals(listOf("a", "b"), asked.map { it.first })
         gates[1].complete(Unit)
-        until("the third song") { e.progress.value == (2 to 3) }
+        until("the third song") { e.progress.value == (2 to 3) && asked.size == 3 }
         gates[2].complete(Unit)
         until("the end") { e.progress.value == null }
         assertEquals(listOf("a", "b", "c"), asked.map { it.first })
