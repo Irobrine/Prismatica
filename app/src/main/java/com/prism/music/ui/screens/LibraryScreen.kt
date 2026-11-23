@@ -283,9 +283,9 @@ fun LibraryScreen(bottomPadding: Dp) {
         }
     }
 
-    // The account's saved albums / artists first, then the ones your liked and downloaded songs come from. The hot
-    // flows keep this grouping off the main thread and ready when the tab is recomposed after a switch.
-    val mine by c.library.mineSongs.collectAsState()
+    // The account's saved albums / artists first, then the ones your liked and downloaded songs come from. The grouping
+    // and the per-song counts live in [com.prism.music.data.LibraryRepository]'s hot flows: off the main thread, and
+    // ready when the tab is recomposed after a switch.
     // Signed in, Albums is the account's saved albums (and ones saved in Prism), as in YouTube Music (#191: 56 saved
     // showed as many more, singles too, since the albums of every liked and downloaded song were added). Without an
     // account, those songs' albums are all there is to show. Downloaded albums are on the Downloads page either way.
