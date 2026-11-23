@@ -228,6 +228,35 @@ class DedupCoreTest {
     }
 
     @Test
+    fun aLargeLibraryIsGroupedOncePerGroupAndConsistentWithItsQueue() {
+        val groups = listOf(
+            Grouping.Group("g1", setOf("a1", "a2", "a3")),
+            Grouping.Group("g2", setOf("b1", "b2")),
+            Grouping.Group("g3", setOf("c1", "c2", "c3")),
+        )
+        val candidates = listOf("a1", "a2", "a3", "b1", "b2", "c1", "c2", "c3").map { Candidate(it, false) }
+        // x, y, z are in no group; a3, c1 and c3 are in groups but not in this list.
+        val ids = listOf("x", "a2", "b1", "y", "a1", "c2", "b2", "z")
+        val views = DedupViews(groups, candidates, enabled = true)
+        val hidden = views.hidden(ids)
+        val rows = views.rows(ids)
+        assertEquals("one row per group, none per hidden version", ids.size - hidden.size, rows.size)
+        assertEquals(ids.filterNot { it in hidden }, views.queue(ids))
+        assertEquals("each row where its group first appears", listOf("x", "g1", "g2", "y", "g3", "z"), rows.map { row ->
+            when (row) {
+                is DisplayRow.Single -> row.id
+                is DisplayRow.Group -> row.id
+            }
+        })
+        val g1 = rows.first { it is DisplayRow.Group && it.id == "g1" } as DisplayRow.Group
+        assertEquals("only the versions this list has", setOf("a1", "a2"), (g1.alternatives + g1.representative).toSet())
+        val g3 = rows.first { it is DisplayRow.Group && it.id == "g3" } as DisplayRow.Group
+        assertEquals("its one version here is its own row", "c2", g3.representative)
+        assertTrue("nothing to hide when no other version is in the list", g3.alternatives.isEmpty())
+        assertEquals("a group this view was not built from still reads its versions", "a1", views.representative(Grouping.Group("other", setOf("a1")), setOf("a1")))
+    }
+
+    @Test
     fun aPlayingHiddenSongSwitchesToTheRepresentativeWhileKeepingItsIdOtherwise() {
         val group = Grouping.Group("video", setOf("video", "audio"))
         val candidates = listOf(Candidate("video", true), Candidate("audio", false, Quality.of("FLAC", 900, 96_000, 24)))
