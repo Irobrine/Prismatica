@@ -1,6 +1,9 @@
 package com.prism.music
 
 import com.prism.music.data.MoreFrom
+import com.prism.music.data.MoreFromPools
+import com.prism.music.data.mixMoreFrom
+import com.prism.music.data.sameRecording
 import com.prism.music.data.ONLINE_BUDGET_MS
 import com.prism.music.data.phoneMoreFrom
 import com.prism.music.data.shuffledMoreFrom
@@ -103,7 +106,7 @@ class MoreFromTest {
      * timeout. A look-up that answers in time is kept.
      */
     @Test fun aLookupThatCantAnswerDoesNotHoldTheTap() = runBlocking {
-        assertTrue("the budget is short", ONLINE_BUDGET_MS <= 5_000)
+        assertTrue("the budget is short", ONLINE_BUDGET_MS <= 2_000)
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         try {
             val started = System.currentTimeMillis()
@@ -114,5 +117,76 @@ class MoreFromTest {
         } finally {
             scope.cancel()
         }
+    }
+
+    /**
+     * What YouTube offered for an artist is kept for a while, so the next tap picks from it without asking again, and a
+     * network that found nowhere to go is remembered for a minute: an offline tap after the first goes to the phone at
+     * once instead of waiting out the budget every time.
+     */
+    @Test fun thePoolsKeepWhatWasFoundAndForgetADeadNetwork() {
+        val pools = MoreFromPools(ttlMs = 1_000, downMs = 500)
+        assertEquals("artist:UCradiohead", pools.key(current, MoreFrom.ARTIST))
+        assertEquals("album:MPREkid", pools.key(current, MoreFrom.ALBUM))
+        // No link: the name, normalized, keeps the same artist's songs together.
+        assertEquals("artist:portishead", pools.key(Song("x", "Glory Box", listOf(ArtistRef("Portishead")), null), MoreFrom.ARTIST))
+
+        assertNull("nothing kept yet", pools.get("artist:UCradiohead", 0))
+        pools.put("artist:UCradiohead", listOf(current), now = 0)
+        assertEquals(listOf(current), pools.get("artist:UCradiohead", 999))
+        assertNull("a stale pool is asked for again", pools.get("artist:UCradiohead", 1_000))
+
+        assertFalse("a working YouTube isn't given up on", pools.isDown(0))
+        pools.down(0)
+        assertTrue(pools.isDown(499))
+        pools.up()
+        assertFalse("back online, the next tap asks again", pools.isDown(499))
+        pools.down(600)
+        assertFalse("the taps after a minute try again", pools.isDown(600 + 60_000))
+    }
+
+    /**
+     * Even with YouTube answering, about a third of the handful is the phone's own copies, so they play without a
+     * network; the rest is YouTube's. A side that's short is made up by the other, and nothing repeats.
+     */
+    @Test fun aThirdOfTheHandfulIsThePhonesEvenOnline() {
+        val online = (1..100).map { song("o$it") }
+        val phone = (1..10).map { song("p$it") }
+
+        val three = mixMoreFrom(online, phone, want = 3, exclude = emptySet())
+        assertEquals(3, three.size)
+        assertEquals("one of three is the phone's", 1, three.count { it.id.startsWith("p") })
+
+        val six = mixMoreFrom(online, phone, want = 6, exclude = emptySet())
+        assertEquals(6, six.size)
+        assertEquals(2, six.count { it.id.startsWith("p") })
+
+        // YouTube didn't answer: the phone's alone, filled to the number asked.
+        val offline = mixMoreFrom(null, phone, want = 3, exclude = emptySet())
+        assertEquals(3, offline.size)
+        assertTrue(offline.all { it.id.startsWith("p") })
+
+        // One side short: the other fills in, and no song comes twice.
+        val short = mixMoreFrom(listOf(song("o1")), phone, want = 4, exclude = emptySet())
+        assertEquals(4, short.size)
+        assertEquals(4, short.map { it.id }.distinct().size)
+        assertTrue(short.any { it.id == "o1" })
+
+        // The song playing never comes back.
+        val kept = mixMoreFrom(online, phone, want = 5, exclude = setOf("p1", "o1"))
+        assertEquals(5, kept.size)
+        assertFalse(kept.any { it.id == "p1" || it.id == "o1" })
+    }
+
+    /** A file on the phone and YouTube's copy of the same song are one song, though their ids differ. */
+    @Test fun theSameRecordingIsNotAddedTwice() {
+        val file = Song("local:1", "Creep", listOf(ArtistRef("Radiohead")), null)
+        val stream = Song("v1", "Creep", listOf(ArtistRef("Radiohead", "UCradiohead")), null)
+        assertTrue(sameRecording(file, stream))
+        assertFalse(sameRecording(file, song("o1", title = "High and Dry")))
+        val out = mixMoreFrom((1..10).map { song("o$it") } + stream, listOf(file), want = 3, exclude = emptySet())
+        assertEquals(3, out.size)
+        assertEquals("one Creep, the phone's", 1, out.count { it.title == "Creep" })
+        assertTrue(out.any { it.id == "local:1" })
     }
 }

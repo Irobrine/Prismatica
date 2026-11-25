@@ -60,12 +60,4 @@ class NetworkState(context: Context) {
 
     /** True when it's worth trying the network (a fresh check, as the callback can lag a moment behind). */
     fun isOnline(): Boolean = read().first
-
-    /**
-     * Whether Android itself got through to the internet on the active network
-     * ([NetworkCapabilities.NET_CAPABILITY_VALIDATED]). A hint only — [isOnline] stays lenient, as some working
-     * networks never validate — for work that can't afford to wait on a network with nowhere to send it.
-     */
-    fun isValidated(): Boolean =
-        cm?.getNetworkCapabilities(cm.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
 }
