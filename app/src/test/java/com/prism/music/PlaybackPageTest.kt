@@ -43,6 +43,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
     private fun t(id: Int) = tr(id)
 
     private val queueEnds = t(R.string.when_the_queue_ends)
+    private val appendNext = t(R.string.playback_append_to_play_next)
     private val noRepeats = t(R.string.no_repeats_title)
     private val longest = t(R.string.longest_song_for_autoplay)
     private val videos = t(R.string.music_videos_label)
@@ -75,7 +76,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
             listOf(t(R.string.what_plays_next), t(R.string.shuffle), t(R.string.playback_song_to_song), t(R.string.playback_speed_and_pitch), t(R.string.stopping_and_pausing)),
             groupTitles(),
         )
-        assertEquals(listOf(6, 2, 2, 2, 6), groupSizes())
+        assertEquals(listOf(7, 2, 2, 2, 6), groupSizes())
         assertEquals("nothing differs from how Prism comes", 0, changedRows())
         // No group is named as the page, and none as one of its own rows (§2.7: "Crossfade" was both).
         assertTrue(groupTitles().none { it == SettingsPageId.PLAYBACK.title })
@@ -102,7 +103,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         until("crossfade on") { it.mix && !it.mixAuto }
         show()
         assertBudgets("crossfade on, fixed length")
-        assertEquals(listOf(6, 2, 5, 2, 6), groupSizes())
+        assertEquals(listOf(7, 2, 5, 2, 6), groupSizes())
         assertEquals("6 s", valueOf(length))
     }
 
@@ -117,6 +118,9 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         assertFalse("its length limit only shows with Autoplay on", hasRow(longest))
         pick(queueEnds, QueueEnd.YOURS.label)
         until("autoplay_source") { it.autoplay && it.autoplaySource == AutoplaySource.YOURS }
+        // append_to_play_next
+        tap(appendNext)
+        until("append_to_play_next") { it.behavior.appendToPlayNext }
         assertEquals(QueueEnd.YOURS.label, valueOf(queueEnds))
         // autoplay_no_repeats
         tap(noRepeats)
@@ -190,15 +194,15 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
 
         // Every row now differs from how Prism comes, says so, and the page still fits.
         assertBudgets("everything changed")
-        assertEquals(listOf(6, 2, 5, 2, 6), groupSizes())
-        assertEquals(21, changedRows())
+        assertEquals(listOf(7, 2, 5, 2, 6), groupSizes())
+        assertEquals(22, changedRows())
         // The root's line is live.
         val line = SettingsPageId.PLAYBACK.value(stored)
         assertTrue(line, tr(R.string.root_crossfade_seconds, 9) in line && noRepeats in line)
 
         // Reset this page lists each of them and puts them all back.
         val lines = resetLines(confirm = true)
-        assertEquals(lines.joinToString("\n"), 21, lines.size)
+        assertEquals(lines.joinToString("\n"), 22, lines.size)
         assertTrue(lines.toString(), lines.any { it.startsWith("$shuffleButton: ${ShuffleButton.SHUFFLE_ONLY.label} → ${ShuffleButton.SHUFFLE_AND_SMART.label}") })
         until("the reset") { it.behavior == d.behavior && it.sound == d.sound }
         until("the reset") {
@@ -207,7 +211,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
                 it.mixBeatMatch == d.mixBeatMatch && it.mixKeepAlbums == d.mixKeepAlbums && it.stopOnSwipeAway == d.stopOnSwipeAway
         }
         assertEquals(0, changedRows())
-        assertEquals(listOf(6, 2, 2, 2, 6), groupSizes())
+        assertEquals(listOf(7, 2, 2, 2, 6), groupSizes())
     }
 
     /** D57 and #416: the two new rows, off (as Prism was) until picked. */
@@ -230,6 +234,25 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
             "When the last queue was shuffled, a song you tap in a list plays first and the rest of that list is shuffled. Radios, single songs and videos are left alone.",
             t(R.string.playback_keep_shuffle_info),
         )
+    }
+
+    /** "Append to Play Next": a switch in What plays next, off until switched on, its words behind the ⓘ. */
+    @Test fun appendToPlayNextIsASwitchOffByDefault() {
+        show()
+        assertEquals(SettingsTags.ROW_SWITCH, typeOf(appendNext))
+        assertFalse(stored.behavior.appendToPlayNext)
+        val e = SettingsIndex.entries.single { it.title == appendNext }
+        assertEquals(SettingsPageId.PLAYBACK, e.page)
+        assertEquals(t(R.string.what_plays_next), e.group)
+        assertTrue(SettingsIndex.search("append").any { it.title == appendNext })
+        assertTrue(SettingsIndex.search("next in queue").any { it.title == appendNext })
+        // The explanation is behind the ⓘ only: never drawn on the page.
+        assertEquals(0, compose.onAllNodes(androidx.compose.ui.test.hasText(t(R.string.playback_append_to_play_next_info))).fetchSemanticsNodes().size)
+        tap(appendNext)
+        until("append_to_play_next") { it.behavior.appendToPlayNext }
+        assertEquals(1, changedRows())
+        tap(appendNext)
+        until("append_to_play_next off") { !it.behavior.appendToPlayNext }
     }
 
     /** 1.8.5: "Pause when face down", a switch in Stopping and pausing, off until switched on, its words behind the ⓘ. */

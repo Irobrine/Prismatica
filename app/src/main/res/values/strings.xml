@@ -5372,6 +5372,9 @@
     <string name="playback_face_down_pause">Pause when face down</string>
     <string name="playback_face_down_pause_info">Lay your phone screen-down to pause. Pick it up within five minutes and the music plays on.</string>
     <string name="playback_face_down_keywords">face down flip turn over screen down sensor pause resume pick up</string>
+    <string name="playback_append_to_play_next">Append to Play Next</string>
+    <string name="playback_append_to_play_next_info">On, Play next adds its songs to the end of Next in queue instead of straight after the one playing, so several keep the order you tapped them in.</string>
+    <string name="playback_append_to_play_next_keywords">play next append queue end next in queue add to queue order after the playing song</string>
     <string name="playback_resume_on_return">Resume when Bluetooth comes back</string>
     <string name="playback_resume_on_return_info">When Bluetooth headphones drop out and connect again, the music picks up where it stopped: earbuds switching to their own 2.4 GHz connection and back, say. Only a pause the lost output caused is resumed; a pause you made yourself stays.</string>
     <string name="playback_resume_on_return_keywords">resume reconnect bluetooth earbuds buds headphones tws dongle 2.4ghz output back continue auto</string>

@@ -5504,6 +5504,9 @@
     <string name="playback_face_down_pause">الإيقاف المؤقت عند قلب الهاتف</string>
     <string name="playback_face_down_pause_info">ضع هاتفك والشاشة للأسفل لإيقاف الموسيقى مؤقتًا. ارفعه خلال خمس دقائق وتستمر الموسيقى.</string>
     <string name="playback_face_down_keywords">قلب الهاتف الشاشة للأسفل وجه مقلوب مستشعر إيقاف مؤقت استئناف رفع</string>
+    <string name="playback_append_to_play_next">إلحاق بـ"التشغيل التالي"</string>
+    <string name="playback_append_to_play_next_info">عند التشغيل، يضيف "تشغيل تاليًا" أغانيه إلى نهاية "التالي في قائمة الانتظار" بدلًا من مباشرة بعد الأغنية الحالية، فتبقى عدة أغانٍ بالترتيب الذي اخترتها.</string>
+    <string name="playback_append_to_play_next_keywords">تشغيل تالي إلحاق نهاية قائمة الانتظار التالي في قائمة الانتظار إضافة إلى قائمة الانتظار ترتيب</string>
     <string name="playback_resume_on_return">المتابعة عند عودة البلوتوث</string>
     <string name="playback_resume_on_return_info">عندما تنقطع سماعات البلوتوث وتتصل من جديد، تستأنف الموسيقى من حيث توقفت: مثل سماعات تنتقل إلى اتصالها الخاص بتردد 2.4 غيغاهرتز ثم تعود. لا تُستأنف إلا الإيقافات الناتجة عن فقدان الإخراج؛ أما الإيقاف الذي قمت به أنت فيبقى.</string>
     <string name="playback_resume_on_return_keywords">متابعة إعادة اتصال بلوتوث سماعات أذن سماعة tws محول 2.4ghz إخراج عودة تلقائي</string>

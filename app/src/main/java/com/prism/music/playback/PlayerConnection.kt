@@ -1142,14 +1142,20 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         else playQueue(songs, 0, source ?: QueueSource(QueueKind.OTHER, ""))
     }
 
-    /** Songs (one, or a whole album or playlist) straight after the current song, or played, with nothing on. */
+    /**
+     * Songs (one, or a whole album or playlist) straight after the current song, or played, with nothing on. With
+     * "Append to Play Next" on they go at the end of "Next in queue" instead ([appendAfterQueued]).
+     */
     fun playNext(songs: List<Song>, source: QueueSource?) {
         if (songs.isEmpty()) return
         val allowed = playable(songs) ?: return
         if (allowed.size < songs.size) return playNext(allowed, source)
+        val append = c.settings.current.behavior.appendToPlayNext
         withPlayer { p ->
             if (p.mediaItemCount == 0) {
                 startWith(songs, source)
+            } else if (append) {
+                appendAfterQueued(p, songs)
             } else {
                 // #368: a song already coming up moves up (it used to go in a second time). Next already: nothing moves,
                 // so a stream or a blend being got ready for it carries on.
@@ -1165,6 +1171,56 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 insertQueued(p, p.currentMediaItemIndex + 1, songs)
             }
         }
+    }
+
+    /**
+     * "Append to Play Next": [songs] go at the end of "Next in queue", after the listener's own songs and before the
+     * list's, instead of straight after the one playing, so several Play nexts keep the order they were tapped in.
+     * #368 still holds: a copy already coming up moves there rather than going in twice. With nothing queued they are
+     * still next, so the first Play next lands where it always did.
+     */
+    private fun appendAfterQueued(p: ExoPlayer, songs: List<Song>) {
+        val ids = songs.map { it.id }
+        // Already the end of Next in queue: nothing moves, so a stream or a blend being got ready for it carries on.
+        val run = queuedEnd(p).second
+        if (run.size >= ids.size && run.subList(run.size - ids.size, run.size) == ids) {
+            c.queue.userQueued.value = c.queue.userQueued.value + ids
+            return
+        }
+        val order = playOrder(p)
+        val cur = order.indexOf(p.currentMediaItemIndex)
+        if (cur >= 0) {
+            val ahead = order.drop(cur + 1)
+            val aheadIds = ahead.map { p.getMediaItemAt(it).mediaId }
+            QueueEdit.copiesMovingUp(aheadIds, ids).map { ahead[it] }.sortedDescending().forEach { removeAt(it) }
+        }
+        val at = queuedEnd(p).first + 1
+        val shuffle = p.shuffleOrder as? HistoryShuffleOrder
+        insertQueued(p, at, songs)
+        // Media3's shuffle slots a song added anywhere but straight after the playing one at a random place: while
+        // shuffled, put these after the song they follow in play order instead.
+        if (p.shuffleModeEnabled && shuffle != null) p.setShuffleOrder(shuffle.insertedAfter(at, songs.size, at - 1))
+    }
+
+    /**
+     * Where "Next in queue" ends: the media index of its last song (the playing song when none of the listener's own
+     * are coming up), and those songs' ids in play order.
+     */
+    private fun queuedEnd(p: ExoPlayer): Pair<Int, List<String>> {
+        var anchor = p.currentMediaItemIndex
+        val run = ArrayList<String>()
+        val order = playOrder(p)
+        val cur = order.indexOf(p.currentMediaItemIndex)
+        if (cur < 0) return anchor to run
+        val queued = c.queue.userQueued.value
+        for (i in cur + 1 until order.size) {
+            val at = order[i]
+            val id = p.getMediaItemAt(at).mediaId
+            if (id !in queued) break
+            anchor = at
+            run += id
+        }
+        return anchor to run
     }
 
     /**

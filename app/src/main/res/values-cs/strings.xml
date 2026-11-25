@@ -5360,6 +5360,9 @@
     <string name="playback_face_down_pause">Pozastavit displejem dolů</string>
     <string name="playback_face_down_pause_info">Polož telefon displejem dolů a hudba se pozastaví. Zvedni ho do pěti minut a hraje dál.</string>
     <string name="playback_face_down_keywords">displejem dolů obrátit otočit senzor pozastavit pokračovat zvednout</string>
+    <string name="playback_append_to_play_next">Připojit k „Přehrát jako další“</string>
+    <string name="playback_append_to_play_next_info">Když je zapnuto, přidá Přehrát jako další své skladby na konec části Další ve frontě, ne hned za právě hranou, takže si několik skladeb zachová pořadí, v jakém jste je klepli.</string>
+    <string name="playback_append_to_play_next_keywords">přehrát jako další připojit konec fronty další ve frontě přidat do fronty pořadí</string>
     <string name="playback_resume_on_return">Pokračovat, když se Bluetooth vrátí</string>
     <string name="playback_resume_on_return_info">Když se sluchátka Bluetooth odpojí a znovu připojí, hudba pokračuje tam, kde se zastavila: například sluchátka, která přejdou na vlastní 2,4GHz připojení a vrátí se. Pokračuje se jen po pauze způsobené ztrátou výstupu; pauza, kterou jsi udělal ty, zůstává.</string>
     <string name="playback_resume_on_return_keywords">pokračovat připojit znovu bluetooth sluchátka špunty tws adaptér 2,4ghz výstup zpět automaticky</string>

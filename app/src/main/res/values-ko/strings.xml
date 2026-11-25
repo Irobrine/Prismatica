@@ -5144,6 +5144,9 @@
     <string name="playback_face_down_pause">뒤집어 놓으면 일시중지</string>
     <string name="playback_face_down_pause_info">휴대폰 화면이 아래로 가게 놓으면 일시중지돼요. 5분 안에 들어 올리면 음악이 이어서 재생돼요.</string>
     <string name="playback_face_down_keywords">뒤집기 화면 아래 엎어 놓기 센서 일시중지 다시 재생 들어 올리기</string>
+    <string name="playback_append_to_play_next">"다음에 재생"에 추가</string>
+    <string name="playback_append_to_play_next_info">켜면 다음에 재생이 곡을 재생 중인 곡 바로 뒤가 아니라 대기열의 다음 곡 끝에 추가하므로, 여러 곡이 누른 순서대로 유지됩니다.</string>
+    <string name="playback_append_to_play_next_keywords">다음에 재생 추가 대기열 끝 대기열의 다음 곡 대기열에 추가 순서</string>
     <string name="playback_resume_on_return">Bluetooth가 돌아오면 이어서 재생</string>
     <string name="playback_resume_on_return_info">Bluetooth 헤드폰 연결이 끊겼다가 다시 연결되면 음악이 멈춘 곳에서 이어집니다. 예를 들어 이어버드가 자체 2.4GHz 연결로 바꿨다가 돌아오는 경우입니다. 출력이 사라져 생긴 일시정지만 이어지고, 직접 누른 일시정지는 그대로 유지됩니다.</string>
     <string name="playback_resume_on_return_keywords">이어서 재생 재연결 블루투스 이어버드 헤드폰 tws 동글 2.4ghz 출력 돌아오기 계속 자동</string>

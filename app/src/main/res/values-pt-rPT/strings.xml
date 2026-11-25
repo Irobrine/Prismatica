@@ -5288,6 +5288,9 @@
     <string name="playback_face_down_pause">Pausar com o ecrã para baixo</string>
     <string name="playback_face_down_pause_info">Pousa o telemóvel com o ecrã para baixo para pausar. Pega nele nos cinco minutos seguintes e a música continua.</string>
     <string name="playback_face_down_keywords">virar ecrã para baixo sensor pausar retomar pegar</string>
+    <string name="playback_append_to_play_next">Acrescentar a «Reproduzir a seguir»</string>
+    <string name="playback_append_to_play_next_info">Ativado, Reproduzir a seguir acrescenta as músicas ao fim de A seguir na fila em vez de logo depois da que está a tocar, para que várias mantenham a ordem em que as tocou.</string>
+    <string name="playback_append_to_play_next_keywords">reproduzir a seguir acrescentar fim fila a seguir na fila adicionar à fila ordem</string>
     <string name="playback_resume_on_return">Retomar quando o Bluetooth voltar</string>
     <string name="playback_resume_on_return_info">Quando uns auscultadores Bluetooth se desligam e voltam a ligar, a música continua de onde parou: por exemplo, auscultadores que mudam para a sua própria ligação de 2,4 GHz e regressam. Só é retomada uma pausa causada pela perda da saída; uma pausa feita por ti mantém-se.</string>
     <string name="playback_resume_on_return_keywords">retomar restabelecer bluetooth auscultadores tws adaptador 2,4ghz saída voltar continuar automático</string>

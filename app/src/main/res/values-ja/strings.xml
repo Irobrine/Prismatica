@@ -5144,6 +5144,9 @@
     <string name="playback_face_down_pause">伏せると一時停止</string>
     <string name="playback_face_down_pause_info">スマホの画面を下にして置くと一時停止します。5 分以内に持ち上げると続きから再生します。</string>
     <string name="playback_face_down_keywords">伏せる 画面 下向き 裏返す センサー 一時停止 再開 持ち上げる</string>
+    <string name="playback_append_to_play_next">「次に再生」に追加</string>
+    <string name="playback_append_to_play_next_info">オンにすると、「次に再生」は曲を再生中の曲の直後ではなく「キューの次の曲」の末尾に追加するので、複数の曲がタップした順に並びます。</string>
+    <string name="playback_append_to_play_next_keywords">次に再生 追加 キュー 末尾 キューの次の曲 キューに追加 順番</string>
     <string name="playback_resume_on_return">Bluetoothが戻ったら再開</string>
     <string name="playback_resume_on_return_info">Bluetoothヘッドホンが切断されて再接続されると、音楽は止まったところから再開します。たとえばイヤホンが自前の2.4GHz接続に切り替わって戻ってくる場合です。出力が失われて止まった場合だけ再開し、自分で止めた一時停止はそのままです。</string>
     <string name="playback_resume_on_return_keywords">再開 再接続 bluetooth イヤホン ヘッドホン tws ドングル 2.4ghz 出力 戻る 続行 自動</string>

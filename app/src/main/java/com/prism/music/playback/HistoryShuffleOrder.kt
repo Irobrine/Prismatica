@@ -67,6 +67,19 @@ class HistoryShuffleOrder(private val order: IntArray, private val current: () -
     override fun cloneAndClear(): ShuffleOrder = HistoryShuffleOrder(IntArray(0), current)
 
     /**
+     * The order with [count] songs put in the queue at [at], placed straight after [anchor] (its queue index) in the
+     * play order: "Append to Play Next" puts them after the last of the listener's own songs, which need not be the
+     * current song nor the queue's last item.
+     */
+    fun insertedAfter(at: Int, count: Int, anchor: Int): HistoryShuffleOrder {
+        val added = (at until at + count).toList()
+        val shifted = order.map { if (it >= at) it + count else it }.toMutableList()
+        val pos = shifted.indexOf(anchor)
+        if (pos < 0) shifted.addAll(added) else shifted.addAll(pos + 1, added)
+        return HistoryShuffleOrder(shifted.toIntArray(), current)
+    }
+
+    /**
      * The order with [target] moved to straight after [from]: jumping to a song in the queue makes it the next one
      * played, so Previous from it comes back to [from].
      */

@@ -5216,6 +5216,9 @@
     <string name="playback_face_down_pause">Ters çevrilince duraklat</string>
     <string name="playback_face_down_pause_info">Duraklatmak için telefonunu ekranı aşağı bakacak şekilde bırak. Beş dakika içinde eline alırsan müzik devam eder.</string>
     <string name="playback_face_down_keywords">ters çevir ekran aşağı yüzüstü sensör duraklat devam et kaldır</string>
+    <string name="playback_append_to_play_next">"Sıradaki olarak çal" sonuna ekle</string>
+    <string name="playback_append_to_play_next_info">Açıkken Sıradaki olarak çal, şarkılarını çalan şarkının hemen ardına değil, Sırada sonraki bölümünün sonuna ekler; böylece birkaç şarkı dokunduğun sırayı korur.</string>
+    <string name="playback_append_to_play_next_keywords">sıradaki olarak çal sonuna ekle kuyruk sırada sonraki kuyruğa ekle sıra</string>
     <string name="playback_resume_on_return">Bluetooth geri geldiğinde devam et</string>
     <string name="playback_resume_on_return_info">Bluetooth kulaklıklar bağlantıyı kaybedip yeniden bağlandığında müzik kaldığı yerden devam eder: örneğin kulaklıkların kendi 2,4 GHz bağlantısına geçip geri dönmesi. Yalnızca çıkışın kaybolmasının yol açtığı duraklama sürdürülür; senin yaptığın bir duraklama kalır.</string>
     <string name="playback_resume_on_return_keywords">devam sürdür yeniden bağlan bluetooth kulaklık kulak içi tws adaptör 2,4ghz çıkış geri otomatik</string>

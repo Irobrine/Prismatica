@@ -5216,6 +5216,9 @@
     <string name="playback_face_down_pause">الٹا رکھنے پر روکیں</string>
     <string name="playback_face_down_pause_info">روکنے کے لیے اپنا فون اسکرین نیچے کر کے رکھیں۔ پانچ منٹ کے اندر اٹھا لیں تو موسیقی چلتی رہے گی۔</string>
     <string name="playback_face_down_keywords">الٹا اسکرین نیچے پلٹیں سینسر روکیں دوبارہ شروع اٹھائیں</string>
+    <string name="playback_append_to_play_next">"اگلا چلائیں" میں شامل کریں</string>
+    <string name="playback_append_to_play_next_info">فعال ہونے پر، اگلا چلائیں اپنے گانے چل رہے گانے کے فوراً بعد کے بجائے قطار میں اگلا کے آخر میں شامل کرتا ہے، تاکہ کئی گانے اسی ترتیب میں رہیں جس میں آپ نے انہیں چھیڑا۔</string>
+    <string name="playback_append_to_play_next_keywords">اگلا چلائیں شامل کریں قطار آخر قطار میں اگلا قطار میں شامل کریں ترتیب</string>
     <string name="playback_resume_on_return">بلوٹوتھ واپس آنے پر دوبارہ چلائیں</string>
     <string name="playback_resume_on_return_info">جب بلوٹوتھ ہیڈفون کٹ جاتے ہیں اور دوبارہ جڑ جاتے ہیں تو موسیقی وہیں سے چلتی ہے جہاں رکی تھی: مثلاً ایئربڈز اپنے 2.4 GHz کنکشن پر جا کر واپس آ جاتے ہیں۔ صرف آؤٹ پٹ چلے جانے سے ہونے والا وقفہ دوبارہ چلتا ہے؛ آپ کا خود کیا ہوا وقفہ برقرار رہتا ہے۔</string>
     <string name="playback_resume_on_return_keywords">دوبارہ چلائیں دوبارہ جڑیں بلوٹوتھ ایئربڈز ہیڈفون tws ڈونگل 2.4ghz آؤٹ پٹ واپس جاری آٹو</string>
