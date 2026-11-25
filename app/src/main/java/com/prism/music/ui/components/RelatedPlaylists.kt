@@ -40,11 +40,12 @@ import kotlinx.coroutines.withContext
 
 /**
  * Playlists people made around a song (1.8.6's discovery): a search for its title and artist, kept to community
- * playlists. Opening one leaves the sheet for its page, as a search result does. Offline the search has nowhere to go,
- * and the sheet says so instead of spinning.
+ * playlists. Opening one leaves the sheet for its page, as a search result does; [onBeforeOpen] lets the player close to
+ * the mini player first, so the page is seen rather than the player it was opened over. Offline the search has nowhere
+ * to go, and the sheet says so instead of spinning.
  */
 @Composable
-fun RelatedPlaylistsSheet(song: Song, onDismiss: () -> Unit) {
+fun RelatedPlaylistsSheet(song: Song, onDismiss: () -> Unit, onBeforeOpen: (() -> Unit)? = null) {
     val c = LocalContainer.current
     val nav = LocalNavigator.current
     val state by produceState<Load<List<PlaylistItem>>>(Load.Loading, song.id) {
@@ -77,7 +78,7 @@ fun RelatedPlaylistsSheet(song: Song, onDismiss: () -> Unit) {
                 ) else LazyColumn(Modifier.heightIn(max = 460.dp), contentPadding = PaddingValues(top = 10.dp, bottom = 18.dp)) {
                     items(s.value, key = { it.id }) { p ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { close { nav.go(Routes.playlist(p.id)) } }
+                            Modifier.fillMaxWidth().clickable { close { onBeforeOpen?.invoke(); nav.go(Routes.playlist(p.id)) } }
                                 .padding(horizontal = 16.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {

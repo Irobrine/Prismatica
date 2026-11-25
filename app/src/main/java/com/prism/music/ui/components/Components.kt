@@ -757,7 +757,7 @@ fun SongActionsSheet(song: Song, extra: List<SheetItem> = emptyList(), onDismiss
     if (details) { SongDetailsSheet(song) { details = false; onDismiss() }; return }
     // Playlists people made around this song: a search, so it is asked for only when the row is picked.
     var relatedPlaylists by remember { mutableStateOf(false) }
-    if (relatedPlaylists) { RelatedPlaylistsSheet(song) { relatedPlaylists = false; onDismiss() }; return }
+    if (relatedPlaylists) { RelatedPlaylistsSheet(song, onDismiss = { relatedPlaylists = false; onDismiss() }); return }
     // 1.8.3: the listener's own artist, album and genre in its place.
     var editingMetadata by remember { mutableStateOf(false) }
     if (editingMetadata) { MetadataEditorSheet(listOf(song)) { editingMetadata = false; onDismiss() }; return }

@@ -115,7 +115,16 @@ fun PlayerOptionsSheet(
     if (details) { com.prism.music.ui.components.SongDetailsSheet(song) { details = false; onDismiss() }; return }
     // Playlists people made around this song: a search by its title and artist, asked only when the row is picked.
     var relatedPlaylists by remember { mutableStateOf(false) }
-    if (relatedPlaylists) { com.prism.music.ui.components.RelatedPlaylistsSheet(song) { relatedPlaylists = false; onDismiss() }; return }
+    if (relatedPlaylists) {
+        // A playlist picked here closes the player to the mini player, then opens its page: the page is what was asked
+        // for, not the player it was picked from.
+        com.prism.music.ui.components.RelatedPlaylistsSheet(
+            song,
+            onDismiss = { relatedPlaylists = false; onDismiss() },
+            onBeforeOpen = onCollapse,
+        )
+        return
+    }
     // 1.8.3: the listener's own title, artist, album and genre, kept on this phone (for YouTube songs too).
     var editingMetadata by remember { mutableStateOf(false) }
     if (editingMetadata) { com.prism.music.ui.components.MetadataEditorSheet(listOf(song)) { editingMetadata = false; onDismiss() }; return }
