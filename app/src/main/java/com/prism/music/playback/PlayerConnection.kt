@@ -1387,10 +1387,23 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         if (p.playbackState == Player.STATE_IDLE) p.prepare()
         p.play()
     }
-    fun removeAt(index: Int) = withPlayer {
-        it.removeMediaItem(index)
+    fun removeAt(index: Int) = withPlayer { p ->
+        val id = p.getMediaItemAt(index).mediaId
+        p.removeMediaItem(index)
         val auto = c.queue.autoplayStart.value
         if (auto > index) c.queue.autoplayStart.value = auto - 1
+        forgetQueued(p, id)
+    }
+
+    /**
+     * A song taken out of the queue is no longer one the listener queued ("Next in queue"), unless another copy of it
+     * stays: the queue's heading and "Append to Play Next"'s end are read from this set, and a copy left behind used
+     * to keep a song that's gone marking both.
+     */
+    private fun forgetQueued(p: ExoPlayer, id: String) {
+        if (id !in c.queue.userQueued.value) return
+        if ((0 until p.mediaItemCount).any { p.getMediaItemAt(it).mediaId == id }) return
+        c.queue.userQueued.value = c.queue.userQueued.value - id
     }
 
     /**
@@ -1426,6 +1439,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         val ahead = pos > order.indexOf(p.currentMediaItemIndex)
         val playedAfter = order.getOrNull(pos - 1)?.takeIf { pos > 0 }?.let { p.getMediaItemAt(it).mediaId }
         val playedBefore = order.getOrNull(pos + 1)?.takeIf { pos >= 0 }?.let { p.getMediaItemAt(it).mediaId }
+        // Out of the queue, and out of "Next in queue" with it (unless another copy stays); Undo puts both back.
+        val wasQueued = item.mediaId in c.queue.userQueued.value
         removeAt(index)
         return {
             withPlayer { q ->
@@ -1439,6 +1454,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 // the list and its place in the play order is set below.
                 val at = if (shuffled) index.coerceAtMost(q.mediaItemCount) else now.getOrNull(spot) ?: q.mediaItemCount
                 q.addMediaItem(at, item)
+                if (wasQueued) c.queue.userQueued.value = c.queue.userQueued.value + item.mediaId
                 val auto = c.queue.autoplayStart.value
                 // Back among the songs it was with: before autoplay's suggestions, or one of them.
                 if (auto >= 0 && (auto > at || auto == at && !wasAuto)) c.queue.autoplayStart.value = auto + 1
