@@ -342,6 +342,12 @@ data class BehaviorPrefs(
     val lockPortrait: Boolean = false,
     /** Turning the phone's media volume all the way down pauses, turning it up again plays on (#157). */
     val pauseOnMute: Boolean = false,
+    /**
+     * "Play only when it can be heard": a play request waits while the phone's media volume is 0, no audio output is
+     * connected, or the output that was playing just went away (headphones unplugged), and starts by itself once sound
+     * is possible again. "Pause when muted" keeps handling music that is already playing.
+     */
+    val playOnlyWhenAudible: Boolean = false,
     /** When a video goes picture-in-picture (#167). */
     val pip: PipMode = PipMode.AUTO,
     /**
@@ -2434,6 +2440,7 @@ class SettingsRepository(
         val tvHomeLayout = stringPreferencesKey("tv_home_layout")
         val tvBackdropDim = intPreferencesKey("tv_backdrop_dim")
         val pauseOnMute = booleanPreferencesKey("pause_on_mute")
+        val playOnlyWhenAudible = booleanPreferencesKey("play_only_when_audible")
         val pipMode = stringPreferencesKey("pip_mode")
         val panelSwipes = stringPreferencesKey("panel_swipes_sides")
         /**
@@ -2676,6 +2683,8 @@ class SettingsRepository(
                 // 1.8.5: Replay's notices and game, pausing face down, the resume when Bluetooth comes back, and the small
                 // cover's tap over the lyrics (#464).
                 "recap_notify", "milestone_notify", "finish_lyric", "face_down_pause", "resume_on_return", "lyrics_cover_plays",
+                // Playback that waits until it can be heard (volume 0, no output, headphones unplugged).
+                "play_only_when_audible",
                 // 1.9: how lyrics enhancement runs and how much room its generated audio may take.
                 "enhance_align_with_vocals", "enhance_audio_mb",
             )
@@ -2971,6 +2980,7 @@ class SettingsRepository(
             behavior = BehaviorPrefs(
                 lockPortrait = p[K.lockPortrait] ?: d.behavior.lockPortrait,
                 pauseOnMute = p[K.pauseOnMute] ?: d.behavior.pauseOnMute,
+                playOnlyWhenAudible = p[K.playOnlyWhenAudible] ?: d.behavior.playOnlyWhenAudible,
                 pip = p.enum(K.pipMode, d.behavior.pip),
                 panelSwipes = p.enum(K.panelSwipes, if (p[K.panelSwipesOn] == true) PanelSwipes.QUEUE_RIGHT else d.behavior.panelSwipes),
                 recentShows = p.enum(K.recentShows, d.behavior.recentShows),
@@ -3787,6 +3797,7 @@ class SettingsRepository(
         else it[K.tvHomeLayout] = json.encodeToString(kotlinx.serialization.builtins.ListSerializer(HomeSectionConfig.serializer()), v)
     }
     fun setPauseOnMute(v: Boolean) = edit { it[K.pauseOnMute] = v }
+    fun setPlayOnlyWhenAudible(v: Boolean) = edit { it[K.playOnlyWhenAudible] = v }
     fun setPipMode(v: PipMode) = edit { it[K.pipMode] = v.name }
     fun setPanelSwipes(v: PanelSwipes) = edit {
         it[K.panelSwipes] = v.name

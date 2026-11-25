@@ -5150,6 +5150,9 @@
     <string name="playback_resume_on_return">Lanjutkan saat Bluetooth kembali</string>
     <string name="playback_resume_on_return_info">Saat headphone Bluetooth terputus lalu tersambung lagi, musik melanjutkan dari tempatnya berhenti: misalnya earbud beralih ke koneksi 2,4 GHz miliknya sendiri lalu kembali. Hanya jeda akibat hilangnya output yang dilanjutkan; jeda yang kamu buat sendiri tetap.</string>
     <string name="playback_resume_on_return_keywords">lanjutkan sambung ulang bluetooth earbud headphone tws dongle 2,4ghz output kembali terus otomatis</string>
+    <string name="play_only_when_audible">Putar hanya saat bisa didengar</string>
+    <string name="play_only_when_audible_info">Menekan putar akan menunggu selama volume media ponsel 0, tidak ada keluaran audio yang tersambung, atau headphone yang sedang memutar baru saja dicabut. Ini mulai sendiri begitu suara kembali bisa didengar. Dengan \"Jeda saat dibisukan\" aktif, musik yang sudah diputar tetap dijeda.</string>
+    <string name="play_only_when_audible_keywords">senyap dibisukan volume nol headphone cabut bluetooth keluaran speaker tunggu mulai lanjutkan silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">acak pintar urutan acak random campur tetap diacak smart shuffle random order</string>
     <string name="playback_song_to_song">Dari satu lagu ke lagu berikutnya</string>
     <string name="playback_speed_and_pitch">Kecepatan dan nada</string>

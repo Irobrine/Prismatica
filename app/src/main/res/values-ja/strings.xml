@@ -5150,6 +5150,9 @@
     <string name="playback_resume_on_return">Bluetoothが戻ったら再開</string>
     <string name="playback_resume_on_return_info">Bluetoothヘッドホンが切断されて再接続されると、音楽は止まったところから再開します。たとえばイヤホンが自前の2.4GHz接続に切り替わって戻ってくる場合です。出力が失われて止まった場合だけ再開し、自分で止めた一時停止はそのままです。</string>
     <string name="playback_resume_on_return_keywords">再開 再接続 bluetooth イヤホン ヘッドホン tws ドングル 2.4ghz 出力 戻る 続行 自動</string>
+    <string name="play_only_when_audible">音が聞こえるときだけ再生</string>
+    <string name="play_only_when_audible_info">スマートフォンのメディア音量が0のとき、オーディオ出力が接続されていないとき、または再生中だったヘッドホンが外された直後は、再生を押しても待機します。音が聞こえるようになると自動で再生します。「ミュート時に一時停止」がオンの場合、再生中の曲はこれまでどおり一時停止します。</string>
+    <string name="play_only_when_audible_keywords">無音 ミュート 音量 ゼロ ヘッドホン 取り外し Bluetooth 出力 スピーカー 待機 再生 再開 silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">スマートシャッフル ランダム 順番 バラバラ シャッフルを維持 smart shuffle random order</string>
     <string name="playback_song_to_song">曲から次の曲へ</string>
     <string name="playback_speed_and_pitch">速度とピッチ</string>

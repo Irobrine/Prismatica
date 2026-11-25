@@ -5222,6 +5222,9 @@
     <string name="playback_resume_on_return">Fortsetzen, wenn Bluetooth zurückkommt</string>
     <string name="playback_resume_on_return_info">Wenn Bluetooth-Kopfhörer ausfallen und sich wieder verbinden, läuft die Musik dort weiter, wo sie aufgehört hat: etwa Ohrhörer, die auf ihre eigene 2,4-GHz-Verbindung wechseln und zurück. Nur eine Pause, die das verlorene Ausgabegerät verursacht hat, wird fortgesetzt; eine Pause von dir bleibt.</string>
     <string name="playback_resume_on_return_keywords">fortsetzen verbinden bluetooth ohrhörer kopfhörer tws adapter 2,4ghz ausgabe zurück weiter automatisch</string>
+    <string name="play_only_when_audible">Nur abspielen, wenn es hörbar ist</string>
+    <string name="play_only_when_audible_info">Ein Druck auf Wiedergabe wartet, solange die Medienlautstärke des Telefons 0 ist, kein Audioausgang angeschlossen ist oder gerade die Kopfhörer getrennt wurden, über die gespielt wurde. Sobald wieder Ton möglich ist, startet es von selbst. Mit „Bei Stummschaltung pausieren“ werden bereits laufende Titel weiterhin pausiert.</string>
+    <string name="play_only_when_audible_keywords">stumm stummgeschaltet lautstärke null kopfhörer trennen bluetooth ausgang lautsprecher warten start fortsetzen silent muted volume zero headphones unplug</string>
     <string name="playback_shuffle_keywords">smart shuffle zufall zufällige reihenfolge gemischt geshuffelt bleiben random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">Von einem Song zum nächsten</string>
     <string name="playback_speed_and_pitch">Tempo und Tonhöhe</string>

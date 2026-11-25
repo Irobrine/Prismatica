@@ -5294,6 +5294,9 @@
     <string name="playback_resume_on_return">Reia când Bluetooth revine</string>
     <string name="playback_resume_on_return_info">Când căștile Bluetooth se deconectează și se reconectează, muzica continuă de unde s-a oprit: de exemplu, căști care trec pe propria conexiune de 2,4 GHz și revin. Se reia doar o pauză cauzată de pierderea ieșirii; o pauză făcută de tine rămâne.</string>
     <string name="playback_resume_on_return_keywords">reia reconectare bluetooth căști tws adaptor 2,4ghz ieșire înapoi continuă auto</string>
+    <string name="play_only_when_audible">Redă doar când se poate auzi</string>
+    <string name="play_only_when_audible_info">Apăsarea redării așteaptă cât timp volumul media al telefonului este 0, nu este conectată nicio ieșire audio sau căștile care redau tocmai au fost deconectate. Pornește singur de îndată ce sunetul este din nou posibil. Cu „Întrerupe când sunetul e oprit” activat, muzica deja redată rămâne în continuare pe pauză.</string>
+    <string name="play_only_when_audible_keywords">silențios fără sunet volum zero căști deconectare bluetooth ieșire difuzor așteaptă pornire reluare silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">amestecare inteligentă ordine aleatorie amestecat rămâne amestecat</string>
     <string name="playback_song_to_song">De la o melodie la următoarea</string>
     <string name="playback_speed_and_pitch">Viteză și ton</string>

@@ -98,6 +98,7 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
     val pauseFadeChanged = reset.add(tr(R.string.fade_on_pause_and_play), s.sound.pauseFade, d.sound.pauseFade, onOff) { prefs.setPauseFade(it) }
     val stopOnSwipeChanged = reset.add(tr(R.string.stop_when_swiped_away), s.stopOnSwipeAway, d.stopOnSwipeAway, onOff) { prefs.setStopOnSwipeAway(it) }
     val pauseOnMuteChanged = reset.add(tr(R.string.pause_when_muted), s.behavior.pauseOnMute, d.behavior.pauseOnMute, onOff) { prefs.setPauseOnMute(it) }
+    val playOnlyWhenAudibleChanged = reset.add(tr(R.string.play_only_when_audible), s.behavior.playOnlyWhenAudible, d.behavior.playOnlyWhenAudible, onOff) { prefs.setPlayOnlyWhenAudible(it) }
     val faceDownChanged = reset.add(tr(R.string.playback_face_down_pause), s.behavior.faceDownPause, d.behavior.faceDownPause, onOff) { prefs.setFaceDownPause(it) }
     val resumeOnReturnChanged = reset.add(tr(R.string.playback_resume_on_return), s.behavior.resumeOnReturn, d.behavior.resumeOnReturn, onOff) { prefs.setResumeOnReturn(it) }
 
@@ -185,6 +186,8 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
             SwitchRow(tr(R.string.fade_on_pause_and_play), s.sound.pauseFade, info = tr(R.string.pausing_fades_the_sound_out_over), changed = pauseFadeChanged) { prefs.setPauseFade(it) }
             SwitchRow(tr(R.string.stop_when_swiped_away), s.stopOnSwipeAway, info = tr(R.string.swiping_prism_out_of_recent_apps), changed = stopOnSwipeChanged) { prefs.setStopOnSwipeAway(it) }
             SwitchRow(tr(R.string.pause_when_muted), s.behavior.pauseOnMute, info = tr(R.string.only_the_phone_s_media_volume), changed = pauseOnMuteChanged) { prefs.setPauseOnMute(it) }
+            // A play waits while nothing would be heard; it starts by itself once sound is possible (playback/PlaybackGuard.kt).
+            SwitchRow(tr(R.string.play_only_when_audible), s.behavior.playOnlyWhenAudible, info = tr(R.string.play_only_when_audible_info), changed = playOnlyWhenAudibleChanged) { prefs.setPlayOnlyWhenAudible(it) }
             // 1.8.5: the accelerometer, only while this is on and music plays (playback/FaceDown.kt).
             SwitchRow(tr(R.string.playback_face_down_pause), s.behavior.faceDownPause, info = tr(R.string.playback_face_down_pause_info), changed = faceDownChanged) { prefs.setFaceDownPause(it) }
             // 1.8.5: a Bluetooth output that goes and comes back (playback/OutputReturn.kt).
@@ -294,6 +297,7 @@ val playbackIndex: List<SettingEntry> by lazy {
             SettingEntry(page, stopping, tr(R.string.fade_on_pause_and_play), tr(R.string.pause_fade_gentle_soft)),
             SettingEntry(page, stopping, tr(R.string.stop_when_swiped_away), tr(R.string.recents_background)),
             SettingEntry(page, stopping, tr(R.string.pause_when_muted), tr(R.string.volume_zero_mute_pause_resume)),
+            SettingEntry(page, stopping, tr(R.string.play_only_when_audible), tr(R.string.play_only_when_audible_keywords)),
             SettingEntry(page, stopping, tr(R.string.playback_face_down_pause), tr(R.string.playback_face_down_keywords)),
             SettingEntry(page, stopping, tr(R.string.playback_resume_on_return), tr(R.string.playback_resume_on_return_keywords)),
         )

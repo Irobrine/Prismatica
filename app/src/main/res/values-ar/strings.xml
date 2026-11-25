@@ -5510,6 +5510,9 @@
     <string name="playback_resume_on_return">المتابعة عند عودة البلوتوث</string>
     <string name="playback_resume_on_return_info">عندما تنقطع سماعات البلوتوث وتتصل من جديد، تستأنف الموسيقى من حيث توقفت: مثل سماعات تنتقل إلى اتصالها الخاص بتردد 2.4 غيغاهرتز ثم تعود. لا تُستأنف إلا الإيقافات الناتجة عن فقدان الإخراج؛ أما الإيقاف الذي قمت به أنت فيبقى.</string>
     <string name="playback_resume_on_return_keywords">متابعة إعادة اتصال بلوتوث سماعات أذن سماعة tws محول 2.4ghz إخراج عودة تلقائي</string>
+    <string name="play_only_when_audible">التشغيل فقط عندما يمكن سماعه</string>
+    <string name="play_only_when_audible_info">ينتظر الضغط على \"تشغيل\" ما دامت درجة صوت الوسائط في الهاتف على 0، أو لم يكن هناك مخرج صوت متصل، أو كانت السماعات التي تعمل قد فُصلت للتو. يبدأ التشغيل من تلقاء نفسه عندما يصبح الصوت ممكنًا مرة أخرى. عند تفعيل \"الإيقاف المؤقت عند كتم الصوت\"، سيظل يوقف الموسيقى التي تُشغَّل بالفعل مؤقتًا.</string>
+    <string name="play_only_when_audible_keywords">صامت مكتوم صوت درجة صفر سماعات فصل بلوتوث مخرج مكبر انتظار تشغيل استئناف silent muted volume zero headphones unplug bluetooth output speaker wait start resume</string>
     <string name="playback_shuffle_keywords">ترتيب عشوائي ذكي ترتيب عشوائي خلط البقاء عشوائيًا smart shuffle random</string>
     <string name="playback_song_to_song">من أغنية إلى التالية</string>
     <string name="playback_speed_and_pitch">السرعة وطبقة الصوت</string>

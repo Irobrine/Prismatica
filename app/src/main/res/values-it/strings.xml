@@ -5294,6 +5294,9 @@
     <string name="playback_resume_on_return">Riprendi quando torna il Bluetooth</string>
     <string name="playback_resume_on_return_info">Quando le cuffie Bluetooth si scollegano e si ricollegano, la musica riprende da dove si era fermata: per esempio auricolari che passano alla propria connessione a 2,4 GHz e tornano. Riprende solo una pausa causata dalla perdita dell’uscita; una pausa fatta da te resta.</string>
     <string name="playback_resume_on_return_keywords">riprendi riconnetti bluetooth cuffie auricolari tws dongle 2,4ghz uscita indietro continua auto</string>
+    <string name="play_only_when_audible">Riproduci solo quando si può sentire</string>
+    <string name="play_only_when_audible_info">Premere riproduci attende finché il volume multimediale del telefono è 0, non è connessa alcuna uscita audio o le cuffie che stavano suonando sono appena state scollegate. Parte da solo appena il suono è di nuovo possibile. Con «Pausa quando il volume è a zero» attivo, la musica già in riproduzione resta in pausa.</string>
+    <string name="play_only_when_audible_keywords">silenzioso muto volume zero cuffie scollegare bluetooth uscita altoparlante attendere avvia riprendi silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">casuale intelligente ordine casuale mescolato resta casuale shuffle random smart shuffle</string>
     <string name="playback_song_to_song">Da un brano all\'altro</string>
     <string name="playback_speed_and_pitch">Velocità e tonalità</string>

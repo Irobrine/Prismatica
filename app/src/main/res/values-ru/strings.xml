@@ -5366,6 +5366,9 @@
     <string name="playback_resume_on_return">Продолжать, когда Bluetooth возвращается</string>
     <string name="playback_resume_on_return_info">Когда Bluetooth-наушники отключаются и подключаются снова, музыка продолжает с того места, где остановилась: например, наушники переходят на собственное соединение 2,4 ГГц и обратно. Продолжается только пауза, вызванная потерей вывода; ваша собственная пауза остаётся.</string>
     <string name="playback_resume_on_return_keywords">продолжать переподключение bluetooth наушники вкладыши tws адаптер 2,4ггц вывод назад авто</string>
+    <string name="play_only_when_audible">Воспроизводить только когда слышно</string>
+    <string name="play_only_when_audible_info">Нажатие «воспроизвести» ждёт, пока громкость медиа на телефоне равна 0, не подключён ни один аудиовыход или только что отключились наушники, которые играли. Воспроизведение начнётся само, как только звук снова станет возможен. Если включена «Пауза при выключенном звуке», уже играющая музыка по-прежнему ставится на паузу.</string>
+    <string name="play_only_when_audible_keywords">тихо без звука громкость ноль наушники отключить bluetooth выход динамик ждать запуск продолжить silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">умное перемешивание случайный порядок вперемешку оставаться перемешанным</string>
     <string name="playback_song_to_song">От песни к песне</string>
     <string name="playback_speed_and_pitch">Скорость и тональность</string>

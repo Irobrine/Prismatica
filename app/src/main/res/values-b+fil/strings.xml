@@ -5222,6 +5222,9 @@
     <string name="playback_resume_on_return">Ipagpatuloy kapag bumalik ang Bluetooth</string>
     <string name="playback_resume_on_return_info">Kapag nawala at naikonekta muli ang Bluetooth headphones, ipinagpapatuloy ng musika kung saan ito huminto: halimbawa, lumilipat ang earbuds sa sarili nitong 2.4 GHz na koneksyon at bumabalik. Ang pause na dulot ng nawalang output lang ang ipinagpapatuloy; nananatili ang pause na ginawa mo mismo.</string>
     <string name="playback_resume_on_return_keywords">ipagpatuloy kumonekta muli bluetooth earbuds headphones tws dongle 2.4ghz output bumalik magpatuloy auto</string>
+    <string name="play_only_when_audible">I-play lang kapag naririnig</string>
+    <string name="play_only_when_audible_info">Hinihintay ang pagpindot sa play habang 0 ang media volume ng telepono, walang nakakonektang audio output, o kakabunot pa lang ng headphone na tumutugtog. Kusang magsisimula kapag posible nang marinig ang tunog. Kapag naka-on ang \"I-pause kapag naka-mute\", ipapahinto pa rin nito ang musikang tumutugtog na.</string>
+    <string name="play_only_when_audible_keywords">tahimik naka-mute volume sero headphone tanggal bluetooth disconnect output speaker hintay simula resume silent muted volume zero headphones unplug start</string>
     <string name="playback_shuffle_keywords">smart shuffle random ayos halo-halo manatiling naka-shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">Mula sa isang kanta papunta sa susunod</string>
     <string name="playback_speed_and_pitch">Bilis at pitch</string>

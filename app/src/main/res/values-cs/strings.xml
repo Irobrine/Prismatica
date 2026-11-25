@@ -5366,6 +5366,9 @@
     <string name="playback_resume_on_return">Pokračovat, když se Bluetooth vrátí</string>
     <string name="playback_resume_on_return_info">Když se sluchátka Bluetooth odpojí a znovu připojí, hudba pokračuje tam, kde se zastavila: například sluchátka, která přejdou na vlastní 2,4GHz připojení a vrátí se. Pokračuje se jen po pauze způsobené ztrátou výstupu; pauza, kterou jsi udělal ty, zůstává.</string>
     <string name="playback_resume_on_return_keywords">pokračovat připojit znovu bluetooth sluchátka špunty tws adaptér 2,4ghz výstup zpět automaticky</string>
+    <string name="play_only_when_audible">Přehrávat jen když je to slyšet</string>
+    <string name="play_only_when_audible_info">Stisknutí přehrát počká, dokud je hlasitost médií telefonu na 0, není připojený žádný zvukový výstup nebo byly právě odpojeny sluchátka, která hrála. Jakmile je zvuk znovu možný, spustí se samo. S zapnutým „Pozastavit při ztlumení“ se hudba, která už hraje, nadále pozastavuje.</string>
+    <string name="play_only_when_audible_keywords">ticho ztlumeno hlasitost nula sluchátka odpojit bluetooth výstup reproduktor čekat spustit pokračovat silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">chytré náhodné přehrávání náhodné pořadí zamíchat zůstat zamíchané smart shuffle random order mixed up</string>
     <string name="playback_song_to_song">Z jedné skladby do další</string>
     <string name="playback_speed_and_pitch">Rychlost a výška tónu</string>

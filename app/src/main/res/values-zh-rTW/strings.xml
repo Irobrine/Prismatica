@@ -5150,6 +5150,9 @@
     <string name="playback_resume_on_return">藍牙恢復後繼續播放</string>
     <string name="playback_resume_on_return_info">當藍牙耳機中斷又重新連線時，音樂會從暫停處繼續：例如耳機切換到自己的 2.4 GHz 連線後再回來。只有因輸出中斷造成的暫停才會繼續；你手動暫停的仍會保持暫停。</string>
     <string name="playback_resume_on_return_keywords">繼續 重新連線 藍牙 耳機 tws 轉接器 2.4ghz 輸出 恢復 自動</string>
+    <string name="play_only_when_audible">只在聽得到時播放</string>
+    <string name="play_only_when_audible_info">手機媒體音量為 0、未連接任何音訊輸出，或正在播放的耳機剛被拔除時，按下播放會等待。一旦恢復可聽到聲音，就會自動開始播放。開啟「靜音時暫停」後，已在播放的音樂仍會暫停。</string>
+    <string name="play_only_when_audible_keywords">靜音 音量 零 耳機 拔除 藍牙 輸出 喇叭 等待 開始 繼續播放 silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">智慧隨機播放 隨機順序 打亂 保持隨機</string>
     <string name="playback_song_to_song">從一首歌到下一首</string>
     <string name="playback_speed_and_pitch">速度和音調</string>

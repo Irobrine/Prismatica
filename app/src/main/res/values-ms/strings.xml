@@ -5150,6 +5150,9 @@
     <string name="playback_resume_on_return">Sambung semula apabila Bluetooth kembali</string>
     <string name="playback_resume_on_return_info">Apabila fon kepala Bluetooth terputus dan bersambung semula, muzik menyambung dari tempat ia berhenti: contohnya fon telinga beralih ke sambungan 2.4 GHz sendiri dan kembali. Hanya jeda yang disebabkan kehilangan output disambung semula; jeda yang anda buat sendiri kekal.</string>
     <string name="playback_resume_on_return_keywords">sambung semula bluetooth fon telinga fon kepala tws dongle 2.4ghz output kembali terus auto</string>
+    <string name="play_only_when_audible">Main hanya apabila boleh didengar</string>
+    <string name="play_only_when_audible_info">Menekan main akan menunggu selagi volum media telefon ialah 0, tiada output audio disambungkan, atau fon kepala yang sedang bermain baru sahaja dicabut. Ia bermula sendiri apabila bunyi boleh didengar semula. Dengan \"Jeda apabila diredamkan\" dihidupkan, muzik yang sudah dimainkan masih dijeda.</string>
+    <string name="play_only_when_audible_keywords">senyap diredamkan volum sifar fon kepala cabut bluetooth output pembesar suara tunggu mula sambung silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">rombak pintar susunan rawak bercampur kekal dirombak smart shuffle random order</string>
     <string name="playback_song_to_song">Dari satu lagu ke lagu seterusnya</string>
     <string name="playback_speed_and_pitch">Kelajuan dan pic</string>

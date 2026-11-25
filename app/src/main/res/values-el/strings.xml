@@ -5222,6 +5222,9 @@
     <string name="playback_resume_on_return">Συνέχιση όταν επιστρέφει το Bluetooth</string>
     <string name="playback_resume_on_return_info">Όταν τα ακουστικά Bluetooth αποσυνδεθούν και συνδεθούν ξανά, η μουσική συνεχίζει από εκεί που σταμάτησε: π.χ. ακουστικά που αλλάζουν στη δική τους σύνδεση 2,4 GHz και επιστρέφουν. Συνεχίζεται μόνο μια παύση που προκλήθηκε από την απώλεια της εξόδου· μια παύση που έκανες εσύ παραμένει.</string>
     <string name="playback_resume_on_return_keywords">συνέχιση επανασύνδεση bluetooth ακουστικά ψείρες tws αντάπτορας 2,4ghz έξοδος πίσω συνέχεια αυτόματο</string>
+    <string name="play_only_when_audible">Αναπαραγωγή μόνο όταν ακούγεται</string>
+    <string name="play_only_when_audible_info">Το πάτημα αναπαραγωγής περιμένει όσο η ένταση πολυμέσων του τηλεφώνου είναι 0, δεν είναι συνδεδεμένη έξοδος ήχου ή μόλις αποσυνδέθηκαν τα ακουστικά που έπαιζαν. Ξεκινά από μόνο του μόλις ο ήχος είναι ξανά δυνατός. Με το «Παύση στη σίγαση» ενεργό, η μουσική που παίζει ήδη εξακολουθεί να σταματά.</string>
+    <string name="play_only_when_audible_keywords">σίγαση ένταση μηδέν ακουστικά αποσύνδεση bluetooth έξοδος ηχείο αναμονή έναρξη συνέχιση silent muted volume zero headphones unplug</string>
     <string name="playback_shuffle_keywords">έξυπνη τυχαία αναπαραγωγή τυχαία σειρά ανακάτεμα μένει ανακατεμένο smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">Από το ένα τραγούδι στο επόμενο</string>
     <string name="playback_speed_and_pitch">Ταχύτητα και τονικότητα</string>

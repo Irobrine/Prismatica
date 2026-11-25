@@ -5222,6 +5222,9 @@
     <string name="playback_resume_on_return">ব্লুটুথ ফিরে এলে আবার চালান</string>
     <string name="playback_resume_on_return_info">ব্লুটুথ হেডফোন বিচ্ছিন্ন হয়ে আবার যুক্ত হলে গান যেখানে থেমেছিল সেখান থেকেই চলে: যেমন ইয়ারবাড নিজের 2.4 GHz সংযোগে গিয়ে আবার ফিরে আসে। কেবল আউটপুট হারানোর কারণে হওয়া বিরতিই আবার চলে; আপনি নিজে যে বিরতি দিয়েছেন তা থেকে যায়।</string>
     <string name="playback_resume_on_return_keywords">আবার চালান পুনরায় যুক্ত ব্লুটুথ ইয়ারবাড হেডফোন tws ডংগল 2.4ghz আউটপুট ফিরে চালু অটো</string>
+    <string name="play_only_when_audible">শুধু শোনা গেলে চালান</string>
+    <string name="play_only_when_audible_info">ফোনের মিডিয়া ভলিউম ০ থাকলে, কোনো অডিও আউটপুট সংযুক্ত না থাকলে, বা যে হেডফোন বাজছিল সেটি এইমাত্র খুলে ফেলা হলে প্লে চাপা অপেক্ষা করে। আবার শব্দ শোনা গেলে এটি নিজে থেকেই শুরু হয়। \"মিউট করলে বিরতি দিন\" চালু থাকলে সেটি ইতিমধ্যে বাজতে থাকা গান আগের মতোই থামায়।</string>
+    <string name="play_only_when_audible_keywords">নীরব মিউট ভলিউম শূন্য হেডফোন আনপ্লাগ ব্লুটুথ আউটপুট স্পিকার অপেক্ষা শুরু silent muted volume zero headphones unplug bluetooth</string>
     <string name="playback_shuffle_keywords">স্মার্ট শাফেল এলোমেলো ক্রম মেশানো শাফেল রাখুন smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">এক গান থেকে পরের গানে</string>
     <string name="playback_speed_and_pitch">গতি ও পিচ</string>

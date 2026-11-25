@@ -5294,6 +5294,9 @@
     <string name="playback_resume_on_return">Retomar quando o Bluetooth voltar</string>
     <string name="playback_resume_on_return_info">Quando uns auscultadores Bluetooth se desligam e voltam a ligar, a música continua de onde parou: por exemplo, auscultadores que mudam para a sua própria ligação de 2,4 GHz e regressam. Só é retomada uma pausa causada pela perda da saída; uma pausa feita por ti mantém-se.</string>
     <string name="playback_resume_on_return_keywords">retomar restabelecer bluetooth auscultadores tws adaptador 2,4ghz saída voltar continuar automático</string>
+    <string name="play_only_when_audible">Reproduzir apenas quando se ouve</string>
+    <string name="play_only_when_audible_info">Premir reproduzir espera enquanto o volume de multimédia do telemóvel está a 0, não há nenhuma saída de áudio ligada ou os auriculares que estavam a tocar acabaram de ser desligados. Começa sozinho assim que o som volta a ser possível. Com \"Pausar quando sem som\" ativado, a música que já está a tocar continua a ser colocada em pausa.</string>
+    <string name="play_only_when_audible_keywords">silencioso sem som volume zero auriculares desligar bluetooth saída altifalante esperar iniciar retomar silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">aleatório inteligente ordem aleatória misturado baralhar manter</string>
     <string name="playback_song_to_song">De uma música para a seguinte</string>
     <string name="playback_speed_and_pitch">Velocidade e tom</string>

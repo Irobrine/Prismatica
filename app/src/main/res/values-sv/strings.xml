@@ -5222,6 +5222,9 @@
     <string name="playback_resume_on_return">Återuppta när Bluetooth kommer tillbaka</string>
     <string name="playback_resume_on_return_info">När Bluetooth-hörlurar tappar anslutningen och sedan ansluter igen fortsätter musiken där den slutade: hörlurar som byter till sin egen 2,4 GHz-anslutning och tillbaka, till exempel. Bara en paus som det förlorade ljudet orsakade återupptas; en paus du själv gjorde ligger kvar.</string>
     <string name="playback_resume_on_return_keywords">återuppta återanslut bluetooth hörlurar öronsnäckor tws dongel 2,4ghz ut och tillbaka fortsätt automatiskt</string>
+    <string name="play_only_when_audible">Spela bara när det hörs</string>
+    <string name="play_only_when_audible_info">Ett tryck på spela väntar medan telefonens medievolym är 0, ingen ljudutgång är ansluten eller hörlurarna som spelade precis har kopplats bort. Det startar av sig självt så snart ljud är möjligt igen. Med \"Pausa när ljudet är av\" på pausas musik som redan spelas fortfarande.</string>
+    <string name="play_only_when_audible_keywords">tyst tystad volym noll hörlurar koppla bort bluetooth utgång högtalare vänta starta fortsätt silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">smart blandning slumpvis ordning blandat förbli blandad</string>
     <string name="playback_song_to_song">Från en låt till nästa</string>
     <string name="playback_speed_and_pitch">Hastighet och tonhöjd</string>

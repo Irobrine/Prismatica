@@ -5222,6 +5222,9 @@
     <string name="playback_resume_on_return">Bluetooth geri geldiğinde devam et</string>
     <string name="playback_resume_on_return_info">Bluetooth kulaklıklar bağlantıyı kaybedip yeniden bağlandığında müzik kaldığı yerden devam eder: örneğin kulaklıkların kendi 2,4 GHz bağlantısına geçip geri dönmesi. Yalnızca çıkışın kaybolmasının yol açtığı duraklama sürdürülür; senin yaptığın bir duraklama kalır.</string>
     <string name="playback_resume_on_return_keywords">devam sürdür yeniden bağlan bluetooth kulaklık kulak içi tws adaptör 2,4ghz çıkış geri otomatik</string>
+    <string name="play_only_when_audible">Yalnızca duyulabildiğinde çal</string>
+    <string name="play_only_when_audible_info">Oynat\'a basmak, telefonun medya ses düzeyi 0 olduğunda, bağlı bir ses çıkışı olmadığında veya çalan kulaklık yeni çıkarıldığında bekler. Ses yeniden duyulabildiğinde kendiliğinden başlar. \"Ses kapatılınca duraklat\" açıksa, zaten çalan müzik yine duraklatılır.</string>
+    <string name="play_only_when_audible_keywords">sessiz sessize alınmış ses düzeyi sıfır kulaklık çıkar bluetooth çıkış hoparlör bekle başlat devam silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">akıllı karıştırma rastgele sıra karışık karışık kalsın</string>
     <string name="playback_song_to_song">Bir şarkıdan diğerine</string>
     <string name="playback_speed_and_pitch">Hız ve perde</string>

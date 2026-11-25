@@ -5294,6 +5294,9 @@
     <string name="playback_resume_on_return">Reanudar cuando vuelve el Bluetooth</string>
     <string name="playback_resume_on_return_info">Cuando unos auriculares Bluetooth se desconectan y vuelven a conectarse, la música sigue donde se quedó: unos auriculares que cambian a su propia conexión de 2,4 GHz y vuelven, por ejemplo. Solo se reanuda una pausa causada por la pérdida de la salida; una pausa tuya se mantiene.</string>
     <string name="playback_resume_on_return_keywords">reanudar reconectar bluetooth auriculares tws adaptador 2,4ghz salida volver continuar auto</string>
+    <string name="play_only_when_audible">Reproducir solo cuando se pueda oír</string>
+    <string name="play_only_when_audible_info">Pulsar reproducir espera mientras el volumen multimedia del teléfono está a 0, no hay ninguna salida de audio conectada o acaban de desconectarse los auriculares que sonaban. Empieza solo cuando vuelve a ser posible oírlo. Con «Pausar al silenciar» activado, la música que ya suena se sigue pausando.</string>
+    <string name="play_only_when_audible_keywords">silencio silenciado volumen cero auriculares desconectar bluetooth salida altavoz esperar iniciar reanudar silent muted volume zero headphones unplug</string>
     <string name="playback_shuffle_keywords">aleatorio inteligente orden aleatorio mezclado seguir en aleatorio smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">De una canción a la siguiente</string>
     <string name="playback_speed_and_pitch">Velocidad y tono</string>

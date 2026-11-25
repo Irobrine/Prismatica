@@ -5150,6 +5150,9 @@
     <string name="playback_resume_on_return">蓝牙恢复后继续播放</string>
     <string name="playback_resume_on_return_info">当蓝牙耳机断开又重新连接时，音乐会从暂停处继续：例如耳机切换到自己的 2.4 GHz 连接后再回来。只有因输出丢失导致的暂停才会继续；你手动暂停的仍会保持暂停。</string>
     <string name="playback_resume_on_return_keywords">继续 重新连接 蓝牙 耳机 tws 适配器 2.4ghz 输出 恢复 自动</string>
+    <string name="play_only_when_audible">只在能听到时播放</string>
+    <string name="play_only_when_audible_info">手机媒体音量为 0、未连接任何音频输出，或正在播放的耳机刚被拔出时，按下播放会等待。一旦恢复可听到声音，就会自动开始播放。开启“静音时暂停”后，已在播放的音乐仍会暂停。</string>
+    <string name="play_only_when_audible_keywords">静音 音量 零 耳机 拔出 蓝牙 输出 扬声器 等待 开始 继续播放 silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">智能随机播放 随机顺序 打乱 保持随机</string>
     <string name="playback_song_to_song">从一首歌到下一首</string>
     <string name="playback_speed_and_pitch">速度和音调</string>

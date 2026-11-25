@@ -5150,6 +5150,9 @@
     <string name="playback_resume_on_return">Tiếp tục khi Bluetooth trở lại</string>
     <string name="playback_resume_on_return_info">Khi tai nghe Bluetooth mất kết nối rồi kết nối lại, nhạc tiếp tục từ chỗ đã dừng: ví dụ tai nghe chuyển sang kết nối 2,4 GHz của riêng nó rồi quay lại. Chỉ tạm dừng do mất đầu ra mới được tiếp tục; tạm dừng do bạn tự bấm sẽ giữ nguyên.</string>
     <string name="playback_resume_on_return_keywords">tiếp tục kết nối lại bluetooth tai nghe earbuds tws đầu ra trở lại tự động</string>
+    <string name="play_only_when_audible">Chỉ phát khi có thể nghe</string>
+    <string name="play_only_when_audible_info">Nhấn phát sẽ chờ khi âm lượng đa phương tiện của điện thoại là 0, không có đầu ra âm thanh nào được kết nối hoặc tai nghe đang phát vừa bị rút ra. Nhạc sẽ tự bắt đầu khi có thể nghe thấy âm thanh trở lại. Khi bật \"Tạm dừng khi tắt tiếng\", nhạc đang phát vẫn được tạm dừng như trước.</string>
+    <string name="play_only_when_audible_keywords">im lặng tắt tiếng âm lượng không tai nghe rút bluetooth đầu ra loa chờ bắt đầu tiếp tục silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">trộn bài thông minh thứ tự ngẫu nhiên xáo trộn giữ ngẫu nhiên</string>
     <string name="playback_song_to_song">Từ bài này sang bài tiếp theo</string>
     <string name="playback_speed_and_pitch">Tốc độ và cao độ</string>

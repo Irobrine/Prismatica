@@ -131,6 +131,30 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     private val spatial = SpatialAudioProcessor()
     /** "Pause when muted" (#157). */
     private val muteWatch by lazy { MuteWatch(this, player) { c.settings.current.behavior.pauseOnMute } }
+    /** "Play only when it can be heard": holds a play request while it would be silent (Settings → Playback). */
+    private var guardAttached = false
+    private val playbackGuard by lazy {
+        PlaybackGuard(
+            PlaybackGuard.AndroidWatcher(this),
+            { c.settings.current.behavior.playOnlyWhenAudible },
+            { c.settings.current.behavior.pauseOnMute },
+            object : PlaybackGuard.Controls {
+                override val silent: Boolean
+                    get() = runCatching {
+                        val s = c.settings.current
+                        val phoneMuted = (audioManager?.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) ?: 1) == 0
+                        // Prism's own volume can be at 0 with the phone's up; the phone's 0 silences Prism's sound either way.
+                        phoneMuted || (s.volumeControl == com.prism.music.data.prefs.VolumeControl.PRISM && s.appVolume <= 0f)
+                    }.getOrDefault(false)
+                override val hasOutput: Boolean
+                    get() = runCatching { com.prism.music.data.outputOptions(this@PlaybackService).isNotEmpty() }.getOrDefault(true)
+                override val blocked: Boolean get() = c.cast.casting || carControllers.isNotEmpty() || inCall()
+                override val playWhenReady: Boolean get() = player.playWhenReady
+                override fun pause() = player.pause()
+                override fun play() = player.play()
+            },
+        )
+    }
     /** "Pause when face down" (1.8.5): made only while the setting is on ([faceDownSetting]); null otherwise. */
     private var faceDown: FaceDown? = null
     private val normalizer = NormalizerProcessor()
@@ -367,7 +391,25 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         scope.launch { c.settings.flow.map { it.skipSilence to it.sound.skipSilenceEpisodes }.distinctUntilChanged().collect { applySkipSilence() } }
         scope.launch { c.settings.flow.map { it.sound.normalizeTarget to it.sound.normalizeAlbums }.distinctUntilChanged().drop(1).collect { applyNormalization(GainReason.SETTINGS) } }
         sessionPlayer.gentle = ::gentle
-        scope.launch { c.settings.flow.map { it.behavior.pauseOnMute }.distinctUntilChanged().collect { muteWatch.update() } }
+        scope.launch {
+            c.settings.flow
+                .map {
+                    Triple(
+                        it.behavior.pauseOnMute,
+                        it.behavior.playOnlyWhenAudible,
+                        if (it.volumeControl == com.prism.music.data.prefs.VolumeControl.PRISM) it.appVolume else 1f,
+                    )
+                }
+                .distinctUntilChanged()
+                .collect {
+                    muteWatch.update()
+                    if (!guardAttached) {
+                        player.addListener(playbackGuard)
+                        guardAttached = true
+                    }
+                    playbackGuard.update()
+                }
+        }
         scope.launch { c.settings.flow.map { it.behavior.faceDownPause }.distinctUntilChanged().collect { faceDownSetting(it) } }
         scope.launch { c.settings.flow.map { it.audioDiagnostics }.distinctUntilChanged().collect { on -> AudioDiagnostics.setEnabled(on) { AudioDiagnostics.about(c) } } }
         // The buttons beside play follow Settings → Player → Buttons as soon as they're changed.
@@ -727,6 +769,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         }
         mix.release()
         muteWatch.release()
+        if (guardAttached) { player.removeListener(playbackGuard); guardAttached = false }
+        playbackGuard.release()
         faceDown?.release()
         c.cast.detach(player)
         c.player.detach()

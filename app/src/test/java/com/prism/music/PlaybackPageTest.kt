@@ -62,6 +62,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
     private val pauseFade = t(R.string.fade_on_pause_and_play)
     private val stopOnSwipe = t(R.string.stop_when_swiped_away)
     private val pauseOnMute = t(R.string.pause_when_muted)
+    private val playOnlyWhenAudible = t(R.string.play_only_when_audible)
     private val faceDown = t(R.string.playback_face_down_pause)
     private val resumeOnReturn = t(R.string.playback_resume_on_return)
     private val startShuffled = t(R.string.playback_start_shuffled)
@@ -77,7 +78,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
             listOf(t(R.string.what_plays_next), t(R.string.shuffle), t(R.string.playback_song_to_song), t(R.string.playback_speed_and_pitch), t(R.string.stopping_and_pausing)),
             groupTitles(),
         )
-        assertEquals(listOf(7, 3, 2, 2, 6), groupSizes())
+        assertEquals(listOf(7, 3, 2, 2, 7), groupSizes())
         assertEquals("nothing differs from how Prism comes", 0, changedRows())
         // No group is named as the page, and none as one of its own rows (§2.7: "Crossfade" was both).
         assertTrue(groupTitles().none { it == SettingsPageId.PLAYBACK.title })
@@ -104,7 +105,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         until("crossfade on") { it.mix && !it.mixAuto }
         show()
         assertBudgets("crossfade on, fixed length")
-        assertEquals(listOf(7, 3, 5, 2, 6), groupSizes())
+        assertEquals(listOf(7, 3, 5, 2, 7), groupSizes())
         assertEquals("6 s", valueOf(length))
     }
 
@@ -187,6 +188,8 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         until("stop_on_swipe_away") { it.stopOnSwipeAway }
         tap(pauseOnMute)
         until("pause_on_mute") { it.behavior.pauseOnMute }
+        tap(playOnlyWhenAudible)
+        until("play_only_when_audible") { it.behavior.playOnlyWhenAudible }
         // face_down_pause, resume_on_return (new in 1.8.5)
         tap(faceDown)
         until("face_down_pause") { it.behavior.faceDownPause }
@@ -197,15 +200,15 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
 
         // Every row now differs from how Prism comes, says so, and the page still fits.
         assertBudgets("everything changed")
-        assertEquals(listOf(7, 3, 5, 2, 6), groupSizes())
-        assertEquals(23, changedRows())
+        assertEquals(listOf(7, 3, 5, 2, 7), groupSizes())
+        assertEquals(24, changedRows())
         // The root's line is live.
         val line = SettingsPageId.PLAYBACK.value(stored)
         assertTrue(line, tr(R.string.root_crossfade_seconds, 9) in line && noRepeats in line)
 
         // Reset this page lists each of them and puts them all back.
         val lines = resetLines(confirm = true)
-        assertEquals(lines.joinToString("\n"), 23, lines.size)
+        assertEquals(lines.joinToString("\n"), 24, lines.size)
         assertTrue(lines.toString(), lines.any { it.startsWith("$shuffleButton: ${ShuffleButton.SHUFFLE_ONLY.label} → ${ShuffleButton.SHUFFLE_AND_SMART.label}") })
         until("the reset") { it.behavior == d.behavior && it.sound == d.sound }
         until("the reset") {
@@ -214,7 +217,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
                 it.mixBeatMatch == d.mixBeatMatch && it.mixKeepAlbums == d.mixKeepAlbums && it.stopOnSwipeAway == d.stopOnSwipeAway
         }
         assertEquals(0, changedRows())
-        assertEquals(listOf(7, 3, 2, 2, 6), groupSizes())
+        assertEquals(listOf(7, 3, 2, 2, 7), groupSizes())
     }
 
     /** D57 and #416: the two new rows, off (as Prism was) until picked. */
@@ -299,6 +302,25 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         assertEquals(1, changedRows())
         tap(resumeOnReturn)
         until("resume_on_return off") { !it.behavior.resumeOnReturn }
+    }
+
+    /** "Play only when it can be heard", a switch in Stopping and pausing, off until switched on. */
+    @Test fun playOnlyWhenItCanBeHeardIsASwitchOffByDefault() {
+        show()
+        assertEquals(SettingsTags.ROW_SWITCH, typeOf(playOnlyWhenAudible))
+        assertFalse(stored.behavior.playOnlyWhenAudible)
+        val e = SettingsIndex.entries.single { it.title == playOnlyWhenAudible }
+        assertEquals(SettingsPageId.PLAYBACK, e.page)
+        assertEquals(t(R.string.stopping_and_pausing), e.group)
+        assertTrue(SettingsIndex.search("volume").any { it.title == playOnlyWhenAudible })
+        assertTrue(SettingsIndex.search("headphones").any { it.title == playOnlyWhenAudible })
+        // The explanation is behind the ⓘ only: never drawn on the page.
+        assertEquals(0, compose.onAllNodes(androidx.compose.ui.test.hasText(t(R.string.play_only_when_audible_info))).fetchSemanticsNodes().size)
+        tap(playOnlyWhenAudible)
+        until("play_only_when_audible") { it.behavior.playOnlyWhenAudible }
+        assertEquals(1, changedRows())
+        tap(playOnlyWhenAudible)
+        until("play_only_when_audible off") { !it.behavior.playOnlyWhenAudible }
     }
 
     /** #493: why the last two songs didn't blend is the last line behind Crossfade's ⓘ, and only when there's a reason. */

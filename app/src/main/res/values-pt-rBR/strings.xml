@@ -5294,6 +5294,9 @@
     <string name="playback_resume_on_return">Retomar quando o Bluetooth voltar</string>
     <string name="playback_resume_on_return_info">Quando os fones Bluetooth caem e se conectam de novo, a música continua de onde parou: por exemplo, fones que mudam para a própria conexão de 2,4 GHz e voltam. Só uma pausa causada pela perda da saída é retomada; uma pausa feita por você continua.</string>
     <string name="playback_resume_on_return_keywords">retomar reconectar bluetooth fones fone tws adaptador 2,4ghz saída voltar continuar auto</string>
+    <string name="play_only_when_audible">Reproduzir só quando der para ouvir</string>
+    <string name="play_only_when_audible_info">Tocar em reproduzir espera enquanto o volume de mídia do telefone está em 0, nenhuma saída de áudio está conectada ou os fones que estavam tocando acabaram de ser desconectados. Começa sozinho assim que o som é possível de novo. Com \"Pausar quando no mudo\" ativado, a música que já está tocando continua sendo pausada.</string>
+    <string name="play_only_when_audible_keywords">silencioso mudo volume zero fones desconectar bluetooth saída alto-falante esperar iniciar retomar silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">aleatório inteligente ordem aleatória embaralhar misturado continuar aleatório smart shuffle random order</string>
     <string name="playback_song_to_song">De uma música para a próxima</string>
     <string name="playback_speed_and_pitch">Velocidade e tom</string>

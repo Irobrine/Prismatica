@@ -5222,6 +5222,9 @@
     <string name="playback_resume_on_return">Folytatás, ha visszatér a Bluetooth</string>
     <string name="playback_resume_on_return_info">Amikor a Bluetooth-fejhallgató kiesik és újra csatlakozik, a zene onnan folytatódik, ahol abbamaradt: például a fülhallgató a saját 2,4 GHz-es kapcsolatára vált és visszatér. Csak az elveszett kimenet miatti szünet folytatódik; a saját szünet megmarad.</string>
     <string name="playback_resume_on_return_keywords">folytatás újracsatlakozás bluetooth fülhallgató füles tws adapter 2,4ghz kimenet vissza automatikus</string>
+    <string name="play_only_when_audible">Csak akkor indítsa, ha hallható</string>
+    <string name="play_only_when_audible_info">A lejátszás addig vár, amíg a telefon médiahangereje 0, nincs csatlakoztatva hangkimenet, vagy épp lecsatlakoztak a zenét játszó fejhallgatók. Amint újra hallható a hang, magától elindul. Be kapcsolt „Szünet némításkor” mellett a már szóló zene továbbra is szünetel.</string>
+    <string name="play_only_when_audible_keywords">néma némítás hangerő nulla fejhallgató lecsatlakozás bluetooth kimenet hangszóró várakozás indítás folytatás silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">okos keverés véletlen sorrend összekevert kevert marad smart shuffle random order</string>
     <string name="playback_song_to_song">Egyik dalról a másikra</string>
     <string name="playback_speed_and_pitch">Sebesség és hangmagasság</string>

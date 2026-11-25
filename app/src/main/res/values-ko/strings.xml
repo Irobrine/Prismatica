@@ -5150,6 +5150,9 @@
     <string name="playback_resume_on_return">Bluetooth가 돌아오면 이어서 재생</string>
     <string name="playback_resume_on_return_info">Bluetooth 헤드폰 연결이 끊겼다가 다시 연결되면 음악이 멈춘 곳에서 이어집니다. 예를 들어 이어버드가 자체 2.4GHz 연결로 바꿨다가 돌아오는 경우입니다. 출력이 사라져 생긴 일시정지만 이어지고, 직접 누른 일시정지는 그대로 유지됩니다.</string>
     <string name="playback_resume_on_return_keywords">이어서 재생 재연결 블루투스 이어버드 헤드폰 tws 동글 2.4ghz 출력 돌아오기 계속 자동</string>
+    <string name="play_only_when_audible">들을 수 있을 때만 재생</string>
+    <string name="play_only_when_audible_info">휴대폰의 미디어 볼륨이 0이거나, 오디오 출력이 연결되어 있지 않거나, 재생 중이던 헤드폰이 방금 분리되면 재생을 눌러도 기다립니다. 다시 소리가 들리면 스스로 시작합니다. \"음소거하면 일시중지\"이(가) 켜져 있으면 이미 재생 중인 음악은 계속 일시중지됩니다.</string>
+    <string name="play_only_when_audible_keywords">무음 음소거 볼륨 0 헤드폰 분리 블루투스 출력 스피커 대기 시작 재개 silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">스마트 셔플 무작위 순서 섞기 셔플 유지 smart shuffle random order</string>
     <string name="playback_song_to_song">한 곡에서 다음 곡으로</string>
     <string name="playback_speed_and_pitch">속도 및 음높이</string>

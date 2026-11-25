@@ -5378,6 +5378,9 @@
     <string name="playback_resume_on_return">Resume when Bluetooth comes back</string>
     <string name="playback_resume_on_return_info">When Bluetooth headphones drop out and connect again, the music picks up where it stopped: earbuds switching to their own 2.4 GHz connection and back, say. Only a pause the lost output caused is resumed; a pause you made yourself stays.</string>
     <string name="playback_resume_on_return_keywords">resume reconnect bluetooth earbuds buds headphones tws dongle 2.4ghz output back continue auto</string>
+    <string name="play_only_when_audible">Play only when it can be heard</string>
+    <string name="play_only_when_audible_info">Pressing play waits while the phone\'s media volume is 0, no audio output is connected, or the headphones that were playing just got unplugged. It starts by itself once sound is possible again. With \"Pause when muted\" on, that still pauses music that is already playing.</string>
+    <string name="play_only_when_audible_keywords">silent muted volume zero headphones unplug bluetooth disconnect output speaker safe wait start resume</string>
     <string name="gb_lyrics_cover_plays">Tap the small cover to play or pause</string>
     <string name="gb_lyrics_cover_plays_info">With the lyrics open, a tap on the small cover plays or pauses and a long press closes the lyrics. Off: a tap closes the lyrics.</string>
     <string name="gb_lyrics_cover_plays_keywords">lyrics small cover thumbnail artwork tap play pause long press close</string>

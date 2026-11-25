@@ -5222,6 +5222,9 @@
     <string name="playback_resume_on_return">بلوٹوتھ واپس آنے پر دوبارہ چلائیں</string>
     <string name="playback_resume_on_return_info">جب بلوٹوتھ ہیڈفون کٹ جاتے ہیں اور دوبارہ جڑ جاتے ہیں تو موسیقی وہیں سے چلتی ہے جہاں رکی تھی: مثلاً ایئربڈز اپنے 2.4 GHz کنکشن پر جا کر واپس آ جاتے ہیں۔ صرف آؤٹ پٹ چلے جانے سے ہونے والا وقفہ دوبارہ چلتا ہے؛ آپ کا خود کیا ہوا وقفہ برقرار رہتا ہے۔</string>
     <string name="playback_resume_on_return_keywords">دوبارہ چلائیں دوبارہ جڑیں بلوٹوتھ ایئربڈز ہیڈفون tws ڈونگل 2.4ghz آؤٹ پٹ واپس جاری آٹو</string>
+    <string name="play_only_when_audible">صرف اس وقت چلائیں جب سنائی دے</string>
+    <string name="play_only_when_audible_info">پلے دبانے پر انتظار ہوتا ہے جب تک فون کا میڈیا والیوم 0 ہو، کوئی آڈیو آؤٹ پٹ منسلک نہ ہو، یا ابھی ہیڈ فون نکالے گئے ہوں جو چل رہے تھے۔ جیسے ہی آواز دوبارہ سنائی دے، یہ خود بخود شروع ہو جاتا ہے۔ \"آواز بند ہونے پر روکیں\" آن ہونے پر چلتی موسیقی پھر بھی روکی جاتی ہے۔</string>
+    <string name="play_only_when_audible_keywords">خاموش آواز بند والیوم صفر ہیڈ فون بلوٹوتھ آؤٹ پٹ اسپیکر انتظار شروع silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">سمارٹ شفل بے ترتیب ترتیب ملا جلا شفل رہے</string>
     <string name="playback_song_to_song">ایک گانے سے اگلے تک</string>
     <string name="playback_speed_and_pitch">رفتار اور پچ</string>

@@ -5150,6 +5150,9 @@
     <string name="playback_resume_on_return">เล่นต่อเมื่อบลูทูธกลับมา</string>
     <string name="playback_resume_on_return_info">เมื่อหูฟังบลูทูธหลุดแล้วเชื่อมต่ออีกครั้ง เพลงจะเล่นต่อจากจุดที่หยุดไว้ เช่น หูฟังที่สลับไปใช้การเชื่อมต่อ 2.4 GHz ของตัวเองแล้วกลับมา จะเล่นต่อเฉพาะการหยุดที่เกิดจากเอาต์พุตหลุดเท่านั้น การหยุดที่คุณทำเองจะคงอยู่</string>
     <string name="playback_resume_on_return_keywords">เล่นต่อ เชื่อมต่อใหม่ บลูทูธ หูฟัง tws ดองเกิล 2.4ghz เอาต์พุต กลับมา ต่อเนื่อง อัตโนมัติ</string>
+    <string name="play_only_when_audible">เล่นเฉพาะเมื่อได้ยิน</string>
+    <string name="play_only_when_audible_info">การกดเล่นจะรอตราบใดที่ระดับเสียงสื่อของโทรศัพท์เป็น 0 ไม่มีเอาต์พุตเสียงเชื่อมต่อ หรือหูฟังที่กำลังเล่นเพิ่งถูกถอดออก มันจะเริ่มเองเมื่อได้ยินเสียงได้อีกครั้ง เมื่อเปิด \"หยุดชั่วคราวเมื่อปิดเสียง\" เพลงที่เล่นอยู่จะยังหยุดชั่วคราวตามเดิม</string>
+    <string name="play_only_when_audible_keywords">เงียบ ปิดเสียง ระดับเสียง ศูนย์ หูฟัง ถอด บลูทูธ เอาต์พุต ลำโพง รอ เริ่ม เล่นต่อ silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">สุ่มเพลงอัจฉริยะ ลำดับสุ่ม คละ สุ่มต่อ</string>
     <string name="playback_song_to_song">จากเพลงหนึ่งไปอีกเพลง</string>
     <string name="playback_speed_and_pitch">ความเร็วและคีย์</string>

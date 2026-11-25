@@ -5294,6 +5294,9 @@
     <string name="playback_resume_on_return">Reprendre quand le Bluetooth revient</string>
     <string name="playback_resume_on_return_info">Quand des écouteurs Bluetooth se déconnectent puis se reconnectent, la musique reprend là où elle s’est arrêtée : des écouteurs qui passent sur leur propre connexion 2,4 GHz, par exemple. Seule une pause causée par la perte de sortie est reprise ; une pause que vous avez faite reste.</string>
     <string name="playback_resume_on_return_keywords">reprendre reconnexion bluetooth écouteurs oreillettes tws dongle 2,4ghz sortie retour continuer auto</string>
+    <string name="play_only_when_audible">Lire seulement quand on peut l\'entendre</string>
+    <string name="play_only_when_audible_info">Appuyer sur lecture attend tant que le volume multimédia du téléphone est à 0, qu\'aucune sortie audio n\'est connectée ou que les écouteurs qui jouaient viennent d\'être débranchés. La lecture démarre d\'elle-même dès que le son est de nouveau possible. Avec « Pause quand le son est coupé » activé, la musique déjà en cours reste mise en pause.</string>
+    <string name="play_only_when_audible_keywords">silencieux coupé volume zéro écouteurs débrancher bluetooth sortie haut-parleur attendre démarrer reprendre silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">lecture aléatoire intelligente ordre aléatoire mélangé rester en aléatoire smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">D’un titre au suivant</string>
     <string name="playback_speed_and_pitch">Vitesse et tonalité</string>

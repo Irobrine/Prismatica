@@ -5294,6 +5294,9 @@
     <string name="playback_resume_on_return">המשך כשהבלוטות חוזר</string>
     <string name="playback_resume_on_return_info">כשהאוזניות בלוטות מתנתקות ומתחברות שוב, המוזיקה ממשיכה מהמקום שבו נעצרה: למשל אוזניות שעוברות לחיבור 2.4 GHz שלהן וחוזרות. רק השהיה שנגרמה מאובדן היציאה ממשיכה; השהיה שעשית בעצמך נשארת.</string>
     <string name="playback_resume_on_return_keywords">המשך התחברות מחדש בלוטות אוזניות tws מתאם 2.4ghz יציאה חזרה אוטומטי</string>
+    <string name="play_only_when_audible">הפעל רק כשאפשר לשמוע</string>
+    <string name="play_only_when_audible_info">לחיצה על הפעלה ממתינה כשעוצמת המדיה בטלפון היא 0, כשאין פלט שמע מחובר, או כשהאוזניות שניגנו זה עתה נותקו. ההפעלה מתחילה מעצמה ברגע שאפשר לשמוע שוב. כש\"השהיה כשהקול מושתק\" פועל, מוזיקה שכבר מתנגנת עדיין מושהית.</string>
+    <string name="play_only_when_audible_keywords">שקט מושתק עוצמה אפס אוזניות ניתוק בלוטות\' פלט רמקול המתנה התחלה המשך silent muted volume zero headphones</string>
     <string name="playback_shuffle_keywords">ערבוב חכם סדר אקראי מעורבב להישאר בערבוב smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">משיר לשיר הבא</string>
     <string name="playback_speed_and_pitch">מהירות וגובה צליל</string>
