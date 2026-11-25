@@ -113,6 +113,9 @@ fun PlayerOptionsSheet(
     if (credits) { com.prism.music.ui.components.SongCreditsSheet(song) { credits = false; onDismiss() }; return }
     var details by remember { mutableStateOf(false) }
     if (details) { com.prism.music.ui.components.SongDetailsSheet(song) { details = false; onDismiss() }; return }
+    // Playlists people made around this song: a search by its title and artist, asked only when the row is picked.
+    var relatedPlaylists by remember { mutableStateOf(false) }
+    if (relatedPlaylists) { com.prism.music.ui.components.RelatedPlaylistsSheet(song) { relatedPlaylists = false; onDismiss() }; return }
     // 1.8.3: the listener's own title, artist, album and genre, kept on this phone (for YouTube songs too).
     var editingMetadata by remember { mutableStateOf(false) }
     if (editingMetadata) { com.prism.music.ui.components.MetadataEditorSheet(listOf(song)) { editingMetadata = false; onDismiss() }; return }
@@ -224,6 +227,11 @@ fun PlayerOptionsSheet(
             PrismIcons.Album, tr(R.string.more_from_this_album), value = com.prism.music.data.model.songCount(moreFromCount),
             onLongClick = { moreFromCountFor = MoreFrom.ALBUM }, longClickLabel = tr(R.string.more_from_how_many),
         ) { addMoreFrom(c, shown, MoreFrom.ALBUM) },
+    )
+    // Playlists people made around the song: discovery beyond the artist's own page and the radio.
+    if (!song.isEpisode && !local && !song.isLive && !song.isUpload) put(
+        MenuAction.PLAYLISTS_WITH_SONG,
+        ActionItem(PrismIcons.QueueMusic, tr(R.string.playlists_with_this_song), keepOpen = true) { relatedPlaylists = true },
     )
     if (!song.isEpisode && !local && !song.isLive) put(MenuAction.CREDITS, ActionItem(PrismIcons.Info, tr(R.string.song_credits), keepOpen = true) { credits = true })
     // As in the song menu: YouTube has nothing to say about the listener's own uploads.
@@ -372,6 +380,7 @@ internal fun menuIcon(a: MenuAction): ImageVector = when (a) {
     MenuAction.ARTIST -> PrismIcons.Person
     MenuAction.MORE_FROM_ARTIST -> PrismIcons.Person
     MenuAction.MORE_FROM_ALBUM -> PrismIcons.Album
+    MenuAction.PLAYLISTS_WITH_SONG -> PrismIcons.QueueMusic
     MenuAction.CREDITS -> PrismIcons.Info
     MenuAction.DETAILS -> PrismIcons.Replay
     MenuAction.VERSION -> PrismIcons.SwapVertical
@@ -415,6 +424,7 @@ internal fun menuLabel(a: MenuAction): String = when (a) {
     MenuAction.ARTIST -> tr(R.string.go_to_artist)
     MenuAction.MORE_FROM_ARTIST -> tr(R.string.more_from_this_artist)
     MenuAction.MORE_FROM_ALBUM -> tr(R.string.more_from_this_album)
+    MenuAction.PLAYLISTS_WITH_SONG -> tr(R.string.playlists_with_this_song)
     MenuAction.CREDITS -> tr(R.string.song_credits)
     MenuAction.DETAILS -> tr(R.string.song_details)
     MenuAction.VERSION -> tr(R.string.play_a_different_version)

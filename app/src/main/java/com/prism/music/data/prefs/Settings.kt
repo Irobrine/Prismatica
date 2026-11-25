@@ -785,6 +785,8 @@ enum class MenuAction(val group: MenuGroup, val fromPlayer: Boolean = false, val
     RADIO(MenuGroup.SONG), DOWNLOAD(MenuGroup.SONG), ALBUM(MenuGroup.SONG), ARTIST(MenuGroup.SONG),
     /** 1.8.6: a shuffled handful of the artist's songs (or the album's) right after this one; held, how many. */
     MORE_FROM_ARTIST(MenuGroup.SONG), MORE_FROM_ALBUM(MenuGroup.SONG),
+    /** Community playlists made around this song: a search by its title and artist. */
+    PLAYLISTS_WITH_SONG(MenuGroup.SONG),
     CREDITS(MenuGroup.SONG),
     /** #211 (1.8.2): its plays and dates. */
     DETAILS(MenuGroup.SONG),

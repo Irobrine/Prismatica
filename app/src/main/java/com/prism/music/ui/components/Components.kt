@@ -791,14 +791,14 @@ fun SongActionsSheet(song: Song, extra: List<SheetItem> = emptyList(), onDismiss
         else if (song.isEpisode) ActionItem(PrismIcons.DoneAll, tr(R.string.mark_as_played)) { c.episodes.markPlayed(song.id) } else null,
         if (rss) null else ActionItem(PrismIcons.PlaylistAdd, tr(R.string.add_to_playlist), keepOpen = true) { pickPlaylist = true },
         if (rss) null else ActionItem(PrismIcons.Tag, tr(R.string.add_a_tag), value = tagsValue(songTags), active = songTags.isNotEmpty(), keepOpen = true) { tagging = true },
+        // Community playlists made around it: discovery beyond the artist's own page and the radio.
+        if (song.isEpisode || local || rss || song.isLive || song.isUpload) null
+        else ActionItem(PrismIcons.QueueMusic, tr(R.string.playlists_with_this_song), keepOpen = true) { relatedPlaylists = true },
         // 1.8.3: artist, album and genre, shown on this phone.
         ActionItem(PrismIcons.Edit, tr(R.string.edit_metadata), active = c.metadata.of(song.id) != null, keepOpen = true) { editingMetadata = true },
         // A picked version's album and artists (#328): it plays as that recording.
         shown.album?.id?.let { id -> ActionItem(PrismIcons.Album, tr(R.string.go_to_album), value = shown.album?.title?.takeIf { it.length <= 22 }) { nav.go(Routes.album(id)) } },
     ) + goToArtists(shown) { route -> nav.go(route) } + listOfNotNull(
-        // Playlists people made around it: discovery beyond the artist's own page and the radio.
-        if (song.isEpisode || local || rss || song.isLive || song.isUpload) null
-        else ActionItem(PrismIcons.QueueMusic, tr(R.string.playlists_with_this_song), keepOpen = true) { relatedPlaylists = true },
         // Who performed, wrote and produced it (Reddit 1.7).
         if (song.isEpisode || local || song.isLive) null else ActionItem(PrismIcons.Info, tr(R.string.song_credits), keepOpen = true) { credits = true },
         // Its plays and dates (#211). The listener's own uploads aren't public: YouTube has nothing to say about them.
