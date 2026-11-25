@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -135,32 +134,36 @@ private fun ConnectionMap(conn: Connections, onOpen: (ArtistItem) -> Unit) {
         if (!settings.reduceMotion && appear.value < 1f) appear.animateTo(1f, tween(420, easing = FastOutSlowInEasing))
     }
     BoxWithConstraints(
-        Modifier.fillMaxWidth().height(360.dp).padding(top = 6.dp),
-        contentAlignment = Alignment.Center,
+        // Top-start placement: each node is offset from the box's own corner, and its artwork is centred on that point.
+        // (With the box centring its children, an offset moved a node away from the centre again, which pushed every
+        // artist but the middle one out of place.)
+        Modifier.fillMaxWidth().height(420.dp).padding(top = 6.dp),
     ) {
         val width = maxWidth
         val height = maxHeight
-        val centre = Offset(width.value * 0.5f, height.value * 0.5f)
         val cx = width / 2
         val cy = height / 2
-        val radius = (minOf(width, 360.dp) / 2 - 48.dp) * appear.value
+        val radius = (minOf(width, 420.dp) / 2 - 56.dp) * appear.value
         val nodes = conn.others.mapIndexed { i, a ->
             val angle = (2 * PI * i / conn.others.size) - PI / 2
             Triple(a, cx + (radius.value * cos(angle)).dp, cy + (radius.value * sin(angle)).dp)
         }
-        // Lines first, under the covers.
+        // Lines first, under the covers, from one artwork's centre to another's.
         Canvas(Modifier.matchParentSize()) {
             for ((_, x, y) in nodes) {
                 drawLine(
                     color = ink.copy(alpha = 0.22f * appear.value),
-                    start = Offset(centre.x.dp.toPx(), centre.y.dp.toPx()),
+                    start = Offset(cx.toPx(), cy.toPx()),
                     end = Offset(x.toPx(), y.toPx()),
                     strokeWidth = 1.2.dp.toPx(),
                 )
             }
         }
-        // The artist in the middle.
-        Column(Modifier.width(108.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        // The artist in the middle: its artwork centred on the box's centre, its name under it.
+        Column(
+            Modifier.offset(x = cx - 54.dp, y = cy - 38.dp).width(108.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Artwork(
                 conn.artist.thumbnail, Modifier.size(76.dp).clip(CircleShape), shape = CircleShape, size = 320,
                 placeholderIcon = PrismIcons.Person,
@@ -171,10 +174,11 @@ private fun ConnectionMap(conn: Connections, onOpen: (ArtistItem) -> Unit) {
             )
         }
         for ((a, x, y) in nodes) {
+            // y is the artwork's centre: the column starts half a cover above it, and the name runs on below.
             Column(
-                Modifier.offset(x = x - 43.dp, y = y - 42.dp).width(86.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                Modifier.offset(x = x - 43.dp, y = y - 27.dp).width(86.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
                     .clickable { onOpen(a) }.padding(2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Artwork(a.thumbnail, Modifier.size(54.dp).clip(CircleShape), shape = CircleShape, size = 226, placeholderIcon = PrismIcons.Person)
                 Text(
