@@ -211,14 +211,14 @@ fun PlayerOptionsSheet(
     com.prism.music.ui.components.goToArtists(song) { route -> onCollapse(); nav.go(route) }.takeIf { it.isNotEmpty() }?.let { items[MenuAction.ARTIST] = it }
     // 1.8.6: a shuffled handful of the artist's or the album's songs, right after this one. Holding either asks how many.
     val moreFromCount = settings.view.parts.moreFromCount
-    if (shown.artists.isNotEmpty()) put(
+    if (!song.isEpisode && shown.artists.isNotEmpty()) put(
         MenuAction.MORE_FROM_ARTIST,
         ActionItem(
             PrismIcons.Person, tr(R.string.more_from_this_artist), value = com.prism.music.data.model.songCount(moreFromCount),
             onLongClick = { moreFromCountFor = MoreFrom.ARTIST }, longClickLabel = tr(R.string.more_from_how_many),
         ) { addMoreFrom(c, shown, MoreFrom.ARTIST) },
     )
-    if (shown.album != null) put(
+    if (!song.isEpisode && shown.album?.let { it.id != null || local } == true) put(
         MenuAction.MORE_FROM_ALBUM,
         ActionItem(
             PrismIcons.Album, tr(R.string.more_from_this_album), value = com.prism.music.data.model.songCount(moreFromCount),

@@ -1184,7 +1184,7 @@ private fun PlayerButtonGlyph(
             BottomGlyph(
                 PrismIcons.Person, tr(R.string.more_from_this_artist), false,
                 { addMoreFrom(c, shown, com.prism.music.data.MoreFrom.ARTIST) },
-                width, enabled = shown.artists.isNotEmpty(),
+                width, enabled = shown.artists.isNotEmpty() && !s.isEpisode,
                 onLongClick = { customizing = true }, longPressLabel = tr(R.string.more_from_how_many),
             )
             if (customizing) MoreFromCountDialog(com.prism.music.data.MoreFrom.ARTIST) { customizing = false }
@@ -1195,7 +1195,7 @@ private fun PlayerButtonGlyph(
             BottomGlyph(
                 PrismIcons.Album, tr(R.string.more_from_this_album), false,
                 { addMoreFrom(c, shown, com.prism.music.data.MoreFrom.ALBUM) },
-                width, enabled = shown.album != null,
+                width, enabled = shown.album?.let { it.id != null || s.isLocal } == true && !s.isEpisode,
                 onLongClick = { customizing = true }, longPressLabel = tr(R.string.more_from_how_many),
             )
             if (customizing) MoreFromCountDialog(com.prism.music.data.MoreFrom.ALBUM) { customizing = false }

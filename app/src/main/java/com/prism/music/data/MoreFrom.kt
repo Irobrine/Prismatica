@@ -67,9 +67,10 @@ suspend fun AppContainer.moreFromSongs(song: Song, from: MoreFrom, count: Int): 
 private suspend fun AppContainer.onlineMoreFrom(song: Song, from: MoreFrom): List<Song> {
     return when (from) {
         MoreFrom.ARTIST -> {
-            // The song's own (first) artist: the page it opens names them.
+            // The song's own (first) artist: the page it opens names them. Another artist's link is no help: it would
+            // fetch a catalogue this song isn't by.
             val ref = song.artists.firstOrNull() ?: return emptyList()
-            val id = ref.id ?: ytm.artistIdByName(ref.name) ?: song.artists.firstNotNullOfOrNull { it.id } ?: return emptyList()
+            val id = ref.id ?: ytm.artistIdByName(ref.name) ?: return emptyList()
             val page = ytm.artist(id)
             // The page's own songs, and its shuffle list (which can carry similar artists too: only this one's songs stay).
             val listed = page.shelves.flatMap { it.items }.filterIsInstance<SongItem>().map { it.song }
