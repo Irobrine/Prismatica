@@ -2,6 +2,42 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.4.0
+
+More from the artist or album playing, community playlists around a song, artist connections, a library-wide shuffle, and queues that start on the phone offline.
+
+### Discovery
+
+- **More from this artist / album** (the player's ⋯ menu under This song, or as a button in the player's row through Settings → Player → Buttons in the row): a tap adds a shuffled handful right after the playing song — three unless you hold it to pick 1 to 25 — drawn from the artist's whole catalogue online and from Downloads and local files offline; a network that can't answer gives way to the phone in two seconds. Never on episodes.
+- **Playlists with this song** (a song's long-press menu, right after Add a tag, or the player's ⋯ menu under This song): the community playlists a search for the song's title and artist finds, with mixes and radios left out; picking one closes the player so the playlist is what you see.
+- **Artist connections** (an artist's page, the row under Similar artists): the artists YouTube puts around them, drawn as a map and repeated as a list, each opening its page.
+- **Shuffle the whole library** (the shuffle button beside Library's tabs, on any tab): starts Library → Songs shuffled from the top.
+
+### Playback
+
+- **Offline queues start on the phone's own songs**: a tap on a song that isn't downloaded starts the nearest one that is, saying so when that isn't the one tapped; with nothing local it says so and leaves the queue playing. The same for Next, a car, a notification, a restored queue's Play and offline shuffles.
+- **Quick picks, Library Songs, Daily Mix and Smart Shuffle keep to the phone offline**, and Quick picks no longer waits out two network timeouts before falling back.
+- **YouTube's 23 November player change handled**: the TV player copy is asked for first with the desktop copy as the fallback, so signed-in streams and Premium quality keep working.
+
+### Queue & playback settings
+
+- **Append to Play Next** (Settings → Playback → What plays next): play-next adds to the end of Next in queue instead of straight after the playing song, so several keep the order you tapped them in.
+- **A song already next stays where it is** instead of being taken out and put back, and one taken out of the queue stops marking Next (Undo puts it back).
+- **Start playing shuffled** (Settings → Playback → Shuffle, next to Keep shuffle on for the next list): Prism opens with a shuffled library when nothing was queued; a restored queue still comes back paused.
+
+### Controls & startup
+
+- **Presses answer at once**: the play disc, transport glyphs, bottom actions and tabs dip while held, a burst of taps on the persistent card is one press, and a mix card says it is starting instead of starting twice.
+- **The queue keeps its scroll**: it no longer pulls itself to the playing song under a thumb, derives its sections once per queue change, and a row swipe keeps up with the finger; swipe thresholds are in dp, so a gesture means the same at every density.
+- **Startup does less**: settings decode once for the first frame, Home's offline lists stop at what they show, Speed dial builds nothing when off, search haystacks are normalised off the main thread, and a tap finds its queue place without scanning the list.
+
+### Under the hood
+
+- New and extended tests: `MoreFromTest`, `MoreFromCatalogueLiveTest`, `AppendToPlayNextTest`, `OfflineQueueTest`, `RelatedPlaylistsTest`, `QueueMarksTest`, `HistoryShuffleOrderTest`, `PersistentPressTest`, `PlayerJsVariantTest` and `PlayerJsVariantLiveTest`.
+- **Robolectric 4.18.1** (from 4.14.1): its newer native runtime no longer kills the test JVM when a SQLite statement outlives its connection, which had been crashing whole runs at random points in `robolectric-nativeruntime.dll`.
+- Both copies of the YouTube player sign requests with the same timestamp, and the baseline-profile journeys target this branch's application id.
+- The new strings are in all 31 languages.
+
 ## 1.3.2
 
 Duplicate recordings can be found and hidden, a blend says why it didn't happen, the queue pulls closed, and the Library, startup and song measuring are faster.
