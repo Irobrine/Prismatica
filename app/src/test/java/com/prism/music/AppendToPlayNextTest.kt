@@ -34,7 +34,10 @@ class AppendToPlayNextTest {
 
     private fun append(on: Boolean) {
         runBlocking { c.settings.setAppendToPlayNext(on) }
+        // Both readings settle: `stored` is asserted below, and the two flows are separate collectors, so `flow` being
+        // up to date doesn't guarantee `stored` already is.
         runBlocking { withTimeout(10_000) { c.settings.flow.first { it.behavior.appendToPlayNext == on } } }
+        runBlocking { withTimeout(10_000) { c.settings.stored.first { it.behavior.appendToPlayNext == on } } }
     }
 
     @Before fun setUp() {

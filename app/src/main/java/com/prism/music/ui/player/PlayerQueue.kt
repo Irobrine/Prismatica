@@ -92,7 +92,12 @@ internal fun InlineQueue(
     val played = playedIdx.takeLast(MAX_PLAYED).mapNotNull { queue.getOrNull(it) }
     val nowItem = if (played.isEmpty()) 0 else played.size + 1
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = nowItem)
-    LaunchedEffect(index) { if (listState.firstVisibleItemIndex != nowItem) listState.animateScrollToItem(nowItem) }
+    LaunchedEffect(index) {
+        // A scroll the listener is making wins over the queue following the music: it would yank the list out from
+        // under a thumb. The next song that starts with the list at rest brings it back.
+        if (listState.isScrollInProgress) return@LaunchedEffect
+        if (listState.firstVisibleItemIndex != nowItem) listState.animateScrollToItem(nowItem)
+    }
     // Scrolled to the very top, a pull down has nothing above it to show: the queue follows the finger back into the
     // player instead, through the same morph that closes it.
     val topPull = remember(pull, listState) {
@@ -103,11 +108,15 @@ internal fun InlineQueue(
     val autoplayFrom = if (autoplayStart > 0) autoplayStart else queue.size
     val upNext by pc.upNext.collectAsState()
     val shuffled by pc.shuffle.collectAsState()
-    // In play order, so with shuffle on this is the shuffled order.
-    val order = upNext.mapNotNull { queue.getOrNull(it) }
+    // In play order, so with shuffle on this is the shuffled order. Derived once per queue change, not on every
+    // recomposition: DJ progress and Smart Shuffle's picks tick often, and a thousand-song queue's mapping and
+    // sectioning ran each time.
+    val order = remember(queue, upNext) { upNext.mapNotNull { queue.getOrNull(it) } }
     val userQueued by c.queue.userQueued.collectAsState()
     // What the listener lined up next has its own heading; every song is listed where it plays (#368).
-    val sections = com.prism.music.playback.QueueEdit.sections(order, { it.song.id in userQueued }, { it.index >= autoplayFrom })
+    val sections = remember(order, userQueued, autoplayFrom) {
+        com.prism.music.playback.QueueEdit.sections(order, { it.song.id in userQueued }, { it.index >= autoplayFrom })
+    }
     val queued = sections.queued
     val upcoming = sections.upcoming
     val autoplay = sections.autoplay
@@ -615,8 +624,11 @@ private fun QueueRow(
     removeButton: Boolean = true,
 ) {
     // Swiped left past a third of the row, it slides out and goes (#149); short of that it springs back. Moved in the
-    // drawing layer, so a swipe doesn't lay the row out again each frame.
+    // drawing layer, so a swipe doesn't lay the row out again each frame. The drag itself is a plain float: snapping an
+    // Animatable from one coroutine per touch move could land out of order on a fast swipe (the row jumped back).
     val slide = remember { androidx.compose.animation.core.Animatable(0f) }
+    val drag = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    var dragging by remember { mutableStateOf(false) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val haptics = com.prism.music.ui.theme.rememberHaptics()
     // The swipe outlives a recomposition (it's keyed on the song), so it calls the latest onRemove: the row's place
@@ -625,8 +637,11 @@ private fun QueueRow(
     val swipe = if (onRemove == null || !swipeable) Modifier else Modifier.pointerInput(song.id) {
         val goAt = size.width / 3f
         detectHorizontalDragGestures(
+            onDragStart = { dragging = true; drag.floatValue = slide.value },
             onDragEnd = {
+                dragging = false
                 scope.launch {
+                    slide.snapTo(drag.floatValue)
                     if (slide.value <= -goAt) {
                         haptics.gestureEnd()
                         slide.animateTo(-size.width.toFloat(), androidx.compose.animation.core.tween(160))
@@ -634,19 +649,24 @@ private fun QueueRow(
                     } else slide.animateTo(0f)
                 }
             },
-            onDragCancel = { scope.launch { slide.animateTo(0f) } },
+            onDragCancel = {
+                dragging = false
+                scope.launch { slide.snapTo(drag.floatValue); slide.animateTo(0f) }
+            },
         ) { change, d ->
             change.consume()
-            val after = (slide.value + d).coerceAtMost(0f)
-            if ((slide.value > -goAt) != (after > -goAt)) haptics.threshold()
-            scope.launch { slide.snapTo(after) }
+            val before = drag.floatValue
+            val after = (before + d).coerceAtMost(0f)
+            if ((before > -goAt) != (after > -goAt)) haptics.threshold()
+            drag.floatValue = after
         }
     }
     Row(
         modifier.fillMaxWidth().then(swipe)
             .graphicsLayer {
-                translationX = slide.value
-                alpha = 1f - (-slide.value / size.width.coerceAtLeast(1f)).coerceIn(0f, 0.7f)
+                val x = if (dragging) drag.floatValue else slide.value
+                translationX = x
+                alpha = 1f - (-x / size.width.coerceAtLeast(1f)).coerceIn(0f, 0.7f)
             }
             .clip(RoundedCornerShape(8.dp))
             .then(if (pick == true) Modifier.background(Color.White.copy(alpha = 0.1f)) else Modifier)

@@ -42,6 +42,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -793,10 +794,15 @@ internal fun playDiscColors(filled: Boolean): Pair<Color, Color> {
 private fun PlayDisc(isPlaying: Boolean, isLoading: Boolean, filled: Boolean, size: Dp, onClick: () -> Unit) {
     val haptics = rememberHaptics()
     val pressed = remember { MutableInteractionSource() }
+    // The disc answers the finger as it goes down: on a player whose play or pause lands a moment later, the press is
+    // the only sign the tap was taken.
+    val down by pressed.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (down) 0.93f else 1f, tween(90), label = "playPress")
     val material = com.prism.music.ui.theme.LocalUi.current.material
     val (discFill, tint) = playDiscColors(filled)
     Box(
-        Modifier.size(size + 14.dp).testTag("playDisc").clickable(pressed, indication = null) { haptics.click(); onClick() },
+        Modifier.size(size + 14.dp).graphicsLayer { scaleX = pressScale; scaleY = pressScale }
+            .testTag("playDisc").clickable(pressed, indication = null) { haptics.click(); onClick() },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -858,13 +864,16 @@ private fun TransportGlyph(
     val tap by rememberUpdatedState(onClick)
     val tapEnabled by rememberUpdatedState(enabled)
     val step by rememberUpdatedState(onHold)
+    val interaction = remember { MutableInteractionSource() }
+    val down by interaction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (down) 0.9f else 1f, tween(90), label = "transportPress")
     Box(
-        modifier.size(touch).then(
+        modifier.size(touch).graphicsLayer { scaleX = pressScale; scaleY = pressScale }.then(
             if (onHold == null && onLongPress != null) Modifier.combinedClickable(
-                remember { MutableInteractionSource() }, indication = null, enabled = enabled,
+                interaction, indication = null, enabled = enabled,
                 onLongClickLabel = longPressLabel, onLongClick = { haptics.click(); onLongPress() },
             ) { haptics.click(); onClick() }
-            else if (onHold == null) Modifier.clickable(remember { MutableInteractionSource() }, indication = null, enabled = enabled) { haptics.click(); onClick() }
+            else if (onHold == null) Modifier.clickable(interaction, indication = null, enabled = enabled) { haptics.click(); onClick() }
             // A tap changes songs; holding seeks, one step at once and then again every moment it's held.
             // Holding works even when the tap can't (forward on the queue's last song).
             else Modifier
@@ -1346,9 +1355,12 @@ internal fun BottomGlyph(
         tween(ms, easing = ease), label = "bottomTint",
     )
     val interaction = remember { MutableInteractionSource() }
+    val down by interaction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (down) 0.9f else 1f, tween(90), label = "bottomPress")
     val hold = onLongClick
     Box(
-        Modifier.size(width = width, height = BOTTOM_ACTION_SIZE).clip(CircleShape)
+        Modifier.size(width = width, height = BOTTOM_ACTION_SIZE).graphicsLayer { scaleX = pressScale; scaleY = pressScale }
+            .clip(CircleShape)
             .background(bg)
             .semantics { selected = highlighted }
             .then(

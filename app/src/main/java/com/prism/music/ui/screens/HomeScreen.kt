@@ -349,8 +349,11 @@ private fun HomeContent(bottomPadding: androidx.compose.ui.unit.Dp) {
     // YouTube (signed out, offline), yours stand in either way.
     val youtubeDialOnly = settings.speedDialYouTubeOnly && (dial?.items?.size ?: 0) >= 3
     val yoursFirst = settings.behavior.speedDialYoursFirst
-    val dialItems = remember(dial, dialMine, youtubeDialOnly, recent, liked, yoursFirst) {
-        speedDialTiles(dial?.items.orEmpty(), dialMine, (recent + liked).filter { !it.isEpisode && !it.isLive }.map(::SongItem), youtubeDialOnly, yoursFirst)
+    val dialItems = remember(dial, dialMine, youtubeDialOnly, recent, liked, yoursFirst, dialOn) {
+        // A section that's off neither builds a SongItem for every liked song nor keeps it: with Speed dial hidden
+        // this was one allocation per song of the library on every start.
+        if (!dialOn) emptyList()
+        else speedDialTiles(dial?.items.orEmpty(), dialMine, (recent + liked).asSequence().filter { !it.isEpisode && !it.isLive }.map(::SongItem).toList(), youtubeDialOnly, yoursFirst)
     }
     // Quick picks made around the artists the listener plays (their favourites, new songs from radios of their top
     // artists, YouTube's own that fit): worked out once a session, again on pull to refresh.
@@ -487,9 +490,9 @@ private fun HomeContent(bottomPadding: androidx.compose.ui.unit.Dp) {
                             if (settings.behavior.recentShows == com.prism.music.data.prefs.RecentShows.COLLECTIONS && played.isNotEmpty()) {
                                 SectionHeader(cfg.titled())
                                 StyledItems(cfg.style, played, openItem)
-                            } else recent.filter(offline).take(20).let { if (it.isNotEmpty()) SongSection(cfg, cfg.titled(), null, it) }
+                            } else recent.asSequence().filter(offline).take(20).toList().let { if (it.isNotEmpty()) SongSection(cfg, cfg.titled(), null, it) }
                         }
-                        HomeSections.LIKED -> liked.filter(offline).take(20).let { if (it.isNotEmpty()) SongSection(cfg, cfg.titled(tr(R.string.liked_songs)), null, it) { nav.go(Routes.liked()) } }
+                        HomeSections.LIKED -> liked.asSequence().filter(offline).take(20).toList().let { if (it.isNotEmpty()) SongSection(cfg, cfg.titled(tr(R.string.liked_songs)), null, it) { nav.go(Routes.liked()) } }
                         HomeSections.ON_REPEAT -> yours?.onRepeat?.takeIf { it.isNotEmpty() }?.let { SongSection(cfg, cfg.titled(), tr(R.string.your_most_played_this_month), it) }
                         HomeSections.REPEAT_REWIND -> yours?.repeatRewind?.takeIf { it.isNotEmpty() }?.let { SongSection(cfg, cfg.titled(), tr(R.string.what_you_used_to_play_on), it) }
                         HomeSections.FORGOTTEN -> yours?.forgotten?.takeIf { it.isNotEmpty() }?.let { SongSection(cfg, cfg.titled(), tr(R.string.favorites_you_haven_t_played_in), it) }
@@ -542,7 +545,7 @@ private fun HomeContent(bottomPadding: androidx.compose.ui.unit.Dp) {
                             )
                         } else if (OwnSections.isOwn(cfg.key)) {
                             val songs by OwnSections.rememberSongs(cfg.key, refreshes)
-                            val shownSongs = songs.filter(offline).take(if (cfg.style == SectionStyle.LIST) 20 else 30)
+                            val shownSongs = songs.asSequence().filter(offline).take(if (cfg.style == SectionStyle.LIST) 20 else 30).toList()
                             if (shownSongs.isNotEmpty()) SongSection(
                                 cfg, cfg.titled(), OwnSections.strapline(cfg.key), shownSongs,
                                 onMore = OwnSections.pageOf(cfg.key)?.let { r -> { nav.go(r) } },
@@ -993,6 +996,11 @@ internal fun SongSection(
     // Select many: a song row here (Quick picks' rows, Liked songs, On repeat…) is held to start picking, as in a list.
     // The card styles have no picking of their own yet; their long press still offers the menu.
     com.prism.music.ui.components.SelectableSongs(songs) {
+        // By song where the section has each once (a shelf can list one twice: index keys then, never a duplicate key
+        // crash), so a row's state follows its song as the list changes.
+        val songKeys = remember(songs) {
+            if (songs.map { it.id }.distinct().size == songs.size) songs.map { it.id } else songs.indices.map { "i$it" }
+        }
         when (cfg.style) {
             // Grid (#44): two rows of covers, where List is four rows of songs.
             // One or two songs sit in a single row rather than a column of two.
@@ -1000,7 +1008,7 @@ internal fun SongSection(
                 GridCells.Fixed(if (songs.size > 2) 2 else 1), Modifier.height(if (songs.size > 2) 2 * 212.dp else 212.dp),
                 contentPadding = PaddingValues(horizontal = 12.dp),
             ) {
-                items(songs.size) { i -> ItemCard(SongItem(songs[i]), width = 140.dp) { start(i) } }
+                items(songs.size, key = { i -> songKeys[i] }) { i -> ItemCard(SongItem(songs[i]), width = 140.dp) { start(i) } }
             }
             SectionStyle.LIST -> {
                 val grid = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
@@ -1011,13 +1019,14 @@ internal fun SongSection(
                         )
                     },
                 )
+                // By song where the section has each once, as above.
                 LazyHorizontalGrid(
                     GridCells.Fixed(songs.size.coerceIn(1, 4)), Modifier.height(64.dp * songs.size.coerceIn(1, 4)),
                     state = grid,
                     contentPadding = PaddingValues(horizontal = 4.dp),
                     flingBehavior = if (snap) snapping else androidx.compose.foundation.gestures.ScrollableDefaults.flingBehavior(),
                 ) {
-                    items(songs.size) { i ->
+                    items(songs.size, key = { i -> songKeys[i] }) { i ->
                         // The song playing is marked, as in a playlist (#242: Quick picks never showed it).
                         Box(Modifier.width(330.dp)) { SongRow(songs[i], playing = current?.id == songs[i].id) { start(i) } }
                     }

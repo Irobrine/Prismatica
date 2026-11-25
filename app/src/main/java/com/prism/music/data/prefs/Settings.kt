@@ -470,6 +470,11 @@ data class BehaviorPrefs(
     /** #416 (1.8.4): with the last queue shuffled, the next list a song is tapped in plays shuffled too. */
     val keepShuffle: Boolean = false,
     /**
+     * When Prism opens with nothing queued, it starts a shuffled mix of the library by itself. Off, as Prism came: a
+     * queue left from last time still comes back paused, and this only ever starts when there was none.
+     */
+    val startShuffled: Boolean = false,
+    /**
      * Play next puts its songs at the end of "Next in queue" instead of straight after the one playing, so several of
      * them keep the order they were tapped in. Off, as Prism came.
      */
@@ -2500,6 +2505,7 @@ class SettingsRepository(
         val rowSwipes = booleanPreferencesKey("row_swipes")
         val lyricsOffsetMs = intPreferencesKey("lyrics_offset_ms")
         val keepShuffle = booleanPreferencesKey("keep_shuffle")
+        val startShuffled = booleanPreferencesKey("start_shuffled")
         val appendToPlayNext = booleanPreferencesKey("append_to_play_next")
         val shuffleButton = stringPreferencesKey("shuffle_button")
         val carLyricsLines = stringPreferencesKey("car_lyrics_lines")
@@ -2664,7 +2670,7 @@ class SettingsRepository(
                 // Which Japanese dictionary reads lyrics' kanji (Settings → Lyrics): how Prism reads, not a look.
                 "japanese_engine",
                 // 1.8.4 (#406, #404, #416, D57, PR #400, D54): how Prism behaves, not how it looks.
-                "row_swipes", "lyrics_offset_ms", "keep_shuffle", "append_to_play_next", "shuffle_button", "car_lyrics_lines", "locate_playing",
+                "row_swipes", "lyrics_offset_ms", "keep_shuffle", "start_shuffled", "append_to_play_next", "shuffle_button", "car_lyrics_lines", "locate_playing",
                 // 1.8.5: Replay's notices and game, pausing face down, the resume when Bluetooth comes back, and the small
                 // cover's tap over the lyrics (#464).
                 "recap_notify", "milestone_notify", "finish_lyric", "face_down_pause", "resume_on_return", "lyrics_cover_plays",
@@ -3018,6 +3024,7 @@ class SettingsRepository(
                 // A restored backup can hold any number.
                 lyricsOffsetMs = (p[K.lyricsOffsetMs] ?: d.behavior.lyricsOffsetMs).coerceIn(BehaviorPrefs.LYRICS_OFFSET_MS),
                 keepShuffle = p[K.keepShuffle] ?: d.behavior.keepShuffle,
+                startShuffled = p[K.startShuffled] ?: d.behavior.startShuffled,
                 appendToPlayNext = p[K.appendToPlayNext] ?: d.behavior.appendToPlayNext,
                 shuffleButton = p.enum(K.shuffleButton, d.behavior.shuffleButton),
                 carLyricsLines = p.enum(K.carLyricsLines, d.behavior.carLyricsLines),
@@ -3170,17 +3177,24 @@ class SettingsRepository(
     @Volatile private var raw: Preferences = runBlocking { context.dataStore.data.first() }
 
     /**
+     * The keys decoded once for the first frame. The three flows below all start from the same read: decoding the whole
+     * settings file (six JSON blobs and some three hundred keys) three times was most of what the main thread did
+     * before Home first drew.
+     */
+    private val first = read(raw)
+
+    /**
      * The settings as Prism uses them: with Performance mode on, its lighter look in place of the listener's heavier
      * choices ([AppSettings.effective]). The choices themselves are [stored], unchanged.
      */
     val flow: StateFlow<AppSettings> = context.dataStore.data.map { raw = it; read(it).effective() }.stateIn(
-        scope, SharingStarted.Eagerly, read(raw).effective()
+        scope, SharingStarted.Eagerly, first.effective()
     )
 
     val current: AppSettings get() = flow.value
 
     /** The settings as the listener set them (Settings shows these: Performance mode doesn't change a switch). */
-    val stored: StateFlow<AppSettings> = context.dataStore.data.map { read(it) }.stateIn(scope, SharingStarted.Eagerly, read(raw))
+    val stored: StateFlow<AppSettings> = context.dataStore.data.map { read(it) }.stateIn(scope, SharingStarted.Eagerly, first)
 
     /** The look settings now set ([lookOf]): what Looks are saved from and what undo steps back through. */
     val lookValues: StateFlow<Map<String, String>> = context.dataStore.data.map(::lookOf)
@@ -3830,6 +3844,7 @@ class SettingsRepository(
     fun setRowSwipes(v: Boolean) = edit { it[K.rowSwipes] = v }
     fun setLyricsOffsetMs(v: Int) = edit { it[K.lyricsOffsetMs] = v.coerceIn(BehaviorPrefs.LYRICS_OFFSET_MS) }
     fun setKeepShuffle(v: Boolean) = edit { it[K.keepShuffle] = v }
+    fun setStartShuffled(v: Boolean) = edit { it[K.startShuffled] = v }
     fun setAppendToPlayNext(v: Boolean) = edit { it[K.appendToPlayNext] = v }
     fun setRecapNotify(v: Boolean) = edit { it[K.recapNotify] = v }
     fun setMilestoneNotify(v: Boolean) = edit { it[K.milestoneNotify] = v }

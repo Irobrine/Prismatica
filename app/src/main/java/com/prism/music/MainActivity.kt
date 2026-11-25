@@ -32,6 +32,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -127,6 +129,7 @@ import com.prism.music.ui.player.PlayerMorph
 import com.prism.music.ui.player.sanely
 import com.prism.music.ui.player.playerMorphMini
 import com.prism.music.ui.screens.ArtistScreen
+import com.prism.music.ui.screens.ArtistConnectionsScreen
 import com.prism.music.ui.screens.BrowseScreen
 import com.prism.music.ui.screens.CatalogueScreen
 import com.prism.music.ui.screens.CollectionScreen
@@ -155,6 +158,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
@@ -218,7 +222,7 @@ open class MainActivity : ComponentActivity() {
                 com.prism.music.ui.player.LocalPip provides inPip.value,
                 com.prism.music.ui.theme.LocalWindowLayout provides com.prism.music.ui.theme.rememberWindowLayout(),
             ) {
-                PrismRoot(deepLink)
+                PrismRoot(deepLink, launchFresh = fresh)
             }
         }
         quietGraphicsLayers()
@@ -496,7 +500,7 @@ private fun rememberArtworkColor(song: Song?, settings: com.prism.music.data.pre
 }
 
 @Composable
-private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
+private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
     val c = LocalContainer.current
     val settings by c.settings.flow.collectAsState()
     val song by c.player.currentSong.collectAsState()
@@ -506,6 +510,21 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
     LaunchedEffect(song) { if (song != null) lastChromeSong.value = song }
     val artColor = rememberArtworkColor(song, settings)
     val context = LocalContext.current
+    // Settings → Playback → "Start playing shuffled": the one auto-start. Only a fresh launch, only when nothing was
+    // restored (the service's attach queues our commands after its own restoreQueue), and only once the library's liked
+    // songs are in from the database rather than the empty seed.
+    LaunchedEffect(launchFresh) {
+        if (!launchFresh || !settings.onboarded || !settings.behavior.startShuffled) return@LaunchedEffect
+        kotlinx.coroutines.withTimeoutOrNull(5_000) { c.player.ready.first { it } } ?: return@LaunchedEffect
+        if (c.player.currentSong.value != null) return@LaunchedEffect
+        val songs = kotlinx.coroutines.withTimeoutOrNull(2_500) { c.library.likedShown.first { it.isNotEmpty() } }
+            ?: c.library.likedShown.value
+        if (songs.isEmpty()) return@LaunchedEffect
+        c.player.playQueue(
+            songs, 0, com.prism.music.playback.QueueSource(com.prism.music.playback.QueueKind.LIBRARY, tr(R.string.library)),
+            shuffle = true,
+        )
+    }
 
     PrismTheme(settings, artColor) {
         // System bar icons follow Prism's theme, not the phone's (they differ when Appearance isn't "System").
@@ -544,6 +563,10 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
         val playerOpenState = rememberSaveable { mutableStateOf(false) }
         var playerOpen by playerOpenState
         val motionScope = rememberCoroutineScope()
+        // A mix card's radio lookup: which mix is being started, and which tap is the newest (a second card tapped while
+        // the first loads wins; the same card tapped again is the same press).
+        val mixBusy = remember { java.util.concurrent.atomic.AtomicReference<String?>(null) }
+        val mixPress = remember { java.util.concurrent.atomic.AtomicInteger(0) }
         // One way in and one way out, for taps, buttons, links and actions alike: the same morph (PlayerMorph), and the
         // page the action names (the queue, the lyrics) is what the player opens on. Remembered on stable state holders so
         // the mini player and Navigator don't get a fresh lambda on every root recomposition.
@@ -577,20 +600,37 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                 PlayerMorph.request(null)
                 PlayerMorph.open(motionScope, c.settings.current.reduceMotion)
             }, playMix = { mix ->
-                c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                    val r = runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { c.radio(mix.seedVideoId, mix.id, mix.params, keepFirst = true) } }.getOrNull()
-                    if (r == null || r.songs.isEmpty()) {
-                        Toast.makeText(context, tr(R.string.couldn_t_start, mix.title), Toast.LENGTH_SHORT).show()
-                        return@launch
+                // A mix's songs are a radio lookup (a second or two): the card says it's starting at once, and a second
+                // tap on the same card while it does doesn't start a second lookup.
+                val busy = mixBusy.getAndSet(mix.id)
+                if (busy != mix.id) c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                    var note: Toast? = null
+                    val noteJob = launch {
+                        kotlinx.coroutines.delay(150)
+                        note = Toast.makeText(context, tr(R.string.loading_list, mix.title), Toast.LENGTH_LONG).also { it.show() }
                     }
-                    // Stations like "Listen together" open on a live stream: found out now (the stream is resolved anyway), it starts as one.
-                    val first = r.songs.first()
-                    val live = first.isLive || kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        kotlinx.coroutines.withTimeoutOrNull(8_000) { runCatching { c.streams.isLive(first.id) }.getOrDefault(false) } ?: false
+                    try {
+                        val press = mixPress.incrementAndGet()
+                        val r = runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { c.radio(mix.seedVideoId, mix.id, mix.params, keepFirst = true) } }.getOrNull()
+                        // A newer mix tapped meanwhile wins: this one's songs aren't started over it.
+                        if (press != mixPress.get()) return@launch
+                        if (r == null || r.songs.isEmpty()) {
+                            Toast.makeText(context, tr(R.string.couldn_t_start, mix.title), Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+                        // Stations like "Listen together" open on a live stream: found out now (the stream is resolved anyway), it starts as one.
+                        val first = r.songs.first()
+                        val live = first.isLive || kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            kotlinx.coroutines.withTimeoutOrNull(8_000) { runCatching { c.streams.isLive(first.id) }.getOrDefault(false) } ?: false
+                        }
+                        val songs = if (live && !first.isLive) listOf(first.copy(isLive = true)) + r.songs.drop(1) else r.songs
+                        c.queue.counterparts.putAll(r.counterparts)
+                        c.player.playQueue(songs, 0, com.prism.music.playback.QueueSource(com.prism.music.playback.QueueKind.RADIO, mix.title))
+                    } finally {
+                        noteJob.cancel()
+                        note?.cancel()
+                        mixBusy.compareAndSet(mix.id, null)
                     }
-                    val songs = if (live && !first.isLive) listOf(first.copy(isLive = true)) + r.songs.drop(1) else r.songs
-                    c.queue.counterparts.putAll(r.counterparts)
-                    c.player.playQueue(songs, 0, com.prism.music.playback.QueueSource(com.prism.music.playback.QueueKind.RADIO, mix.title))
                 }
             })
         }
@@ -995,6 +1035,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>) {
                         }
                         composable("artist/{id}", listOf(navArgument("id") { type = NavType.StringType })) {
                             Beside { ArtistScreen(it.arguments?.getString("id")!!, bottomPadding) }
+                        }
+                        composable("artist-connections/{id}", listOf(navArgument("id") { type = NavType.StringType })) {
+                            Beside { ArtistConnectionsScreen(it.arguments?.getString("id")!!, bottomPadding) }
                         }
                         composable(
                             "browse/{id}?params={params}&title={title}",
@@ -1483,8 +1526,13 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
     val dark = com.prism.music.ui.theme.LocalIsDark.current
     // Holding the Settings tab switches "Customize this" on and off (1.7.3).
     val c = LocalContainer.current
+    // A tab answers the finger before the page it opens has drawn: the icon (and name) dip a little while held.
+    val press = remember { MutableInteractionSource() }
+    val down by press.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (down) 0.93f else 1f, tween(90), label = "tabPress")
+    val pressedModifier = modifier.graphicsLayer { scaleX = pressScale; scaleY = pressScale }
     val click = Modifier.combinedClickable(
-        interactionSource = null, indication = null, onClickLabel = tab.label,
+        interactionSource = press, indication = null, onClickLabel = tab.label,
         onLongClickLabel = if (tab.route == Routes.SETTINGS) tr(R.string.customize_this) else null,
         onLongClick = if (tab.route == Routes.SETTINGS) ({ c.customizing.value = !c.customizing.value }) else null,
         onClick = onClick,
@@ -1507,7 +1555,7 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
     }
     when (labels) {
         NavLabels.ALWAYS -> Column(
-            (if (material) modifier else modifier.clip(RoundedCornerShape(26.dp)).background(indicator)).then(if (material) Modifier else spectrumLine).then(click),
+            (if (material) pressedModifier else pressedModifier.clip(RoundedCornerShape(26.dp)).background(indicator)).then(if (material) Modifier else spectrumLine).then(click),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -1535,7 +1583,7 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
         // The picked tab's name under its icon, as "Always" places it (#291: it grew into a capsule with the name beside
         // the icon, which a long name pushed off the tab); the other tabs show their icons alone.
         NavLabels.SELECTED -> Column(
-            modifier.then(spectrumLine).then(click),
+            pressedModifier.then(spectrumLine).then(click),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -1557,14 +1605,14 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
                 )
             }
         }
-        NavLabels.NEVER -> Box(modifier.then(spectrumLine).then(click), contentAlignment = Alignment.Center) {
+        NavLabels.NEVER -> Box(pressedModifier.then(spectrumLine).then(click), contentAlignment = Alignment.Center) {
             Box(Modifier.size(52.dp, 40.dp).clip(CircleShape).background(indicator), contentAlignment = Alignment.Center) {
                 Icon(icon, tab.label, tint = fg, modifier = Modifier.size(24.dp).then(if (selected) Modifier.tabTint(tabTint) else Modifier))
             }
         }
         // Words only (1.7.6): the tabs' names, no icons; the current one bolder.
         // Five or six tabs: the names get smaller rather than cut short.
-        NavLabels.WORDS -> Box(modifier.then(spectrumLine).then(click), contentAlignment = Alignment.Center) {
+        NavLabels.WORDS -> Box(pressedModifier.then(spectrumLine).then(click), contentAlignment = Alignment.Center) {
             Box(Modifier.height(40.dp).clip(CircleShape).background(indicator).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
                 Text(
                     tab.label, color = labelFg, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -1585,10 +1633,13 @@ private fun MinimalTab(tab: Tab, selected: Boolean, height: Dp = 44.dp, onClick:
         tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = com.prism.music.ui.theme.PrismTokens.Motion.Ease),
         label = "minTab",
     )
+    val press = remember { MutableInteractionSource() }
+    val down by press.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (down) 0.9f else 1f, tween(90), label = "minTabPress")
     Box(
-        Modifier.size(54.dp, height).clip(CircleShape).background(bg)
+        Modifier.size(54.dp, height).graphicsLayer { scaleX = pressScale; scaleY = pressScale }.clip(CircleShape).background(bg)
             .clickable(
-                interactionSource = null,
+                interactionSource = press,
                 indication = null,
                 onClickLabel = tab.label, onClick = onClick,
             ),

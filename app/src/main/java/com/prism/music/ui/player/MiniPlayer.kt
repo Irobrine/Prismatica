@@ -97,6 +97,9 @@ fun MiniPlayer(
     val style = settings.miniPlayerStyle
     // A swipe up is a share of the window's height (PlayerMorph), not of the card's: the card is small, the player whole.
     val screenPx = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    // How far a sideways swipe goes before it counts: 48 dp on every phone, not 140 raw pixels (which was half as far
+    // on a dense screen as on a coarse one, for the same gesture).
+    val swipePx = with(LocalDensity.current) { 48.dp.toPx() }
     val morphSpan = screenPx * PlayerMorph.TRAVEL
     var menu by remember { mutableStateOf(false) }
     if (menu) com.prism.music.ui.components.SongActionsSheet(s) { menu = false }
@@ -272,14 +275,14 @@ fun MiniPlayer(
                     // #222: nor sideways, toward a swipe set to Nothing.
                     val now = container.settings.current
                     val after = if ((if (rawX < 0f) now.miniSwipeLeft else now.miniSwipeRight) == PlayerGesture.NONE) 0f else rawX
-                    if ((kotlin.math.abs(before) < 140f) != (kotlin.math.abs(after) < 140f)) haptics.threshold()
+                    if ((kotlin.math.abs(before) < swipePx) != (kotlin.math.abs(after) < swipePx)) haptics.threshold()
                     drag.set(after)
                 }
                 fun sidewaysEnd() {
                     val now = container.settings.current
                     val g = when {
-                        drag.value < -140 -> now.miniSwipeLeft
-                        drag.value > 140 -> now.miniSwipeRight
+                        drag.value < -swipePx -> now.miniSwipeLeft
+                        drag.value > swipePx -> now.miniSwipeRight
                         else -> PlayerGesture.NONE
                     }
                     if (g != PlayerGesture.NONE) { haptics.gestureEnd(); runMiniGesture(g) }

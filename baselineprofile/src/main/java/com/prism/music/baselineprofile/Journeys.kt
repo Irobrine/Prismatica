@@ -8,7 +8,9 @@ import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 
 /** The app these journeys drive: the release build (and the build types the plugin derives from it). */
-const val PACKAGE = "com.prism.music"
+// Prismatica-Refracted's id (app/build.gradle.kts: applicationId). It was "com.prism.music" from the branch this was
+// ported from, so every journey sat waiting for an app that wasn't installed and the profile was never regenerated.
+const val PACKAGE = "com.prismatica.music"
 
 /**
  * What people do most in Prism, scripted with UI Automator: the screens whose code should be compiled ahead

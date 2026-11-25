@@ -423,12 +423,16 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
     LaunchedEffect(songs, query.isNotBlank()) {
         if (query.isNotBlank()) c.titleSpellings.want(songs.flatMap { listOfNotNull(it.title, it.artistText, it.album?.title) })
     }
-    // Each song's names as the search below reads them, normalized once for the list rather than on every keystroke.
-    val searchHay = remember(songs, query.isNotBlank(), spellings) {
-        if (query.isBlank()) emptyMap() else songs.associate { s ->
-            s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
+    // Each song's names as the search below reads them, normalized once for the list rather than on every keystroke; off
+    // the main thread for a big playlist, keeping the last map while a new one is made so results don't blink.
+    val searchHay by androidx.compose.runtime.produceState(emptyMap<String, String>(), songs, query.isNotBlank(), spellings) {
+        value = if (query.isBlank()) emptyMap() else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            songs.associate { s ->
+                s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
+            }
         }
     }
+    val hayBuilding = query.isNotBlank() && searchHay.isEmpty() && songs.isNotEmpty()
     val visible = remember(songs, genreFilter, sort, query, explicit, if (genreFilter != null || sort == SortMode.GENRE || groupByGenre) genreVersion else 0, shownRev, searchHay) {
         val words = libraryWords(query)
         val filtered = page.songs.filter { s ->
@@ -930,7 +934,10 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
                     }
                 }
                 if (visible.isEmpty()) item {
-                    if (query.isNotBlank()) EmptyState(PrismIcons.Search, tr(R.string.no_matches), tr(R.string.nothing_in_matches, title, query.trim()) + if (loadingMore) tr(R.string.yet_more_songs_are_still_loading) else ".")
+                    if (hayBuilding) Box(Modifier.fillMaxWidth().padding(vertical = 20.dp), contentAlignment = Alignment.Center) {
+                        com.prism.music.ui.components.PrismSpinner(Modifier.size(20.dp), stroke = 2.dp)
+                    }
+                    else if (query.isNotBlank()) EmptyState(PrismIcons.Search, tr(R.string.no_matches), tr(R.string.nothing_in_matches, title, query.trim()) + if (loadingMore) tr(R.string.yet_more_songs_are_still_loading) else ".")
                     else EmptyState(when (type) { CollectionType.LIKED -> PrismIcons.HeartFilled; CollectionType.DOWNLOADS -> PrismIcons.DownloadDone; else -> PrismIcons.Song }, genreFilter?.let { tr(R.string.no_songs, com.prism.music.data.meta.Genres.shown(it)) } ?: tr(R.string.nothing_here_yet),
                         when (type) {
                             CollectionType.LIKED -> tr(R.string.like_songs_from_the_player_and)

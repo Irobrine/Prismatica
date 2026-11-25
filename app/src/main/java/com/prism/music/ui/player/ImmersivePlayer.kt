@@ -221,11 +221,14 @@ fun ImmersivePlayer(
             .pointerInput(Unit) { detectTapGestures(onTap = { button = !button }) }
             .pointerInput(Unit) {
                 val flick = 700.dp.toPx()
+                // 72 dp, like the player's own cover swipe on the phone (was 220 raw pixels: a different distance on
+                // every screen density).
+                val close = 72.dp.toPx()
                 val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
                 detectVerticalDragGestures(
                     onDragStart = { tracker.resetTracking() },
                     onDragEnd = {
-                        if (drag > 220f || tracker.calculateVelocity().y >= flick) onCollapse()
+                        if (drag > close || tracker.calculateVelocity().y >= flick) onCollapse()
                         drag = 0f
                     },
                     onDragCancel = { drag = 0f },

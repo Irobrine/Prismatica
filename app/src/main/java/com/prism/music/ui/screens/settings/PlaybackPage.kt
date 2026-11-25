@@ -75,6 +75,7 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
     val explicitChanged = reset.add(tr(R.string.explicit_songs), s.behavior.explicitContent, d.behavior.explicitContent, { it.label }) { prefs.setExplicitContent(it) }
     val shuffleButtonChanged = reset.add(tr(R.string.playback_shuffle_button), s.behavior.shuffleButton, d.behavior.shuffleButton, { it.label }) { prefs.setShuffleButton(it) }
     val keepShuffleChanged = reset.add(tr(R.string.playback_keep_shuffle), s.behavior.keepShuffle, d.behavior.keepShuffle, onOff) { prefs.setKeepShuffle(it) }
+    val startShuffledChanged = reset.add(tr(R.string.playback_start_shuffled), s.behavior.startShuffled, d.behavior.startShuffled, onOff) { prefs.setStartShuffled(it) }
     val crossfadeChanged = reset.add(tr(R.string.crossfade), crossfade, SoundChoices.crossfade(d), { it.label }) {
         // Off keeps whether the length was automatic: put that back too.
         prefs.setMixAuto(d.mixAuto)
@@ -135,6 +136,7 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
                 info = tr(R.string.playback_shuffle_button_info), changed = shuffleButtonChanged,
             ) { prefs.setShuffleButton(it) }
             SwitchRow(tr(R.string.playback_keep_shuffle), s.behavior.keepShuffle, info = tr(R.string.playback_keep_shuffle_info), changed = keepShuffleChanged) { prefs.setKeepShuffle(it) }
+            SwitchRow(tr(R.string.playback_start_shuffled), s.behavior.startShuffled, info = tr(R.string.playback_start_shuffled_info), changed = startShuffledChanged) { prefs.setStartShuffled(it) }
         }
         // Not "Crossfade": that is its first row's name (§2.7).
         group(tr(R.string.playback_song_to_song)) {
@@ -279,6 +281,7 @@ val playbackIndex: List<SettingEntry> by lazy {
             // 1.8.4: D57, #416.
             SettingEntry(page, shuffle, tr(R.string.playback_shuffle_button), tr(R.string.playback_shuffle_keywords) + " " + tr(R.string.shuffle_button_both) + " " + tr(R.string.shuffle_button_only)),
             SettingEntry(page, shuffle, tr(R.string.playback_keep_shuffle), tr(R.string.playback_shuffle_keywords)),
+            SettingEntry(page, shuffle, tr(R.string.playback_start_shuffled), tr(R.string.playback_start_shuffled_keywords)),
             SettingEntry(page, between, tr(R.string.crossfade), tr(R.string.mix_blend_transition_fade) + " " + tr(R.string.crossfade_songs) + " " + tr(R.string.automatic_length)),
             SettingEntry(page, between, tr(R.string.length), needs = manualLength),
             SettingEntry(page, between, tr(R.string.match_tempo_and_beats_dj_style), tr(R.string.bpm_beatmatch), needs = crossfade),
