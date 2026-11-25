@@ -191,7 +191,7 @@ fun SongRow(
     // A music video downloaded as its song shows as downloaded (#315).
     // #385: a row whose song plays from a file on the phone too, whatever id the list gives it (read again whenever
     // the downloads change, which they do as lossless sync finds files).
-    val downloaded by remember(song.id, marks) { derivedStateOf { com.prism.music.download.rowDownloaded(song, marks.downloads.value, marks.standIns.value, marks.fromPhone) } }
+    val downloaded by remember(song.id, marks) { derivedStateOf { com.prism.music.download.rowDownloaded(song, marks.downloads.value, marks.standIns.value, marks.fromPhone, marks.anyLossless.value) } }
     val videoSaved by remember(song.id, marks) { derivedStateOf { marks.videos.value[song.id]?.state == done } }
     // 1.8.3.2: a swipe's "Not for me" / "Remove from not for me" says which way it goes.
     val disliked by remember(song.id, marks) { derivedStateOf { song.id in marks.disliked.value } }
@@ -246,6 +246,8 @@ class RowMarks(
     val fromPhone: (Song) -> Boolean = { false },
     /** 1.8.3.2: the songs said "not for me", for what their rows' swipes show. */
     val disliked: androidx.compose.runtime.State<Set<String>> = androidx.compose.runtime.mutableStateOf(emptySet()),
+    /** Whether any download is a lossless file: worked out once here, not by every row from the same map. */
+    val anyLossless: androidx.compose.runtime.State<Boolean> = androidx.compose.runtime.mutableStateOf(false),
 )
 
 /** The app's [RowMarks], provided once at its root; null (a TV, a test) makes each row collect its own. */
@@ -267,7 +269,9 @@ fun rememberRowMarks(
     val s = standIns.collectAsState()
     val v = videos.collectAsState()
     val n = disliked.collectAsState()
-    return remember(l, d, s, v, n) { RowMarks(l, d, s, v, fromPhone, n) }
+    // `map.values.any { it.lossless }` once per download change, rather than once for every visible row.
+    val anyLossless = remember(d) { androidx.compose.runtime.derivedStateOf { d.value.values.any { it.lossless } } }
+    return remember(l, d, s, v, n, anyLossless) { RowMarks(l, d, s, v, fromPhone, n, anyLossless) }
 }
 
 /** A row outside the app's root (a preview, a test) with no likes: nothing is said "not for me". */
@@ -751,6 +755,9 @@ fun SongActionsSheet(song: Song, extra: List<SheetItem> = emptyList(), onDismiss
     if (credits) { SongCreditsSheet(song) { credits = false; onDismiss() }; return }
     var details by remember { mutableStateOf(false) }
     if (details) { SongDetailsSheet(song) { details = false; onDismiss() }; return }
+    // Playlists people made around this song: a search, so it is asked for only when the row is picked.
+    var relatedPlaylists by remember { mutableStateOf(false) }
+    if (relatedPlaylists) { RelatedPlaylistsSheet(song) { relatedPlaylists = false; onDismiss() }; return }
     // 1.8.3: the listener's own artist, album and genre in its place.
     var editingMetadata by remember { mutableStateOf(false) }
     if (editingMetadata) { MetadataEditorSheet(listOf(song)) { editingMetadata = false; onDismiss() }; return }
@@ -789,6 +796,9 @@ fun SongActionsSheet(song: Song, extra: List<SheetItem> = emptyList(), onDismiss
         // A picked version's album and artists (#328): it plays as that recording.
         shown.album?.id?.let { id -> ActionItem(PrismIcons.Album, tr(R.string.go_to_album), value = shown.album?.title?.takeIf { it.length <= 22 }) { nav.go(Routes.album(id)) } },
     ) + goToArtists(shown) { route -> nav.go(route) } + listOfNotNull(
+        // Playlists people made around it: discovery beyond the artist's own page and the radio.
+        if (song.isEpisode || local || rss || song.isLive || song.isUpload) null
+        else ActionItem(PrismIcons.QueueMusic, tr(R.string.playlists_with_this_song), keepOpen = true) { relatedPlaylists = true },
         // Who performed, wrote and produced it (Reddit 1.7).
         if (song.isEpisode || local || song.isLive) null else ActionItem(PrismIcons.Info, tr(R.string.song_credits), keepOpen = true) { credits = true },
         // Its plays and dates (#211). The listener's own uploads aren't public: YouTube has nothing to say about them.

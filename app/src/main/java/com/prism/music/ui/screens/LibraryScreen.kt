@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.prism.music.data.LibraryRepository
 import com.prism.music.data.SyncState
+import com.prism.music.data.librarySongs
 import com.prism.music.data.shown
 import com.prism.music.data.model.ArtistItem
 import com.prism.music.data.model.SongItem
@@ -459,7 +460,25 @@ fun LibraryScreen(bottomPadding: Dp) {
             ) { c.settings.setLibraryTabView(viewTab.name, if (asList) com.prism.music.data.prefs.LibraryView.GRID else com.prism.music.data.prefs.LibraryView.LIST) }
             if (com.prism.music.data.prefs.NavTab.SETTINGS !in settings.navTabs) com.prism.music.ui.components.RoundAction(PrismIcons.SettingsFilled, tr(R.string.settings)) { nav.go(Routes.SETTINGS) }
         }
-        PagerChips(tabs.map { it.label }, pager)
+        // The whole library shuffled, beside the tabs: any tab can start it, and the header keeps its width (a fifth
+        // round button there left no room for the page's name).
+        androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            PagerChips(tabs.map { it.label }, pager, Modifier.weight(1f))
+            com.prism.music.ui.components.RoundAction(
+                PrismIcons.Shuffle, tr(R.string.shuffle_the_library),
+                Modifier.padding(end = 10.dp).testTag("libraryShuffleAll"),
+            ) {
+                scope.launch {
+                    val from = com.prism.music.data.SongsFrom.decode(c.library.sortOf(com.prism.music.data.SongsFrom.KEY))
+                    val songs = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { c.librarySongs(from) }
+                    if (songs.isEmpty()) return@launch
+                    c.player.playQueue(
+                        songs, 0,
+                        com.prism.music.playback.QueueSource(com.prism.music.playback.QueueKind.LIBRARY, tr(R.string.library)), shuffle = true,
+                    )
+                }
+            }
+        }
 
         HorizontalPager(pager, Modifier.weight(1f), beyondViewportPageCount = 0) { page ->
             val tab = LibTab.entries[page]
@@ -473,12 +492,17 @@ fun LibraryScreen(bottomPadding: Dp) {
                 }
             }
             // Each song's names as search reads them, normalized once for the list: filtering as the listener types used to
-            // normalize every name of every song on every keystroke, the slowest part of a Library search.
-            val songHay = remember(sortedSongs, songQuery.isNotBlank(), spellings) {
-                if (songQuery.isBlank()) emptyMap() else sortedSongs.associate { s ->
-                    s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
+            // normalize every name of every song on every keystroke, the slowest part of a Library search. Normalizing
+            // them is off the main thread now (a 10,000-song library took most of a frame), and produceState keeps the
+            // last map while a new one is made, so results don't blink as spelling batches land.
+            val songHay by androidx.compose.runtime.produceState(emptyMap<String, String>(), sortedSongs, songQuery.isNotBlank(), spellings) {
+                value = if (songQuery.isBlank()) emptyMap() else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                    sortedSongs.associate { s ->
+                        s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
+                    }
                 }
             }
+            val hayBuilding = songQuery.isNotBlank() && songHay.isEmpty() && sortedSongs.isNotEmpty()
             val shownSongs = remember(sortedSongs, songQuery, songHay) {
                 val words = libraryWords(songQuery)
                 when {
@@ -494,6 +518,8 @@ fun LibraryScreen(bottomPadding: Dp) {
             // two more lists on every Library entry was pure allocation.
             val songsShown = remember(shownSongs, dedup) { if (dedup.enabled) dedup.lines.map { it.song } else shownSongs }
             val songsQueue = remember(shownSongs, dedup) { if (dedup.enabled) dedup.queue(shownSongs) else shownSongs }
+            // A row's place in the queue, worked out once: `indexOf` over 10,000 songs ran on every tap, before playback.
+            val songQueueIndex = remember(songsQueue) { songsQueue.withIndex().associate { it.value.id to it.index } }
             val sortedAlbums = remember(albums, albumSort, albumSongs, downloadedPerAlbum, albumsSeen, savedAlbums) {
                 fun downloaded(a: com.prism.music.data.model.BrowseItem) = downloadedPerAlbum.first[a.id] ?: downloadedPerAlbum.second[a.title.lowercase()] ?: 0
                 when (albumSort) {
@@ -831,10 +857,15 @@ fun LibraryScreen(bottomPadding: Dp) {
                                 if (it == SongSort.RECENT && !songsFrom.isDefault) tr(R.string.original_order) else it.label
                             }) { songSort = it; c.library.setSort("library:songs", it.name) }
                         }
-                        items(songsShown, key = { "s" + it.id }, span = { GridItemSpan(maxLineSpan) }) { s ->
-                            SongRow(s, Modifier.locatePulse(locate, s.id), swipe = settings.behavior.songSwipeLibrary) { c.player.playQueue(songsQueue, songsQueue.indexOf(s).coerceAtLeast(0), source) }
+                        if (hayBuilding) item(span = { GridItemSpan(maxLineSpan) }, key = "hayBuilding") {
+                            Box(Modifier.fillMaxWidth().padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
+                                com.prism.music.ui.components.PrismSpinner(Modifier.size(20.dp), stroke = 2.dp)
+                            }
                         }
-                        if (songsBase.isNotEmpty() && shownSongs.isEmpty() && songQuery.isNotBlank()) nothingFound(tr(R.string.songs), songQuery)
+                        items(songsShown, key = { "s" + it.id }, span = { GridItemSpan(maxLineSpan) }) { s ->
+                            SongRow(s, Modifier.locatePulse(locate, s.id), swipe = settings.behavior.songSwipeLibrary) { c.player.playQueue(songsQueue, songQueueIndex[s.id] ?: 0, source) }
+                        }
+                        if (songsBase.isNotEmpty() && shownSongs.isEmpty() && songQuery.isNotBlank() && !hayBuilding) nothingFound(tr(R.string.songs), songQuery)
                     }
                     LibTab.ALBUMS -> {
                         findField(albumQuery, tr(R.string.search_albums), albums.size) { albumQuery = it }

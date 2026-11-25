@@ -5709,4 +5709,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Indítás véletlenszerűen</string>
+    <string name="playback_start_shuffled_info">Ha a Prism üres sorral nyílik meg, magától elindít egy véletlenszerű keveréket a könyvtáradból. A legutóbbi sor továbbra is szüneteltetve tér vissza.</string>
+    <string name="playback_start_shuffled_keywords">automatikus lejátszás indítás megnyitás shuffle véletlen könyvtár</string>
+    <string name="shuffle_the_library">Könyvtár keverése</string>
+    <string name="playlists_with_this_song">Lejátszási listák ezzel a dallal</string>
+    <string name="no_playlists_found">Nem található nyilvános lejátszási lista ehhez a dalhoz</string>
+    <string name="artist_connections">Előadói kapcsolatok</string>
+    <string name="artist_connections_strapline">Az előadó körüli előadók: koppints bármelyikre a lapjának megnyitásához.</string>
+    <string name="no_connections_found">Nem találhatók közeli előadók</string>
 </resources>

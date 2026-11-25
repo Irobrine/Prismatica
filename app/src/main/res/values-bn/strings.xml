@@ -5709,4 +5709,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">শাফল করে চালানো শুরু করুন</string>
+    <string name="playback_start_shuffled_info">কিউতে কিছু না থাকলে Prism খুললে এটি নিজে থেকেই আপনার লাইব্রেরির একটি শাফল করা মিশ্রণ শুরু করে। আগেরবারের কিউ আগের মতোই বিরত অবস্থায় ফিরে আসে।</string>
+    <string name="playback_start_shuffled_keywords">অটোপ্লে শুরু খোলা শাফল র্যান্ডম লাইব্রেরি স্বয়ংক্রিয়</string>
+    <string name="shuffle_the_library">লাইব্রেরি শাফল করুন</string>
+    <string name="playlists_with_this_song">এই গানটি আছে এমন প্লেলিস্ট</string>
+    <string name="no_playlists_found">এই গানের জন্য কোনো পাবলিক প্লেলিস্ট পাওয়া যায়নি</string>
+    <string name="artist_connections">শিল্পীর সংযোগ</string>
+    <string name="artist_connections_strapline">এই শিল্পীর কাছাকাছি শিল্পীরা: যেকোনো একজনকে ট্যাপ করে তার পৃষ্ঠা খুলুন।</string>
+    <string name="no_connections_found">কাছাকাছি কোনো শিল্পী পাওয়া যায়নি</string>
 </resources>

@@ -86,6 +86,8 @@ object Routes {
     /** Searching your library (1.8.3), with [query] typed in. */
     fun librarySearch(query: String = "") = "library-search?q=${Uri.encode(query)}"
     fun artist(id: String) = "artist/${Uri.encode(id)}"
+    /** An artist's connections: the artists around them, as a map and a list. */
+    fun artistConnections(id: String) = "artist-connections/${Uri.encode(id)}"
     /** An artist's page; one a song names without a link (#78) is looked up by name when it opens. */
     fun artist(ref: com.prism.music.data.model.ArtistRef) =
         artist(ref.id ?: (com.prism.music.data.innertube.YouTubeMusic.ARTIST_BY_NAME + ref.name))

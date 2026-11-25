@@ -61,9 +61,16 @@ fun Map<String, DownloadInfo>.forRow(id: String, standIns: Map<String, String>):
  * playlist's id for the same song played the FLAC with no mark. [fromPhone] is asked only while lossless sync has
  * files at all.
  */
-fun rowDownloaded(song: Song, downloads: Map<String, DownloadInfo>, standIns: Map<String, String>, fromPhone: (Song) -> Boolean): Boolean {
+fun rowDownloaded(
+    song: Song,
+    downloads: Map<String, DownloadInfo>,
+    standIns: Map<String, String>,
+    fromPhone: (Song) -> Boolean,
+    /** Whether any download is a lossless file at all, worked out once for the list rather than once per row. */
+    anyLossless: Boolean = downloads.values.any { it.lossless },
+): Boolean {
     if (downloads.forRow(song.id, standIns)?.state == Download.STATE_COMPLETED) return true
-    return !song.isLocal && !song.isVideo && downloads.values.any { it.lossless } && fromPhone(song)
+    return anyLossless && !song.isLocal && !song.isVideo && fromPhone(song)
 }
 
 /** A song's music video saved for offline: its picture, plus the video's own audio when that isn't the song's. */

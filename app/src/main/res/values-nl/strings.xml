@@ -5709,4 +5709,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Shuffle bij starten</string>
+    <string name="playback_start_shuffled_info">Opent Prism zonder wachtrij, dan start het zelf een geschudde mix uit je bibliotheek. Een wachtrij van de vorige keer komt nog steeds gepauzeerd terug.</string>
+    <string name="playback_start_shuffled_keywords">automatisch afspelen start openen shuffle willekeurig bibliotheek</string>
+    <string name="shuffle_the_library">Bibliotheek shuffelen</string>
+    <string name="playlists_with_this_song">Afspeellijsten met dit nummer</string>
+    <string name="no_playlists_found">Geen openbare afspeellijsten gevonden voor dit nummer</string>
+    <string name="artist_connections">Artiestverbindingen</string>
+    <string name="artist_connections_strapline">De artiesten rond deze: tik er een aan om de pagina te openen.</string>
+    <string name="no_connections_found">Geen nabije artiesten gevonden</string>
 </resources>

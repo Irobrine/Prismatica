@@ -5752,4 +5752,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Start playing shuffled</string>
+    <string name="playback_start_shuffled_info">When Prism opens with nothing queued, it starts a shuffled mix of your library by itself. A queue left from last time still comes back paused.</string>
+    <string name="playback_start_shuffled_keywords">autoplay start launch open shuffle shuffled random library automatic</string>
+    <string name="shuffle_the_library">Shuffle the library</string>
+    <string name="playlists_with_this_song">Playlists with this song</string>
+    <string name="no_playlists_found">No public playlists were found for this song</string>
+    <string name="artist_connections">Artist connections</string>
+    <string name="artist_connections_strapline">The artists around this one: tap any to open their page.</string>
+    <string name="no_connections_found">No close artists were found</string>
 </resources>

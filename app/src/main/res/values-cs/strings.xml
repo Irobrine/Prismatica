@@ -5859,4 +5859,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Začít přehrávat náhodně</string>
+    <string name="playback_start_shuffled_info">Když se Prism otevře s prázdnou frontou, sám začne přehrávat náhodně promíchanou hudbu z knihovny. Fronta z minule se vrátí pozastavená jako dřív.</string>
+    <string name="playback_start_shuffled_keywords">autoplay start spuštění otevření shuffle náhodně knihovna automaticky</string>
+    <string name="shuffle_the_library">Náhodně přehrát knihovnu</string>
+    <string name="playlists_with_this_song">Playlisty s touto písní</string>
+    <string name="no_playlists_found">K této písni nebyly nalezeny žádné veřejné playlisty</string>
+    <string name="artist_connections">Propojení umělců</string>
+    <string name="artist_connections_strapline">Umělci kolem tohoto: klepnutím na kteréhokoli otevřete jeho stránku.</string>
+    <string name="no_connections_found">Nebyli nalezeni žádní blízcí umělci</string>
 </resources>

@@ -224,7 +224,7 @@ fun SelectionBar(selection: SongSelection, modifier: Modifier = Modifier) {
     var enhanceKind by remember { mutableStateOf<com.prism.music.data.enhance.EnhanceKind?>(null) }
     val enhanceScope = androidx.compose.runtime.rememberCoroutineScope()
     fun toast(text: String) = android.widget.Toast.makeText(context, text, android.widget.Toast.LENGTH_SHORT).show()
-    fun downloaded(s: Song) = com.prism.music.download.rowDownloaded(s, downloads, standIns) { c.downloads.playsFromPhone(it) }
+    fun downloaded(s: Song) = com.prism.music.download.rowDownloaded(s, downloads, standIns, fromPhone = { c.downloads.playsFromPhone(it) })
 
     addingTo?.let { list ->
         PlaylistPicker(list, trp(R.plurals.n_songs, list.size)) { addingTo = null; selection.clear() }

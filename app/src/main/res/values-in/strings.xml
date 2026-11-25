@@ -5634,4 +5634,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Mulai diputar acak</string>
+    <string name="playback_start_shuffled_info">Saat Prism dibuka tanpa antrean, Prism otomatis memulai campuran acak dari pustaka Anda. Antrean dari terakhir kali tetap kembali dalam keadaan dijeda.</string>
+    <string name="playback_start_shuffled_keywords">putar otomatis mulai buka acak pustaka</string>
+    <string name="shuffle_the_library">Acak pustaka</string>
+    <string name="playlists_with_this_song">Playlist dengan lagu ini</string>
+    <string name="no_playlists_found">Tidak ada playlist publik untuk lagu ini</string>
+    <string name="artist_connections">Koneksi artis</string>
+    <string name="artist_connections_strapline">Artis di sekitar yang ini: ketuk salah satu untuk membuka halamannya.</string>
+    <string name="no_connections_found">Tidak ada artis terdekat yang ditemukan</string>
 </resources>

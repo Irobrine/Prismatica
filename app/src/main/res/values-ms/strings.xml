@@ -5634,4 +5634,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Mula main secara rawak</string>
+    <string name="playback_start_shuffled_info">Apabila Prism dibuka tanpa baris gilir, ia memulakan campuran rawak daripada pustaka anda secara automatik. Baris gilir kali terakhir masih kembali dalam keadaan dijeda.</string>
+    <string name="playback_start_shuffled_keywords">automain mula buka rawak pustaka</string>
+    <string name="shuffle_the_library">Rawak pustaka</string>
+    <string name="playlists_with_this_song">Senarai main dengan lagu ini</string>
+    <string name="no_playlists_found">Tiada senarai main awam ditemui untuk lagu ini</string>
+    <string name="artist_connections">Sambungan artis</string>
+    <string name="artist_connections_strapline">Artis di sekitar yang ini: ketik mana-mana untuk membuka halamannya.</string>
+    <string name="no_connections_found">Tiada artis berdekatan ditemui</string>
 </resources>

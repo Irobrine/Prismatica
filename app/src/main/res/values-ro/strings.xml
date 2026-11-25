@@ -5784,4 +5784,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Pornește amestecat</string>
+    <string name="playback_start_shuffled_info">Când Prism se deschide fără coadă, începe singur un mix amestecat din biblioteca ta. Coada de data trecută revine tot în pauză.</string>
+    <string name="playback_start_shuffled_keywords">redare automată pornire deschidere aleatoriu bibliotecă</string>
+    <string name="shuffle_the_library">Amestecă biblioteca</string>
+    <string name="playlists_with_this_song">Playlisturi cu această piesă</string>
+    <string name="no_playlists_found">Nu au fost găsite playlisturi publice pentru această piesă</string>
+    <string name="artist_connections">Legături ale artistului</string>
+    <string name="artist_connections_strapline">Artiștii din jurul acestuia: atinge oricare pentru a-i deschide pagina.</string>
+    <string name="no_connections_found">Nu au fost găsiți artiști apropiați</string>
 </resources>

@@ -5709,4 +5709,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">شروع پخش تصادفی</string>
+    <string name="playback_start_shuffled_info">وقتی Prism بدون صف باز می‌شود، خودش یک ترکیب تصادفی از کتابخانه‌تان را پخش می‌کند. صف دفعه قبل همچنان متوقف برمی‌گردد.</string>
+    <string name="playback_start_shuffled_keywords">پخش خودکار شروع باز کردن تصادفی کتابخانه</string>
+    <string name="shuffle_the_library">پخش تصادفی کتابخانه</string>
+    <string name="playlists_with_this_song">پلی‌لیست‌هایی با این آهنگ</string>
+    <string name="no_playlists_found">هیچ پلی‌لیست عمومی برای این آهنگ پیدا نشد</string>
+    <string name="artist_connections">ارتباط‌های هنرمند</string>
+    <string name="artist_connections_strapline">هنرمندان نزدیک به این یکی: برای باز کردن صفحه‌شان روی هر کدام بزنید.</string>
+    <string name="no_connections_found">هنرمند نزدیکی پیدا نشد</string>
 </resources>

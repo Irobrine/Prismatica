@@ -5709,4 +5709,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">شفل میں چلانا شروع کریں</string>
+    <string name="playback_start_shuffled_info">جب Prism بغیر قطار کے کھلتا ہے تو یہ خود بخود آپ کی لائبریری سے شفل شدہ مکس چلانا شروع کر دیتا ہے۔ پچھلی بار کی قطار پہلے کی طرح وقفے پر ہی واپس آتی ہے۔</string>
+    <string name="playback_start_shuffled_keywords">آٹو پلے شروع کھولیں شفل رینڈم لائبریری خودکار</string>
+    <string name="shuffle_the_library">لائبریری شفل کریں</string>
+    <string name="playlists_with_this_song">اس گانے والی پلے لسٹس</string>
+    <string name="no_playlists_found">اس گانے کی کوئی عوامی پلے لسٹ نہیں ملی</string>
+    <string name="artist_connections">فنکار کے روابط</string>
+    <string name="artist_connections_strapline">اس فنکار کے آس پاس کے فنکار: کسی پر بھی ٹیپ کر کے اس کا صفحہ کھولیں۔</string>
+    <string name="no_connections_found">کوئی قریبی فنکار نہیں ملا</string>
 </resources>

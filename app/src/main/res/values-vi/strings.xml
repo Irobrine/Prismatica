@@ -5634,4 +5634,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Bắt đầu phát ngẫu nhiên</string>
+    <string name="playback_start_shuffled_info">Khi Prism mở ra mà không có hàng đợi, nó tự bắt đầu một bản trộn ngẫu nhiên từ thư viện của bạn. Hàng đợi của lần trước vẫn quay lại ở trạng thái tạm dừng.</string>
+    <string name="playback_start_shuffled_keywords">tự động phát bắt đầu mở ngẫu nhiên thư viện</string>
+    <string name="shuffle_the_library">Phát ngẫu nhiên thư viện</string>
+    <string name="playlists_with_this_song">Danh sách phát có bài này</string>
+    <string name="no_playlists_found">Không tìm thấy danh sách phát công khai nào có bài này</string>
+    <string name="artist_connections">Kết nối nghệ sĩ</string>
+    <string name="artist_connections_strapline">Những nghệ sĩ quanh nghệ sĩ này: chạm vào bất kỳ ai để mở trang của họ.</string>
+    <string name="no_connections_found">Không tìm thấy nghệ sĩ gần gũi</string>
 </resources>

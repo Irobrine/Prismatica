@@ -5634,4 +5634,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">啟動時隨機播放</string>
+    <string name="playback_start_shuffled_info">當 Prism 開啟且佇列為空時，它會自動開始播放你資料庫中的隨機混合。上次留下的佇列仍會以暫停狀態恢復。</string>
+    <string name="playback_start_shuffled_keywords">自動播放 啟動 開啟 隨機 資料庫</string>
+    <string name="shuffle_the_library">隨機播放資料庫</string>
+    <string name="playlists_with_this_song">包含這首歌的播放清單</string>
+    <string name="no_playlists_found">找不到包含這首歌的公開播放清單</string>
+    <string name="artist_connections">藝人關聯</string>
+    <string name="artist_connections_strapline">這位藝人周圍的藝人：點按任一位即可開啟其頁面。</string>
+    <string name="no_connections_found">找不到相近的藝人</string>
 </resources>

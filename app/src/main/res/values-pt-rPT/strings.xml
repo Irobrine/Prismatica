@@ -5784,4 +5784,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Começar aleatório</string>
+    <string name="playback_start_shuffled_info">Quando o Prism abre sem fila, começa sozinho uma mistura aleatória da sua biblioteca. A fila da última vez continua a voltar em pausa.</string>
+    <string name="playback_start_shuffled_keywords">reprodução automática início abrir aleatório biblioteca</string>
+    <string name="shuffle_the_library">Reproduzir biblioteca aleatoriamente</string>
+    <string name="playlists_with_this_song">Playlists com esta música</string>
+    <string name="no_playlists_found">Não foram encontradas playlists públicas com esta música</string>
+    <string name="artist_connections">Ligações do artista</string>
+    <string name="artist_connections_strapline">Os artistas à volta deste: toque em qualquer um para abrir a respetiva página.</string>
+    <string name="no_connections_found">Não foram encontrados artistas próximos</string>
 </resources>

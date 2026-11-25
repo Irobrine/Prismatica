@@ -5634,4 +5634,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">シャッフルで再生を開始</string>
+    <string name="playback_start_shuffled_info">キューが空のままPrismを開くと、ライブラリからシャッフルしたミックスを自動で再生します。前回のキューはこれまでどおり一時停止した状態で戻ります。</string>
+    <string name="playback_start_shuffled_keywords">自動再生 開始 起動 シャッフル ランダム ライブラリ</string>
+    <string name="shuffle_the_library">ライブラリをシャッフル</string>
+    <string name="playlists_with_this_song">この曲が入ったプレイリスト</string>
+    <string name="no_playlists_found">この曲の公開プレイリストは見つかりませんでした</string>
+    <string name="artist_connections">アーティストのつながり</string>
+    <string name="artist_connections_strapline">このアーティストの周りのアーティスト。タップするとページが開きます。</string>
+    <string name="no_connections_found">近いアーティストは見つかりませんでした</string>
 </resources>

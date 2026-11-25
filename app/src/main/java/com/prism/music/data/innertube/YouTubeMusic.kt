@@ -11,6 +11,7 @@ import com.prism.music.data.model.CollectionPage
 import com.prism.music.data.model.HomeFeed
 import com.prism.music.data.model.NextResult
 import com.prism.music.data.model.PlayerExtras
+import com.prism.music.data.model.PlaylistItem
 import com.prism.music.data.model.Related
 import com.prism.music.data.model.SearchResult
 import com.prism.music.data.model.Shelf
@@ -786,6 +787,17 @@ class YouTubeMusic(
         return Related(songs.distinctBy { it.id }, artists)
     }
 
+    /**
+     * Playlists people made around [song]: the community playlists a search for its title and artist finds. YouTube
+     * Music's own lists are left out (they're [SearchFilter.FEATURED_PLAYLISTS]), as are mixes and radios ([PlaylistItem.isMix],
+     * which only exist as a watch queue). The search is the same one Search's "Community playlists" chip runs.
+     */
+    suspend fun relatedPlaylists(song: Song, limit: Int = 12): List<PlaylistItem> {
+        val query = listOf(song.title, song.primaryArtist).filter { it.isNotBlank() }.joinToString(" ")
+        if (query.isBlank()) return emptyList()
+        return communityPlaylistsFrom(search(query, SearchFilter.PLAYLISTS).items, limit)
+    }
+
     /** An artist's top songs (the first shelf of songs on their page that aren't videos), for discovery. */
     suspend fun artistTopSongs(browseId: String): List<Song> =
         artist(browseId).shelves.firstOrNull { s -> s.items.any { it is SongItem && !it.song.isVideo } }
@@ -1380,3 +1392,14 @@ class YouTubeMusic(
         })
     }
 }
+
+/**
+ * The community playlists among a search's results (the "Playlists" answer): no mixes or radios, which only exist as a
+ * watch queue and can't be opened as a playlist, and each id once. Kept out of [YouTubeMusic.relatedPlaylists] so the
+ * choice can be checked without a network.
+ */
+internal fun communityPlaylistsFrom(items: List<BrowseItem>, limit: Int = 12): List<PlaylistItem> =
+    items.filterIsInstance<PlaylistItem>()
+        .filter { !it.isMix && !it.id.startsWith("RD") }
+        .distinctBy { it.id }
+        .take(limit)

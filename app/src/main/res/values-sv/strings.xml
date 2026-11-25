@@ -5709,4 +5709,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Starta blandat</string>
+    <string name="playback_start_shuffled_info">När Prism öppnas utan kö börjar den själv spela en blandad mix från ditt bibliotek. Kön från förra gången kommer fortfarande tillbaka pausad.</string>
+    <string name="playback_start_shuffled_keywords">autouppspelning start öppna shuffle slump bibliotek</string>
+    <string name="shuffle_the_library">Blanda biblioteket</string>
+    <string name="playlists_with_this_song">Spellistor med den här låten</string>
+    <string name="no_playlists_found">Inga offentliga spellistor hittades för den här låten</string>
+    <string name="artist_connections">Artistkopplingar</string>
+    <string name="artist_connections_strapline">Artisterna runt den här: tryck på någon för att öppna deras sida.</string>
+    <string name="no_connections_found">Inga närliggande artister hittades</string>
 </resources>

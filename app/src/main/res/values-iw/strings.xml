@@ -5784,4 +5784,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">התחל בניגון אקראי</string>
+    <string name="playback_start_shuffled_info">כשהמכשיר פותח את Prism בלי תור, הוא מתחיל מעצמו מיקס אקראי מהספרייה שלך. התור מהפעם הקודמת עדיין חוזר מושהה.</string>
+    <string name="playback_start_shuffled_keywords">הפעלה אוטומטית התחלה פתיחה אקראי ספרייה</string>
+    <string name="shuffle_the_library">השמעת הספרייה באקראי</string>
+    <string name="playlists_with_this_song">פלייליסטים עם השיר הזה</string>
+    <string name="no_playlists_found">לא נמצאו פלייליסטים ציבוריים לשיר הזה</string>
+    <string name="artist_connections">קשרי האמן</string>
+    <string name="artist_connections_strapline">האמנים סביב האמן הזה: הקישו על אחד כדי לפתוח את העמוד שלו.</string>
+    <string name="no_connections_found">לא נמצאו אמנים קרובים</string>
 </resources>

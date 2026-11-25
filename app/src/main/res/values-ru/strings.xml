@@ -5859,4 +5859,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Начинать вперемешку</string>
+    <string name="playback_start_shuffled_info">Если Prism открывается без очереди, он сам запускает перемешанный микс из вашей библиотеки. Очередь с прошлого раза по-прежнему возвращается на паузе.</string>
+    <string name="playback_start_shuffled_keywords">автовоспроизведение старт запуск открытие перемешать случайно библиотека</string>
+    <string name="shuffle_the_library">Перемешать библиотеку</string>
+    <string name="playlists_with_this_song">Плейлисты с этой песней</string>
+    <string name="no_playlists_found">Публичных плейлистов с этой песней не найдено</string>
+    <string name="artist_connections">Связи исполнителя</string>
+    <string name="artist_connections_strapline">Исполнители рядом с этим: коснитесь любого, чтобы открыть его страницу.</string>
+    <string name="no_connections_found">Близких исполнителей не найдено</string>
 </resources>

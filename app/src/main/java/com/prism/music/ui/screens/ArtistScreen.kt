@@ -405,6 +405,9 @@ private fun ArtistContent(opened: ArtistOpened, bottomPadding: Dp) {
                     if (shown.items.isNotEmpty()) shelfItems(shown, place = place, open = open)
                 }
                 sections.similar?.let { s -> item("similar") { AppleHeader(tr(R.string.similar_artists), more(s)); CardRow(s.items, 128.dp, round = true, open = open, dim = dimmed) } }
+                // The artists around this one, drawn as a map: a tap on any of them opens their page, where their own
+                // connections are a tap further. Always offered, even when YouTube sent no similar shelf.
+                item("connections") { ConnectionsEntry { nav.go(Routes.artistConnections(page.id)) } }
                 bio?.let { b -> item("bio") { ArtistBioPanel(b) } }
                 item("about") { AboutCard(page, genre) { showInfo = true } }
             }
@@ -515,6 +518,30 @@ private fun Hero(
             )
         }
         Spacer(Modifier.height(6.dp))
+    }
+}
+
+/** The way into an artist's connections map, on their page. */
+@Composable
+private fun ConnectionsEntry(onOpen: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(42.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(PrismIcons.Groups, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(21.dp))
+        }
+        Column(Modifier.weight(1f).padding(start = 14.dp)) {
+            Text(tr(R.string.artist_connections), style = MaterialTheme.typography.titleMedium)
+            Text(
+                tr(R.string.artist_connections_strapline), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2,
+            )
+        }
+        Icon(PrismIcons.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
     }
 }
 

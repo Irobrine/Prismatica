@@ -5709,4 +5709,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Έναρξη με τυχαία σειρά</string>
+    <string name="playback_start_shuffled_info">Όταν το Prism ανοίγει χωρίς ουρά, ξεκινά μόνο του μια τυχαία μίξη από τη βιβλιοθήκη σου. Η ουρά από την προηγούμενη φορά επιστρέφει πάντα σε παύση.</string>
+    <string name="playback_start_shuffled_keywords">αυτόματη αναπαραγωγή έναρξη άνοιγμα τυχαία βιβλιοθήκη</string>
+    <string name="shuffle_the_library">Τυχαία σειρά βιβλιοθήκης</string>
+    <string name="playlists_with_this_song">Λίστες με αυτό το τραγούδι</string>
+    <string name="no_playlists_found">Δεν βρέθηκαν δημόσιες λίστες για αυτό το τραγούδι</string>
+    <string name="artist_connections">Συνδέσεις καλλιτεχνών</string>
+    <string name="artist_connections_strapline">Οι καλλιτέχνες γύρω από αυτόν: πάτησε έναν για να ανοίξει η σελίδα του.</string>
+    <string name="no_connections_found">Δεν βρέθηκαν κοντινοί καλλιτέχνες</string>
 </resources>

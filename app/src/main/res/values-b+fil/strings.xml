@@ -5709,4 +5709,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Magsimulang magpatugtog nang shuffle</string>
+    <string name="playback_start_shuffled_info">Kapag binuksan ang Prism na walang nakapila, kusa itong magsisimula ng shuffled na halo mula sa iyong library. Ang queue mula sa huling pagkakataon ay babalik pa rin na naka-pause.</string>
+    <string name="playback_start_shuffled_keywords">autoplay start launch open shuffle random library awtomatiko</string>
+    <string name="shuffle_the_library">I-shuffle ang library</string>
+    <string name="playlists_with_this_song">Mga playlist na may ganitong kanta</string>
+    <string name="no_playlists_found">Walang natagpuang pampublikong playlist para sa kantang ito</string>
+    <string name="artist_connections">Mga koneksyon ng artist</string>
+    <string name="artist_connections_strapline">Ang mga artist na malapit sa isang ito: i-tap ang alinman para buksan ang kanilang page.</string>
+    <string name="no_connections_found">Walang nakitang malapit na artist</string>
 </resources>

@@ -6009,4 +6009,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">بدء التشغيل مخلوطًا</string>
+    <string name="playback_start_shuffled_info">عند فتح Prism دون قائمة تشغيل، يبدأ تلقائيًا مزيجًا مخلوطًا من مكتبتك. القائمة المتبقية من المرة السابقة تعود متوقفة كما هي.</string>
+    <string name="playback_start_shuffled_keywords">تشغيل بدء فتح خلط عشوائي مكتبة تلقائي</string>
+    <string name="shuffle_the_library">خلط المكتبة</string>
+    <string name="playlists_with_this_song">قوائم تشغيل فيها هذه الأغنية</string>
+    <string name="no_playlists_found">لم يتم العثور على قوائم تشغيل عامة لهذه الأغنية</string>
+    <string name="artist_connections">روابط الفنان</string>
+    <string name="artist_connections_strapline">الفنانون المحيطون بهذا الفنان: اضغط على أي منهم لفتح صفحته.</string>
+    <string name="no_connections_found">لم يتم العثور على فنانين قريبين</string>
 </resources>

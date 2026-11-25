@@ -5709,4 +5709,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">Karışık başlat</string>
+    <string name="playback_start_shuffled_info">Prism sıra boşken açıldığında kitaplığınızdan karışık bir seçkiyi kendiliğinden başlatır. Geçen seferden kalan sıra yine duraklatılmış olarak geri gelir.</string>
+    <string name="playback_start_shuffled_keywords">otomatik oynatma başlangıç açılış karıştır rastgele kitaplık</string>
+    <string name="shuffle_the_library">Kitaplığı karıştır</string>
+    <string name="playlists_with_this_song">Bu şarkıyı içeren çalma listeleri</string>
+    <string name="no_playlists_found">Bu şarkıyı içeren herkese açık çalma listesi bulunamadı</string>
+    <string name="artist_connections">Sanatçı bağlantıları</string>
+    <string name="artist_connections_strapline">Bunun çevresindeki sanatçılar: sayfasını açmak için birine dokunun.</string>
+    <string name="no_connections_found">Yakın sanatçı bulunamadı</string>
 </resources>

@@ -5634,4 +5634,13 @@
     <string name="dedup_scope_playlists">Playlists</string>
     <string name="dedup_scope_local_files">Local files</string>
     <string name="dedup_scope_downloads">Downloads</string>
+    <string name="playback_start_shuffled">เริ่มเล่นแบบสุ่ม</string>
+    <string name="playback_start_shuffled_info">เมื่อเปิด Prism โดยไม่มีคิว มันจะเริ่มเล่นมิกซ์แบบสุ่มจากคลังเพลงของคุณเอง คิวจากครั้งก่อนยังกลับมาหยุดชั่วคราวเหมือนเดิม</string>
+    <string name="playback_start_shuffled_keywords">เล่นอัตโนมัติ เริ่ม เปิด สุ่ม คลังเพลง</string>
+    <string name="shuffle_the_library">สุ่มคลังเพลง</string>
+    <string name="playlists_with_this_song">เพลย์ลิสต์ที่มีเพลงนี้</string>
+    <string name="no_playlists_found">ไม่พบเพลย์ลิสต์สาธารณะที่มีเพลงนี้</string>
+    <string name="artist_connections">ความเชื่อมโยงของศิลปิน</string>
+    <string name="artist_connections_strapline">ศิลปินรอบ ๆ คนนี้ แตะคนใดก็ได้เพื่อเปิดหน้า</string>
+    <string name="no_connections_found">ไม่พบศิลปินที่ใกล้เคียง</string>
 </resources>
