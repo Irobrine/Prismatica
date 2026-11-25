@@ -5663,6 +5663,14 @@
     <string name="unsnooze">Повернути</string>
     <string name="snoozed_tracks">Відкладені треки</string>
     <string name="snooze_for">Відкласти на</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Більше від цього виконавця</string>
+    <string name="more_from_this_album">Більше з цього альбому</string>
+    <string name="more_from_how_many">Скільки пісень?</string>
+    <string name="more_from_how_many_info">Додаються одразу після пісні, що грає, у випадковому порядку. Утримуйте кнопку, щоб змінити кількість.</string>
+    <string name="more_from_added">До «Далі» додано: %1$s</string>
+    <string name="more_from_nothing">Більше немає що додати</string>
+    <string name="more_from_nothing_offline">На цьому телефоні більше немає пісень</string>
     <string name="snooze_for_info">Скільки днів відкладений трек не потрапляє в автоматичні черги. Ви й далі можете відтворити його, додати в чергу або поставити наступним.</string>
     <string name="nothing_snoozed">Нічого не відкладено</string>
     <string name="nothing_snoozed_body">Відкладіть трек, щоб він якийсь час не потрапляв у чергу, яку Prism збирає сам. Відтворити його вручну, додати в чергу чи поставити наступним і далі можна.</string>

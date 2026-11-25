@@ -5513,6 +5513,14 @@
     <string name="unsnooze">Geri al</string>
     <string name="snoozed_tracks">Ertelenen parçalar</string>
     <string name="snooze_for">Ertele</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Bu sanatçıdan daha fazla</string>
+    <string name="more_from_this_album">Bu albümden daha fazla</string>
+    <string name="more_from_how_many">Kaç şarkı?</string>
+    <string name="more_from_how_many_info">Çalan şarkının hemen ardından rastgele sırayla eklenir. Sayıyı değiştirmek için düğmeyi basılı tut.</string>
+    <string name="more_from_added">Sonraki kuyruğuna %1$s eklendi</string>
+    <string name="more_from_nothing">Eklenecek başka şarkı yok</string>
+    <string name="more_from_nothing_offline">Bu telefonda başka şarkı yok</string>
     <string name="snooze_for_info">Ertelenen bir parçanın otomatik sıraların dışında kaç gün kalacağı. Yine de kendiniz çalabilir, sıraya ekleyebilir veya sıradaki olarak çalabilirsiniz.</string>
     <string name="nothing_snoozed">Ertelenen parça yok</string>
     <string name="nothing_snoozed_body">Prism kendi oluşturduğu sıraya bir süre girmesin diye bir parçayı ertele. Kendin çalmaya, sıraya eklemeye ve sıradaki olarak çalmaya devam edebilirsin.</string>

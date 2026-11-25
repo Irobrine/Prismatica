@@ -5513,6 +5513,14 @@
     <string name="unsnooze">Επαναφορά</string>
     <string name="snoozed_tracks">Τραγούδια σε αναβολή</string>
     <string name="snooze_for">Αναβολή για</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Περισσότερα από αυτόν τον καλλιτέχνη</string>
+    <string name="more_from_this_album">Περισσότερα από αυτό το άλμπουμ</string>
+    <string name="more_from_how_many">Πόσα τραγούδια;</string>
+    <string name="more_from_how_many_info">Προστίθενται αμέσως μετά το τραγούδι που παίζει, σε τυχαία σειρά. Κράτησε το κουμπί για να αλλάξεις τον αριθμό.</string>
+    <string name="more_from_added">Προστέθηκαν %1$s στο Επόμενο</string>
+    <string name="more_from_nothing">Δεν υπάρχουν άλλα τραγούδια για προσθήκη</string>
+    <string name="more_from_nothing_offline">Δεν υπάρχουν άλλα τραγούδια σε αυτό το τηλέφωνο</string>
     <string name="snooze_for_info">Πόσες ημέρες ένα τραγούδι σε αναβολή μένει εκτός των αυτόματων ουρών. Μπορείτε ακόμη να το αναπαράγετε, να το προσθέσετε στην ουρά ή να το παίξετε επόμενο.</string>
     <string name="nothing_snoozed">Καμία αναβολή</string>
     <string name="nothing_snoozed_body">Βάλτε ένα τραγούδι σε αναβολή ώστε να μείνει για λίγο έξω από την ουρά που φτιάχνει μόνο του το Prism. Η χειροκίνητη αναπαραγωγή, η προσθήκη στην ουρά και το Επόμενο λειτουργούν κανονικά.</string>

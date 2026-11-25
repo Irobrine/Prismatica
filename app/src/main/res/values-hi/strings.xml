@@ -5513,6 +5513,14 @@
     <string name="unsnooze">स्नूज़ हटाएँ</string>
     <string name="snoozed_tracks">स्नूज़ किए गए ट्रैक</string>
     <string name="snooze_for">स्नूज़ अवधि</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">इस कलाकार से और</string>
+    <string name="more_from_this_album">इस एल्बम से और</string>
+    <string name="more_from_how_many">कितने गाने?</string>
+    <string name="more_from_how_many_info">चल रहे गाने के ठीक बाद, बेतरतीब क्रम में जोड़े जाते हैं। संख्या बदलने के लिए बटन दबाए रखें।</string>
+    <string name="more_from_added">अगले में %1$s जोड़े गए</string>
+    <string name="more_from_nothing">जोड़ने के लिए और गाने नहीं हैं</string>
+    <string name="more_from_nothing_offline">इस फ़ोन पर और गाने नहीं हैं</string>
     <string name="snooze_for_info">स्नूज़ किया गया ट्रैक कितने दिन ऑटोमैटिक क्यू से बाहर रहता है। आप इसे खुद चला सकते हैं, क्यू में जोड़ सकते हैं या अगला चला सकते हैं।</string>
     <string name="nothing_snoozed">कुछ भी स्नूज़ नहीं है</string>
     <string name="nothing_snoozed_body">किसी ट्रैक को स्नूज़ करके उसे कुछ समय के लिए Prism की अपनी बनाई क्यू से बाहर रखें। खुद चलाना, क्यू में जोड़ना और अगला चलाना अब भी काम करता है।</string>

@@ -773,6 +773,8 @@ enum class MenuAction(val group: MenuGroup, val fromPlayer: Boolean = false, val
     /** 1.8.3: the listener's own title, artist, album and genre for the song, kept on this phone. */
     EDIT_METADATA(MenuGroup.SONG),
     RADIO(MenuGroup.SONG), DOWNLOAD(MenuGroup.SONG), ALBUM(MenuGroup.SONG), ARTIST(MenuGroup.SONG),
+    /** 1.8.6: a shuffled handful of the artist's songs (or the album's) right after this one; held, how many. */
+    MORE_FROM_ARTIST(MenuGroup.SONG), MORE_FROM_ALBUM(MenuGroup.SONG),
     CREDITS(MenuGroup.SONG),
     /** #211 (1.8.2): its plays and dates. */
     DETAILS(MenuGroup.SONG),
@@ -809,6 +811,8 @@ data class PlayerParts(
     val menuHidden: Set<MenuAction> = emptySet(),
     /** The quick tiles, in order (up to [MenuAction.MAX_TILES]). */
     val menuTiles: List<MenuAction> = MenuAction.DEFAULT_TILES,
+    /** How many songs "More from this artist/album" adds to Next (1.8.6); a tap uses it, the button held changes it. */
+    val moreFromCount: Int = com.prism.music.data.MoreFrom.DEFAULT_COUNT,
 )
 
 /** Whether [part] is on the player (each part that had its own switch still reads it). */
@@ -1098,7 +1102,9 @@ enum class PlayerButton(val label: String) {
     DISLIKE(tr(R.string.not_for_me)), ADD_TO_PLAYLIST(tr(R.string.add_to_playlist)), SHARE(tr(R.string.share)), SING(tr(R.string.sing)), DJ(tr(R.string.dj_mode)),
     EQUALIZER(tr(R.string.equalizer)), DOWNLOAD(tr(R.string.download)), RADIO(tr(R.string.start_radio)), SPEED(tr(R.string.speed)),
     /** 1.8.5: keeps the song playing out of automatic queues for a while; a tap snoozes it or lets it back in. */
-    SNOOZE(tr(R.string.snooze));
+    SNOOZE(tr(R.string.snooze)),
+    /** 1.8.6: shuffle songs of the playing artist (or album) right after it; held, how many of them. */
+    MORE_FROM_ARTIST(tr(R.string.more_from_this_artist)), MORE_FROM_ALBUM(tr(R.string.more_from_this_album));
 
     companion object {
         /** As 1.7 had it: lyrics, the music video and the queue. */
@@ -2505,6 +2511,8 @@ class SettingsRepository(
         val playerHiddenParts = stringPreferencesKey("player_hidden_parts")
         val playerMenuHidden = stringPreferencesKey("player_menu_hidden")
         val playerMenuTiles = stringPreferencesKey("player_menu_tiles")
+        /** 1.8.6: how many songs "More from this artist/album" adds to Next. */
+        val moreFromCount = intPreferencesKey("more_from_count")
         // 1.7.8 ([SoundPrefs]).
         val crossfadeCurve = stringPreferencesKey("crossfade_curve")
         val normalizeTarget = intPreferencesKey("normalize_target")
@@ -2592,7 +2600,7 @@ class SettingsRepository(
         val notLook: Set<String> by lazy {
             setOf(
                 "performance_mode", "performance_offered", "share_youtube_links", "mix_keep_albums",
-                "player_menu_hidden", "player_menu_tiles",
+                "player_menu_hidden", "player_menu_tiles", "more_from_count",
                 "lyrics_file_words", "lyrics_file_translation",
                 "merge_liked_videos", "dedup_enabled", "dedup_overrides", "dedup_scan_cellular",
                 "volume_control", "app_volume", "speed_dial_youtube_only", "swipe_tabs",
@@ -3843,6 +3851,7 @@ class SettingsRepository(
             menuHidden = namesOf<MenuAction>(p[K.playerMenuHidden]).filter { it.foldable }.toSet(),
             // Set (even to none): as picked; never set: the menu's own four.
             menuTiles = p[K.playerMenuTiles]?.let { v -> namesOf<MenuAction>(v).filter { !it.fromPlayer }.take(MenuAction.MAX_TILES) } ?: d.menuTiles,
+            moreFromCount = com.prism.music.data.MoreFrom.clamp(p[K.moreFromCount] ?: d.moreFromCount),
         )
     }
 
@@ -3883,6 +3892,9 @@ class SettingsRepository(
 
     /** Edit this menu → "Back to Prism's menu". */
     fun resetMenu() = edit { it.remove(K.playerMenuHidden); it.remove(K.playerMenuTiles) }
+
+    /** How many songs "More from this artist/album" adds to Next (1.8.6). */
+    fun setMoreFromCount(v: Int) = edit { it[K.moreFromCount] = com.prism.music.data.MoreFrom.clamp(v) }
 
     fun setCrossfadeCurve(v: CrossfadeCurve) = edit { it[K.crossfadeCurve] = v.name }
     fun setNormalizeTarget(v: Int) = edit { it[K.normalizeTarget] = v.coerceIn(-30, -5) }

@@ -5663,6 +5663,14 @@
     <string name="unsnooze">Przywróć</string>
     <string name="snoozed_tracks">Odłożone utwory</string>
     <string name="snooze_for">Odłóż na</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Więcej od tego wykonawcy</string>
+    <string name="more_from_this_album">Więcej z tego albumu</string>
+    <string name="more_from_how_many">Ile utworów?</string>
+    <string name="more_from_how_many_info">Dodawane zaraz po odtwarzanym utworze, w losowej kolejności. Przytrzymaj przycisk, aby zmienić liczbę.</string>
+    <string name="more_from_added">Dodano %1$s do Następne</string>
+    <string name="more_from_nothing">Brak innych utworów do dodania</string>
+    <string name="more_from_nothing_offline">Brak innych utworów na tym telefonie</string>
     <string name="snooze_for_info">Przez ile dni odłożony utwór pozostaje poza automatycznymi kolejkami. Nadal możesz go odtworzyć, dodać do kolejki lub puścić jako następny.</string>
     <string name="nothing_snoozed">Nic nie odłożono</string>
     <string name="nothing_snoozed_body">Odłóż utwór, aby przez jakiś czas nie trafiał do kolejki, którą Prism tworzy sam. Odtwarzanie go ręcznie nadal działa, podobnie jak Dodaj do kolejki i Odtwórz następny.</string>

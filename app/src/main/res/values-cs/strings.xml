@@ -5663,6 +5663,14 @@
     <string name="unsnooze">Obnovit</string>
     <string name="snoozed_tracks">Odložené skladby</string>
     <string name="snooze_for">Odložit na</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Další od tohoto interpreta</string>
+    <string name="more_from_this_album">Další z tohoto alba</string>
+    <string name="more_from_how_many">Kolik skladeb?</string>
+    <string name="more_from_how_many_info">Přidá se hned po hrající skladbě, v náhodném pořadí. Počet změníte podržením tlačítka.</string>
+    <string name="more_from_added">Do Další přidáno: %1$s</string>
+    <string name="more_from_nothing">Nejsou další skladby k přidání</string>
+    <string name="more_from_nothing_offline">V tomto telefonu nejsou další skladby</string>
     <string name="snooze_for_info">Kolik dní zůstane odložená skladba mimo automatické fronty. Stále ji můžete přehrát, přidat do fronty nebo pustit jako další.</string>
     <string name="nothing_snoozed">Nic není odloženo</string>
     <string name="nothing_snoozed_body">Odložte skladbu, aby nějakou dobu zůstala mimo frontu, kterou Prism sestavuje sám. Ruční přehrání, Přidat do fronty i Přehrát jako další stále fungují.</string>

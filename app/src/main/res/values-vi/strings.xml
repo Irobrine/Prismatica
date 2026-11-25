@@ -5438,6 +5438,14 @@
     <string name="unsnooze">Bỏ tạm ẩn</string>
     <string name="snoozed_tracks">Bản nhạc tạm ẩn</string>
     <string name="snooze_for">Tạm ẩn trong</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Thêm từ nghệ sĩ này</string>
+    <string name="more_from_this_album">Thêm từ album này</string>
+    <string name="more_from_how_many">Bao nhiêu bài hát?</string>
+    <string name="more_from_how_many_info">Được thêm ngay sau bài đang phát, theo thứ tự ngẫu nhiên. Giữ nút để đổi số lượng.</string>
+    <string name="more_from_added">Đã thêm %1$s vào Tiếp theo</string>
+    <string name="more_from_nothing">Không có bài hát nào khác để thêm</string>
+    <string name="more_from_nothing_offline">Không có bài hát nào khác trên điện thoại này</string>
     <string name="snooze_for_info">Bao nhiêu ngày một bản nhạc tạm ẩn vẫn nằm ngoài hàng đợi tự động. Bạn vẫn có thể tự phát, thêm vào hàng đợi hoặc phát tiếp theo.</string>
     <string name="nothing_snoozed">Chưa có bản nhạc tạm ẩn</string>
     <string name="nothing_snoozed_body">Tạm ẩn một bản nhạc để giữ nó một thời gian ngoài hàng đợi do Prism tự tạo. Bạn vẫn có thể tự phát, thêm vào hàng đợi và phát tiếp theo.</string>
