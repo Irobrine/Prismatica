@@ -98,7 +98,16 @@ class PlayerJsSolver(private val context: Context, private val http: OkHttpClien
         var p = player(playerId)
         while (true) {
             val iso = isolate ?: newIsolate()
-            val result = evaluateLarge(iso, "prismLoad(${JsonPrimitive(p.code)})")
+            // A copy that can't even be loaded here (out of heap, a timeout) is no better than one that doesn't parse:
+            // go on to the next variant, as for a load that answers with a failure.
+            val result = try {
+                evaluateLarge(iso, "prismLoad(${JsonPrimitive(p.code)})")
+            } catch (e: IOException) {
+                if (p.variant + 1 >= VARIANTS.size) throw e
+                Log.w("PlayerJsSolver", "Player $playerId (${VARIANTS[p.variant]}) couldn't be loaded: ${e.message}; trying ${VARIANTS[p.variant + 1]}")
+                p = player(playerId, p.variant + 1)
+                continue
+            }
             if (result == "ok") {
                 loadedId = playerId
                 return iso
