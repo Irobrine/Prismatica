@@ -168,6 +168,9 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
 
     private val _current = MutableStateFlow<Song?>(null)
     val currentSong: StateFlow<Song?> = _current
+    private val _ready = MutableStateFlow(false)
+    /** True once the service is attached and its player is this connection's: anything sent before waited for it. */
+    val ready: StateFlow<Boolean> = _ready
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying
     private val _buffering = MutableStateFlow(false)
@@ -462,9 +465,11 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         rememberOutput()
         pending.toList().forEach { it(s.player) }
         pending.clear()
+        _ready.value = true
     }
 
     internal fun detach() {
+        _ready.value = false
         // A recreated service (or a stopped one) has no playback for a timer to belong to: end it. Always put the volume
         // back, even between a timer's natural end and its silent tail, so a recreated service never comes back silent.
         outputReturn.played()
@@ -949,6 +954,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         val wasSmart = c.queue.smartShuffle.value
         c.queue.smartShuffle.value = false
         c.queue.smartPicks.value = emptySet()
+        val previousSource = c.queue.source.value
         c.queue.source.value = source
         c.queue.autoplayContinuation = null
         c.queue.autoplayStart.value = -1
@@ -981,6 +987,26 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 }
             }
             val shuffled = mode != ShuffleMode.OFF
+            // Offline, the song a queue would start on may not be on the phone. In the app (a service is attached) the
+            // queue starts on the nearest one that is, so the first sound isn't a request that can't go anywhere; the
+            // queue keeps every song, and [PlaybackService] passes over the rest as they come. Tests drive a bare
+            // player with no service attached, and start exactly where they ask.
+            val offlineStart = if (service != null && !c.network.isOnline())
+                OfflineQueue.start(queue, first, shuffled, playable = { c.availableOfflineOrUnknown(it.id) }) else first
+            if (offlineStart == null) {
+                // Nothing in the list is on the phone: the queue playing (if any) carries on as it was, with its own
+                // source back, rather than this failed start leaving its name on it.
+                c.queue.source.value = previousSource
+                c.queue.filling = false
+                c.player.reportError(tr(R.string.you_re_offline_and_this_song))
+                return@withPlayer
+            }
+            // It starts on another song because the one asked for isn't on the phone: say so, rather than quietly
+            // starting something else.
+            if (!shuffled && offlineStart > first) c.player.reportError(
+                tr(R.string.moving_on_after_refusal, queue[first].title, tr(R.string.you_re_offline_and_this_song)),
+            )
+            val playAt = offlineStart
             // A long list (Downloads can hold thousands, the library hundreds) isn't made into media items on the main
             // thread before the first sound: the picked song and a few after it start, and the rest joins once it's
             // under way. A shuffled queue did build every item first (1.1.0), which is what made Shuffle wait on 800
@@ -988,13 +1014,13 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             val fastStart = !shuffled && rest == null && queue.size > FAST_START_AT
             val fastShuffle = shuffled && rest == null && queue.size > FAST_START_AT
             val fast = fastStart || fastShuffle
-            val from = if (fast) first else 0
-            val to = if (fast) (first + FAST_START_AFTER + 1).coerceAtMost(queue.size) else queue.size
-            val at = first - from
+            val from = if (fast) playAt else 0
+            val to = if (fast) (playAt + FAST_START_AFTER + 1).coerceAtMost(queue.size) else queue.size
+            val at = playAt - from
             c.queue.filling = rest != null || fastShuffle
             p.shuffleModeEnabled = shuffled
             val built = android.os.SystemClock.elapsedRealtime()
-            val items = queue.subList(from, to).mapIndexed { i, s -> s.toMediaItem(if (i == at) startVideo else null) }
+            val items = queue.subList(from, to).mapIndexed { i, s -> s.toMediaItem(if (i == at && playAt == first) startVideo else null) }
             p.setMediaItems(items, at, startMs.coerceAtLeast(0))
             lastQueueStart = QueueStart(queue.size, items.size, shuffled, android.os.SystemClock.elapsedRealtime() - built)
             AudioDiagnostics.log(
@@ -1006,7 +1032,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             p.prepare()
             p.play()
             if (fastShuffle) fillShuffled(queue, from, to, token)
-            else if (fastStart) fillAround(queue, first, to - first)
+            else if (fastStart) fillAround(queue, playAt, to - playAt)
             if (mode == ShuffleMode.SMART) {
                 c.queue.smartShuffle.value = true
                 // Its picks now: the service's Smart Shuffle collector never saw it go off and on again above.

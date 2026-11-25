@@ -940,6 +940,16 @@ class AppContainer(val app: Application) {
             cachedWhole(id)
 
     /**
+     * [availableOffline] for a decision that must not be wrong on the "no" side: while the song cache hasn't opened
+     * yet (its database is warmed on IO at start-up), a song it may hold wholly can't be told from one it doesn't, so
+     * it counts as playable. The player then tries it, as before, rather than passing over a song that was on the phone.
+     */
+    fun availableOfflineOrUnknown(id: String): Boolean =
+        id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX) || versions.fileOf(id) != null ||
+            downloadState.value[id]?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED ||
+            (!playerCacheOpen && android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) || cachedWhole(id)
+
+    /**
      * Whether the song's stream is wholly in the song cache. Off the main thread the cache is opened on first ask, as
      * it always was (playback asks this from IO); on the main thread only once the start-up warm-up has opened it, so a
      * row asking whether it plays offline never waits on that database in a frame.

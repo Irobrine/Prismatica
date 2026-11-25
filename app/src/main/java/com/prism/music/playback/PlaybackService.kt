@@ -48,6 +48,7 @@ import com.prism.music.PrismActivity
 import com.prism.music.R
 import com.prism.music.container
 import com.prism.music.data.SongsFrom
+import com.prism.music.data.librarySongs
 import com.prism.music.data.db.PlayEventEntity
 import com.prism.music.data.db.toEntity
 import com.prism.music.data.foryou.MadeForYou
@@ -823,16 +824,17 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             return
         }
         // Offline, songs that aren't on the phone are passed over too (#55): they'd play as far as any cached start
-        // goes and then cut to the next song.
-        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !song.isLive && !c.network.online.value && !c.availableOffline(song.id)) {
+        // goes and then cut to the next song. Not just a song the queue reaches on its own: Next, a car, a watch or a
+        // notification can pick one as well, and none of them should wait on a request that can't go anywhere.
+        if (!restoring && !song.isLive && !c.queue.followingHost && !c.network.isOnline() && !c.availableOfflineOrUnknown(song.id)) {
             // Straight to the next one that is (in play order), not just the next: that one may not be here either.
-            val tl = player.currentTimeline
-            var i = tl.getNextWindowIndex(player.currentMediaItemIndex, Player.REPEAT_MODE_OFF, player.shuffleModeEnabled)
-            while (i != C.INDEX_UNSET) {
-                val next = player.getMediaItemAt(i)
-                if (next.toSong()?.isLive == true || c.availableOffline(next.mediaId)) { untrack(); player.seekTo(i, 0); return }
-                i = tl.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, player.shuffleModeEnabled)
-            }
+            val next = nextOfflineSong(player.currentMediaItemIndex)
+            if (next != C.INDEX_UNSET) { untrack(); player.seekTo(next, 0); return }
+            // Nothing after it is here either. A stream that can't be fetched would only fail a moment later, so the
+            // phone says why it stopped instead of trying and skipping one song at a time.
+            player.pause()
+            c.player.reportError(tr(R.string.you_re_offline_and_this_song))
+            return
         }
         trackedSong = song
         // For "No repeats this session": heard, however briefly (a quick skip never reaches the history).
@@ -1172,6 +1174,16 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 player.pause()
                 c.player.reportSleepBpmExhausted()
             }
+            return
+        }
+        // Pressing Play while offline on a song that isn't on the phone: the next one that is plays instead (a queue
+        // restored from last time comes back paused, so this is the first press after opening Prism with no connection).
+        if (!c.queue.followingHost && !song.isLive && !c.network.isOnline() && !c.availableOfflineOrUnknown(song.id)) {
+            val next = nextOfflineSong(player.currentMediaItemIndex)
+            if (next != C.INDEX_UNSET) player.seekTo(next, 0) else {
+                player.pause()
+                c.player.reportError(tr(R.string.you_re_offline_and_this_song))
+            }
         }
     }
 
@@ -1294,6 +1306,21 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
 
     override fun onAudioSessionIdChanged(audioSessionId: Int) {
         effects.attach(audioSessionId)
+    }
+
+    /**
+     * The next place after [from] (in play order) whose song plays with no connection: one on the phone, or a live stream
+     * (which has no copy to keep). C.INDEX_UNSET when none does.
+     */
+    private fun nextOfflineSong(from: Int): Int {
+        val tl = player.currentTimeline
+        var i = tl.getNextWindowIndex(from, Player.REPEAT_MODE_OFF, player.shuffleModeEnabled)
+        while (i != C.INDEX_UNSET) {
+            val next = player.getMediaItemAt(i)
+            if (next.toSong()?.isLive == true || c.availableOfflineOrUnknown(next.mediaId)) return i
+            i = tl.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, player.shuffleModeEnabled)
+        }
+        return C.INDEX_UNSET
     }
 
     /**
@@ -2675,6 +2702,17 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             .filter { it.mediaId !in c.queue.smartPicks.value }.mapNotNull { it.toSong() }.filter { !it.isLocal && !it.isEpisode && !it.isLive }
         if (own.isEmpty()) return
         val recent = c.library.recent.value.take(50).map { it.id }.toSet()
+        // Offline, YouTube's radios have nowhere to go: Smart Shuffle's picks come from the phone, as Autoplay's do
+        // (#55), rather than a few requests that can only time out.
+        if (!c.network.isOnline()) {
+            val phone = runCatching { withContext(Dispatchers.IO) { c.yourMusic.offlinePicks() } }.getOrDefault(emptyList())
+            phone.filter { s ->
+                s.id !in inQueue && !c.snoozes.isSnoozed(s) && !s.isVideo && !s.isLive && !c.library.isDisliked(s.id) &&
+                    !c.exclusions.blocks(s) && !c.player.sleepBlocksBpm(s.id) &&
+                    smartPool.none { it.id == s.id } && c.availableOfflineOrUnknown(s.id)
+            }.shuffled().take(12).forEach { smartPool += it }
+            return
+        }
         for (seed in own.shuffled().take(2)) {
             val r = runCatching { withContext(Dispatchers.IO) { c.radio(seed.id, "RDAMVM${seed.id}") } }.getOrNull() ?: continue
             r.songs.filter { s ->
@@ -3105,7 +3143,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val owner = settings.accountName
         val whose = "${settings.authUser}|${settings.dataSyncId}|${settings.accountName}"
         val day = java.time.LocalDate.now().toString()
-        val kept = runCatching { c.homeCache.readPicks(day, whose) }.getOrNull().orEmpty()
+        val kept = playableOffline(runCatching { c.homeCache.readPicks(day, whose) }.getOrNull().orEmpty())
         if (kept.isNotEmpty()) {
             playQuickPicks(kept, press)
             // Today's set again behind the music now and then, so a later press (and tomorrow) has a fresh one.
@@ -3122,14 +3160,26 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         if (!stillWanted(press)) return true
         if (songs.isEmpty()) return false
         quickPicksMadeAt = SystemClock.elapsedRealtime()
-        playQuickPicks(songs, press)
+        return playQuickPicks(songs, press)
+    }
+
+    /** Starts [songs] shuffled; offline only those on the phone, and false when there are none (the caller falls back). */
+    private suspend fun playQuickPicks(songs: List<Song>, press: Int?): Boolean {
+        if (!stillWanted(press)) return true
+        val play = playableOffline(songs)
+        if (play.isEmpty()) return false
+        c.player.playQueue(play, 0, QueueSource(QueueKind.OTHER, tr(R.string.persistent_quick_picks)), shuffle = true)
         return true
     }
 
-    private fun playQuickPicks(songs: List<Song>, press: Int?) {
-        if (!stillWanted(press)) return
-        c.player.playQueue(songs, 0, QueueSource(QueueKind.OTHER, tr(R.string.persistent_quick_picks)), shuffle = true)
-    }
+    /**
+     * The songs that can play now: every one when there's a connection, and only the phone's own when there isn't
+     * (#55). A shuffle offline mustn't start on a stream it can't reach, any more than a tap may.
+     */
+    private suspend fun playableOffline(songs: List<Song>): List<Song> =
+        if (c.network.isOnline()) songs
+        // Off the main thread: a library can be thousands of songs, each a cache lookup.
+        else withContext(Dispatchers.IO) { songs.filter { c.availableOfflineOrUnknown(it.id) } }
 
     /**
      * Quick picks made afresh (YouTube's own and, unless the listener chose YouTube's only, the set around their
@@ -3137,6 +3187,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * so they aren't waited for.
      */
     private suspend fun makeQuickPicks(owner: String, whose: String, day: String): List<Song> {
+        // Offline there's no feed to ask: the phone's own picks start at once, rather than two requests that can only
+        // time out (20 s then 25 s) before the same answer.
+        if (!c.network.isOnline()) return runCatching { c.yourMusic.offlinePicks() }.getOrDefault(emptyList())
         val shelves = withTimeoutOrNull(20_000) {
             runCatching {
                 c.ytm.fullHomePages(pages = 1, maxPages = 8) { got -> got.quickPicks(owner) != null }.first
@@ -3187,16 +3240,14 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         }
         if (!stillWanted(press)) return true
         if (songs.isEmpty()) return false
-        c.player.playQueue(songs, 0, QueueSource(QueueKind.LIBRARY, tr(R.string.library)), shuffle = true)
+        val play = playableOffline(songs)
+        if (play.isEmpty()) return false
+        c.player.playQueue(play, 0, QueueSource(QueueKind.LIBRARY, tr(R.string.library)), shuffle = true)
         return true
     }
 
     /** Library → Songs' songs from what the phone keeps, without asking YouTube. */
-    private suspend fun librarySongsNow(from: SongsFrom): List<Song> {
-        val own = c.prismLibrary.lists.value.associateBy { it.id }
-        val lists = from.playlists.map { id -> own[id]?.songs ?: c.playlistSongs.cached(id).orEmpty() }
-        return if (from.isDefault) c.library.likedShown.value else SongsFrom.merge(c.library.likedShown.value, lists, from)
-    }
+    private suspend fun librarySongsNow(from: SongsFrom): List<Song> = c.librarySongs(from)
 
     /**
      * Resumes what was playing before Prism stopped, at the place it stopped; the queue file keeps that place. True is
@@ -3222,6 +3273,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val id = MadeForYou.daily(n)
         var mix = c.forYou.mix(id)
         if (mix == null || mix.songs.isEmpty()) {
+            // Offline there is nothing to make a mix from: the caller's fallback (Quick picks, then Library songs) keeps
+            // to what's here instead of waiting out a minute-long refresh.
+            if (!c.network.isOnline()) return false
             toast(tr(R.string.persistent_making_mix, n))
             withTimeoutOrNull(60_000) { runCatching { c.forYou.refresh(force = true) } }
             mix = c.forYou.mix(id)
@@ -3229,7 +3283,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val songs = mix?.songs.orEmpty()
         if (!stillWanted(press)) return true
         if (songs.isEmpty()) return false
-        c.player.playQueue(songs, 0, QueueSource(QueueKind.OTHER, mix?.title ?: tr(R.string.persistent_daily_mix, n)), shuffle = true)
+        val play = playableOffline(songs)
+        if (play.isEmpty()) return false
+        c.player.playQueue(play, 0, QueueSource(QueueKind.OTHER, mix?.title ?: tr(R.string.persistent_daily_mix, n)), shuffle = true)
         return true
     }
 
@@ -3451,7 +3507,19 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         }
     }
 
+    /** True while [restoreQueue] puts the saved queue back: the offline rule leaves the place it stopped at alone. */
+    private var restoring = false
+
     private fun restoreQueue() {
+        restoring = true
+        try {
+            restoreQueueNow()
+        } finally {
+            restoring = false
+        }
+    }
+
+    private fun restoreQueueNow() {
         val q = runCatching { InnerTube.json.decodeFromString(SavedQueue.serializer(), queueFile.readText()) }.getOrNull() ?: return
         // Repeat and shuffle are how the listener listens, kept with nothing lined up too (#241: the song swiped away from
         // the mini player, then Prism closed, and repeat was off again).
