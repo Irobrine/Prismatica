@@ -4,7 +4,9 @@ import com.prism.music.AppContainer
 import com.prism.music.data.innertube.SearchRank
 import com.prism.music.data.model.Song
 import com.prism.music.data.model.SongItem
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -35,45 +37,55 @@ enum class MoreFrom(val artist: Boolean) {
 data class MoreFromPick(val songs: List<Song>, val offline: Boolean)
 
 /**
- * How long a tap gives YouTube before it settles for the phone's own songs. A network Android hasn't validated (a
- * Wi-Fi whose uplink is gone, say) has almost certainly nowhere to go, and its requests would sit on the connect
- * timeout: a tap there waits [ONLINE_BUDGET_UNVALIDATED_MS], not the minutes two timeouts could add up to.
- * Validated networks keep a longer one for a slow first answer.
+ * How long a tap gives YouTube before the phone's own songs are all there is. A network Android has validated can be
+ * slow; an unvalidated one (a Wi-Fi whose uplink is gone, say) isn't tried at all, as its requests would sit on
+ * OkHttp's 15 s connect timeout, twice over.
  */
-internal const val ONLINE_BUDGET_VALIDATED_MS = 5_000L
-internal const val ONLINE_BUDGET_UNVALIDATED_MS = 2_000L
+internal const val ONLINE_BUDGET_MS = 4_000L
 
-/** The time [moreFromSongs] gives its YouTube look-up: [ONLINE_BUDGET_VALIDATED_MS] or, unvalidated, the shorter one. */
-internal fun onlineBudgetMs(validated: Boolean) = if (validated) ONLINE_BUDGET_VALIDATED_MS else ONLINE_BUDGET_UNVALIDATED_MS
-
-/** [block]'s answer, or null when it takes longer than [budgetMs] (a network that can't answer doesn't hold the caller). */
-internal suspend fun <T> withinOrNull(budgetMs: Long, block: suspend () -> T): T? = withTimeoutOrNull(budgetMs) { block() }
+/**
+ * [block]'s answer, or null when it takes longer than [budgetMs]. [block] runs on this scope, not the caller's, and an
+ * OkHttp call can't be interrupted: one that outlasts the budget is left to finish on its own, its answer dropped,
+ * rather than waited for.
+ */
+internal suspend fun <T> CoroutineScope.withinOrNull(budgetMs: Long, block: suspend () -> T): T? {
+    val job = async { block() }
+    val out = try {
+        withTimeoutOrNull(budgetMs) { job.await() }
+    } catch (e: Exception) {
+        job.cancel()
+        throw e
+    }
+    if (out == null) job.cancel()
+    return out
+}
 
 /**
  * Up to [count] songs by [song]'s artist or from its album, shuffled, to go right after it.
  *
- * Online they come from YouTube Music: the artist's page and their own shuffle list (kept to this artist's songs only),
- * or the album's tracks. Offline, or when YouTube can't be reached, they come from the phone's library — Downloads and
- * Local files — and only those. When there aren't as many as were asked for, all there are come back (never an error).
- * The look-up is given [onlineBudgetMs] and no more, so a network that can't answer doesn't hold the tap on its
- * connect timeout.
+ * Online they come from YouTube Music: the artist's catalogue (the list behind their page's Top songs, keeping only
+ * their songs) or the album's tracks. Offline, or when YouTube can't be reached, they come from the phone's library —
+ * Downloads and Local files — and only those. When there aren't as many as were asked for, all there are come back
+ * (never an error). A network Android hasn't validated isn't asked at all, and one it has gets [ONLINE_BUDGET_MS]: a
+ * tap can't wait on a connection that has nowhere to go.
  */
 suspend fun AppContainer.moreFromSongs(song: Song, from: MoreFrom, count: Int): MoreFromPick = withContext(Dispatchers.IO) {
     val want = MoreFrom.clamp(count)
     val picked = mutableListOf<Song>()
     // The song itself, and the recording picked to play in its place (#328), never come back.
     val current = setOfNotNull(song.id, versions.of(song.id))
-    val online = network.isOnline()
     // Whether YouTube answered at all: one that doesn't (a network with nowhere to go, a request that failed) leaves
     // the phone's songs as the only ones there were, and the toast says so.
     var onlineAnswered = false
-    if (online) {
+    // Android's validated flag is the only signal that says a network has nowhere to send a request. isOnline() stays
+    // lenient for playback (some working networks never validate), but a tap can't afford a 15 s connect timeout.
+    if (network.isOnline() && network.isValidated()) {
         val found = try {
-            withinOrNull(onlineBudgetMs(network.isValidated())) { onlineMoreFrom(song, from) }
+            scope.withinOrNull(ONLINE_BUDGET_MS) { onlineMoreFrom(song, from) }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            emptyList()
+            null
         }
         onlineAnswered = found != null
         picked += shuffledMoreFrom(found.orEmpty(), want, exclude = current)
@@ -87,7 +99,7 @@ suspend fun AppContainer.moreFromSongs(song: Song, from: MoreFrom, count: Int): 
 }
 
 /** The songs YouTube Music knows for [song]'s artist or album, before shuffling. Empty when it has none to offer. */
-private suspend fun AppContainer.onlineMoreFrom(song: Song, from: MoreFrom): List<Song> {
+internal suspend fun AppContainer.onlineMoreFrom(song: Song, from: MoreFrom): List<Song> {
     return when (from) {
         MoreFrom.ARTIST -> {
             // The song's own (first) artist: the page it opens names them. Another artist's link is no help: it would
@@ -95,18 +107,21 @@ private suspend fun AppContainer.onlineMoreFrom(song: Song, from: MoreFrom): Lis
             val ref = song.artists.firstOrNull() ?: return emptyList()
             val id = ref.id ?: ytm.artistIdByName(ref.name) ?: return emptyList()
             val page = ytm.artist(id)
-            // The page's own songs, and its shuffle list (which can carry similar artists too: only this one's songs stay).
-            val listed = page.shelves.flatMap { it.items }.filterIsInstance<SongItem>().map { it.song }
-            val shuffle = page.shufflePlaylistId?.let { playlist ->
-                try {
-                    ytm.playlist(playlist).songs
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    emptyList()
-                }
-            }.orEmpty()
-            (listed + shuffle).filter { !it.isVideo && !it.isEpisode && !it.isLive && sharesArtist(it, song) }
+            // The page itself carries five top songs; the list behind their "See all" has the artist's catalogue (a
+            // hundred or so, across their albums). The handful picked has to come from that, not the same five every
+            // time. (The page's own shuffle link is a "next" queue, not a list that can be read.)
+            val pageSongs = page.shelves.flatMap { it.items }.filterIsInstance<SongItem>().map { it.song }
+            val catalogue = page.shelves.firstOrNull { s -> s.moreBrowseId?.startsWith("VL") == true && s.items.any { it is SongItem && !it.song.isVideo } }
+                ?.moreBrowseId?.let { vl ->
+                    try {
+                        ytm.playlist(vl).songs
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                }.orEmpty()
+            (catalogue + pageSongs).filter { !it.isVideo && !it.isEpisode && !it.isLive && sharesArtist(it, song) }
         }
         MoreFrom.ALBUM -> {
             // A file's album is the phone's, not YouTube's: there's no page to ask for.

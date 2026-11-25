@@ -1,7 +1,7 @@
 package com.prism.music
 
 import com.prism.music.data.MoreFrom
-import com.prism.music.data.onlineBudgetMs
+import com.prism.music.data.ONLINE_BUDGET_MS
 import com.prism.music.data.phoneMoreFrom
 import com.prism.music.data.shuffledMoreFrom
 import com.prism.music.data.sharesAlbum
@@ -10,6 +10,10 @@ import com.prism.music.data.withinOrNull
 import com.prism.music.data.model.AlbumRef
 import com.prism.music.data.model.ArtistRef
 import com.prism.music.data.model.Song
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -94,17 +98,21 @@ class MoreFromTest {
     }
 
     /**
-     * A tap gives YouTube a budget and no more: on a network that can't answer (a Wi-Fi whose uplink is gone, which
-     * Android hasn't validated) the phone's own songs come back at once instead of the tap hanging on the connect
+     * A tap gives YouTube a budget and no more. OkHttp can't be interrupted, so the look-up runs on the app's own scope
+     * and one that outlasts the budget is left behind: a network that can't answer doesn't hold the tap on its connect
      * timeout. A look-up that answers in time is kept.
      */
     @Test fun aLookupThatCantAnswerDoesNotHoldTheTap() = runBlocking {
-        assertTrue("an unvalidated network gets the shorter try", onlineBudgetMs(false) < onlineBudgetMs(true))
-        assertTrue("neither outlasts the listener's patience", onlineBudgetMs(true) <= 5_000)
-        val started = System.currentTimeMillis()
-        assertNull("a look-up that never answers gives nothing", withinOrNull(150) { delay(5_000); "songs" })
-        val took = System.currentTimeMillis() - started
-        assertTrue("waited $took ms on a look-up that can't finish", took < 2_000)
-        assertEquals("a look-up that answers in time is kept", "songs", withinOrNull(5_000) { "songs" })
+        assertTrue("the budget is short", ONLINE_BUDGET_MS <= 5_000)
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val started = System.currentTimeMillis()
+            assertNull("a look-up that never answers gives nothing", scope.withinOrNull(150) { delay(5_000); "songs" })
+            val took = System.currentTimeMillis() - started
+            assertTrue("waited $took ms on a look-up that can't finish", took < 2_000)
+            assertEquals("a look-up that answers in time is kept", "songs", scope.withinOrNull(5_000) { "songs" })
+        } finally {
+            scope.cancel()
+        }
     }
 }
