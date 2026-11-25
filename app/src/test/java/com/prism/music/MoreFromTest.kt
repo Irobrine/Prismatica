@@ -1,15 +1,20 @@
 package com.prism.music
 
 import com.prism.music.data.MoreFrom
+import com.prism.music.data.onlineBudgetMs
 import com.prism.music.data.phoneMoreFrom
 import com.prism.music.data.shuffledMoreFrom
 import com.prism.music.data.sharesAlbum
 import com.prism.music.data.sharesArtist
+import com.prism.music.data.withinOrNull
 import com.prism.music.data.model.AlbumRef
 import com.prism.music.data.model.ArtistRef
 import com.prism.music.data.model.Song
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -86,5 +91,20 @@ class MoreFromTest {
         assertEquals(1, MoreFrom.clamp(0))
         assertEquals(25, MoreFrom.clamp(99))
         assertEquals(7, MoreFrom.clamp(7))
+    }
+
+    /**
+     * A tap gives YouTube a budget and no more: on a network that can't answer (a Wi-Fi whose uplink is gone, which
+     * Android hasn't validated) the phone's own songs come back at once instead of the tap hanging on the connect
+     * timeout. A look-up that answers in time is kept.
+     */
+    @Test fun aLookupThatCantAnswerDoesNotHoldTheTap() = runBlocking {
+        assertTrue("an unvalidated network gets the shorter try", onlineBudgetMs(false) < onlineBudgetMs(true))
+        assertTrue("neither outlasts the listener's patience", onlineBudgetMs(true) <= 5_000)
+        val started = System.currentTimeMillis()
+        assertNull("a look-up that never answers gives nothing", withinOrNull(150) { delay(5_000); "songs" })
+        val took = System.currentTimeMillis() - started
+        assertTrue("waited $took ms on a look-up that can't finish", took < 2_000)
+        assertEquals("a look-up that answers in time is kept", "songs", withinOrNull(5_000) { "songs" })
     }
 }

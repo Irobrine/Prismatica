@@ -6,6 +6,7 @@ import com.prism.music.data.model.Song
 import com.prism.music.data.model.SongItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The two "More from this…" buttons: they take songs from the artist of the one playing, or from its album, shuffle them
@@ -28,9 +29,25 @@ enum class MoreFrom(val artist: Boolean) {
 
 /**
  * What one "More from this…" tap found: [songs] in a shuffled order (up to the number asked for) and whether the phone's
- * own library was all there was to pick from ([offline]: no network, so the answer says what's on the phone).
+ * own library was all there was to pick from ([offline]: no network, or none that answered, so the answer says what's
+ * on the phone).
  */
 data class MoreFromPick(val songs: List<Song>, val offline: Boolean)
+
+/**
+ * How long a tap gives YouTube before it settles for the phone's own songs. A network Android hasn't validated (a
+ * Wi-Fi whose uplink is gone, say) has almost certainly nowhere to go, and its requests would sit on the connect
+ * timeout: a tap there waits [ONLINE_BUDGET_UNVALIDATED_MS], not the minutes two timeouts could add up to.
+ * Validated networks keep a longer one for a slow first answer.
+ */
+internal const val ONLINE_BUDGET_VALIDATED_MS = 5_000L
+internal const val ONLINE_BUDGET_UNVALIDATED_MS = 2_000L
+
+/** The time [moreFromSongs] gives its YouTube look-up: [ONLINE_BUDGET_VALIDATED_MS] or, unvalidated, the shorter one. */
+internal fun onlineBudgetMs(validated: Boolean) = if (validated) ONLINE_BUDGET_VALIDATED_MS else ONLINE_BUDGET_UNVALIDATED_MS
+
+/** [block]'s answer, or null when it takes longer than [budgetMs] (a network that can't answer doesn't hold the caller). */
+internal suspend fun <T> withinOrNull(budgetMs: Long, block: suspend () -> T): T? = withTimeoutOrNull(budgetMs) { block() }
 
 /**
  * Up to [count] songs by [song]'s artist or from its album, shuffled, to go right after it.
@@ -38,6 +55,8 @@ data class MoreFromPick(val songs: List<Song>, val offline: Boolean)
  * Online they come from YouTube Music: the artist's page and their own shuffle list (kept to this artist's songs only),
  * or the album's tracks. Offline, or when YouTube can't be reached, they come from the phone's library — Downloads and
  * Local files — and only those. When there aren't as many as were asked for, all there are come back (never an error).
+ * The look-up is given [onlineBudgetMs] and no more, so a network that can't answer doesn't hold the tap on its
+ * connect timeout.
  */
 suspend fun AppContainer.moreFromSongs(song: Song, from: MoreFrom, count: Int): MoreFromPick = withContext(Dispatchers.IO) {
     val want = MoreFrom.clamp(count)
@@ -45,22 +64,26 @@ suspend fun AppContainer.moreFromSongs(song: Song, from: MoreFrom, count: Int): 
     // The song itself, and the recording picked to play in its place (#328), never come back.
     val current = setOfNotNull(song.id, versions.of(song.id))
     val online = network.isOnline()
+    // Whether YouTube answered at all: one that doesn't (a network with nowhere to go, a request that failed) leaves
+    // the phone's songs as the only ones there were, and the toast says so.
+    var onlineAnswered = false
     if (online) {
         val found = try {
-            onlineMoreFrom(song, from)
+            withinOrNull(onlineBudgetMs(network.isValidated())) { onlineMoreFrom(song, from) }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             emptyList()
         }
-        picked += shuffledMoreFrom(found, want, exclude = current)
+        onlineAnswered = found != null
+        picked += shuffledMoreFrom(found.orEmpty(), want, exclude = current)
     }
     // What YouTube doesn't have (or couldn't be reached for), the phone still might: more of it, up to the number asked.
     if (picked.size < want) {
         val phone = phoneMoreFrom(song, from, downloads.completedSongs(), localMusic.tracks.value.map { it.song })
         picked += shuffledMoreFrom(phone, want - picked.size, exclude = picked.mapTo(mutableSetOf()) { it.id } + current)
     }
-    MoreFromPick(picked, offline = !online)
+    MoreFromPick(picked, offline = !onlineAnswered)
 }
 
 /** The songs YouTube Music knows for [song]'s artist or album, before shuffling. Empty when it has none to offer. */
