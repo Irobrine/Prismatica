@@ -1181,17 +1181,20 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
      */
     private fun appendAfterQueued(p: ExoPlayer, songs: List<Song>) {
         val ids = songs.map { it.id }
-        // Already the end of Next in queue: nothing moves, so a stream or a blend being got ready for it carries on.
+        val order = playOrder(p)
+        val cur = order.indexOf(p.currentMediaItemIndex)
+        val ahead = if (cur >= 0) order.drop(cur + 1) else emptyList()
+        val aheadIds = ahead.map { p.getMediaItemAt(it).mediaId }
+        // Already where they'd go — the end of Next in queue, or (none queued yet) right after the playing song:
+        // nothing moves, so a stream or a blend being got ready for them carries on (#368).
         val run = queuedEnd(p).second
-        if (run.size >= ids.size && run.subList(run.size - ids.size, run.size) == ids) {
+        if (run.size >= ids.size && run.subList(run.size - ids.size, run.size) == ids ||
+            aheadIds.drop(run.size).take(ids.size) == ids
+        ) {
             c.queue.userQueued.value = c.queue.userQueued.value + ids
             return
         }
-        val order = playOrder(p)
-        val cur = order.indexOf(p.currentMediaItemIndex)
         if (cur >= 0) {
-            val ahead = order.drop(cur + 1)
-            val aheadIds = ahead.map { p.getMediaItemAt(it).mediaId }
             QueueEdit.copiesMovingUp(aheadIds, ids).map { ahead[it] }.sortedDescending().forEach { removeAt(it) }
         }
         val at = queuedEnd(p).first + 1

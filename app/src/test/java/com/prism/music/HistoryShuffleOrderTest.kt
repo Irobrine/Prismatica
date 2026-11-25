@@ -103,4 +103,27 @@ class HistoryShuffleOrderTest {
         assertEquals(3, set.getFirstIndex())
         assertEquals((0 until 6).toSet(), set.list().toSet())
     }
+
+    /**
+     * "Append to Play Next" (with the queue shuffled): songs put in at [at] play right after [anchor], which can be any
+     * song in the queue, not only the playing one or the queue's last. Their own play order is the order they went in.
+     */
+    @Test
+    fun songsAppendedPlayRightAfterTheSongTheyFollow() {
+        // Two songs added at the end (5, 6), after 4 (which is third in the play order).
+        assertEquals(listOf(2, 0, 4, 5, 6, 1, 3), start.insertedAfter(at = 5, count = 2, anchor = 4).list())
+        // One added at the end, after the playing song (0): it comes straight after it.
+        assertEquals(listOf(2, 0, 5, 4, 1, 3), start.insertedAfter(at = 5, count = 1, anchor = 0).list())
+        // Previous from the playing song is still the one heard before it.
+        assertEquals(2, start.insertedAfter(at = 5, count = 2, anchor = 4).getPreviousIndex(0))
+    }
+
+    @Test
+    fun appendedSongsLandInTheMiddleWhenTheQueueGrowsThere() {
+        // One song put in at 2 (before what was the queue's third song): the later songs move up one, and the new one
+        // plays right after 0, the song it was put after.
+        assertEquals(listOf(3, 0, 2, 5, 1, 4), start.insertedAfter(at = 2, count = 1, anchor = 0).list())
+        // Nobody to follow (the anchor has gone): they go at the end, nothing lost.
+        assertEquals(listOf(2, 0, 4, 1, 3, 5, 6), start.insertedAfter(at = 5, count = 2, anchor = 99).list())
+    }
 }

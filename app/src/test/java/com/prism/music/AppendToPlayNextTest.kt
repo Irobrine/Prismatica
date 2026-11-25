@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -96,6 +97,27 @@ class AppendToPlayNextTest {
         c.player.playNext(s.first { it.id == first })
         c.player.playNext(s.first { it.id == second })
         assertEquals(listOf(first, second), upcoming().take(2))
+    }
+
+    /** Already next, nothing moves: the item keeps what it was queued with (its stream, a blend being readied). */
+    @Test fun onASongAlreadyNextIsNotTakenOutAndPutBack() {
+        playing()
+        append(true)
+        val next = player.getMediaItemAt(1)
+        c.player.playNext(songs("p1"), null)
+        assertEquals(listOf("p0", "p1", "p2"), queueIds())
+        assertSame("the song went in again", next, player.getMediaItemAt(1))
+    }
+
+    /** The listener's own songs stay together: what was added to the queue later comes after them, not between. */
+    @Test fun onTheNextSongsStayBeforeWhatWasAddedToTheQueueLater() {
+        playing()
+        append(true)
+        c.player.playNext(songs("n1"), null)
+        c.queue.autoplayStart.value = -1
+        c.player.addToQueue(songs("a1"), null)
+        c.player.playNext(songs("n2"), null)
+        assertEquals(listOf("p0", "n1", "n2", "p1", "p2", "a1"), queueIds())
     }
 
     /** What's coming, in the order it will really play. */
