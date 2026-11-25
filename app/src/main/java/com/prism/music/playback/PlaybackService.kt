@@ -172,6 +172,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     /** When each was last done, so pressing the button again doesn't sync the same thing over and over. */
     private var quickPicksMadeAt = 0L
     private var librarySyncedAt = 0L
+    /** The persistent card's shuffle buttons: one set being made at a time, a burst of taps is one press ([PressGate]). */
+    private val persistentPress = PressGate<PersistentAction>()
 
     private lateinit var lockScreen: com.prism.music.ui.lockscreen.LockScreenGate
     private val silentKeepAlive by lazy { SilentKeepAlive(this) }
@@ -299,7 +301,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         // in the session's timeline to show controls at all.)
         sessionPlayer.setPlaceholderItem(placeholderItem())
         sessionPlayer.onPlaceholderPlay = {
-            scope.launch { if (!playLastPlayed()) runPersistentAction(PersistentAction.LIBRARY_SONGS) }
+            // Play from the card itself: a set that was being made when it was pressed mustn't replace what it starts.
+            val press = if (persistentPress.isRunning) persistentPress.supersede() else null
+            scope.launch { if (!playLastPlayed(press)) runPersistentAction(PersistentAction.LIBRARY_SONGS, press) }
         }
         sessionPlayer.onPlaceholderPaused = { reactivatePersistentCard() }
         carLyrics = CarLyrics(this, c, player, sessionPlayer, scope)
@@ -3024,18 +3028,59 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     }
 
     /**
+     * A press of one of the persistent card's buttons. Quick picks and the mixes take seconds the first time and the
+     * card stays tappable while they do, so the same button pressed again while it is still making its set is the same
+     * press: it is dropped here rather than run a second time (each finished set started the music afresh, so a burst of
+     * taps shuffled through several songs as they arrived). A press of another button is the listener's newer wish: it
+     * runs, and the set still on its way is made and kept but doesn't start the music. Opening a tab or the recognizer
+     * plays nothing, so a set being made doesn't hold it up.
+     */
+    private fun pressPersistent(action: PersistentAction) {
+        if (!action.playsSomething()) {
+            scope.launch { runPersistentAction(action) }
+            return
+        }
+        val press = persistentPress.start(action, SystemClock.elapsedRealtime()) ?: return
+        scope.launch {
+            try {
+                runPersistentAction(action, press)
+            } finally {
+                persistentPress.finish(action, press, SystemClock.elapsedRealtime())
+            }
+        }
+    }
+
+    /** Whether a press is still the newest one, and so the one whose set starts the music. */
+    private fun stillWanted(press: Int?): Boolean = persistentPress.isCurrent(press)
+
+    /** The persistent buttons that start the music: Quick picks, Library songs, Last played and a Daily Mix. */
+    private fun PersistentAction.playsSomething(): Boolean = when (this) {
+        PersistentAction.QUICK_PICKS, PersistentAction.LIBRARY_SONGS, PersistentAction.LAST_PLAYED,
+        PersistentAction.DAILY_1, PersistentAction.DAILY_2, PersistentAction.DAILY_3, PersistentAction.DAILY_4 -> true
+        PersistentAction.OPEN_HOME, PersistentAction.OPEN_SEARCH, PersistentAction.OPEN_LIBRARY,
+        PersistentAction.OPEN_REPLAY, PersistentAction.OPEN_SETTINGS, PersistentAction.OPEN_LOCAL,
+        PersistentAction.OPEN_DOWNLOADS, PersistentAction.OPEN_LIKED, PersistentAction.OPEN_PODCASTS,
+        PersistentAction.RECOGNIZE -> false
+    }
+
+    /**
      * Runs a persistent button's action. Playback actions never bring Prism's screen up; Open Tab is the one that does,
      * and Recognize opens the same listening card the widget does.
+     *
+     * [press] is the generation of the press that got here, if any: once a newer press has the card, the helpers below
+     * make and keep their set without starting it, and say true ("handled") so this doesn't fall back or say it found
+     * no songs.
      */
-    private suspend fun runPersistentAction(action: PersistentAction) {
+    private suspend fun runPersistentAction(action: PersistentAction, press: Int? = null) {
+        if (!stillWanted(press)) return
         val played = when (action) {
-            PersistentAction.QUICK_PICKS -> shuffleQuickPicks() || shuffleLibrarySongs()
-            PersistentAction.LIBRARY_SONGS -> shuffleLibrarySongs()
-            PersistentAction.LAST_PLAYED -> playLastPlayed() || shuffleLibrarySongs()
-            PersistentAction.DAILY_1 -> shuffleDailyMix(1) || shuffleQuickPicks() || shuffleLibrarySongs()
-            PersistentAction.DAILY_2 -> shuffleDailyMix(2) || shuffleQuickPicks() || shuffleLibrarySongs()
-            PersistentAction.DAILY_3 -> shuffleDailyMix(3) || shuffleQuickPicks() || shuffleLibrarySongs()
-            PersistentAction.DAILY_4 -> shuffleDailyMix(4) || shuffleQuickPicks() || shuffleLibrarySongs()
+            PersistentAction.QUICK_PICKS -> shuffleQuickPicks(press) || shuffleLibrarySongs(press)
+            PersistentAction.LIBRARY_SONGS -> shuffleLibrarySongs(press)
+            PersistentAction.LAST_PLAYED -> playLastPlayed(press) || shuffleLibrarySongs(press)
+            PersistentAction.DAILY_1 -> shuffleDailyMix(1, press) || shuffleQuickPicks(press) || shuffleLibrarySongs(press)
+            PersistentAction.DAILY_2 -> shuffleDailyMix(2, press) || shuffleQuickPicks(press) || shuffleLibrarySongs(press)
+            PersistentAction.DAILY_3 -> shuffleDailyMix(3, press) || shuffleQuickPicks(press) || shuffleLibrarySongs(press)
+            PersistentAction.DAILY_4 -> shuffleDailyMix(4, press) || shuffleQuickPicks(press) || shuffleLibrarySongs(press)
             PersistentAction.OPEN_HOME, PersistentAction.OPEN_SEARCH, PersistentAction.OPEN_LIBRARY,
             PersistentAction.OPEN_REPLAY, PersistentAction.OPEN_SETTINGS, PersistentAction.OPEN_LOCAL,
             PersistentAction.OPEN_DOWNLOADS, PersistentAction.OPEN_LIKED, PersistentAction.OPEN_PODCASTS -> {
@@ -3055,14 +3100,14 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * means a Home page and three radios, about 5 s) and kept for the next press. Without a set for today the first
      * one has to be made now.
      */
-    private suspend fun shuffleQuickPicks(): Boolean {
+    private suspend fun shuffleQuickPicks(press: Int?): Boolean {
         val settings = c.settings.current
         val owner = settings.accountName
         val whose = "${settings.authUser}|${settings.dataSyncId}|${settings.accountName}"
         val day = java.time.LocalDate.now().toString()
         val kept = runCatching { c.homeCache.readPicks(day, whose) }.getOrNull().orEmpty()
         if (kept.isNotEmpty()) {
-            playQuickPicks(kept)
+            playQuickPicks(kept, press)
             // Today's set again behind the music now and then, so a later press (and tomorrow) has a fresh one.
             val now = SystemClock.elapsedRealtime()
             if (quickPicksJob?.isActive != true && (quickPicksMadeAt == 0L || now - quickPicksMadeAt > QUICK_PICKS_REFRESH_EVERY_MS)) {
@@ -3073,13 +3118,16 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         }
         toast(tr(R.string.persistent_getting_quick_picks))
         val songs = makeQuickPicks(owner, whose, day)
+        // A set made while the listener pressed something else is kept for the next press, but doesn't start the music.
+        if (!stillWanted(press)) return true
         if (songs.isEmpty()) return false
         quickPicksMadeAt = SystemClock.elapsedRealtime()
-        playQuickPicks(songs)
+        playQuickPicks(songs, press)
         return true
     }
 
-    private fun playQuickPicks(songs: List<Song>) {
+    private fun playQuickPicks(songs: List<Song>, press: Int?) {
+        if (!stillWanted(press)) return
         c.player.playQueue(songs, 0, QueueSource(QueueKind.OTHER, tr(R.string.persistent_quick_picks)), shuffle = true)
     }
 
@@ -3113,7 +3161,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * What the phone already keeps starts at once; syncing the library and checking the playlists for new songs happens
      * behind the music (it means the whole liked library and a page of each playlist), so the next press has what's new.
      */
-    private suspend fun shuffleLibrarySongs(): Boolean {
+    private suspend fun shuffleLibrarySongs(press: Int?): Boolean {
         val settings = c.settings.current
         val from = SongsFrom.decode(c.library.sortOf(SongsFrom.KEY))
         var songs = librarySongsNow(from)
@@ -3137,6 +3185,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 }
             }
         }
+        if (!stillWanted(press)) return true
         if (songs.isEmpty()) return false
         c.player.playQueue(songs, 0, QueueSource(QueueKind.LIBRARY, tr(R.string.library)), shuffle = true)
         return true
@@ -3149,8 +3198,12 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         return if (from.isDefault) c.library.likedShown.value else SongsFrom.merge(c.library.likedShown.value, lists, from)
     }
 
-    /** Resumes what was playing before Prism stopped, at the place it stopped; the queue file keeps that place. */
-    private fun playLastPlayed(): Boolean {
+    /**
+     * Resumes what was playing before Prism stopped, at the place it stopped; the queue file keeps that place. True is
+     * "handled": a newer press has the card, so this one neither plays nor lets the caller fall back.
+     */
+    private fun playLastPlayed(press: Int?): Boolean {
+        if (!stillWanted(press)) return true
         // Paused (Prism was only closed): the queue is still loaded, so resume it where it is, exactly. Stopped or a new
         // process: the saved queue has the place it stopped at.
         if (player.mediaItemCount == 0 || player.playbackState == Player.STATE_IDLE) {
@@ -3165,7 +3218,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     }
 
     /** A Daily Mix, made again if needed; the caller falls back to Quick picks, then Library songs. */
-    private suspend fun shuffleDailyMix(n: Int): Boolean {
+    private suspend fun shuffleDailyMix(n: Int, press: Int?): Boolean {
         val id = MadeForYou.daily(n)
         var mix = c.forYou.mix(id)
         if (mix == null || mix.songs.isEmpty()) {
@@ -3174,6 +3227,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             mix = c.forYou.mix(id)
         }
         val songs = mix?.songs.orEmpty()
+        if (!stillWanted(press)) return true
         if (songs.isEmpty()) return false
         c.player.playQueue(songs, 0, QueueSource(QueueKind.OTHER, mix?.title ?: tr(R.string.persistent_daily_mix, n)), shuffle = true)
         return true
@@ -3508,7 +3562,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             // A custom command is Prism's library (like, radio, lyrics), not transport: only for a controller that may browse.
             if (!mayBrowse(session, controller)) return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
             persistentCommands.entries.firstOrNull { it.value.customAction == customCommand.customAction }?.let { (action, _) ->
-                scope.launch { runPersistentAction(action) }
+                pressPersistent(action)
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
             when (customCommand.customAction) {
