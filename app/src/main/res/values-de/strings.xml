@@ -5216,6 +5216,9 @@
     <string name="playback_face_down_pause">Pausieren, wenn umgedreht</string>
     <string name="playback_face_down_pause_info">Leg dein Handy mit dem Display nach unten, um zu pausieren. Nimmst du es innerhalb von fünf Minuten wieder hoch, läuft die Musik weiter.</string>
     <string name="playback_face_down_keywords">umdrehen display nach unten bildschirm sensor pause fortsetzen hochnehmen</string>
+    <string name="playback_append_to_play_next">An „Als Nächstes spielen“ anhängen</string>
+    <string name="playback_append_to_play_next_info">Ist das an, hängt „Als Nächstes spielen“ seine Songs ans Ende von „Als Nächstes in der Warteschlange“ statt direkt hinter den laufenden Song. So bleiben mehrere in der Reihenfolge, in der du sie angetippt hast.</string>
+    <string name="playback_append_to_play_next_keywords">als nächstes spielen anhängen ende warteschlange als nächstes in der warteschlange zur warteschlange hinzufügen reihenfolge</string>
     <string name="playback_resume_on_return">Fortsetzen, wenn Bluetooth zurückkommt</string>
     <string name="playback_resume_on_return_info">Wenn Bluetooth-Kopfhörer ausfallen und sich wieder verbinden, läuft die Musik dort weiter, wo sie aufgehört hat: etwa Ohrhörer, die auf ihre eigene 2,4-GHz-Verbindung wechseln und zurück. Nur eine Pause, die das verlorene Ausgabegerät verursacht hat, wird fortgesetzt; eine Pause von dir bleibt.</string>
     <string name="playback_resume_on_return_keywords">fortsetzen verbinden bluetooth ohrhörer kopfhörer tws adapter 2,4ghz ausgabe zurück weiter automatisch</string>

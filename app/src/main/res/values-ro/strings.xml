@@ -5288,6 +5288,9 @@
     <string name="playback_face_down_pause">Întrerupe când e cu fața în jos</string>
     <string name="playback_face_down_pause_info">Așază telefonul cu ecranul în jos ca să întrerupi muzica. Ridică-l în cinci minute și muzica merge mai departe.</string>
     <string name="playback_face_down_keywords">cu fața în jos ecran întoarce senzor întrerupe reia ridică</string>
+    <string name="playback_append_to_play_next">Adaugă la „Redă în continuare”</string>
+    <string name="playback_append_to_play_next_info">Când este activat, Redă în continuare adaugă melodiile la sfârșitul secțiunii Următoarea în coadă, nu imediat după cea care cântă, astfel încât mai multe își păstrează ordinea în care le-ai atins.</string>
+    <string name="playback_append_to_play_next_keywords">redă în continuare adaugă sfârșit coadă următoarea în coadă adaugă în coadă ordine</string>
     <string name="playback_resume_on_return">Reia când Bluetooth revine</string>
     <string name="playback_resume_on_return_info">Când căștile Bluetooth se deconectează și se reconectează, muzica continuă de unde s-a oprit: de exemplu, căști care trec pe propria conexiune de 2,4 GHz și revin. Se reia doar o pauză cauzată de pierderea ieșirii; o pauză făcută de tine rămâne.</string>
     <string name="playback_resume_on_return_keywords">reia reconectare bluetooth căști tws adaptor 2,4ghz ieșire înapoi continuă auto</string>

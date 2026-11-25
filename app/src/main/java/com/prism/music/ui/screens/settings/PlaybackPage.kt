@@ -67,6 +67,7 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
 
     // What differs from how Prism comes, for the rows' dots and for Reset this page (top to bottom, as the page).
     val queueEndChanged = reset.add(tr(R.string.when_the_queue_ends), queueEnd, SoundChoices.queueEnd(d), { it.label }) { SoundChoices.setQueueEnd(prefs, it) }
+    val appendNextChanged = reset.add(tr(R.string.playback_append_to_play_next), s.behavior.appendToPlayNext, d.behavior.appendToPlayNext, onOff) { prefs.setAppendToPlayNext(it) }
     val noRepeatsChanged = reset.add(tr(R.string.no_repeats_title), s.behavior.autoplayNoRepeats, d.behavior.autoplayNoRepeats, onOff) { prefs.setAutoplayNoRepeats(it) }
     val longestChanged = reset.add(tr(R.string.longest_song_for_autoplay), s.behavior.autoplayMaxMinutes, d.behavior.autoplayMaxMinutes, minutes) { prefs.setAutoplayMaxMinutes(it) }
     val videosChanged = reset.add(tr(R.string.music_videos_label), videos, SoundChoices.videoPolicy(d), { it.label }) { SoundChoices.setVideoPolicy(prefs, it) }
@@ -106,6 +107,8 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
                 tr(R.string.when_the_queue_ends), QueueEnd.entries, queueEnd, { it.label },
                 info = tr(R.string.when_the_queue_ends_info), changed = queueEndChanged,
             ) { SoundChoices.setQueueEnd(prefs, it) }
+            // Play next keeps the order it was tapped in: at the end of Next in queue, not straight after the playing song.
+            SwitchRow(tr(R.string.playback_append_to_play_next), s.behavior.appendToPlayNext, info = tr(R.string.playback_append_to_play_next_info), changed = appendNextChanged) { prefs.setAppendToPlayNext(it) }
             // #159: off, what's left out is what's in the queue and what was heard in the last hours.
             SwitchRow(tr(R.string.no_repeats_title), s.behavior.autoplayNoRepeats, info = tr(R.string.no_repeats_info), changed = noRepeatsChanged) { prefs.setAutoplayNoRepeats(it) }
             // #299: long mixes and compilations stay out of Autoplay.
@@ -267,6 +270,7 @@ val playbackIndex: List<SettingEntry> by lazy {
             // 1.8.0 (#210): merged choices; the old titles stay as search words.
             SettingEntry(page, next, next),
             SettingEntry(page, next, tr(R.string.when_the_queue_ends), tr(R.string.radio_continue_similar) + " " + tr(R.string.autoplay) + " " + tr(R.string.autoplay_from) + " " + tr(R.string.radio_your_music_prism_radio_youtube)),
+            SettingEntry(page, next, tr(R.string.playback_append_to_play_next), tr(R.string.playback_append_to_play_next_keywords)),
             SettingEntry(page, next, tr(R.string.no_repeats_title), tr(R.string.no_repeats_detail)),
             SettingEntry(page, next, tr(R.string.longest_song_for_autoplay), tr(R.string.longest_song_for_autoplay_keywords), needs = turnOn(tr(R.string.autoplay)) { it.autoplay }),
             SettingEntry(page, next, tr(R.string.music_videos_label), tr(R.string.music_videos_audio) + " " + tr(R.string.songs_not_videos) + " " + tr(R.string.songs_not_videos_everywhere)),

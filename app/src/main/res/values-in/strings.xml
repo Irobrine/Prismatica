@@ -5144,6 +5144,9 @@
     <string name="playback_face_down_pause">Jeda saat ditelungkupkan</string>
     <string name="playback_face_down_pause_info">Telungkupkan ponselmu untuk menjeda. Angkat dalam lima menit dan musik lanjut diputar.</string>
     <string name="playback_face_down_keywords">telungkup layar ke bawah balik sensor jeda lanjutkan angkat</string>
+    <string name="playback_append_to_play_next">Tambahkan ke Putar berikutnya</string>
+    <string name="playback_append_to_play_next_info">Saat aktif, Putar berikutnya menambahkan lagunya ke akhir Berikutnya di antrean, bukan tepat setelah lagu yang diputar, jadi beberapa lagu tetap dalam urutan yang kamu ketuk.</string>
+    <string name="playback_append_to_play_next_keywords">putar berikutnya tambahkan akhir antrean berikutnya di antrean tambah ke antrean urutan</string>
     <string name="playback_resume_on_return">Lanjutkan saat Bluetooth kembali</string>
     <string name="playback_resume_on_return_info">Saat headphone Bluetooth terputus lalu tersambung lagi, musik melanjutkan dari tempatnya berhenti: misalnya earbud beralih ke koneksi 2,4 GHz miliknya sendiri lalu kembali. Hanya jeda akibat hilangnya output yang dilanjutkan; jeda yang kamu buat sendiri tetap.</string>
     <string name="playback_resume_on_return_keywords">lanjutkan sambung ulang bluetooth earbud headphone tws dongle 2,4ghz output kembali terus otomatis</string>

@@ -5360,6 +5360,9 @@
     <string name="playback_face_down_pause">Пауза экраном вниз</string>
     <string name="playback_face_down_pause_info">Положи телефон экраном вниз, чтобы поставить паузу. Подними его в течение пяти минут, и музыка продолжит играть.</string>
     <string name="playback_face_down_keywords">экраном вниз перевернуть датчик пауза продолжить поднять</string>
+    <string name="playback_append_to_play_next">Добавлять в «Включить следующим»</string>
+    <string name="playback_append_to_play_next_info">Если включено, «Включить следующим» добавляет песни в конец «Далее в очереди», а не сразу после играющей, поэтому несколько песен сохраняют порядок, в котором вы их выбрали.</string>
+    <string name="playback_append_to_play_next_keywords">включить следующим добавить конец очереди далее в очереди добавить в очередь порядок</string>
     <string name="playback_resume_on_return">Продолжать, когда Bluetooth возвращается</string>
     <string name="playback_resume_on_return_info">Когда Bluetooth-наушники отключаются и подключаются снова, музыка продолжает с того места, где остановилась: например, наушники переходят на собственное соединение 2,4 ГГц и обратно. Продолжается только пауза, вызванная потерей вывода; ваша собственная пауза остаётся.</string>
     <string name="playback_resume_on_return_keywords">продолжать переподключение bluetooth наушники вкладыши tws адаптер 2,4ггц вывод назад авто</string>

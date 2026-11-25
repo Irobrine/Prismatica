@@ -469,6 +469,11 @@ data class BehaviorPrefs(
     val lyricsOffsetMs: Int = 0,
     /** #416 (1.8.4): with the last queue shuffled, the next list a song is tapped in plays shuffled too. */
     val keepShuffle: Boolean = false,
+    /**
+     * Play next puts its songs at the end of "Next in queue" instead of straight after the one playing, so several of
+     * them keep the order they were tapped in. Off, as Prism came.
+     */
+    val appendToPlayNext: Boolean = false,
     /** D57 (1.8.4): what the Shuffle button steps through. */
     val shuffleButton: ShuffleButton = ShuffleButton.SHUFFLE_AND_SMART,
     /** PR #400 (1.8.4): a lyric line too long for the car's title. */
@@ -2489,6 +2494,7 @@ class SettingsRepository(
         val rowSwipes = booleanPreferencesKey("row_swipes")
         val lyricsOffsetMs = intPreferencesKey("lyrics_offset_ms")
         val keepShuffle = booleanPreferencesKey("keep_shuffle")
+        val appendToPlayNext = booleanPreferencesKey("append_to_play_next")
         val shuffleButton = stringPreferencesKey("shuffle_button")
         val carLyricsLines = stringPreferencesKey("car_lyrics_lines")
         val locatePlaying = booleanPreferencesKey("locate_playing")
@@ -2650,7 +2656,7 @@ class SettingsRepository(
                 // Which Japanese dictionary reads lyrics' kanji (Settings → Lyrics): how Prism reads, not a look.
                 "japanese_engine",
                 // 1.8.4 (#406, #404, #416, D57, PR #400, D54): how Prism behaves, not how it looks.
-                "row_swipes", "lyrics_offset_ms", "keep_shuffle", "shuffle_button", "car_lyrics_lines", "locate_playing",
+                "row_swipes", "lyrics_offset_ms", "keep_shuffle", "append_to_play_next", "shuffle_button", "car_lyrics_lines", "locate_playing",
                 // 1.8.5: Replay's notices and game, pausing face down, the resume when Bluetooth comes back, and the small
                 // cover's tap over the lyrics (#464).
                 "recap_notify", "milestone_notify", "finish_lyric", "face_down_pause", "resume_on_return", "lyrics_cover_plays",
@@ -3004,6 +3010,7 @@ class SettingsRepository(
                 // A restored backup can hold any number.
                 lyricsOffsetMs = (p[K.lyricsOffsetMs] ?: d.behavior.lyricsOffsetMs).coerceIn(BehaviorPrefs.LYRICS_OFFSET_MS),
                 keepShuffle = p[K.keepShuffle] ?: d.behavior.keepShuffle,
+                appendToPlayNext = p[K.appendToPlayNext] ?: d.behavior.appendToPlayNext,
                 shuffleButton = p.enum(K.shuffleButton, d.behavior.shuffleButton),
                 carLyricsLines = p.enum(K.carLyricsLines, d.behavior.carLyricsLines),
                 locatePlaying = p[K.locatePlaying] ?: d.behavior.locatePlaying,
@@ -3815,6 +3822,7 @@ class SettingsRepository(
     fun setRowSwipes(v: Boolean) = edit { it[K.rowSwipes] = v }
     fun setLyricsOffsetMs(v: Int) = edit { it[K.lyricsOffsetMs] = v.coerceIn(BehaviorPrefs.LYRICS_OFFSET_MS) }
     fun setKeepShuffle(v: Boolean) = edit { it[K.keepShuffle] = v }
+    fun setAppendToPlayNext(v: Boolean) = edit { it[K.appendToPlayNext] = v }
     fun setRecapNotify(v: Boolean) = edit { it[K.recapNotify] = v }
     fun setMilestoneNotify(v: Boolean) = edit { it[K.milestoneNotify] = v }
     fun setFinishLyric(v: Boolean) = edit { it[K.finishLyric] = v }

@@ -5216,6 +5216,9 @@
     <string name="playback_face_down_pause">Παύση όταν είναι ανάποδα</string>
     <string name="playback_face_down_pause_info">Άφησε το κινητό με την οθόνη προς τα κάτω για παύση. Σήκωσέ το μέσα σε πέντε λεπτά και η μουσική συνεχίζει.</string>
     <string name="playback_face_down_keywords">ανάποδα οθόνη κάτω αναποδογύρισμα αισθητήρας παύση συνέχεια σήκωμα</string>
+    <string name="playback_append_to_play_next">Προσθήκη στο «Αναπαραγωγή μετά»</string>
+    <string name="playback_append_to_play_next_info">Όταν είναι ενεργό, το «Αναπαραγωγή μετά» προσθέτει τα τραγούδια του στο τέλος του «Επόμενο στην ουρά» αντί αμέσως μετά το τραγούδι που παίζει, ώστε πολλά να κρατούν τη σειρά που τα πάτησες.</string>
+    <string name="playback_append_to_play_next_keywords">αναπαραγωγή μετά προσθήκη τέλος ουράς επόμενο στην ουρά προσθήκη στην ουρά σειρά</string>
     <string name="playback_resume_on_return">Συνέχιση όταν επιστρέφει το Bluetooth</string>
     <string name="playback_resume_on_return_info">Όταν τα ακουστικά Bluetooth αποσυνδεθούν και συνδεθούν ξανά, η μουσική συνεχίζει από εκεί που σταμάτησε: π.χ. ακουστικά που αλλάζουν στη δική τους σύνδεση 2,4 GHz και επιστρέφουν. Συνεχίζεται μόνο μια παύση που προκλήθηκε από την απώλεια της εξόδου· μια παύση που έκανες εσύ παραμένει.</string>
     <string name="playback_resume_on_return_keywords">συνέχιση επανασύνδεση bluetooth ακουστικά ψείρες tws αντάπτορας 2,4ghz έξοδος πίσω συνέχεια αυτόματο</string>

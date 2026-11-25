@@ -5288,6 +5288,9 @@
     <string name="playback_face_down_pause">Pausar boca abajo</string>
     <string name="playback_face_down_pause_info">Deja el teléfono boca abajo para pausar. Levántalo antes de cinco minutos y la música sigue.</string>
     <string name="playback_face_down_keywords">boca abajo pantalla girar voltear sensor pausar reanudar levantar</string>
+    <string name="playback_append_to_play_next">Añadir a «Reproducir a continuación»</string>
+    <string name="playback_append_to_play_next_info">Si está activado, «Reproducir a continuación» añade sus canciones al final de «Siguiente en la cola» en vez de justo después de la que suena, así varias conservan el orden en que las tocaste.</string>
+    <string name="playback_append_to_play_next_keywords">reproducir a continuación añadir final cola siguiente en la cola añadir a la cola orden</string>
     <string name="playback_resume_on_return">Reanudar cuando vuelve el Bluetooth</string>
     <string name="playback_resume_on_return_info">Cuando unos auriculares Bluetooth se desconectan y vuelven a conectarse, la música sigue donde se quedó: unos auriculares que cambian a su propia conexión de 2,4 GHz y vuelven, por ejemplo. Solo se reanuda una pausa causada por la pérdida de la salida; una pausa tuya se mantiene.</string>
     <string name="playback_resume_on_return_keywords">reanudar reconectar bluetooth auriculares tws adaptador 2,4ghz salida volver continuar auto</string>

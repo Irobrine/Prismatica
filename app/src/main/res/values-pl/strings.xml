@@ -5360,6 +5360,9 @@
     <string name="playback_face_down_pause">Wstrzymuj ekranem w dół</string>
     <string name="playback_face_down_pause_info">Połóż telefon ekranem w dół, żeby wstrzymać. Podnieś go w ciągu pięciu minut, a muzyka zagra dalej.</string>
     <string name="playback_face_down_keywords">ekranem w dół odwróć obróć czujnik wstrzymaj wznów podnieś</string>
+    <string name="playback_append_to_play_next">Dołączanie do „Odtwórz jako następny”</string>
+    <string name="playback_append_to_play_next_info">Gdy włączone, Odtwórz jako następny dodaje utwory na koniec sekcji Następne w kolejce, a nie zaraz po odtwarzanym, dzięki czemu kilka utworów zachowuje kolejność stuknięć.</string>
+    <string name="playback_append_to_play_next_keywords">odtwórz jako następny dołącz koniec kolejki następne w kolejce dodaj do kolejki kolejność</string>
     <string name="playback_resume_on_return">Wznów, gdy Bluetooth wróci</string>
     <string name="playback_resume_on_return_info">Gdy słuchawki Bluetooth rozłączą się i połączą ponownie, muzyka wraca tam, gdzie się zatrzymała: na przykład słuchawki przełączające się na własne połączenie 2,4 GHz i z powrotem. Wznawiana jest tylko pauza spowodowana utratą wyjścia; pauza zrobiona przez ciebie zostaje.</string>
     <string name="playback_resume_on_return_keywords">wznów połącz ponownie bluetooth słuchawki douszne tws adapter 2,4ghz wyjście wróć kontynuuj auto</string>

@@ -5216,6 +5216,9 @@
     <string name="playback_face_down_pause">I-pause kapag nakataob</string>
     <string name="playback_face_down_pause_info">Itaob ang phone mo para i-pause. Damputin ito sa loob ng limang minuto at tutuloy ang musika.</string>
     <string name="playback_face_down_keywords">nakataob screen pababa baligtad sensor i-pause ituloy damputin</string>
+    <string name="playback_append_to_play_next">Idagdag sa I-play nang susunod</string>
+    <string name="playback_append_to_play_next_info">Kapag naka-on, idinadagdag ng I-play nang susunod ang mga kanta nito sa dulo ng Susunod sa queue sa halip na agad pagkatapos ng tumutugtog, kaya nananatili ang ayos ng mga pinindot mo.</string>
+    <string name="playback_append_to_play_next_keywords">i-play nang susunod idagdag dulo ng queue susunod sa queue magdagdag sa queue ayos</string>
     <string name="playback_resume_on_return">Ipagpatuloy kapag bumalik ang Bluetooth</string>
     <string name="playback_resume_on_return_info">Kapag nawala at naikonekta muli ang Bluetooth headphones, ipinagpapatuloy ng musika kung saan ito huminto: halimbawa, lumilipat ang earbuds sa sarili nitong 2.4 GHz na koneksyon at bumabalik. Ang pause na dulot ng nawalang output lang ang ipinagpapatuloy; nananatili ang pause na ginawa mo mismo.</string>
     <string name="playback_resume_on_return_keywords">ipagpatuloy kumonekta muli bluetooth earbuds headphones tws dongle 2.4ghz output bumalik magpatuloy auto</string>

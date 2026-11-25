@@ -5288,6 +5288,9 @@
     <string name="playback_face_down_pause">Pausa a faccia in giù</string>
     <string name="playback_face_down_pause_info">Appoggia il telefono con lo schermo in giù per mettere in pausa. Se lo riprendi entro cinque minuti, la musica continua.</string>
     <string name="playback_face_down_keywords">faccia in giù schermo capovolgere girare sensore pausa riprendi</string>
+    <string name="playback_append_to_play_next">Aggiungi a «Riproduci dopo»</string>
+    <string name="playback_append_to_play_next_info">Se attivo, «Riproduci dopo» aggiunge i suoi brani in fondo a «Prossimo in coda» invece che subito dopo quello in riproduzione, così più brani mantengono l’ordine in cui li hai toccati.</string>
+    <string name="playback_append_to_play_next_keywords">riproduci dopo aggiungi fondo coda prossimo in coda aggiungi alla coda ordine</string>
     <string name="playback_resume_on_return">Riprendi quando torna il Bluetooth</string>
     <string name="playback_resume_on_return_info">Quando le cuffie Bluetooth si scollegano e si ricollegano, la musica riprende da dove si era fermata: per esempio auricolari che passano alla propria connessione a 2,4 GHz e tornano. Riprende solo una pausa causata dalla perdita dell’uscita; una pausa fatta da te resta.</string>
     <string name="playback_resume_on_return_keywords">riprendi riconnetti bluetooth cuffie auricolari tws dongle 2,4ghz uscita indietro continua auto</string>
