@@ -5588,6 +5588,14 @@
     <string name="unsnooze">Réactiver</string>
     <string name="snoozed_tracks">Titres reportés</string>
     <string name="snooze_for">Reporter de</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Plus de cet artiste</string>
+    <string name="more_from_this_album">Plus de cet album</string>
+    <string name="more_from_how_many">Combien de chansons ?</string>
+    <string name="more_from_how_many_info">Ajoutées juste après la chanson en cours, dans un ordre aléatoire. Maintenez le bouton pour changer le nombre.</string>
+    <string name="more_from_added">%1$s ajoutées à Suivant</string>
+    <string name="more_from_nothing">Aucune autre chanson à ajouter</string>
+    <string name="more_from_nothing_offline">Aucune autre chanson sur ce téléphone</string>
     <string name="snooze_for_info">Combien de jours un titre reste hors des files automatiques. Vous pouvez toujours le lire vous-même, l\'ajouter à la file ou le lire ensuite.</string>
     <string name="nothing_snoozed">Aucun titre reporté</string>
     <string name="nothing_snoozed_body">Reportez un titre pour le tenir un moment hors de la file que Prism crée seul. Le lire vous-même fonctionne toujours, comme Ajouter à la file et Lire ensuite.</string>

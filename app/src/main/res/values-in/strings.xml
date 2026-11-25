@@ -5438,6 +5438,14 @@
     <string name="unsnooze">Batalkan tunda</string>
     <string name="snoozed_tracks">Trek yang ditunda</string>
     <string name="snooze_for">Tunda selama</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Lainnya dari artis ini</string>
+    <string name="more_from_this_album">Lainnya dari album ini</string>
+    <string name="more_from_how_many">Berapa lagu?</string>
+    <string name="more_from_how_many_info">Ditambahkan tepat setelah lagu yang diputar, secara acak. Tahan tombol untuk mengubah jumlahnya.</string>
+    <string name="more_from_added">%1$s ditambahkan ke Berikutnya</string>
+    <string name="more_from_nothing">Tidak ada lagu lain untuk ditambahkan</string>
+    <string name="more_from_nothing_offline">Tidak ada lagu lain di ponsel ini</string>
     <string name="snooze_for_info">Berapa hari trek yang ditunda tetap di luar antrean otomatis. Kamu tetap bisa memutarnya sendiri, menambahkannya ke antrean, atau memutarnya berikutnya.</string>
     <string name="nothing_snoozed">Belum ada yang ditunda</string>
     <string name="nothing_snoozed_body">Tunda sebuah trek untuk menjaganya sementara di luar antrean yang dibuat Prism sendiri. Memutarnya sendiri, menambahkannya ke antrean, dan memutarnya berikutnya tetap berfungsi.</string>

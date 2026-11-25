@@ -5513,6 +5513,14 @@
     <string name="unsnooze">Weer toestaan</string>
     <string name="snoozed_tracks">Uitgestelde nummers</string>
     <string name="snooze_for">Uitstellen voor</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Meer van deze artiest</string>
+    <string name="more_from_this_album">Meer van dit album</string>
+    <string name="more_from_how_many">Hoeveel nummers?</string>
+    <string name="more_from_how_many_info">Worden direct na het spelende nummer toegevoegd, in willekeurige volgorde. Houd de knop ingedrukt om het aantal te wijzigen.</string>
+    <string name="more_from_added">%1$s toegevoegd aan Volgende</string>
+    <string name="more_from_nothing">Geen andere nummers om toe te voegen</string>
+    <string name="more_from_nothing_offline">Geen andere nummers op deze telefoon</string>
     <string name="snooze_for_info">Hoeveel dagen een uitgesteld nummer buiten automatische wachtrijen blijft. Je kunt het nog steeds zelf afspelen, aan de wachtrij toevoegen of hierna afspelen.</string>
     <string name="nothing_snoozed">Niets uitgesteld</string>
     <string name="nothing_snoozed_body">Stel een nummer uit om het een tijdje buiten de wachtrij te houden die Prism zelf samenstelt. Zelf afspelen blijft werken, net als Aan de wachtrij toevoegen en Hierna afspelen.</string>

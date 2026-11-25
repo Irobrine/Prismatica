@@ -5513,6 +5513,14 @@
     <string name="unsnooze">স্নুজ বাতিল</string>
     <string name="snoozed_tracks">স্নুজ করা ট্র্যাক</string>
     <string name="snooze_for">স্নুজের সময়কাল</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">এই শিল্পীর আরও</string>
+    <string name="more_from_this_album">এই অ্যালবামের আরও</string>
+    <string name="more_from_how_many">কতটি গান?</string>
+    <string name="more_from_how_many_info">চলমান গানের ঠিক পরে যোগ করা হয়, এলোমেলোভাবে। সংখ্যা বদলাতে বোতামটি ধরে রাখুন।</string>
+    <string name="more_from_added">পরবর্তীতে %1$s যোগ করা হয়েছে</string>
+    <string name="more_from_nothing">যোগ করার মতো আর কোনও গান নেই</string>
+    <string name="more_from_nothing_offline">এই ফোনে আর কোনও গান নেই</string>
     <string name="snooze_for_info">একটি স্নুজ করা ট্র্যাক কত দিন স্বয়ংক্রিয় কিউয়ের বাইরে থাকবে। আপনি নিজে এটি চালাতে, কিউতে যোগ করতে বা পরেরটি হিসেবে চালাতে পারবেন।</string>
     <string name="nothing_snoozed">কিছু স্নুজ করা নেই</string>
     <string name="nothing_snoozed_body">একটি ট্র্যাক স্নুজ করে কিছু সময়ের জন্য Prism-এর নিজে তৈরি কিউয়ের বাইরে রাখুন। নিজে চালানো, কিউতে যোগ করা এবং পরেরটি চালানো এখনও কাজ করে।</string>

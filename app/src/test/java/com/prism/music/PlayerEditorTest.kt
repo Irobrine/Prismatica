@@ -77,6 +77,17 @@ class PlayerEditorTest {
         kotlinx.coroutines.withTimeout(5_000) { store.flow.first { check(it) } }
     }
 
+    /** 1.8.6: how many songs "More from this artist/album" adds is kept, and stays in its range. */
+    @Test fun moreFromCountIsKeptAndBounded() {
+        assertEquals(3, PlayerParts().moreFromCount)
+        store.setMoreFromCount(7)
+        assertEquals(7, settled { it.view.parts.moreFromCount == 7 }.view.parts.moreFromCount)
+        store.setMoreFromCount(99)
+        assertEquals(25, settled { it.view.parts.moreFromCount == 25 }.view.parts.moreFromCount)
+        store.setMoreFromCount(0)
+        assertEquals(1, settled { it.view.parts.moreFromCount == 1 }.view.parts.moreFromCount)
+    }
+
     @Test fun theDefaultsAreTheOldPlayerAndMenu() {
         val s = AppSettings()
         // Every part shows but the crossfade's mark and blending covers, shuffle & repeat and the volume bar, which were
@@ -191,7 +202,7 @@ class PlayerEditorTest {
         assertEquals(listOf(MenuGroup.SONG, MenuGroup.LYRICS, MenuGroup.PLAYING, MenuGroup.HELP), today.groups.map { it.first })
         assertEquals(
             // 1.8.3: Add a tag and Edit metadata, first after the tiles.
-            listOf(MenuAction.TAGS, MenuAction.EDIT_METADATA, MenuAction.ALBUM, MenuAction.ARTIST, MenuAction.CREDITS, MenuAction.DETAILS, MenuAction.VERSION, MenuAction.COVER, MenuAction.NOT_FOR_ME),
+            listOf(MenuAction.TAGS, MenuAction.EDIT_METADATA, MenuAction.ALBUM, MenuAction.ARTIST, MenuAction.MORE_FROM_ARTIST, MenuAction.MORE_FROM_ALBUM, MenuAction.CREDITS, MenuAction.DETAILS, MenuAction.VERSION, MenuAction.COVER, MenuAction.NOT_FOR_ME),
             today.groups.first { it.first == MenuGroup.SONG }.second,
         )
         assertTrue(today.more.isEmpty())

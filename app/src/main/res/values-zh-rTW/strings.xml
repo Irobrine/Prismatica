@@ -5438,6 +5438,14 @@
     <string name="unsnooze">取消稍後播放</string>
     <string name="snoozed_tracks">稍後播放的曲目</string>
     <string name="snooze_for">稍後播放時長</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">更多來自這位藝術家的歌曲</string>
+    <string name="more_from_this_album">更多來自這張專輯的歌曲</string>
+    <string name="more_from_how_many">多少首歌曲？</string>
+    <string name="more_from_how_many_info">會在目前歌曲之後依隨機順序加入。長按按鈕可變更數量。</string>
+    <string name="more_from_added">已將 %1$s 加入「接下來播放」</string>
+    <string name="more_from_nothing">沒有其他歌曲可加入</string>
+    <string name="more_from_nothing_offline">此手機上沒有其他歌曲</string>
     <string name="snooze_for_info">被稍後播放的曲目在自動佇列外保留的天數。你仍可自行播放、加入佇列或設為下一首。</string>
     <string name="nothing_snoozed">沒有稍後播放的曲目</string>
     <string name="nothing_snoozed_body">將曲目設為稍後播放，可在一段時間內不讓它進入 Prism 自動建立的佇列。你仍可自行播放、加入佇列或設為下一首。</string>

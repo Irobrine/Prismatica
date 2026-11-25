@@ -5438,6 +5438,14 @@
     <string name="unsnooze">Batal tunda</string>
     <string name="snoozed_tracks">Lagu yang ditunda</string>
     <string name="snooze_for">Tunda selama</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Lagi daripada artis ini</string>
+    <string name="more_from_this_album">Lagi daripada album ini</string>
+    <string name="more_from_how_many">Berapa banyak lagu?</string>
+    <string name="more_from_how_many_info">Ditambah terus selepas lagu yang dimainkan, secara rawak. Tahan butang untuk menukar bilangannya.</string>
+    <string name="more_from_added">%1$s ditambah ke Seterusnya</string>
+    <string name="more_from_nothing">Tiada lagu lain untuk ditambah</string>
+    <string name="more_from_nothing_offline">Tiada lagu lain pada telefon ini</string>
     <string name="snooze_for_info">Berapa hari lagu yang ditunda kekal di luar baris gilir automatik. Anda masih boleh memainkannya sendiri, menambahkannya ke baris gilir atau memainkannya seterusnya.</string>
     <string name="nothing_snoozed">Tiada yang ditunda</string>
     <string name="nothing_snoozed_body">Tunda sesuatu lagu untuk menyimpannya seketika di luar baris gilir yang dibina Prism sendiri. Memainkannya sendiri, menambahkannya ke baris gilir dan memainkannya seterusnya masih berfungsi.</string>

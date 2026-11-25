@@ -1177,6 +1177,29 @@ private fun PlayerButtonGlyph(
                 width, onLongClick = { onSnoozeMenu(s.id) }, longPressLabel = tr(R.string.snoozed_tracks),
             )
         }
+        // 1.8.6: a shuffled handful of the artist's (or the album's) songs right after this one; held, how many.
+        PlayerButton.MORE_FROM_ARTIST -> {
+            val shown = com.prism.music.data.SongVersions.shownOf(s)
+            var customizing by remember { mutableStateOf(false) }
+            BottomGlyph(
+                PrismIcons.Person, tr(R.string.more_from_this_artist), false,
+                { addMoreFrom(c, shown, com.prism.music.data.MoreFrom.ARTIST) },
+                width, enabled = shown.artists.isNotEmpty(),
+                onLongClick = { customizing = true }, longPressLabel = tr(R.string.more_from_how_many),
+            )
+            if (customizing) MoreFromCountDialog(com.prism.music.data.MoreFrom.ARTIST) { customizing = false }
+        }
+        PlayerButton.MORE_FROM_ALBUM -> {
+            val shown = com.prism.music.data.SongVersions.shownOf(s)
+            var customizing by remember { mutableStateOf(false) }
+            BottomGlyph(
+                PrismIcons.Album, tr(R.string.more_from_this_album), false,
+                { addMoreFrom(c, shown, com.prism.music.data.MoreFrom.ALBUM) },
+                width, enabled = shown.album != null,
+                onLongClick = { customizing = true }, longPressLabel = tr(R.string.more_from_how_many),
+            )
+            if (customizing) MoreFromCountDialog(com.prism.music.data.MoreFrom.ALBUM) { customizing = false }
+        }
         PlayerButton.SING -> {
             val on by c.sing.on.collectAsState()
             BottomGlyph(PrismIcons.Mic, tr(R.string.sing), on, { onButton(b) }, width, enabled = !s.isEpisode)

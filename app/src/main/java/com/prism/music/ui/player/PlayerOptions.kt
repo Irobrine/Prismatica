@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.prism.music.data.model.Song
+import com.prism.music.data.MoreFrom
 import com.prism.music.data.prefs.MenuAction
 import com.prism.music.data.prefs.MenuGroup
 import com.prism.music.data.prefs.PlayerButton
@@ -104,6 +105,8 @@ fun PlayerOptionsSheet(
     var pickPlaylist by remember { mutableStateOf(false) }
     var sharing by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
+    // 1.8.6: how many songs "More from this…" adds, asked by holding either of them in the menu.
+    var moreFromCountFor by remember { mutableStateOf<MoreFrom?>(null) }
 
     var outputs by remember { mutableStateOf(false) }
     var credits by remember { mutableStateOf(false) }
@@ -190,6 +193,8 @@ fun PlayerOptionsSheet(
     val musicPitch by c.player.musicPitch.collectAsState()
     val local = song.isLocal
     val fromPlayer = settings.menuFromPlayer().toSet()
+    // As it shows: a picked version's artists and album, with the listener's own edits (#328).
+    val shown = song.shown
 
     // Every action this song has, by what it is ("Go to" one row per artist). A file on the phone has no radio, download,
     // music video or speed (a Prism playlist is fine).
@@ -204,6 +209,22 @@ fun PlayerOptionsSheet(
     if (!local) put(MenuAction.DOWNLOAD, downloadItem)
     put(MenuAction.ALBUM, song.shown.album?.id?.let { id -> ActionItem(PrismIcons.Album, tr(R.string.go_to_album)) { onCollapse(); nav.go(Routes.album(id)) } })
     com.prism.music.ui.components.goToArtists(song) { route -> onCollapse(); nav.go(route) }.takeIf { it.isNotEmpty() }?.let { items[MenuAction.ARTIST] = it }
+    // 1.8.6: a shuffled handful of the artist's or the album's songs, right after this one. Holding either asks how many.
+    val moreFromCount = settings.view.parts.moreFromCount
+    if (shown.artists.isNotEmpty()) put(
+        MenuAction.MORE_FROM_ARTIST,
+        ActionItem(
+            PrismIcons.Person, tr(R.string.more_from_this_artist), value = com.prism.music.data.model.songCount(moreFromCount),
+            onLongClick = { moreFromCountFor = MoreFrom.ARTIST }, longClickLabel = tr(R.string.more_from_how_many),
+        ) { addMoreFrom(c, shown, MoreFrom.ARTIST) },
+    )
+    if (shown.album != null) put(
+        MenuAction.MORE_FROM_ALBUM,
+        ActionItem(
+            PrismIcons.Album, tr(R.string.more_from_this_album), value = com.prism.music.data.model.songCount(moreFromCount),
+            onLongClick = { moreFromCountFor = MoreFrom.ALBUM }, longClickLabel = tr(R.string.more_from_how_many),
+        ) { addMoreFrom(c, shown, MoreFrom.ALBUM) },
+    )
     if (!song.isEpisode && !local && !song.isLive) put(MenuAction.CREDITS, ActionItem(PrismIcons.Info, tr(R.string.song_credits), keepOpen = true) { credits = true })
     // As in the song menu: YouTube has nothing to say about the listener's own uploads.
     if (!song.isEpisode && !local && !song.isLive && !song.isUpload) put(MenuAction.DETAILS, ActionItem(PrismIcons.Replay, tr(R.string.song_details), keepOpen = true) { details = true })
@@ -298,6 +319,8 @@ fun PlayerOptionsSheet(
 
     val layout = settings.view.parts.menuLayout(items.keys, settings.menuFolds())
     var moreOpen by remember { mutableStateOf(false) }
+    // 1.8.6: the number a held "More from this…" asks for, over the menu.
+    moreFromCountFor?.let { from -> MoreFromCountDialog(from) { moreFromCountFor = null } }
     ActionSheet(com.prism.music.data.PlaylistCovers.artOf(song), onDismiss) { close ->
         ActionHeader(com.prism.music.data.PlaylistCovers.artOf(song), song.shown.title, song.shown.artistText) {
             SheetIconButton(if (isLiked) PrismIcons.HeartFilled else PrismIcons.Heart, if (isLiked) tr(R.string.remove_from_liked) else tr(R.string.widget_like), active = isLiked) {
@@ -330,9 +353,12 @@ private fun ActionItem.tile(a: MenuAction): ActionItem {
         MenuAction.RADIO -> tr(R.string.radio_2)
         MenuAction.ADD_TO_PLAYLIST -> tr(R.string.playlist)
         MenuAction.SLEEP -> tr(R.string.sleep)
+        // Their value is the number of songs they add (a row's right side); a tile names what it does instead.
+        MenuAction.MORE_FROM_ARTIST, MenuAction.MORE_FROM_ALBUM ->
+            return ActionItem(icon, label, null, active, keepOpen, danger, onLongClick, longClickLabel, onClick)
         else -> return this
     }
-    return ActionItem(icon, short, value, active, keepOpen, danger, onClick)
+    return ActionItem(icon, short, value, active, keepOpen, danger, onLongClick, longClickLabel, onClick)
 }
 
 /** An action's icon and name in Edit this menu, whatever song is playing. */
@@ -344,6 +370,8 @@ internal fun menuIcon(a: MenuAction): ImageVector = when (a) {
     MenuAction.DOWNLOAD -> PrismIcons.Download
     MenuAction.ALBUM -> PrismIcons.Album
     MenuAction.ARTIST -> PrismIcons.Person
+    MenuAction.MORE_FROM_ARTIST -> PrismIcons.Person
+    MenuAction.MORE_FROM_ALBUM -> PrismIcons.Album
     MenuAction.CREDITS -> PrismIcons.Info
     MenuAction.DETAILS -> PrismIcons.Replay
     MenuAction.VERSION -> PrismIcons.SwapVertical
@@ -385,6 +413,8 @@ internal fun menuLabel(a: MenuAction): String = when (a) {
     MenuAction.DOWNLOAD -> tr(R.string.download)
     MenuAction.ALBUM -> tr(R.string.go_to_album)
     MenuAction.ARTIST -> tr(R.string.go_to_artist)
+    MenuAction.MORE_FROM_ARTIST -> tr(R.string.more_from_this_artist)
+    MenuAction.MORE_FROM_ALBUM -> tr(R.string.more_from_this_album)
     MenuAction.CREDITS -> tr(R.string.song_credits)
     MenuAction.DETAILS -> tr(R.string.song_details)
     MenuAction.VERSION -> tr(R.string.play_a_different_version)

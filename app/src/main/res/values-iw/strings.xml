@@ -5588,6 +5588,14 @@
     <string name="unsnooze">ביטול דחייה</string>
     <string name="snoozed_tracks">שירים בדחייה</string>
     <string name="snooze_for">דחייה ל־</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">עוד מהאמן הזה</string>
+    <string name="more_from_this_album">עוד מהאלבום הזה</string>
+    <string name="more_from_how_many">כמה שירים?</string>
+    <string name="more_from_how_many_info">נוספים מיד אחרי השיר שמתנגן, בסדר אקראי. החזק את הכפתור כדי לשנות את המספר.</string>
+    <string name="more_from_added">נוספו %1$s להבא</string>
+    <string name="more_from_nothing">אין שירים נוספים להוספה</string>
+    <string name="more_from_nothing_offline">אין שירים נוספים בטלפון הזה</string>
     <string name="snooze_for_info">כמה ימים שיר בדחייה נשאר מחוץ לתורים האוטומטיים. אפשר עדיין להשמיע אותו בעצמך, להוסיף אותו לתור או להשמיע אותו הבא.</string>
     <string name="nothing_snoozed">אין שירים בדחייה</string>
     <string name="nothing_snoozed_body">דחו שיר כדי להשאיר אותו זמן מה מחוץ לתור שפריזם בונה בעצמו. השמעה ידנית, הוספה לתור והשמעה הבאה עדיין עובדות.</string>

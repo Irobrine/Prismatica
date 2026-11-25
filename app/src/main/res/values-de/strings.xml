@@ -5513,6 +5513,14 @@
     <string name="unsnooze">Wieder zulassen</string>
     <string name="snoozed_tracks">Zurückgestellte Titel</string>
     <string name="snooze_for">Zurückstellen für</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">Mehr von diesem Künstler</string>
+    <string name="more_from_this_album">Mehr aus diesem Album</string>
+    <string name="more_from_how_many">Wie viele Titel?</string>
+    <string name="more_from_how_many_info">Kommt direkt nach dem laufenden Titel dazu, in zufälliger Reihenfolge. Halte die Taste, um die Anzahl zu ändern.</string>
+    <string name="more_from_added">%1$s zu Als Nächstes hinzugefügt</string>
+    <string name="more_from_nothing">Keine weiteren Titel zum Hinzufügen</string>
+    <string name="more_from_nothing_offline">Keine weiteren Titel auf diesem Telefon</string>
     <string name="snooze_for_info">Wie viele Tage ein zurückgestellter Titel aus automatischen Warteschlangen bleibt. Du kannst ihn weiterhin selbst abspielen, zur Warteschlange hinzufügen oder als Nächstes spielen.</string>
     <string name="nothing_snoozed">Nichts zurückgestellt</string>
     <string name="nothing_snoozed_body">Stelle einen Titel zurück, damit er eine Zeit lang nicht in der von Prism selbst gebauten Warteschlange landet. Selbst abspielen, Zur Warteschlange hinzufügen und Als Nächstes spielen gehen weiterhin.</string>

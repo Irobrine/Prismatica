@@ -5513,6 +5513,14 @@
     <string name="unsnooze">اسنوز ہٹائیں</string>
     <string name="snoozed_tracks">اسنوز شدہ ٹریکس</string>
     <string name="snooze_for">اسنوز کی مدت</string>
+    <!-- 1.8.6: More from this artist / album -->
+    <string name="more_from_this_artist">اس فنکار کی مزید</string>
+    <string name="more_from_this_album">اس البم کی مزید</string>
+    <string name="more_from_how_many">کتنے گانے؟</string>
+    <string name="more_from_how_many_info">چلنے والے گانے کے فوراً بعد بے ترتیب ترتیب میں شامل کیے جاتے ہیں۔ تعداد بدلنے کے لیے بٹن دبا کر رکھیں۔</string>
+    <string name="more_from_added">اگلے میں %1$s شامل کیے گئے</string>
+    <string name="more_from_nothing">شامل کرنے کے لیے مزید گانے نہیں</string>
+    <string name="more_from_nothing_offline">اس فون پر مزید گانے نہیں</string>
     <string name="snooze_for_info">اسنوز شدہ ٹریک کتنے دن خودکار قطار سے باہر رہتا ہے۔ آپ اسے خود چلا سکتے ہیں، قطار میں شامل کر سکتے ہیں یا اگلا چلا سکتے ہیں۔</string>
     <string name="nothing_snoozed">کچھ اسنوز نہیں</string>
     <string name="nothing_snoozed_body">کسی ٹریک کو اسنوز کر کے کچھ دیر کے لیے Prism کی خود بنائی قطار سے باہر رکھیں۔ خود چلانا، قطار میں شامل کرنا اور اگلا چلانا اب بھی کام کرتا ہے۔</string>

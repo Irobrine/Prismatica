@@ -4,6 +4,7 @@ import com.prism.music.ui.theme.PrismIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +58,10 @@ class ActionItem(
     val active: Boolean = false,
     val keepOpen: Boolean = false,
     val danger: Boolean = false,
+    /** A hold's own action (a button that adds a set number of songs lets the number be changed); null: a tap only. */
+    val onLongClick: (() -> Unit)? = null,
+    /** What a hold does, for talkback ("How many songs?"); null reads the item's own label. */
+    val longClickLabel: String? = null,
     val onClick: () -> Unit,
 )
 
@@ -172,8 +177,13 @@ fun QuickActions(items: List<ActionItem>, onPick: (ActionItem) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp)) {
         items.forEachIndexed { i, a ->
             val hue = com.prism.music.ui.theme.PrismTokens.hue(i * step)
+            val hold = a.onLongClick
             Column(
-                Modifier.weight(1f).clip(LocalUi.current.tile).clickable(onClickLabel = a.label) { onPick(a) }
+                Modifier.weight(1f).clip(LocalUi.current.tile)
+                    .then(
+                        if (hold != null) Modifier.combinedClickable(onLongClickLabel = a.longClickLabel ?: a.label, onLongClick = hold) { onPick(a) }
+                        else Modifier.clickable(onClickLabel = a.label) { onPick(a) },
+                    )
                     .padding(horizontal = 4.dp, vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
@@ -222,8 +232,14 @@ private fun ActionRow(a: ActionItem, onClick: () -> Unit) {
         a.danger -> scheme.error
         else -> scheme.onSurface
     }
+    val hold = a.onLongClick
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+        Modifier.fillMaxWidth()
+            .then(
+                if (hold != null) Modifier.combinedClickable(onLongClickLabel = a.longClickLabel ?: a.label, onLongClick = hold, onClick = onClick)
+                else Modifier.clickable(onClick = onClick),
+            )
+            .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
