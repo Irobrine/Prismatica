@@ -744,6 +744,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 player.pause()
                 player.stop()
             }
+            // The queue is stopped/left behind: a 2.4 GHz hold has nothing to wait for, so the card may start something.
+            if (guardAttached) playbackGuard.stopped()
             setNotificationClosed(false)
             // Closing Prism while a song is paused leaves the persistent controls (a paused card is hidden on some
             // phones); a playing song keeps its own card.
@@ -1144,6 +1146,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             // Dismissing a song's card leaves the persistent controls (rather than keeping the paused song).
             android.util.Log.i("PrismControl", "the card was dismissed: showing the persistent controls")
             player.pause()
+            if (guardAttached) playbackGuard.stopped()
             showPersistentControls()
             return
         }
@@ -1183,7 +1186,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * "Resume when Bluetooth comes back" waits for the output that went, or "Pause when muted" waits for the volume.
      */
     private fun waitingToPlayOn(): Boolean =
-        (guardAttached && playbackGuard.holding != null) || c.player.awaitingOutput || muteWatch.waiting
+        // An empty queue has nothing to play on: the card may start something else.
+        player.mediaItemCount > 0 &&
+            ((guardAttached && playbackGuard.holding != null) || c.player.awaitingOutput || muteWatch.waiting)
 
     /** Whether one of Prism's own screens is showing (a foreground service alone doesn't count). */
     private fun uiInFront(): Boolean = c.visible.value
@@ -1293,6 +1298,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      */
     override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
         syncPlaceholder()
+        // The queue was emptied (stopped, swiped away): no song is waiting to play on, so the card may start one.
+        if (player.mediaItemCount == 0 && guardAttached) playbackGuard.stopped()
         // A queue that was just replaced or added to can put a song the sleep timer's BPM limit rules out in front: the
         // limit applies to it at once, not only when a later song starts.
         c.player.enforceSleepBpm()

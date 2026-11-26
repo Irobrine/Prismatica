@@ -459,6 +459,31 @@ class PlaybackGuardTest {
         assertFalse(memory.switched)
     }
 
+    /** Swiped away/stopped, then the pair pauses for 2.4 GHz: nothing is playing, so the card is not held back. */
+    @Test fun aPairPauseWithNothingPlayingDoesNotHold() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.guard.onRemotePause()
+        assertNull(r.guard.holding)
+    }
+
+    /** A queue stopped while the switch hold was up: the hold goes, so the card can start something. */
+    @Test fun aStoppedQueueClearsTheSwitchHold() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.guard.onRemotePause()
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        r.guard.stopped()
+        assertNull(r.guard.holding)
+        r.player.set(true)
+        assertTrue("an app play goes through after the stop", r.player.playWhenReady)
+    }
+
     @Test fun noisyWhilePausedChangesNothing() {
         val r = Rig()
         r.start()

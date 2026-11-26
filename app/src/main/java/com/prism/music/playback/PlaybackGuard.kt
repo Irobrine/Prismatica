@@ -267,6 +267,8 @@ internal class PlaybackGuard(
     /** A pause from the pair itself: on a TWS that can be the switch to its 2.4 GHz receiver (the Bluetooth link stays). */
     fun onRemotePause() {
         if (released || !settingOn()) return
+        // Nothing playing (swiped away, stopped): there is no song to hold for, and the persistent card may start one.
+        if (!controls.playWhenReady) return
         val lost = lastHeadset ?: return
         // A pause from the pair itself can be it switching to its 2.4 GHz receiver, which keeps the Bluetooth link on
         // some pairs but sends a pause first. Hold as if the output went; only its own play (or a reconnect, or a
@@ -290,6 +292,18 @@ internal class PlaybackGuard(
         android.util.Log.i("PrismControl", "the Bluetooth device played: the 2.4 GHz hold is released")
         wanted = true
         if (hold != null) releaseHold(force = true)
+    }
+
+    /**
+     * The queue was stopped or emptied by the listener (swiped away): nothing is waiting to play on any more, so a hold
+     * must not keep the persistent card away from starting something.
+     */
+    fun stopped() {
+        if (released) return
+        hold = null
+        wanted = false
+        switched = false
+        memory.rememberSwitched(false)
     }
 
     private fun onVolume() {
