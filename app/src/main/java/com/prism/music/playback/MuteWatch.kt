@@ -19,6 +19,9 @@ class MuteWatch(private val context: Context, private val player: Player, privat
     private var last = -1
     private var registered = false
 
+    /** The mute paused the music and the volume coming back will play it on. */
+    val waiting: Boolean get() = registered && pausedByMute
+
     private val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) = check()
     }

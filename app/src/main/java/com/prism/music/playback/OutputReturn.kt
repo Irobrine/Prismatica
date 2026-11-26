@@ -94,6 +94,21 @@ internal class OutputReturn(
         return true
     }
 
+    /** Whether a becoming-noisy pause is waiting and its window hasn't run out yet. */
+    fun waiting(now: Long): Boolean = waiting?.let { now - it.at <= windowMs } ?: false
+
+    /**
+     * [returned] for a look at the outputs connected now, not an add event: the lost output only counts as back if the
+     * phone was seen taking it away first (just before the pause, or since). Straight after the pause the Bluetooth
+     * entry is often still listed for a second, and taking that for its return played the music on the speaker.
+     */
+    fun returnedAlready(sinks: List<Sink>, now: Long): Boolean {
+        val w = waiting ?: return false
+        val gone = lastRemoved ?: return false
+        if (!gone.sameAs(w.sink) || lastRemovedAt < w.at - graceMs) return false
+        return returned(sinks, now)
+    }
+
     private fun forget() {
         waiting = null
         noisyAt = 0L

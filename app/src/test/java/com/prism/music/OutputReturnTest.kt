@@ -30,6 +30,38 @@ class OutputReturnTest {
         assertFalse(r.waitingFor)
     }
 
+    /**
+     * Seen on a vivo with TWS earbuds: the pause lands about a second before the phone drops the earbuds' entry, so a look
+     * at the outputs just after the pause still finds them. That isn't them coming back (it played on the speaker).
+     */
+    @Test fun anEntryNotYetRemovedIsNotAReturn() {
+        val r = OutputReturn()
+        r.current(buds())
+        r.paused(noisy, 1_000)
+        assertFalse("still listed, never seen leaving", r.returnedAlready(listOf(speaker(), buds()), 1_400))
+        assertTrue("the wait stays", r.waitingFor)
+        r.removed(listOf(buds()), 2_100)
+        assertFalse("gone now", r.returnedAlready(listOf(speaker()), 2_500))
+        assertTrue("back after leaving", r.returnedAlready(listOf(speaker(), buds()), 9_000))
+    }
+
+    /** A quick switch: the entry went and came back before the pause reached Prism. That one is back already. */
+    @Test fun anEntryThatLeftAndCameBackBeforeThePauseIsAReturn() {
+        val r = OutputReturn()
+        r.current(buds())
+        r.removed(listOf(buds()), 1_000)
+        r.paused(noisy, 1_300)
+        assertTrue(r.returnedAlready(listOf(speaker(), buds()), 1_700))
+    }
+
+    @Test fun theWaitCountsOnlyInsideItsWindow() {
+        val r = OutputReturn(windowMs = 60_000)
+        r.current(buds())
+        r.paused(noisy, 1_000)
+        assertTrue(r.waiting(30_000))
+        assertFalse(r.waiting(70_000))
+    }
+
     @Test fun anotherPairDoesNotTakeThePlace() {
         val r = OutputReturn()
         r.current(buds("AA:BB"))

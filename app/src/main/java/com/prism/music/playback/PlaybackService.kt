@@ -490,10 +490,13 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 // at all): put it back a moment later. Only while the screen is on, which is when it can be dismissed.
                 if (tick % 2 == 0 && ::sessionPlayer.isInitialized && sessionPlayer.placeholder && screenOn()) triggerNotificationUpdate()
                 // A paused song has no card on phones that hide a paused session (OriginOS). Once Prism is out of sight
-                // (the card swiped away, the app closed, the screen locked), the persistent controls take its place.
+                // (the card swiped away, the app closed, the screen locked), the persistent controls take its place. Not
+                // while the song only waits to be heard or for its Bluetooth output to come back: it's about to play on
+                // by itself, so it keeps its own card (and the card's silent track doesn't take the audio focus).
                 if (::sessionPlayer.isInitialized && !sessionPlayer.placeholder &&
                     c.settings.current.persistent.controls && player.mediaItemCount > 0 &&
-                    player.playbackState == Player.STATE_READY && !player.playWhenReady && !uiInFront()
+                    player.playbackState == Player.STATE_READY && !player.playWhenReady && !uiInFront() &&
+                    !waitingToPlayOn()
                 ) {
                     if (++pausedAwayTicks >= 2) { pausedAwayTicks = 0; showPersistentControls() }
                 } else pausedAwayTicks = 0
@@ -1158,6 +1161,13 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         syncPlaceholder()
         triggerNotificationUpdate()
     }
+
+    /**
+     * A pause that isn't the listener's and will end by itself: "Play only when it can be heard" holds a play,
+     * "Resume when Bluetooth comes back" waits for the output that went, or "Pause when muted" waits for the volume.
+     */
+    private fun waitingToPlayOn(): Boolean =
+        (guardAttached && playbackGuard.holding != null) || c.player.awaitingOutput || muteWatch.waiting
 
     /** Whether one of Prism's own screens is showing (a foreground service alone doesn't count). */
     private fun uiInFront(): Boolean = c.visible.value

@@ -66,6 +66,8 @@ internal class PlaybackGuard(
     private var wanted = false
     /** The playWhenReady our own pause or play is about to report, so it isn't taken for the listener's. */
     private var expect: Boolean? = null
+    /** The player's playWhenReady as last reported, so a reason-only change to a pause is told from a pause. */
+    private var lastPlayWhenReady = false
 
     /** Why playback is held, for tests and diagnostics. */
     val holding: Hold? get() = hold
@@ -73,6 +75,7 @@ internal class PlaybackGuard(
     /** Starts or stops watching to match the setting. Call on the main thread when it changes. */
     fun update() {
         if (released) return
+        lastPlayWhenReady = controls.playWhenReady
         if (controls.playWhenReady) wanted = true
         val want = settingOn()
         if (want != watching) {
@@ -100,10 +103,17 @@ internal class PlaybackGuard(
 
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
         if (released) return
+        val wasPlaying = lastPlayWhenReady
+        lastPlayWhenReady = playWhenReady
         if (expect == playWhenReady) {
             expect = null
             return
         }
+        // Already paused, only the reason is new: the persistent card's silent track taking audio focus while a play
+        // waits here (which used to drop the wait, so nothing started when sound came back), or headphones going after
+        // the listener's own pause (which used to start a wait, so the music came back with them). Neither changes
+        // what the listener asked for.
+        if (!playWhenReady && !wasPlaying) return
         if (playWhenReady) {
             wanted = true
             if (!settingOn() || controls.blocked) {
@@ -175,11 +185,14 @@ internal class PlaybackGuard(
     private fun onDevices(added: List<OutputReturn.Sink>, removed: List<OutputReturn.Sink>) {
         if (released || !settingOn()) return
         val held = hold ?: return
+        // Only outputs music plays through: earbuds connecting add their call channel (Bluetooth SCO) a moment before
+        // their music one, and that alone isn't the headphones back.
+        val music = added.filter { com.prism.music.data.isMusicOutput(it.type) }
         val back = when (held) {
             Hold.VOLUME -> false
-            Hold.OUTPUT -> added.isNotEmpty() || controls.hasOutput
+            Hold.OUTPUT -> music.isNotEmpty() || controls.hasOutput
             // Headphones or Bluetooth again: the speaker alone is not where the music was.
-            Hold.NOISY -> added.any { !it.phoneOutput }
+            Hold.NOISY -> music.any { !it.phoneOutput }
         }
         if (back) releaseHold()
     }

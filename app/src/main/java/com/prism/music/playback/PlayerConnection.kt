@@ -211,6 +211,15 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
 
     /** Picks the music up when the Bluetooth output a becoming-noisy pause lost comes back (Settings → Playback). */
     private val outputReturn = OutputReturn()
+    /** The player's playWhenReady as last reported, so a reason-only change to a pause is told from a pause. */
+    private var lastPlayWhenReady = false
+
+    /**
+     * A becoming-noisy pause is waiting for its Bluetooth output to come back ("Resume when Bluetooth comes back"): the
+     * service keeps the song's own card up meanwhile instead of the persistent controls.
+     */
+    val awaitingOutput: Boolean
+        get() = c.settings.current.behavior.resumeOnReturn && outputReturn.waiting(android.os.SystemClock.elapsedRealtime())
 
     init {
         context.getSystemService(AudioManager::class.java)?.registerAudioDeviceCallback(object : AudioDeviceCallback() {
@@ -435,7 +444,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             delay(400)
             val sinks = runCatching { outputOptions(context) }.getOrNull().orEmpty().map { it.toSink() }
             withContext(Dispatchers.Main) {
-                if (canPlayReturnedOutput() && outputReturn.returned(sinks, android.os.SystemClock.elapsedRealtime())) {
+                if (canPlayReturnedOutput() && outputReturn.returnedAlready(sinks, android.os.SystemClock.elapsedRealtime())) {
                     resumeOnReturnedOutput()
                 }
             }
@@ -465,6 +474,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         s.musicSpeed = _musicSpeed.value
         s.musicPitch = _musicPitch.value
         s.player.addListener(this)
+        lastPlayWhenReady = s.player.playWhenReady
         refresh(rebuildQueue = true)
         rememberOutput()
         pending.toList().forEach { it(s.player) }
@@ -2100,7 +2110,18 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         if (afterTimerSongId != null && playbackState == Player.STATE_ENDED) handleAfterTimer()
     }
 
-    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {        // Output return (Settings → Playback): remember only a pause the audio output itself caused, so the same
+    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+        // Media3 also reports a new reason for a pause that already happened: the persistent card's silent track taking
+        // audio focus, or headphones going after the listener's own pause. Neither is a pause of its own: the wait for
+        // the output stays as it was (a focus loss used to end it), and no wait starts for music already paused (an
+        // unplug after a pause used to arm one, and the music came back by itself).
+        val wasPlaying = lastPlayWhenReady
+        lastPlayWhenReady = playWhenReady
+        if (!playWhenReady && !wasPlaying) {
+            if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM && sleepEndOfSong.value) sleepTimer.finish()
+            return
+        }
+        // Output return (Settings → Playback): remember only a pause the audio output itself caused, so the same
         // Bluetooth output coming back can pick the music up; any other pause, and any play, ends the wait.
         if (playWhenReady) {
             outputReturn.played()

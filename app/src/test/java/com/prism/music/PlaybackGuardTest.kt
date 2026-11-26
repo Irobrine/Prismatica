@@ -40,6 +40,12 @@ class PlaybackGuardTest {
             guard.onPlayWhenReadyChanged(playing, Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
         }
 
+        /** Media3 reporting a new reason for a pause that already happened (playWhenReady stays false). */
+        fun reasonWhilePaused(reason: Int) {
+            check(!playWhenReady)
+            guard.onPlayWhenReadyChanged(false, reason)
+        }
+
         /** Media3's becoming-noisy pause. */
         fun noisy() {
             if (!playWhenReady) return
@@ -190,6 +196,60 @@ class PlaybackGuardTest {
         r.player.set(true)
         assertTrue("pressing Play after all means the speaker is fine", r.player.playWhenReady)
         assertNull(r.guard.holding)
+    }
+
+    /**
+     * The persistent card's silent track takes the audio focus while a play waits (compatibility mode): Media3 reports
+     * the held pause again as a focus loss. The wait stays, and the volume coming back still starts the music.
+     */
+    @Test fun aFocusLossWhileHeldKeepsTheWait() {
+        val r = Rig()
+        r.start()
+        r.player.silent = true
+        r.player.set(true)
+        assertEquals(PlaybackGuard.Hold.VOLUME, r.guard.holding)
+        r.player.reasonWhilePaused(Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS)
+        assertEquals("still waiting", PlaybackGuard.Hold.VOLUME, r.guard.holding)
+        r.player.silent = false
+        r.watcher.volumeChanged()
+        assertTrue("it starts by itself when the volume comes back", r.player.playWhenReady)
+    }
+
+    @Test fun aFocusLossDuringAnUnplugWaitKeepsIt() {
+        val r = Rig()
+        r.start()
+        r.player.set(true)
+        r.player.noisy()
+        r.player.reasonWhilePaused(Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS)
+        assertEquals(PlaybackGuard.Hold.NOISY, r.guard.holding)
+        r.watcher.added(bluetooth())
+        assertTrue(r.player.playWhenReady)
+    }
+
+    /** Paused by the listener (or by "Pause when muted"), then the earbuds drop: nothing waits, nothing plays on later. */
+    @Test fun anUnplugAfterTheListenersPauseIsNotWaitedOn() {
+        val r = Rig()
+        r.start()
+        r.player.set(true)
+        r.player.set(false)
+        r.player.reasonWhilePaused(Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY)
+        assertNull(r.guard.holding)
+        r.watcher.added(bluetooth())
+        assertFalse("the listener's pause stays", r.player.playWhenReady)
+        assertEquals(0, r.player.plays)
+    }
+
+    /** Earbuds connecting add their call channel first: that isn't the headphones back. */
+    @Test fun aCallChannelIsNotTheHeadphonesBack() {
+        val r = Rig()
+        r.start()
+        r.player.set(true)
+        r.player.noisy()
+        r.watcher.added(OutputReturn.Sink(AudioDeviceInfo.TYPE_BLUETOOTH_SCO, "AA:BB", "Buds"))
+        assertFalse(r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.NOISY, r.guard.holding)
+        r.watcher.added(bluetooth())
+        assertTrue(r.player.playWhenReady)
     }
 
     @Test fun noisyWhilePausedChangesNothing() {
