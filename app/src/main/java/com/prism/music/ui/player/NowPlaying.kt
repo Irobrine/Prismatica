@@ -557,10 +557,16 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     LaunchedEffect(lyricsOpen, queueOpen, statsOpen, menuBySwipe, showActions) {
         if (panelShift.dragging) return@LaunchedEffect
         val open = lyricsOpen || queueOpen || statsOpen || (menuBySwipe && showActions)
+        // The panel's content is composed on this frame (a big list's queue, the lyrics): let that frame pass, invisible,
+        // before the rise and fade start, so its first animation frame isn't the one carrying the composition.
+        if (open && panelShift.value < 0.01f) androidx.compose.runtime.withFrameNanos { }
         panelShift.animateTo(scope, if (open) 1f else 0f, settings.reduceMotion)
         // The menu has gone: the player opens back up, and the swipe isn't holding it collapsed any more.
         if (menuBySwipe && !showActions) menuBySwipe = false
     }
+    // The queue stays composed while it fades out on close (it used to be cut at once while the deck rose under it);
+    // removed once the morph has reached the cover.
+    val showQueuePanel by remember { derivedStateOf { queueOpen || panelShift.value > 0.001f } }
     val p: () -> Float = { panelShift.value }
     // The thresholds that steer composable branches go through derived states: each flips only when the panel's number
     // crosses it, where a direct read invalidated this whole composition on every frame of the panel's morph.
@@ -1542,7 +1548,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             },
                         )
                     }
-                    if (queueOpen) {
+                    if (showQueuePanel) {
                         InlineQueue(
                             onRevealPlayer = { queueControlsOpen = true },
                             onHidePlayer = { if (!controlsStay) queueControlsOpen = false },
