@@ -52,6 +52,8 @@ object FastRefresh {
     private const val LINGER_MS = 700L
     private val linger = android.os.Handler(android.os.Looper.getMainLooper())
     private val letGo = Runnable { letGoNow() }
+    /** The UI thread's priority before a move raised it (null when no move is holding it). */
+    private var uiPriority: Int? = null
 
     /** Called once per activity, with the display its window is on. */
     fun attach(w: Window, display: Display?) {
@@ -88,6 +90,13 @@ object FastRefresh {
         // Android 15's view-level rate API asks for the rate itself, as a source that keeps producing frames at it:
         // the mode hint alone let the system step the display down under the move (measured at 72 Hz).
         if (android.os.Build.VERSION.SDK_INT >= 35) w.decorView.setRequestedFrameRate(bestRate)
+        // The dips inside a move are the UI thread being woken up to 12 ms after the vsync (measured: the wake phase
+        // alone, against 2-3 ms of recording and 2 ms of GPU), which at 11.1 ms a frame means the frame misses the
+        // next vsync. The screen's own priority for the frames of the move asks the scheduler to run it first.
+        if (uiPriority == null) {
+            uiPriority = android.os.Process.getThreadPriority(android.os.Process.myTid())
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY)
+        }
         android.os.Trace.beginAsyncSection(MotionTrace.FAST_MODE, 1)
     }
 
@@ -104,6 +113,10 @@ object FastRefresh {
     /** The grace is over: back to the mode the system picks, and the end of the trace's held section. */
     private fun letGoNow() {
         if (holders.isNotEmpty()) return
+        uiPriority?.let {
+            android.os.Process.setThreadPriority(it)
+            uiPriority = null
+        }
         val w = window.get() ?: return
         android.os.Trace.endAsyncSection(MotionTrace.FAST_MODE, 1)
         // A rate that isn't a number is "no preference" to the view API.
