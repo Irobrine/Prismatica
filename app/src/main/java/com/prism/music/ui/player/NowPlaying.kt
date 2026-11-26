@@ -1353,6 +1353,10 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                                 val idle = artScale + (1f - artScale) * p()
                                 scaleX = idle; scaleY = idle
                                 translationX = swipe.value * (1f - p())
+                                // Between the two players the cover is drawn by the flight, over everything, at this
+                                // same place: the player's own is stood down for those frames so it can't sit there,
+                                // full size, under the one shrinking away (the card no longer fades over it).
+                                if (com.prism.music.ui.player.CoverFlight.flying) alpha = 0f
                             }
                             .smallCoverTaps(
                                 lyricsOpen, queueOpen || statsOpen, settings.behavior.lyricsCoverPlays, isPlaying,

@@ -1251,9 +1251,13 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                                 // while the last frames were still moving.
                                 clip = t < 1f
                                 shape = RoundedCornerShape(((1f - t) * 28f).dp)
-                                // The page behind (and the tab bar under the mini player) gives way to the player's own
-                                // background all the way through, evenly: strictly linear, with no ramp or snap.
-                                alpha = t
+                                // No fade over the whole morph: an alpha under 1 on this full-screen layer draws the whole
+                                // player into an offscreen buffer and composites it again, on every frame — and measured
+                                // from the display's own present times, this animation never once reached 120 Hz (60,
+                                // with 33 ms stretches). The card is opaque; the page behind still shows around its
+                                // growing edge. Only the last hair of the close fades, so it hands over to the mini
+                                // player without a pop: a couple of frames, not the whole move.
+                                alpha = (t / 0.15f).coerceIn(0f, 1f)
                             } else {
                                 alpha = t
                             }
