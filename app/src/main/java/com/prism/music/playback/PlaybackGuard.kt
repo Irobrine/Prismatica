@@ -77,6 +77,8 @@ internal class PlaybackGuard(
     private var lastPlayWhenReady = false
     /** The last outside output (headphones, earbuds, USB) seen connected: gone, a play waits for another, not the speaker. */
     private var lastHeadset: OutputReturn.Sink? = null
+    /** The last outside output seen leaving: the same one coming back is the music's route again (see [check]). */
+    private var lastOutsideRemoved: OutputReturn.Sink? = null
 
     /** Why playback is held, for tests and diagnostics. */
     val holding: Hold? get() = hold
@@ -89,6 +91,7 @@ internal class PlaybackGuard(
         val want = settingOn()
         if (want != watching) {
             watching = want
+            android.util.Log.i("PrismControl", "play guard ${if (want) "on" else "off"}")
             if (want) {
                 // Music already playing when the switch goes on: silence at volume 0 pauses it below.
                 watcher.start(::onVolume, ::onDevices)
@@ -108,6 +111,7 @@ internal class PlaybackGuard(
         watching = false
         hold = null
         wanted = false
+        lastOutsideRemoved = null
         expect = null
     }
 
@@ -131,7 +135,14 @@ internal class PlaybackGuard(
                 return
             }
             val block = blockNow()
-            if (block != null) holdNow(block) else hold = null
+            if (block != null) holdNow(block) else {
+                hold = null
+                android.util.Log.i(
+                    "PrismControl",
+                    "play allowed: routed ${describe(controls.routedOutput)}, silent ${controls.silent}, " +
+                        "last headset ${describe(lastHeadset)}, awaiting resume ${controls.awaitingReturn}",
+                )
+            }
             return
         }
         // Media3's own becoming-noisy pause (ACTION_AUDIO_BECOMING_NOISY): the output went away while the music played.
@@ -149,12 +160,10 @@ internal class PlaybackGuard(
     private fun blockNow(): Hold? = when {
         controls.silent -> Hold.VOLUME
         !controls.hasOutput -> Hold.OUTPUT
-        // Resume is still waiting for the Bluetooth output that went: a "Pause when muted" resume at the next volume
-        // change mustn't play on the phone meanwhile.
-        controls.awaitingReturn -> Hold.LOST
-        // The headphones the music was going to went, and the route is the phone's own speaker: a switch in progress
-        // (a TWS pair moving to its dongle), not an invitation to play out loud. Unless the listener picked the speaker.
-        lastHeadset != null && !controls.speakerPicked && routedIsPhone() -> Hold.LOST
+        // The route is the phone's own speaker, and either the headphones that were playing are gone or Resume is
+        // still waiting for the Bluetooth output that went: nothing plays out loud in that gap. An outside output
+        // (the dongle, a pair back, another headset) is allowed: that's where the music can be heard.
+        routedIsPhone() && (controls.awaitingReturn || (lastHeadset != null && !controls.speakerPicked)) -> Hold.LOST
         else -> null
     }
 
@@ -187,6 +196,7 @@ internal class PlaybackGuard(
         if (controls.playWhenReady) return
         expect = true
         controls.play()
+        lastOutsideRemoved = null
         android.util.Log.i("PrismControl", "held play released: sound is possible again")
         log("playing on: it can be heard again")
     }
@@ -199,12 +209,17 @@ internal class PlaybackGuard(
         if (released || !settingOn()) return
         val held = hold ?: return
         val lost = lastHeadset
+        val removed = lastOutsideRemoved
         val back = when (held) {
             Hold.VOLUME -> !controls.silent
             Hold.OUTPUT -> controls.hasOutput
-            // A 2.4 GHz dongle already connected becomes the route without a device add. The lost pair's own return comes
-            // as an add (onDevices); the route still naming it is the old one.
-            Hold.NOISY, Hold.LOST -> controls.routedOutput.let { it != null && !it.phoneOutput && (lost == null || !it.sameAs(lost)) }
+            // The route is an outside output again. The same pair is allowed once its entry was seen leaving (back on
+            // Bluetooth after a 2.4 GHz switch) or once Resume has stopped waiting for it; a route still naming a pair
+            // that never left is the old, dead one.
+            Hold.NOISY, Hold.LOST -> controls.routedOutput.let { routed ->
+                routed != null && !routed.phoneOutput &&
+                    (lost == null || !routed.sameAs(lost) || removed?.sameAs(routed) == true || !controls.awaitingReturn)
+            }
         }
         if (back) releaseHold()
     }
@@ -228,6 +243,12 @@ internal class PlaybackGuard(
         // What the music was playing on, remembered even while nothing is held: once it's gone, a play waits for another
         // outside output instead of coming out of the phone's speaker (a pair switching to its 2.4 GHz dongle, say).
         music.firstOrNull { !it.phoneOutput }?.let { lastHeadset = it }
+        removed.lastOrNull { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput }?.let { lastOutsideRemoved = it }
+        android.util.Log.i(
+            "PrismControl",
+            "guard devices: +[${added.joinToString { describe(it) }}] -[${removed.joinToString { describe(it) }}]; " +
+                "routed ${describe(controls.routedOutput)}, headset connected ${!routedIsPhone()}",
+        )
         if (!settingOn()) return
         val held = hold ?: return
         val back = when (held) {
@@ -243,6 +264,9 @@ internal class PlaybackGuard(
     /** The phone's own sound: the speaker (or an earpiece on a phone without one). */
     private val OutputReturn.Sink.phoneOutput: Boolean
         get() = com.prism.music.data.isPhoneOutput(type)
+
+    private fun describe(sink: OutputReturn.Sink?): String =
+        sink?.let { "${it.name.ifBlank { "?" }} (type ${it.type})" } ?: "unknown"
 
     /** The phone's volume and audio outputs, watched only while the setting is on. */
     class AndroidWatcher(private val context: Context) : Watcher {

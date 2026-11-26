@@ -358,6 +358,27 @@ class PlaybackGuardTest {
         assertTrue(r.player.playWhenReady)
     }
 
+    /** Back on Bluetooth (the phone) after a 2.4 GHz switch: the same pair is the route again, so it plays. */
+    @Test fun theSamePairBackOnBluetoothLetsItPlay() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.player.noisy()
+        r.watcher.removed(bluetooth())
+        r.player.headsetConnected = false
+        r.player.set(true)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        // The entry is back, but the phone is still the route for a moment.
+        r.watcher.added(bluetooth())
+        assertFalse(r.player.playWhenReady)
+        r.player.headsetConnected = true
+        r.guard.check()
+        assertTrue("the pair is the route again: it plays", r.player.playWhenReady)
+        assertNull(r.guard.holding)
+    }
+
     @Test fun noisyWhilePausedChangesNothing() {
         val r = Rig()
         r.start()
