@@ -5225,6 +5225,10 @@
     <string name="play_only_when_audible">केवल तब चलाएँ जब सुनाई दे</string>
     <string name="play_only_when_audible_info">फ़ोन का मीडिया वॉल्यूम 0 होने, कोई ऑडियो आउटपुट कनेक्ट न होने, या अभी-अभी हेडफ़ोन निकाले जाने पर प्ले दबाने से रुका रहता है। जैसे ही आवाज़ फिर सुनाई देने लगती है, यह अपने आप शुरू हो जाता है। \"म्यूट होने पर रोकें\" चालू होने पर बज रहा संगीत फिर भी रुकता रहता है।</string>
     <string name="play_only_when_audible_keywords">मौन म्यूट वॉल्यूम शून्य हेडफ़ोन ब्लूटूथ आउटपुट स्पीकर प्रतीक्षा शुरू silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">2.4 GHz स्विच</string>
+    <string name="playback_switch_devices_info">केवल इन ब्लूटूथ हेडफ़ोन के रोकने को उनके 2.4 GHz रिसीवर पर स्विच माना जाता है: जब तक वे फिर न चलें, प्लेबैक रुका रहता है। किसी अन्य हेडफ़ोन का रोकना सामान्य रोकना है।</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">अपने हेडफ़ोन कनेक्ट करें, या उन पर एक बार चलाएँ, फिर यहाँ चुनें।</string>
     <string name="playback_shuffle_keywords">स्मार्ट शफ़ल रैंडम क्रम मिला-जुला शफ़ल रहे smart shuffle random order mixed stay shuffled</string>
     <string name="playback_song_to_song">एक गाने से अगले तक</string>
     <string name="playback_speed_and_pitch">स्पीड और पिच</string>

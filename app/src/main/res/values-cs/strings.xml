@@ -5369,6 +5369,10 @@
     <string name="play_only_when_audible">Přehrávat jen když je to slyšet</string>
     <string name="play_only_when_audible_info">Stisknutí přehrát počká, dokud je hlasitost médií telefonu na 0, není připojený žádný zvukový výstup nebo byly právě odpojeny sluchátka, která hrála. Jakmile je zvuk znovu možný, spustí se samo. S zapnutým „Pozastavit při ztlumení“ se hudba, která už hraje, nadále pozastavuje.</string>
     <string name="play_only_when_audible_keywords">ticho ztlumeno hlasitost nula sluchátka odpojit bluetooth výstup reproduktor čekat spustit pokračovat silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Přepínač 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Jako přepnutí na jejich 2,4GHz přijímač se počítá jen pozastavení z těchto sluchátek Bluetooth: přehrávání zůstane zastavené, dokud znovu nespustí. Pozastavení z jiných sluchátek je běžné pozastavení.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Připojte sluchátka nebo na nich jednou přehrajte a pak je zde vyberte.</string>
     <string name="playback_shuffle_keywords">chytré náhodné přehrávání náhodné pořadí zamíchat zůstat zamíchané smart shuffle random order mixed up</string>
     <string name="playback_song_to_song">Z jedné skladby do další</string>
     <string name="playback_speed_and_pitch">Rychlost a výška tónu</string>

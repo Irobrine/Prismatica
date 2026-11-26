@@ -5297,6 +5297,10 @@
     <string name="play_only_when_audible">Reproducir solo cuando se pueda oír</string>
     <string name="play_only_when_audible_info">Pulsar reproducir espera mientras el volumen multimedia del teléfono está a 0, no hay ninguna salida de audio conectada o acaban de desconectarse los auriculares que sonaban. Empieza solo cuando vuelve a ser posible oírlo. Con «Pausar al silenciar» activado, la música que ya suena se sigue pausando.</string>
     <string name="play_only_when_audible_keywords">silencio silenciado volumen cero auriculares desconectar bluetooth salida altavoz esperar iniciar reanudar silent muted volume zero headphones unplug</string>
+    <string name="playback_switch_devices">Conmutador de 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Solo la pausa de estos auriculares Bluetooth cuenta como cambio a su receptor de 2,4 GHz: la reproducción sigue detenida hasta que vuelvan a sonar. La pausa de otros auriculares es una pausa normal.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Conecta tus auriculares o reproduce una vez en ellos y luego elígelos aquí.</string>
     <string name="playback_shuffle_keywords">aleatorio inteligente orden aleatorio mezclado seguir en aleatorio smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">De una canción a la siguiente</string>
     <string name="playback_speed_and_pitch">Velocidad y tono</string>

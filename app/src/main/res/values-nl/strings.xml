@@ -5225,6 +5225,10 @@
     <string name="play_only_when_audible">Alleen afspelen als het hoorbaar is</string>
     <string name="play_only_when_audible_info">Op afspelen drukken wacht zolang het mediavolume van de telefoon 0 is, er geen audio-uitgang is aangesloten of de koptelefoon die speelde net is losgekoppeld. Het begint vanzelf zodra geluid weer mogelijk is. Met „Pauzeren als het geluid uit staat” aan wordt muziek die al speelt nog steeds gepauzeerd.</string>
     <string name="play_only_when_audible_keywords">stil gedempt volume nul koptelefoon loskoppelen bluetooth uitgang luidspreker wachten starten hervatten silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">2,4GHz-schakelaar</string>
+    <string name="playback_switch_devices_info">Alleen de pauze van deze bluetooth-koptelefoon telt als omschakelen naar hun 2,4GHz-ontvanger: het afspelen blijft gestopt tot ze weer spelen. De pauze van andere koptelefoons is een gewone pauze.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Verbind je koptelefoon of speel er één keer op, kies ze dan hier.</string>
     <string name="playback_shuffle_keywords">slimme shuffle willekeurige volgorde door elkaar geshuffeld blijven smart shuffle random order</string>
     <string name="playback_song_to_song">Van het ene nummer naar het volgende</string>
     <string name="playback_speed_and_pitch">Snelheid en toonhoogte</string>

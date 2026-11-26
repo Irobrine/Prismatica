@@ -5513,6 +5513,10 @@
     <string name="play_only_when_audible">التشغيل فقط عندما يمكن سماعه</string>
     <string name="play_only_when_audible_info">ينتظر الضغط على \"تشغيل\" ما دامت درجة صوت الوسائط في الهاتف على 0، أو لم يكن هناك مخرج صوت متصل، أو كانت السماعات التي تعمل قد فُصلت للتو. يبدأ التشغيل من تلقاء نفسه عندما يصبح الصوت ممكنًا مرة أخرى. عند تفعيل \"الإيقاف المؤقت عند كتم الصوت\"، سيظل يوقف الموسيقى التي تُشغَّل بالفعل مؤقتًا.</string>
     <string name="play_only_when_audible_keywords">صامت مكتوم صوت درجة صفر سماعات فصل بلوتوث مخرج مكبر انتظار تشغيل استئناف silent muted volume zero headphones unplug bluetooth output speaker wait start resume</string>
+    <string name="playback_switch_devices">مفتاح 2.4 غيغاهرتز</string>
+    <string name="playback_switch_devices_info">لا يُعد التوقف المؤقت من سماعات البلوتوث هذه إلا بمثابة تبديل إلى مستقبل 2.4 غيغاهرتز الخاص بها: يبقى التشغيل متوقفًا حتى تُشغّلها مرة أخرى. التوقف المؤقت من أي سماعة أخرى هو توقف عادي.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">وصّل سماعاتك، أو شغّل عليها مرة واحدة، ثم اخترها هنا.</string>
     <string name="playback_shuffle_keywords">ترتيب عشوائي ذكي ترتيب عشوائي خلط البقاء عشوائيًا smart shuffle random</string>
     <string name="playback_song_to_song">من أغنية إلى التالية</string>
     <string name="playback_speed_and_pitch">السرعة وطبقة الصوت</string>

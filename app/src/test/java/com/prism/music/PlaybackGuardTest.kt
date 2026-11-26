@@ -100,12 +100,16 @@ class PlaybackGuardTest {
         override fun rememberSwitched(on: Boolean) { switched = on }
     }
 
-    private class Rig(on: Boolean = true, val memory: PlaybackGuard.Memory = PlaybackGuard.Memory.None) {
+    private class Rig(
+        on: Boolean = true,
+        val memory: PlaybackGuard.Memory = PlaybackGuard.Memory.None,
+        var switchDevices: Set<String> = setOf("Buds"),
+    ) {
         var setting = on
         var muteHandlesVolume = false
         val watcher = FakeWatcher()
         val player = FakePlayer()
-        val guard = PlaybackGuard(watcher, { setting }, { muteHandlesVolume }, player, log = {}, memory = memory)
+        val guard = PlaybackGuard(watcher, { setting }, { muteHandlesVolume }, { switchDevices }, player, log = {}, memory = memory)
         init { player.guard = guard }
         fun start() = guard.update()
     }
@@ -429,6 +433,24 @@ class PlaybackGuardTest {
         r.player.set(true)
         assertTrue(r.player.playWhenReady)
         assertNull(r.guard.holding)
+    }
+
+    /** Only the chosen pair's pause is a switch; an empty list means none. */
+    @Test fun onlyTheChosenHeadphonesAreASwitch() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.switchDevices = emptySet()
+        r.guard.onRemotePause()
+        assertFalse(r.guard.switchedNow)
+        r.switchDevices = setOf("Another pair")
+        r.guard.onRemotePause()
+        assertFalse(r.guard.switchedNow)
+        r.switchDevices = setOf("Buds")
+        r.guard.onRemotePause()
+        assertTrue(r.guard.switchedNow)
     }
 
     /** A service restart replays the connected pair; that snapshot must not count as the pair coming back. */

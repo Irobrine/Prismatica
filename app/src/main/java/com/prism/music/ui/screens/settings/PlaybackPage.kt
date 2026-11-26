@@ -1,18 +1,31 @@
 package com.prism.music.ui.screens.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.prism.music.R
 import com.prism.music.data.AutoplayLength
+import com.prism.music.data.isBluetooth
+import com.prism.music.data.outputOptions
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.CrossfadeCurve
 import com.prism.music.data.prefs.ExplicitContent
@@ -20,9 +33,12 @@ import com.prism.music.data.prefs.MAX_CROSSFADE_SECONDS
 import com.prism.music.data.prefs.ShuffleButton
 import com.prism.music.playback.MixRefusal
 import com.prism.music.playback.MixWhy
+import com.prism.music.playback.PlaybackGuard
 import com.prism.music.tr
+import com.prism.music.ui.components.PrismSheet
 import com.prism.music.ui.screens.Crossfade
 import com.prism.music.ui.screens.CurveSample
+import com.prism.music.ui.screens.PrismCheck
 import com.prism.music.ui.screens.QueueEnd
 import com.prism.music.ui.screens.SettingEntry
 import com.prism.music.ui.screens.SettingNeeds
@@ -56,6 +72,7 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
     val reset = ListeningResets()
     // #493: why the last two songs didn't blend, when they didn't (until one does): a last line in Crossfade's ⓘ.
     val lastWhy = c.mixState.why.collectAsState().value
+    var choosingSwitchDevices by remember { mutableStateOf(false) }
 
     val onOff: (Boolean) -> String = { ListeningResets.onOff(it) }
     val seconds: (Int) -> String = { ListeningResets.seconds(it) }
@@ -101,6 +118,7 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
     val playOnlyWhenAudibleChanged = reset.add(tr(R.string.play_only_when_audible), s.behavior.playOnlyWhenAudible, d.behavior.playOnlyWhenAudible, onOff) { prefs.setPlayOnlyWhenAudible(it) }
     val faceDownChanged = reset.add(tr(R.string.playback_face_down_pause), s.behavior.faceDownPause, d.behavior.faceDownPause, onOff) { prefs.setFaceDownPause(it) }
     val resumeOnReturnChanged = reset.add(tr(R.string.playback_resume_on_return), s.behavior.resumeOnReturn, d.behavior.resumeOnReturn, onOff) { prefs.setResumeOnReturn(it) }
+    val switchDevicesChanged = reset.add(tr(R.string.playback_switch_devices), s.behavior.switchDevices, d.behavior.switchDevices, ::switchDevicesValue) { prefs.setSwitchDevices(it) }
 
     SettingsPageScaffold(page.title, bottomPadding, showBack = showBack, onSearch = onSearch, find = find, reset = reset.pageReset()) {
         group(tr(R.string.what_plays_next)) {
@@ -193,6 +211,63 @@ fun PlaybackPage(bottomPadding: Dp, find: String? = null, showBack: Boolean = tr
             // 1.8.5: a Bluetooth output that goes and comes back (playback/OutputReturn.kt).
             SwitchRow(tr(R.string.playback_resume_on_return), s.behavior.resumeOnReturn, info = tr(R.string.playback_resume_on_return_info), changed = resumeOnReturnChanged) { prefs.setResumeOnReturn(it) }
         }
+        // A pair that keeps its Bluetooth link while on its 2.4 GHz receiver sends only a pause: chosen devices only.
+        group(tr(R.string.headphones)) {
+            LinkRow(
+                tr(R.string.playback_switch_devices),
+                value = switchDevicesValue(s.behavior.switchDevices),
+                info = tr(R.string.playback_switch_devices_info),
+                changed = switchDevicesChanged,
+            ) { choosingSwitchDevices = true }
+        }
+    }
+    if (choosingSwitchDevices) SwitchDevicesSheet { choosingSwitchDevices = false }
+}
+
+/** The Headphones row's line: the chosen devices, or "None chosen". */
+private fun switchDevicesValue(names: Set<String>): String =
+    if (names.isEmpty()) tr(R.string.none_chosen) else names.sorted().joinToString(", ")
+
+/**
+ * The pairs whose pause is the 2.4 GHz switch. The list is what the phone has now plus the pair Prism last played on
+ * and anything already chosen (so a chosen pair can be removed while it is off), without asking for Bluetooth access.
+ */
+@Composable
+private fun SwitchDevicesSheet(onDismiss: () -> Unit) {
+    val c = LocalContainer.current
+    val s = LocalAppSettings.current
+    val context = LocalContext.current
+    val connected = remember { outputOptions(context).filter { isBluetooth(it.type) } }
+    val last = remember { PlaybackGuard.AndroidMemory(context).lastHeadset()?.takeIf { it.bluetooth } }
+    val names = remember(connected, last, s.behavior.switchDevices) {
+        buildList {
+            connected.mapNotNullTo(this) { d -> d.productName?.toString()?.takeIf { n -> n.isNotBlank() } }
+            last?.name?.takeIf { it.isNotBlank() }?.let { add(it) }
+            addAll(s.behavior.switchDevices)
+        }.filter { it.isNotBlank() }.distinct().sorted()
+    }
+    PrismSheet(onDismiss = onDismiss) {
+        Text(
+            tr(R.string.playback_switch_devices), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 20.dp),
+        )
+        if (names.isEmpty()) {
+            Text(tr(R.string.playback_switch_devices_empty), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(20.dp))
+        } else LazyColumn(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 24.dp)) {
+            items(names.size, key = { names[it] }) { i ->
+                val name = names[i]
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    PrismCheck(name in s.behavior.switchDevices, label = name) { c.settings.setSwitchDevice(name, it) }
+                }
+            }
+        }
     }
 }
 
@@ -270,6 +345,7 @@ val playbackIndex: List<SettingEntry> by lazy {
     val between = tr(R.string.playback_song_to_song)
     val speed = tr(R.string.playback_speed_and_pitch)
     val stopping = tr(R.string.stopping_and_pausing)
+    val headphones = tr(R.string.headphones)
     with(SettingNeeds) {
         listOf(
             // 1.8.0 (#210): merged choices; the old titles stay as search words.
@@ -300,6 +376,7 @@ val playbackIndex: List<SettingEntry> by lazy {
             SettingEntry(page, stopping, tr(R.string.play_only_when_audible), tr(R.string.play_only_when_audible_keywords)),
             SettingEntry(page, stopping, tr(R.string.playback_face_down_pause), tr(R.string.playback_face_down_keywords)),
             SettingEntry(page, stopping, tr(R.string.playback_resume_on_return), tr(R.string.playback_resume_on_return_keywords)),
+            SettingEntry(page, headphones, tr(R.string.playback_switch_devices), tr(R.string.playback_switch_devices_keywords)),
         )
     }
 }

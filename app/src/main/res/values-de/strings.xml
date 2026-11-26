@@ -5225,6 +5225,10 @@
     <string name="play_only_when_audible">Nur abspielen, wenn es hörbar ist</string>
     <string name="play_only_when_audible_info">Ein Druck auf Wiedergabe wartet, solange die Medienlautstärke des Telefons 0 ist, kein Audioausgang angeschlossen ist oder gerade die Kopfhörer getrennt wurden, über die gespielt wurde. Sobald wieder Ton möglich ist, startet es von selbst. Mit „Bei Stummschaltung pausieren“ werden bereits laufende Titel weiterhin pausiert.</string>
     <string name="play_only_when_audible_keywords">stumm stummgeschaltet lautstärke null kopfhörer trennen bluetooth ausgang lautsprecher warten start fortsetzen silent muted volume zero headphones unplug</string>
+    <string name="playback_switch_devices">2,4-GHz-Umschalter</string>
+    <string name="playback_switch_devices_info">Nur die Pause dieser Bluetooth-Kopfhörer gilt als Umschalten auf ihren 2,4-GHz-Empfänger: Die Wiedergabe bleibt angehalten, bis sie wieder abspielen. Die Pause anderer Kopfhörer ist eine gewöhnliche Pause.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Verbinde deine Kopfhörer oder spiele einmal darauf, dann wähle sie hier.</string>
     <string name="playback_shuffle_keywords">smart shuffle zufall zufällige reihenfolge gemischt geshuffelt bleiben random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">Von einem Song zum nächsten</string>
     <string name="playback_speed_and_pitch">Tempo und Tonhöhe</string>

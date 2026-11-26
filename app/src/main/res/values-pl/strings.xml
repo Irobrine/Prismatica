@@ -5369,6 +5369,10 @@
     <string name="play_only_when_audible">Odtwarzaj tylko, gdy słychać</string>
     <string name="play_only_when_audible_info">Naciśnięcie odtwarzania czeka, dopóki głośność multimediów telefonu wynosi 0, nie jest podłączone żadne wyjście audio lub przed chwilą odłączono słuchawki, które grały. Gdy dźwięk znów jest słyszalny, odtwarzanie rusza samo. Przy włączonym „Wstrzymuj po wyciszeniu” muzyka, która już gra, nadal jest wstrzymywana.</string>
     <string name="play_only_when_audible_keywords">cisza wyciszenie głośność zero słuchawki odłączyć bluetooth wyjście głośnik czekać rozpocznij wznów silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Przełącznik 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Tylko wstrzymanie z tych słuchawek Bluetooth liczy się jako przełączenie na ich odbiornik 2,4 GHz: odtwarzanie pozostaje zatrzymane, dopóki nie zagrają ponownie. Wstrzymanie innych słuchawek to zwykłe wstrzymanie.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Podłącz słuchawki albo odtwórz na nich raz, potem wybierz je tutaj.</string>
     <string name="playback_shuffle_keywords">inteligentne losowanie losowa kolejność wymieszane zostaw losowo smart shuffle random order</string>
     <string name="playback_song_to_song">Z utworu na utwór</string>
     <string name="playback_speed_and_pitch">Prędkość i wysokość</string>

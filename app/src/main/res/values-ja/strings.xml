@@ -5153,6 +5153,10 @@
     <string name="play_only_when_audible">音が聞こえるときだけ再生</string>
     <string name="play_only_when_audible_info">スマートフォンのメディア音量が0のとき、オーディオ出力が接続されていないとき、または再生中だったヘッドホンが外された直後は、再生を押しても待機します。音が聞こえるようになると自動で再生します。「ミュート時に一時停止」がオンの場合、再生中の曲はこれまでどおり一時停止します。</string>
     <string name="play_only_when_audible_keywords">無音 ミュート 音量 ゼロ ヘッドホン 取り外し Bluetooth 出力 スピーカー 待機 再生 再開 silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">2.4 GHz スイッチ</string>
+    <string name="playback_switch_devices_info">この Bluetooth ヘッドホンの一時停止だけを、その 2.4 GHz レシーバーへの切り替えとみなします。再び再生するまで再生は止まったままです。ほかのヘッドホンの一時停止は通常の一時停止です。</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">ヘッドホンを接続するか一度再生してから、ここで選んでください。</string>
     <string name="playback_shuffle_keywords">スマートシャッフル ランダム 順番 バラバラ シャッフルを維持 smart shuffle random order</string>
     <string name="playback_song_to_song">曲から次の曲へ</string>
     <string name="playback_speed_and_pitch">速度とピッチ</string>

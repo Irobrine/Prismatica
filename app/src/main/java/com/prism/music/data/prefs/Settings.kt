@@ -348,6 +348,11 @@ data class BehaviorPrefs(
      * is possible again. "Pause when muted" keeps handling music that is already playing.
      */
     val playOnlyWhenAudible: Boolean = false,
+    /**
+     * Bluetooth headphones whose pause is taken as a switch to their 2.4 GHz receiver (the pair keeps its Bluetooth
+     * link, so its pause is the only signal). Empty: no pair is treated as a switch. Names, as the phone shows them.
+     */
+    val switchDevices: Set<String> = emptySet(),
     /** When a video goes picture-in-picture (#167). */
     val pip: PipMode = PipMode.AUTO,
     /**
@@ -2445,6 +2450,7 @@ class SettingsRepository(
         val tvBackdropDim = intPreferencesKey("tv_backdrop_dim")
         val pauseOnMute = booleanPreferencesKey("pause_on_mute")
         val playOnlyWhenAudible = booleanPreferencesKey("play_only_when_audible")
+        val switchDevices = stringPreferencesKey("switch_devices")
         val pipMode = stringPreferencesKey("pip_mode")
         val panelSwipes = stringPreferencesKey("panel_swipes_sides")
         /**
@@ -2689,6 +2695,8 @@ class SettingsRepository(
                 "recap_notify", "milestone_notify", "finish_lyric", "face_down_pause", "resume_on_return", "lyrics_cover_plays",
                 // Playback that waits until it can be heard (volume 0, no output, headphones unplugged).
                 "play_only_when_audible",
+                // The headphones whose pause is their 2.4 GHz switch.
+                "switch_devices",
                 // 1.9: how lyrics enhancement runs and how much room its generated audio may take.
                 "enhance_align_with_vocals", "enhance_audio_mb",
             )
@@ -2985,6 +2993,7 @@ class SettingsRepository(
                 lockPortrait = p[K.lockPortrait] ?: d.behavior.lockPortrait,
                 pauseOnMute = p[K.pauseOnMute] ?: d.behavior.pauseOnMute,
                 playOnlyWhenAudible = p[K.playOnlyWhenAudible] ?: d.behavior.playOnlyWhenAudible,
+                switchDevices = p[K.switchDevices]?.split('\n')?.filter { it.isNotBlank() }?.toSet() ?: d.behavior.switchDevices,
                 pip = p.enum(K.pipMode, d.behavior.pip),
                 panelSwipes = p.enum(K.panelSwipes, if (p[K.panelSwipesOn] == true) PanelSwipes.QUEUE_RIGHT else d.behavior.panelSwipes),
                 recentShows = p.enum(K.recentShows, d.behavior.recentShows),
@@ -3802,6 +3811,11 @@ class SettingsRepository(
     }
     fun setPauseOnMute(v: Boolean) = edit { it[K.pauseOnMute] = v }
     fun setPlayOnlyWhenAudible(v: Boolean) = edit { it[K.playOnlyWhenAudible] = v }
+    fun setSwitchDevices(v: Set<String>) = edit { it[K.switchDevices] = v.filter { n -> n.isNotBlank() }.toSet().joinToString("\n") }
+    fun setSwitchDevice(name: String, on: Boolean) = edit {
+        val now = it[K.switchDevices]?.split('\n')?.filter { n -> n.isNotBlank() }?.toSet().orEmpty()
+        it[K.switchDevices] = (if (on) now + name else now - name).filter { n -> n.isNotBlank() }.toSet().joinToString("\n")
+    }
     fun setPipMode(v: PipMode) = edit { it[K.pipMode] = v.name }
     fun setPanelSwipes(v: PanelSwipes) = edit {
         it[K.panelSwipes] = v.name

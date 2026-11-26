@@ -66,19 +66,21 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
     private val faceDown = t(R.string.playback_face_down_pause)
     private val resumeOnReturn = t(R.string.playback_resume_on_return)
     private val startShuffled = t(R.string.playback_start_shuffled)
+    private val headphones = t(R.string.headphones)
+    private val switchDevices = t(R.string.playback_switch_devices)
 
     private fun groupTitles() = compose.onAllNodes(hasTestTag(SettingsTags.GROUP)).fetchSemanticsNodes()
         .map { g -> g.children.first().config[SemanticsProperties.Text].first().text }
 
-    @Test fun fiveGroupsWithinTheBudgets() {
+    @Test fun sixGroupsWithinTheBudgets() {
         show()
         assertBudgets("defaults")
         // The ledger's layout with a fresh install's settings.
         assertEquals(
-            listOf(t(R.string.what_plays_next), t(R.string.shuffle), t(R.string.playback_song_to_song), t(R.string.playback_speed_and_pitch), t(R.string.stopping_and_pausing)),
+            listOf(t(R.string.what_plays_next), t(R.string.shuffle), t(R.string.playback_song_to_song), t(R.string.playback_speed_and_pitch), t(R.string.stopping_and_pausing), t(R.string.headphones)),
             groupTitles(),
         )
-        assertEquals(listOf(7, 3, 2, 2, 7), groupSizes())
+        assertEquals(listOf(7, 3, 2, 2, 7, 1), groupSizes())
         assertEquals("nothing differs from how Prism comes", 0, changedRows())
         // No group is named as the page, and none as one of its own rows (§2.7: "Crossfade" was both).
         assertTrue(groupTitles().none { it == SettingsPageId.PLAYBACK.title })
@@ -105,7 +107,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         until("crossfade on") { it.mix && !it.mixAuto }
         show()
         assertBudgets("crossfade on, fixed length")
-        assertEquals(listOf(7, 3, 5, 2, 7), groupSizes())
+        assertEquals(listOf(7, 3, 5, 2, 7, 1), groupSizes())
         assertEquals("6 s", valueOf(length))
     }
 
@@ -197,19 +199,22 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         until("resume_on_return") { it.behavior.resumeOnReturn }
         tap(startShuffled)
         until("start_shuffled") { it.behavior.startShuffled }
+        container.settings.setSwitchDevice("Test headphones", true)
+        until("switch_devices") { it.behavior.switchDevices == setOf("Test headphones") }
 
         // Every row now differs from how Prism comes, says so, and the page still fits.
         assertBudgets("everything changed")
-        assertEquals(listOf(7, 3, 5, 2, 7), groupSizes())
-        assertEquals(24, changedRows())
+        assertEquals(listOf(7, 3, 5, 2, 7, 1), groupSizes())
+        assertEquals(25, changedRows())
         // The root's line is live.
         val line = SettingsPageId.PLAYBACK.value(stored)
         assertTrue(line, tr(R.string.root_crossfade_seconds, 9) in line && noRepeats in line)
 
         // Reset this page lists each of them and puts them all back.
         val lines = resetLines(confirm = true)
-        assertEquals(lines.joinToString("\n"), 24, lines.size)
+        assertEquals(lines.joinToString("\n"), 25, lines.size)
         assertTrue(lines.toString(), lines.any { it.startsWith("$shuffleButton: ${ShuffleButton.SHUFFLE_ONLY.label} → ${ShuffleButton.SHUFFLE_AND_SMART.label}") })
+        assertTrue(lines.toString(), lines.any { it.startsWith("$switchDevices: Test headphones → ${t(R.string.none_chosen)}") })
         until("the reset") { it.behavior == d.behavior && it.sound == d.sound }
         until("the reset") {
             it.autoplay == d.autoplay && it.autoplaySource == d.autoplaySource && it.radioSongsOnly == d.radioSongsOnly && it.songsEverywhere == d.songsEverywhere &&
@@ -217,7 +222,7 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
                 it.mixBeatMatch == d.mixBeatMatch && it.mixKeepAlbums == d.mixKeepAlbums && it.stopOnSwipeAway == d.stopOnSwipeAway
         }
         assertEquals(0, changedRows())
-        assertEquals(listOf(7, 3, 2, 2, 7), groupSizes())
+        assertEquals(listOf(7, 3, 2, 2, 7, 1), groupSizes())
     }
 
     /** D57 and #416: the two new rows, off (as Prism was) until picked. */
@@ -321,6 +326,26 @@ class PlaybackPageTest : ListeningPageHarness(SettingsPageId.PLAYBACK) {
         assertEquals(1, changedRows())
         tap(playOnlyWhenAudible)
         until("play_only_when_audible off") { !it.behavior.playOnlyWhenAudible }
+    }
+
+    /** The new Headphones group: a link row; its sheet is the control for the chosen 2.4 GHz pairs. */
+    @Test fun switchDevicesAreChosenInTheirSheet() {
+        show()
+        assertEquals(SettingsTags.ROW_LINK, typeOf(switchDevices))
+        assertEquals(t(R.string.none_chosen), valueOf(switchDevices))
+        val e = SettingsIndex.entries.single { it.title == switchDevices }
+        assertEquals(SettingsPageId.PLAYBACK, e.page)
+        assertEquals(headphones, e.group)
+        assertTrue(SettingsIndex.search("2.4").any { it.title == switchDevices })
+        // Chosen in the sheet (Robolectric has no connected Bluetooth output, so the chosen name is the list).
+        container.settings.setSwitchDevice("Test headphones", true)
+        until("switch_devices") { it.behavior.switchDevices == setOf("Test headphones") }
+        compose.waitForIdle()
+        assertEquals("Test headphones", valueOf(switchDevices))
+        tap(switchDevices)
+        compose.waitForIdle()
+        compose.onNode(androidx.compose.ui.test.hasContentDescription("Test headphones")).performClick()
+        until("switch_devices off") { it.behavior.switchDevices.isEmpty() }
     }
 
     /** #493: why the last two songs didn't blend is the last line behind Crossfade's ⓘ, and only when there's a reason. */

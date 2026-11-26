@@ -5381,6 +5381,10 @@
     <string name="play_only_when_audible">Play only when it can be heard</string>
     <string name="play_only_when_audible_info">Pressing play waits while the phone\'s media volume is 0, no audio output is connected, or the headphones that were playing just got unplugged. It starts by itself once sound is possible again. With \"Pause when muted\" on, that still pauses music that is already playing.</string>
     <string name="play_only_when_audible_keywords">silent muted volume zero headphones unplug bluetooth disconnect output speaker safe wait start resume</string>
+    <string name="playback_switch_devices">2.4 GHz switch</string>
+    <string name="playback_switch_devices_info">Only the pause from these Bluetooth headphones counts as a switch to their 2.4 GHz receiver: playback stays stopped until they play again. A pause from any other pair is an ordinary pause.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Connect your headphones, or play once on them, then choose them here.</string>
     <string name="gb_lyrics_cover_plays">Tap the small cover to play or pause</string>
     <string name="gb_lyrics_cover_plays_info">With the lyrics open, a tap on the small cover plays or pauses and a long press closes the lyrics. Off: a tap closes the lyrics.</string>
     <string name="gb_lyrics_cover_plays_keywords">lyrics small cover thumbnail artwork tap play pause long press close</string>

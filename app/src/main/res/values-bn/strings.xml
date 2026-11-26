@@ -5225,6 +5225,10 @@
     <string name="play_only_when_audible">শুধু শোনা গেলে চালান</string>
     <string name="play_only_when_audible_info">ফোনের মিডিয়া ভলিউম ০ থাকলে, কোনো অডিও আউটপুট সংযুক্ত না থাকলে, বা যে হেডফোন বাজছিল সেটি এইমাত্র খুলে ফেলা হলে প্লে চাপা অপেক্ষা করে। আবার শব্দ শোনা গেলে এটি নিজে থেকেই শুরু হয়। \"মিউট করলে বিরতি দিন\" চালু থাকলে সেটি ইতিমধ্যে বাজতে থাকা গান আগের মতোই থামায়।</string>
     <string name="play_only_when_audible_keywords">নীরব মিউট ভলিউম শূন্য হেডফোন আনপ্লাগ ব্লুটুথ আউটপুট স্পিকার অপেক্ষা শুরু silent muted volume zero headphones unplug bluetooth</string>
+    <string name="playback_switch_devices">2.4 GHz সুইচ</string>
+    <string name="playback_switch_devices_info">শুধু এই ব্লুটুথ হেডফোনের বিরতিই তাদের 2.4 GHz রিসিভারে সুইচ হিসেবে ধরা হয়: তারা আবার চালানো পর্যন্ত প্লেব্যাক বন্ধ থাকে। অন্য হেডফোনের বিরতি সাধারণ বিরতি।</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">আপনার হেডফোন সংযুক্ত করুন, বা একবার তাতে চালান, তারপর এখানে বেছে নিন।</string>
     <string name="playback_shuffle_keywords">স্মার্ট শাফেল এলোমেলো ক্রম মেশানো শাফেল রাখুন smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">এক গান থেকে পরের গানে</string>
     <string name="playback_speed_and_pitch">গতি ও পিচ</string>

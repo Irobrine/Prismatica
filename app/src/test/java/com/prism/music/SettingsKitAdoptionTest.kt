@@ -175,6 +175,7 @@ class SettingsKitAdoptionTest {
             "ThemeColorsPage.kt" to "Your own colors: the light's colour stops to edit and reorder, not rows",
             "PlayerParts.kt" to "UntitledSheet: RowsSheet without its title, for the buttons editor that heads itself",
             "DedupSettingsSheet.kt" to "the detail sheet of the Library's Duplicate songs link: three switches and five inherit choices, opened from one page row to keep that page's six-group budget",
+            "PlaybackPage.kt" to "Headphones: a list of the phone's Bluetooth outputs with checks, not rows",
         )
         val dir = File("src/main/java/com/prism/music/ui/screens/settings")
         val kit = setOf("PickSheet.kt", "SettingsRows.kt", "SettingsPageScaffold.kt", "SettingsGroup.kt")

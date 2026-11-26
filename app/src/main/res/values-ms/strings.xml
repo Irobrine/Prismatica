@@ -5153,6 +5153,10 @@
     <string name="play_only_when_audible">Main hanya apabila boleh didengar</string>
     <string name="play_only_when_audible_info">Menekan main akan menunggu selagi volum media telefon ialah 0, tiada output audio disambungkan, atau fon kepala yang sedang bermain baru sahaja dicabut. Ia bermula sendiri apabila bunyi boleh didengar semula. Dengan \"Jeda apabila diredamkan\" dihidupkan, muzik yang sudah dimainkan masih dijeda.</string>
     <string name="play_only_when_audible_keywords">senyap diredamkan volum sifar fon kepala cabut bluetooth output pembesar suara tunggu mula sambung silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Suis 2.4 GHz</string>
+    <string name="playback_switch_devices_info">Hanya jeda daripada fon kepala Bluetooth ini dikira sebagai pertukaran kepada penerima 2.4 GHz mereka: main balik kekal berhenti sehingga mereka bermain semula. Jeda daripada fon lain ialah jeda biasa.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Sambungkan fon kepala anda, atau main sekali padanya, kemudian pilih di sini.</string>
     <string name="playback_shuffle_keywords">rombak pintar susunan rawak bercampur kekal dirombak smart shuffle random order</string>
     <string name="playback_song_to_song">Dari satu lagu ke lagu seterusnya</string>
     <string name="playback_speed_and_pitch">Kelajuan dan pic</string>

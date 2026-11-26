@@ -5225,6 +5225,10 @@
     <string name="play_only_when_audible">Csak akkor indítsa, ha hallható</string>
     <string name="play_only_when_audible_info">A lejátszás addig vár, amíg a telefon médiahangereje 0, nincs csatlakoztatva hangkimenet, vagy épp lecsatlakoztak a zenét játszó fejhallgatók. Amint újra hallható a hang, magától elindul. Be kapcsolt „Szünet némításkor” mellett a már szóló zene továbbra is szünetel.</string>
     <string name="play_only_when_audible_keywords">néma némítás hangerő nulla fejhallgató lecsatlakozás bluetooth kimenet hangszóró várakozás indítás folytatás silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">2,4 GHz-es kapcsoló</string>
+    <string name="playback_switch_devices_info">Csak ezeknek a Bluetooth-fejhallgatóknak a szüneteltetése számít a 2,4 GHz-es vevőjükre váltásnak: a lejátszás állva marad, amíg újra nem játszanak. Más fejhallgató szüneteltetése egyszerű szünet.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Csatlakoztasd a fejhallgatót, vagy játssz le rajta egyszer, majd válaszd ki itt.</string>
     <string name="playback_shuffle_keywords">okos keverés véletlen sorrend összekevert kevert marad smart shuffle random order</string>
     <string name="playback_song_to_song">Egyik dalról a másikra</string>
     <string name="playback_speed_and_pitch">Sebesség és hangmagasság</string>

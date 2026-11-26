@@ -5297,6 +5297,10 @@
     <string name="play_only_when_audible">Redă doar când se poate auzi</string>
     <string name="play_only_when_audible_info">Apăsarea redării așteaptă cât timp volumul media al telefonului este 0, nu este conectată nicio ieșire audio sau căștile care redau tocmai au fost deconectate. Pornește singur de îndată ce sunetul este din nou posibil. Cu „Întrerupe când sunetul e oprit” activat, muzica deja redată rămâne în continuare pe pauză.</string>
     <string name="play_only_when_audible_keywords">silențios fără sunet volum zero căști deconectare bluetooth ieșire difuzor așteaptă pornire reluare silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Comutator 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Doar pauza acestor căști Bluetooth contează ca trecere la receptorul lor de 2,4 GHz: redarea rămâne oprită până când cântă din nou. Pauza altor căști este o pauză obișnuită.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Conectează căștile sau redă o dată pe ele, apoi alege-le aici.</string>
     <string name="playback_shuffle_keywords">amestecare inteligentă ordine aleatorie amestecat rămâne amestecat</string>
     <string name="playback_song_to_song">De la o melodie la următoarea</string>
     <string name="playback_speed_and_pitch">Viteză și ton</string>

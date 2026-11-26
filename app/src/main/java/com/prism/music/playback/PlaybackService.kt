@@ -139,6 +139,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             PlaybackGuard.AndroidWatcher(this),
             { c.settings.current.behavior.playOnlyWhenAudible },
             { c.settings.current.behavior.pauseOnMute },
+            { c.settings.current.behavior.switchDevices },
             object : PlaybackGuard.Controls {
                 override val silent: Boolean
                     get() = runCatching {

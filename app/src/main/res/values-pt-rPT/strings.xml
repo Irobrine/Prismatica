@@ -5297,6 +5297,10 @@
     <string name="play_only_when_audible">Reproduzir apenas quando se ouve</string>
     <string name="play_only_when_audible_info">Premir reproduzir espera enquanto o volume de multimédia do telemóvel está a 0, não há nenhuma saída de áudio ligada ou os auriculares que estavam a tocar acabaram de ser desligados. Começa sozinho assim que o som volta a ser possível. Com \"Pausar quando sem som\" ativado, a música que já está a tocar continua a ser colocada em pausa.</string>
     <string name="play_only_when_audible_keywords">silencioso sem som volume zero auriculares desligar bluetooth saída altifalante esperar iniciar retomar silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Interruptor de 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Só a pausa destes auriculares Bluetooth conta como mudança para o recetor de 2,4 GHz deles: a reprodução fica parada até voltarem a tocar. A pausa de outros auriculares é uma pausa normal.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Ligue os auriculares ou reproduza uma vez neles e escolha-os aqui.</string>
     <string name="playback_shuffle_keywords">aleatório inteligente ordem aleatória misturado baralhar manter</string>
     <string name="playback_song_to_song">De uma música para a seguinte</string>
     <string name="playback_speed_and_pitch">Velocidade e tom</string>

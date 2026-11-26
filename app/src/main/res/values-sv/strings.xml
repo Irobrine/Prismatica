@@ -5225,6 +5225,10 @@
     <string name="play_only_when_audible">Spela bara när det hörs</string>
     <string name="play_only_when_audible_info">Ett tryck på spela väntar medan telefonens medievolym är 0, ingen ljudutgång är ansluten eller hörlurarna som spelade precis har kopplats bort. Det startar av sig självt så snart ljud är möjligt igen. Med \"Pausa när ljudet är av\" på pausas musik som redan spelas fortfarande.</string>
     <string name="play_only_when_audible_keywords">tyst tystad volym noll hörlurar koppla bort bluetooth utgång högtalare vänta starta fortsätt silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">2,4 GHz-omkopplare</string>
+    <string name="playback_switch_devices_info">Bara pausen från dessa Bluetooth-hörlurar räknas som ett byte till deras 2,4 GHz-mottagare: uppspelningen stannar tills de spelar igen. Pausen från andra hörlurar är en vanlig paus.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Anslut hörlurarna eller spela en gång på dem och välj dem sedan här.</string>
     <string name="playback_shuffle_keywords">smart blandning slumpvis ordning blandat förbli blandad</string>
     <string name="playback_song_to_song">Från en låt till nästa</string>
     <string name="playback_speed_and_pitch">Hastighet och tonhöjd</string>

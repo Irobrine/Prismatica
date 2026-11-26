@@ -5153,6 +5153,10 @@
     <string name="play_only_when_audible">只在聽得到時播放</string>
     <string name="play_only_when_audible_info">手機媒體音量為 0、未連接任何音訊輸出，或正在播放的耳機剛被拔除時，按下播放會等待。一旦恢復可聽到聲音，就會自動開始播放。開啟「靜音時暫停」後，已在播放的音樂仍會暫停。</string>
     <string name="play_only_when_audible_keywords">靜音 音量 零 耳機 拔除 藍牙 輸出 喇叭 等待 開始 繼續播放 silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">2.4 GHz 開關</string>
+    <string name="playback_switch_devices_info">只有這些藍牙耳機的暫停才算切換到它們的 2.4 GHz 接收器：播放會一直停止，直到它們再次播放。其他耳機的暫停是普通暫停。</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">連接耳機，或在耳機上播放一次，然後在此選擇。</string>
     <string name="playback_shuffle_keywords">智慧隨機播放 隨機順序 打亂 保持隨機</string>
     <string name="playback_song_to_song">從一首歌到下一首</string>
     <string name="playback_speed_and_pitch">速度和音調</string>

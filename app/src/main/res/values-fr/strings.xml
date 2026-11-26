@@ -5297,6 +5297,10 @@
     <string name="play_only_when_audible">Lire seulement quand on peut l\'entendre</string>
     <string name="play_only_when_audible_info">Appuyer sur lecture attend tant que le volume multimédia du téléphone est à 0, qu\'aucune sortie audio n\'est connectée ou que les écouteurs qui jouaient viennent d\'être débranchés. La lecture démarre d\'elle-même dès que le son est de nouveau possible. Avec « Pause quand le son est coupé » activé, la musique déjà en cours reste mise en pause.</string>
     <string name="play_only_when_audible_keywords">silencieux coupé volume zéro écouteurs débrancher bluetooth sortie haut-parleur attendre démarrer reprendre silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Bascule 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Seule la pause de ces écouteurs Bluetooth compte comme un basculement vers leur récepteur 2,4 GHz : la lecture reste arrêtée jusqu\'à ce qu\'ils rejouent. La pause d\'autres écouteurs est une pause ordinaire.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Connectez vos écouteurs ou lancez une lecture dessus, puis choisissez-les ici.</string>
     <string name="playback_shuffle_keywords">lecture aléatoire intelligente ordre aléatoire mélangé rester en aléatoire smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">D’un titre au suivant</string>
     <string name="playback_speed_and_pitch">Vitesse et tonalité</string>

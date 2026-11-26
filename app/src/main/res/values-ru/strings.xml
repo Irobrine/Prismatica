@@ -5369,6 +5369,10 @@
     <string name="play_only_when_audible">Воспроизводить только когда слышно</string>
     <string name="play_only_when_audible_info">Нажатие «воспроизвести» ждёт, пока громкость медиа на телефоне равна 0, не подключён ни один аудиовыход или только что отключились наушники, которые играли. Воспроизведение начнётся само, как только звук снова станет возможен. Если включена «Пауза при выключенном звуке», уже играющая музыка по-прежнему ставится на паузу.</string>
     <string name="play_only_when_audible_keywords">тихо без звука громкость ноль наушники отключить bluetooth выход динамик ждать запуск продолжить silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Переключатель 2,4 ГГц</string>
+    <string name="playback_switch_devices_info">Только пауза с этих Bluetooth-наушников считается переключением на их приёмник 2,4 ГГц: воспроизведение остаётся остановленным, пока они снова не заиграют. Пауза с других наушников — обычная пауза.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Подключите наушники или один раз включите на них музыку, затем выберите их здесь.</string>
     <string name="playback_shuffle_keywords">умное перемешивание случайный порядок вперемешку оставаться перемешанным</string>
     <string name="playback_song_to_song">От песни к песне</string>
     <string name="playback_speed_and_pitch">Скорость и тональность</string>

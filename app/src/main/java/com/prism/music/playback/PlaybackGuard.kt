@@ -22,13 +22,16 @@ import androidx.media3.common.Player
  * A becoming-noisy pause (ACTION_AUDIO_BECOMING_NOISY, which Media3 reports as the pause's reason) only starts the music
  * again through a headset or Bluetooth output (or the same output coming back), never the phone's speaker: the speaker
  * was not where the music was, and playing there after an unplug is the surprise this setting is for. A pair switching
- * to its own 2.4 GHz receiver may keep its Bluetooth entry listed; its pause is taken as the switch, and a play waits
- * for the pair's own play, its entry coming back, or another outside output before it can start again.
+ * to its own 2.4 GHz receiver may keep its Bluetooth entry listed; for the pairs chosen in Settings → Playback →
+ * Headphones, its pause is taken as the switch, and a play waits for the pair's own play, its entry coming back, or
+ * another outside output before it can start again.
  */
 internal class PlaybackGuard(
     private val watcher: Watcher,
     private val settingOn: () -> Boolean,
     private val muteHandlesVolume: () -> Boolean,
+    /** The Bluetooth headphones whose pause is their 2.4 GHz switch (empty: none). */
+    private val switchDevices: () -> Set<String>,
     private val controls: Controls,
     private val log: (String) -> Unit = { AudioDiagnostics.log("state", it) },
     private val memory: Memory = Memory.None,
@@ -278,6 +281,9 @@ internal class PlaybackGuard(
     fun onRemotePause() {
         if (released || !settingOn()) return
         val lost = lastHeadset ?: return
+        // Only the headphones the listener chose: another pair's pause is an ordinary pause.
+        val chosen = switchDevices()
+        if (chosen.isEmpty() || chosen.none { it.equals(lost.name, ignoreCase = true) || it.equals(lost.address, ignoreCase = true) }) return
         // A pause from the pair itself can be it switching to its 2.4 GHz receiver, which keeps the Bluetooth link on
         // some pairs but sends a pause first. Hold as if the output went; only its own play (or a reconnect, or a
         // picked speaker) releases it, so an app play can't start it on the phone meanwhile.

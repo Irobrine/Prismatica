@@ -5297,6 +5297,10 @@
     <string name="play_only_when_audible">Riproduci solo quando si può sentire</string>
     <string name="play_only_when_audible_info">Premere riproduci attende finché il volume multimediale del telefono è 0, non è connessa alcuna uscita audio o le cuffie che stavano suonando sono appena state scollegate. Parte da solo appena il suono è di nuovo possibile. Con «Pausa quando il volume è a zero» attivo, la musica già in riproduzione resta in pausa.</string>
     <string name="play_only_when_audible_keywords">silenzioso muto volume zero cuffie scollegare bluetooth uscita altoparlante attendere avvia riprendi silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Interruttore 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Solo la pausa di queste cuffie Bluetooth conta come passaggio al loro ricevitore a 2,4 GHz: la riproduzione resta ferma finché non riprendono. La pausa di altre cuffie è una pausa normale.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Collega le cuffie o avvia una riproduzione, poi sceglile qui.</string>
     <string name="playback_shuffle_keywords">casuale intelligente ordine casuale mescolato resta casuale shuffle random smart shuffle</string>
     <string name="playback_song_to_song">Da un brano all\'altro</string>
     <string name="playback_speed_and_pitch">Velocità e tonalità</string>

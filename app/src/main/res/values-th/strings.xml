@@ -5153,6 +5153,10 @@
     <string name="play_only_when_audible">เล่นเฉพาะเมื่อได้ยิน</string>
     <string name="play_only_when_audible_info">การกดเล่นจะรอตราบใดที่ระดับเสียงสื่อของโทรศัพท์เป็น 0 ไม่มีเอาต์พุตเสียงเชื่อมต่อ หรือหูฟังที่กำลังเล่นเพิ่งถูกถอดออก มันจะเริ่มเองเมื่อได้ยินเสียงได้อีกครั้ง เมื่อเปิด \"หยุดชั่วคราวเมื่อปิดเสียง\" เพลงที่เล่นอยู่จะยังหยุดชั่วคราวตามเดิม</string>
     <string name="play_only_when_audible_keywords">เงียบ ปิดเสียง ระดับเสียง ศูนย์ หูฟัง ถอด บลูทูธ เอาต์พุต ลำโพง รอ เริ่ม เล่นต่อ silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">สวิตช์ 2.4 GHz</string>
+    <string name="playback_switch_devices_info">เฉพาะการหยุดชั่วคราวจากหูฟัง Bluetooth เหล่านี้เท่านั้นที่นับเป็นการสลับไปยังตัวรับ 2.4 GHz ของหูฟัง: การเล่นจะหยุดอยู่จนกว่าจะเล่นอีกครั้ง การหยุดชั่วคราวจากหูฟังอื่นเป็นการหยุดปกติ</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">เชื่อมหูฟังหรือเล่นเพลงหนึ่งครั้งแล้วเลือกที่นี่</string>
     <string name="playback_shuffle_keywords">สุ่มเพลงอัจฉริยะ ลำดับสุ่ม คละ สุ่มต่อ</string>
     <string name="playback_song_to_song">จากเพลงหนึ่งไปอีกเพลง</string>
     <string name="playback_speed_and_pitch">ความเร็วและคีย์</string>

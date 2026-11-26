@@ -5153,6 +5153,10 @@
     <string name="play_only_when_audible">Chỉ phát khi có thể nghe</string>
     <string name="play_only_when_audible_info">Nhấn phát sẽ chờ khi âm lượng đa phương tiện của điện thoại là 0, không có đầu ra âm thanh nào được kết nối hoặc tai nghe đang phát vừa bị rút ra. Nhạc sẽ tự bắt đầu khi có thể nghe thấy âm thanh trở lại. Khi bật \"Tạm dừng khi tắt tiếng\", nhạc đang phát vẫn được tạm dừng như trước.</string>
     <string name="play_only_when_audible_keywords">im lặng tắt tiếng âm lượng không tai nghe rút bluetooth đầu ra loa chờ bắt đầu tiếp tục silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Công tắc 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Chỉ tạm dừng từ tai nghe Bluetooth này được tính là chuyển sang bộ thu 2,4 GHz của chúng: phát lại vẫn dừng cho đến khi chúng phát lại. Tạm dừng từ tai nghe khác là tạm dừng thông thường.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Kết nối tai nghe hoặc phát một lần trên đó, rồi chọn tại đây.</string>
     <string name="playback_shuffle_keywords">trộn bài thông minh thứ tự ngẫu nhiên xáo trộn giữ ngẫu nhiên</string>
     <string name="playback_song_to_song">Từ bài này sang bài tiếp theo</string>
     <string name="playback_speed_and_pitch">Tốc độ và cao độ</string>

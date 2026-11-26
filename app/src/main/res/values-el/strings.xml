@@ -5225,6 +5225,10 @@
     <string name="play_only_when_audible">Αναπαραγωγή μόνο όταν ακούγεται</string>
     <string name="play_only_when_audible_info">Το πάτημα αναπαραγωγής περιμένει όσο η ένταση πολυμέσων του τηλεφώνου είναι 0, δεν είναι συνδεδεμένη έξοδος ήχου ή μόλις αποσυνδέθηκαν τα ακουστικά που έπαιζαν. Ξεκινά από μόνο του μόλις ο ήχος είναι ξανά δυνατός. Με το «Παύση στη σίγαση» ενεργό, η μουσική που παίζει ήδη εξακολουθεί να σταματά.</string>
     <string name="play_only_when_audible_keywords">σίγαση ένταση μηδέν ακουστικά αποσύνδεση bluetooth έξοδος ηχείο αναμονή έναρξη συνέχιση silent muted volume zero headphones unplug</string>
+    <string name="playback_switch_devices">Διακόπτης 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Μόνο η παύση από αυτά τα ακουστικά Bluetooth μετράει ως αλλαγή στον δέκτη 2,4 GHz τους: η αναπαραγωγή μένει σταματημένη μέχρι να παίξουν ξανά. Η παύση από άλλα ακουστικά είναι συνηθισμένη παύση.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Σύνδεσε τα ακουστικά σου ή παίξε μία φορά από αυτά και μετά διάλεξέ τα εδώ.</string>
     <string name="playback_shuffle_keywords">έξυπνη τυχαία αναπαραγωγή τυχαία σειρά ανακάτεμα μένει ανακατεμένο smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">Από το ένα τραγούδι στο επόμενο</string>
     <string name="playback_speed_and_pitch">Ταχύτητα και τονικότητα</string>

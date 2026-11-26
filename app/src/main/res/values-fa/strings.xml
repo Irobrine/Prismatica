@@ -5225,6 +5225,10 @@
     <string name="play_only_when_audible">فقط وقتی شنیده می‌شود پخش کن</string>
     <string name="play_only_when_audible_info">فشار دادن پخش تا وقتی حجم رسانهٔ گوشی ۰ است، هیچ خروجی صوتی وصل نیست، یا هدفونی که در حال پخش بود همین حالا جدا شده، صبر می‌کند. به‌محض اینکه دوباره صدا ممکن شود، خودبه‌خود شروع می‌شود. با روشن بودن «توقف هنگام بی‌صدا شدن»، موسیقی‌ای که در حال پخش است همچنان متوقف می‌شود.</string>
     <string name="play_only_when_audible_keywords">بی‌صدا قطع صدا حجم صفر هدفون جدا کردن بلوتوث خروجی بلندگو انتظار شروع ادامه silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">سوئیچ ۲.۴ گیگاهرتز</string>
+    <string name="playback_switch_devices_info">فقط توقف این هدفون‌های بلوتوث به‌عنوان تغییر به گیرندهٔ ۲.۴ گیگاهرتزی آن‌ها شمرده می‌شود: پخش تا وقتی دوباره پخش نکنند متوقف می‌ماند. توقف هر هدفون دیگری یک توقف معمولی است.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">هدفون‌تان را وصل کنید یا یک بار روی آن پخش کنید، سپس اینجا انتخابش کنید.</string>
     <string name="playback_shuffle_keywords">پخش تصادفی هوشمند ترتیب تصادفی درهم تصادفی بماند smart shuffle random order mixed up stay shuffled</string>
     <string name="playback_song_to_song">از یک آهنگ به آهنگ بعدی</string>
     <string name="playback_speed_and_pitch">سرعت و زیر و بمی</string>

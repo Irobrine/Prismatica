@@ -5153,6 +5153,10 @@
     <string name="play_only_when_audible">Putar hanya saat bisa didengar</string>
     <string name="play_only_when_audible_info">Menekan putar akan menunggu selama volume media ponsel 0, tidak ada keluaran audio yang tersambung, atau headphone yang sedang memutar baru saja dicabut. Ini mulai sendiri begitu suara kembali bisa didengar. Dengan \"Jeda saat dibisukan\" aktif, musik yang sudah diputar tetap dijeda.</string>
     <string name="play_only_when_audible_keywords">senyap dibisukan volume nol headphone cabut bluetooth keluaran speaker tunggu mulai lanjutkan silent muted volume zero headphones</string>
+    <string name="playback_switch_devices">Sakelar 2,4 GHz</string>
+    <string name="playback_switch_devices_info">Hanya jeda dari headphone Bluetooth ini yang dianggap peralihan ke penerima 2,4 GHz-nya: pemutaran tetap berhenti sampai mereka memutar lagi. Jeda dari headphone lain adalah jeda biasa.</string>
+    <string name="playback_switch_devices_keywords">2.4ghz dongle switch pause headphones bluetooth tws receiver</string>
+    <string name="playback_switch_devices_empty">Sambungkan headphone Anda, atau putar sekali di sana, lalu pilih di sini.</string>
     <string name="playback_shuffle_keywords">acak pintar urutan acak random campur tetap diacak smart shuffle random order</string>
     <string name="playback_song_to_song">Dari satu lagu ke lagu berikutnya</string>
     <string name="playback_speed_and_pitch">Kecepatan dan nada</string>
