@@ -459,18 +459,23 @@ class PlaybackGuardTest {
         assertFalse(memory.switched)
     }
 
-    /** Swiped away/stopped, then the pair pauses for 2.4 GHz: nothing is playing, so the card is not held back. */
-    @Test fun aPairPauseWithNothingPlayingDoesNotHold() {
+    /** Swiped away/stopped, then the pair pauses for 2.4 GHz: the card is not held back, but a play still waits. */
+    @Test fun aPairPauseWithNothingPlayingDoesNotHoldTheCard() {
         val r = Rig()
         r.start()
         r.watcher.added(bluetooth())
         r.player.headsetConnected = true
         r.guard.onRemotePause()
-        assertNull(r.guard.holding)
+        assertNull("no song to pause", r.guard.holding)
+        assertTrue(r.guard.switchedNow)
+        r.player.set(true)
+        assertFalse("a new play still waits for the pair", r.player.playWhenReady)
+        r.guard.onRemotePlay()
+        assertTrue(r.player.playWhenReady)
     }
 
-    /** A queue stopped while the switch hold was up: the hold goes, so the card can start something. */
-    @Test fun aStoppedQueueClearsTheSwitchHold() {
+    /** A queue stopped while the switch hold was up: the hold goes (card back), the switch flag stays. */
+    @Test fun aStoppedQueueClearsTheHoldButKeepsTheSwitch() {
         val r = Rig()
         r.start()
         r.watcher.added(bluetooth())
@@ -479,9 +484,12 @@ class PlaybackGuardTest {
         r.guard.onRemotePause()
         assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
         r.guard.stopped()
-        assertNull(r.guard.holding)
+        assertNull("the card may show", r.guard.holding)
+        assertTrue(r.guard.switchedNow)
         r.player.set(true)
-        assertTrue("an app play goes through after the stop", r.player.playWhenReady)
+        assertFalse("a play from the card still waits", r.player.playWhenReady)
+        r.guard.onRemotePlay()
+        assertTrue(r.player.playWhenReady)
     }
 
     @Test fun noisyWhilePausedChangesNothing() {

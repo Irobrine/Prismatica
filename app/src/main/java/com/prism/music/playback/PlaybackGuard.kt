@@ -107,6 +107,9 @@ internal class PlaybackGuard(
     /** Why playback is held, for tests and diagnostics. */
     val holding: Hold? get() = hold
 
+    /** The pair paused for a possible 2.4 GHz switch: playback is held until its own play or a reconnect. */
+    val switchedNow: Boolean get() = switched
+
     /** Starts or stops watching to match the setting. Call on the main thread when it changes. */
     fun update() {
         if (released) return
@@ -267,17 +270,18 @@ internal class PlaybackGuard(
     /** A pause from the pair itself: on a TWS that can be the switch to its 2.4 GHz receiver (the Bluetooth link stays). */
     fun onRemotePause() {
         if (released || !settingOn()) return
-        // Nothing playing (swiped away, stopped): there is no song to hold for, and the persistent card may start one.
-        if (!controls.playWhenReady) return
         val lost = lastHeadset ?: return
         // A pause from the pair itself can be it switching to its 2.4 GHz receiver, which keeps the Bluetooth link on
         // some pairs but sends a pause first. Hold as if the output went; only its own play (or a reconnect, or a
         // picked speaker) releases it, so an app play can't start it on the phone meanwhile.
         if (!lost.bluetooth || routedIsPhone()) return
-        wanted = true
         switched = true
         memory.rememberSwitched(true)
-        holdNow(Hold.LOST)
+        // Nothing playing (swiped away, stopped): there is no song to pause, but a play started now must still wait.
+        if (controls.playWhenReady) {
+            wanted = true
+            holdNow(Hold.LOST)
+        }
         android.util.Log.i("PrismControl", "play held: the Bluetooth device paused (possible switch to 2.4 GHz)")
     }
 
@@ -302,8 +306,7 @@ internal class PlaybackGuard(
         if (released) return
         hold = null
         wanted = false
-        switched = false
-        memory.rememberSwitched(false)
+        // switched stays: a new play from the card still waits for the pair while it is in 2.4 GHz.
     }
 
     private fun onVolume() {

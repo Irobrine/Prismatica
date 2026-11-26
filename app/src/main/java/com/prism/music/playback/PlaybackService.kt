@@ -1185,10 +1185,13 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * A pause that isn't the listener's and will end by itself: "Play only when it can be heard" holds a play,
      * "Resume when Bluetooth comes back" waits for the output that went, or "Pause when muted" waits for the volume.
      */
-    private fun waitingToPlayOn(): Boolean =
-        // An empty queue has nothing to play on: the card may start something else.
-        player.mediaItemCount > 0 &&
+    private fun waitingToPlayOn(): Boolean {
+        // A 2.4 GHz switch is not a pending resume: the card may show (and its silent track stops when the pair plays),
+        // while the guard holds every play until the pair does.
+        if (guardAttached && playbackGuard.switchedNow) return false
+        return player.mediaItemCount > 0 &&
             ((guardAttached && playbackGuard.holding != null) || c.player.awaitingOutput || muteWatch.waiting)
+    }
 
     /** Whether one of Prism's own screens is showing (a foreground service alone doesn't count). */
     private fun uiInFront(): Boolean = c.visible.value
