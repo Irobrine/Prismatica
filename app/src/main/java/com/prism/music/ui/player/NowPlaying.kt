@@ -588,9 +588,11 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     // Settings → Player → What's on the player (1.8.0): a hidden part leaves the player; the cover, title and buttons come
     // back in the header over the lyrics and the queue, where they say which song it is.
     val inHeader = { part: PlayerPart -> settings.shows(part) || collapsePastHalf }
-    // The panel itself comes in with the morph's last part, and follows a finger pulling it away. Its number is read
-    // where it is used, inside the three layers below.
-    val panelFade: () -> Float = { ((panelShift.value - 0.55f) / 0.45f).coerceIn(0f, 1f) }
+    // The panel rides the whole move and follows a finger pulling it away: its rise and fade begin once the cover has
+    // started folding (a fifth of the way) and keep pace with it to the end, instead of arriving only in the morph's
+    // last half — which read as the move stalling half-way and then crawling. Its number is read where it is used,
+    // inside the three layers below.
+    val panelFade: () -> Float = { ((panelShift.value - 0.2f) / 0.8f).coerceIn(0f, 1f) }
     // The listener's own Reduce motion, not Performance mode's (Reddit, 1.7.9.3: Performance mode turns Reduce motion on,
     // which took the shrink away too; it's one scale of one layer, nothing to save).
     val ownReduceMotion = c.settings.stored.collectAsState().value.reduceMotion
