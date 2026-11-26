@@ -31,6 +31,7 @@ import com.prism.music.download.DownloadRepository
 import com.prism.music.playback.NerdStats
 import com.prism.music.playback.PlayerConnection
 import com.prism.music.playback.QueueState
+import com.prism.music.playback.fileFormatName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -488,6 +489,38 @@ class AppContainer(val app: Application) {
         // one the library knows, so the song's own recording stands.
         val media = track.uri.lastPathSegment?.takeIf { it.isNotEmpty() && it.all { c -> c.isDigit() } } ?: return null
         return com.prism.music.data.model.Song.LOCAL_PREFIX + media
+    }
+
+    /**
+     * The file on the phone [song] plays from, if any: local music, a file picked as its version, a lossless match, or
+     * one of your own files. Also notes what Stats for nerds says about it ([streamDetails]).
+     *
+     * Called off the main thread while a long queue is built: matching (normalising titles and artists) every song of a
+     * two-thousand-song queue on the main thread cost a 30 ms frame each time the rest of the queue joined.
+     */
+    fun localFileFor(song: com.prism.music.data.model.Song): android.net.Uri? {
+        if (song.id.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX)) {
+            val uri = localMusic.uriFor(song.id) ?: return null
+            val format = localMusic.track(song.id)?.mime?.let(::fileFormatName)
+            streamDetails[song.id] = ("On this phone" + (format?.let { " · $it" } ?: "")) to null
+            return uri
+        }
+        // A file on the phone picked as this song's version (1.8.3, #243): played from the file, whatever the lossless
+        // switches say. A file that's gone plays the song as usual.
+        versions.fileOf(song.id)?.let { file ->
+            (localMusic.track(file)?.uri ?: localMusic.uriFor(file).takeIf { !localMusic.scanned.value })?.let { uri ->
+                val format = localMusic.track(file)?.mime?.let(::fileFormatName)
+                streamDetails[song.id] = "Your file on this phone" + (format?.let { " · $it" } ?: "") to null
+                return uri
+            }
+        }
+        // Lossless files need lossless playback, as in 1.8.0; your own MP3/AAC/Ogg files (#314) need only their switch,
+        // and give way to a lossless file of the same song ([com.prism.music.data.local.PlaySourceRule]).
+        val kinds = com.prism.music.data.local.OwnFiles.kinds(settings.current)
+        if (!kinds.any || song.isVideo) return null
+        val track = localLossless.match(song, lossless = kinds.lossless, lossy = kinds.lossy) ?: return null
+        streamDetails[song.id] = (if (track.lossy) com.prism.music.data.local.OwnFiles.source(track) else "Lossless · ${track.format} on this phone") to null
+        return track.uri
     }
 
     /** [id]'s own audio on the phone (a file on the phone, its download, its whole-song cache), copied into [scratch]. */

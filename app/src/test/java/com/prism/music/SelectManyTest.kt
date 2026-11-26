@@ -132,6 +132,7 @@ class SelectManyTest {
         compose.waitForIdle()
         compose.onAllNodesWithTag("pick", useUnmergedTree = true).assertCountEquals(0)
         compose.onNodeWithText("Charlie").performClick()
+        compose.waitForIdle()
         assertEquals("picking over: a tap plays again", 1, played)
     }
 
@@ -152,6 +153,7 @@ class SelectManyTest {
         assertTrue(s.selecting)
         compose.onAllNodesWithTag("pick", useUnmergedTree = true).assertCountEquals(1)
         compose.onNodeWithText("Bravo").performClick()
+        compose.waitForIdle()
         assertEquals("a tap there still plays", 1, played)
         assertEquals(setOf("a"), s.picked!!.keys)
     }

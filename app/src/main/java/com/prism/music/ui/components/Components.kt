@@ -201,6 +201,11 @@ fun SongRow(
     val pickable = selection != null && selectScope != null && onLongClick == null
     val pick by remember(song.id, selection, pickable) { derivedStateOf { if (pickable) selection?.picked?.let { song.id in it } else null } }
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    // The tap's own frame draws the ripple, the row's press and the mini player's first frame; the queue start (player
+    // media sources, prepare, play: tens of ms in a long list) runs on the next main-loop turn, as it must, instead of
+    // inside the touch event, where it made the tap and the mini player's slide skip frames.
+    val main = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
+    val playPosted: () -> Unit = remember(onClick, main) { { main.post { onClick() } } }
     // A video's song is looked up while its row rests on screen, so tapping it starts as the song straight away rather
     // than on the search. Rows only passing through a scroll leave before it starts.
     if (song.isVideo && !song.isLive && !song.isEpisode && !song.isLocal && com.prism.music.ui.theme.LocalAppRunning.current) {
@@ -220,7 +225,7 @@ fun SongRow(
             pickable -> ({ haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); selection!!.start(song, selectScope) })
             else -> onLongClick ?: { menu = true }
         },
-        onMore = { menu = true }, onClick = if (pick != null) ({ selection!!.toggle(song) }) else onClick,
+        onMore = { menu = true }, onClick = if (pick != null) ({ selection!!.toggle(song) }) else playPosted,
         pick = pick,
     )
 

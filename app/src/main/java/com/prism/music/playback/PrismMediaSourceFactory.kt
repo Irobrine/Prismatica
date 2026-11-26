@@ -61,7 +61,14 @@ class PrismMediaSourceFactory(
         }
         val videoId = mediaItem.localConfiguration?.uri?.getQueryParameter("video")
         if (videoId == null) {
-            if (local != null) localAudio?.invoke(mediaItem)?.let { uri ->
+            val configured = mediaItem.localConfiguration?.uri
+            // A local file already chosen (the queue was built off the main thread): play it, no matching here.
+            if (local != null && configured != null && (configured.scheme == "file" || configured.scheme == "content")) {
+                return local.createMediaSource(mediaItem)
+            }
+            // Already matched (and found no file): don't normalise and match every song in a long queue again.
+            val ready = mediaItem.mediaMetadata.extras?.getBoolean(EXTRA_LOCAL_READY) == true
+            if (!ready && local != null) localAudio?.invoke(mediaItem)?.let { uri ->
                 return local.createMediaSource(mediaItem.buildUpon().setUri(uri).setCustomCacheKey(null).build())
             }
             val item = if (mediaItem.localConfiguration == null) {

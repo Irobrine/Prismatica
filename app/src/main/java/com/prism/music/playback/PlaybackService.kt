@@ -74,6 +74,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -568,9 +569,19 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
 
             override fun remoteChanged() = sessionPlayer.remoteChanged()
         })
-        restoreQueue()
-        c.player.attach(this)
-        syncPlaceholder()
+        scope.launch {
+            // The saved queue is read and its songs made ready off the main thread, then the connection attaches: a
+            // two-thousand-song restore used to hold the main thread for over 100 ms as Prism came up, which landed on
+            // the mini player's first slide. The UI waits on `ready` for this, and a command that arrives meanwhile is
+            // queued by the connection.
+            try {
+                restoreQueue()
+            } finally {
+                // A saved queue that can't be read doesn't leave the player unattached (nothing would play at all).
+                c.player.attach(this@PlaybackService)
+                syncPlaceholder()
+            }
+        }
     }
 
     private lateinit var mix: MixEngine
@@ -3297,7 +3308,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * Resumes what was playing before Prism stopped, at the place it stopped; the queue file keeps that place. True is
      * "handled": a newer press has the card, so this one neither plays nor lets the caller fall back.
      */
-    private fun playLastPlayed(press: Int?): Boolean {
+    private suspend fun playLastPlayed(press: Int?): Boolean {
         if (!stillWanted(press)) return true
         // Paused (Prism was only closed): the queue is still loaded, so resume it where it is, exactly. Stopped or a new
         // process: the saved queue has the place it stopped at.
@@ -3453,34 +3464,11 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     }
 
     private fun losslessFileFor(item: MediaItem): android.net.Uri? {
-        // Local music always plays from its file.
-        if (item.mediaId.startsWith(Song.LOCAL_PREFIX)) {
-            val uri = c.localMusic.uriFor(item.mediaId) ?: return null
-            val format = c.localMusic.track(item.mediaId)?.mime?.let(::fileFormatName)
-            c.streamDetails[item.mediaId] = ("On this phone" + (format?.let { " · $it" } ?: "")) to null
-            scope.launch { applyStreamStats(item.mediaId) }
-            return uri
-        }
-        // A file on the phone picked as this song's version (1.8.3, #243): played from the file, whatever the lossless
-        // switches say. A file that's gone plays the song as usual.
-        c.versions.fileOf(item.mediaId)?.let { file ->
-            // Once the phone's files have been read, only one that's still there (before that, its MediaStore address).
-            (c.localMusic.track(file)?.uri ?: c.localMusic.uriFor(file).takeIf { !c.localMusic.scanned.value })?.let { uri ->
-                val format = c.localMusic.track(file)?.mime?.let(::fileFormatName)
-                c.streamDetails[item.mediaId] = "Your file on this phone" + (format?.let { " · $it" } ?: "") to null
-                scope.launch { applyStreamStats(item.mediaId) }
-                return uri
-            }
-        }
-        // Lossless files need lossless playback, as in 1.8.0; your own MP3/AAC/Ogg files (#314) need only their switch,
-        // and give way to a lossless file of the same song ([com.prism.music.data.local.PlaySourceRule]).
-        val kinds = com.prism.music.data.local.OwnFiles.kinds(c.settings.current)
-        if (!kinds.any) return null
+        // The choice itself is shared with the queue builder, which makes it off the main thread for a long queue
+        // ([AppContainer.localFileFor]). The song's stats are applied when it starts ([onMediaItemTransition]), so
+        // adding a queue of thousands doesn't launch a coroutine per item.
         val song = item.toSong() ?: return null
-        val track = c.localLossless.match(song, lossless = kinds.lossless, lossy = kinds.lossy) ?: return null
-        c.streamDetails[song.id] = (if (track.lossy) com.prism.music.data.local.OwnFiles.source(track) else "Lossless · ${track.format} on this phone") to null
-        scope.launch { applyStreamStats(song.id) }
-        return track.uri
+        return c.localFileFor(song)
     }
 
     private fun savedLength(id: String): Long = c.localLossless.matched[id]?.size ?: runCatching {
@@ -3553,8 +3541,12 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
 
     /** True while [restoreQueue] puts the saved queue back: the offline rule leaves the place it stopped at alone. */
     private var restoring = false
+    /** One restore at a time: the startup's, and one a press asked for while it was still reading. */
+    private val restoreLock = kotlinx.coroutines.sync.Mutex()
 
-    private fun restoreQueue() {
+    private suspend fun restoreQueue() = restoreLock.withLock {
+        // Something (a press, a car, a spoken request) has the queue already: it wins over the one saved before launch.
+        if (player.mediaItemCount > 0) return@withLock
         restoring = true
         try {
             restoreQueueNow()
@@ -3563,8 +3555,11 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         }
     }
 
-    private fun restoreQueueNow() {
-        val q = runCatching { InnerTube.json.decodeFromString(SavedQueue.serializer(), queueFile.readText()) }.getOrNull() ?: return
+    private suspend fun restoreQueueNow() {
+        // The file and its JSON: a queue of thousands is megabytes, and this is the app's first frame.
+        val q = withContext(Dispatchers.IO) {
+            runCatching { InnerTube.json.decodeFromString(SavedQueue.serializer(), queueFile.readText()) }.getOrNull()
+        } ?: return
         // Repeat and shuffle are how the listener listens, kept with nothing lined up too (#241: the song swiped away from
         // the mini player, then Prism closed, and repeat was off again).
         if (q.songs.isEmpty()) {
@@ -3572,9 +3567,16 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             if (q.shuffle) player.shuffleModeEnabled = true
             return
         }
+        // Each song's item, and the file on the phone it plays from: off the main thread, so the factory doesn't have to
+        // normalise and match every song as it's added.
+        val items = withContext(Dispatchers.Default) {
+            q.songs.map { it.toMediaItem(localFile = c.localFileFor(it), localReady = true) }
+        }
+        // A press that came while the queue was read has it now.
+        if (player.mediaItemCount > 0) return
         c.queue.source.value = QueueSource(QueueKind.OTHER, q.title)
         val (index, position) = PlaceKeeper.start(q.songs.map { it.id }, q.index, q.positionMs, keptPlace(), placeIsNewer = true)
-        player.setMediaItems(q.songs.map { it.toMediaItem() }, index.coerceIn(0, q.songs.lastIndex), position)
+        player.setMediaItems(items, index.coerceIn(0, q.songs.lastIndex), position)
         // Shuffle and repeat as they were, in the same order.
         if (q.shuffle) {
             if (q.shuffleOrder.size == q.songs.size && q.shuffleOrder.sorted() == q.songs.indices.toList()) {

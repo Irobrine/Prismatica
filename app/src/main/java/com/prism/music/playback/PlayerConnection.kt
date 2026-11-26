@@ -517,12 +517,31 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
      */
     fun playQueue(songs: List<Song>, startIndex: Int = 0, source: QueueSource, shuffle: Boolean = false, rest: (suspend () -> List<Song>?)? = null) {
         if (songs.isEmpty()) return
-        // "No repeats this session" (#159): a radio starts without what's been heard, on the song it starts on.
-        if (source.kind == QueueKind.RADIO && c.settings.current.behavior.autoplayNoRepeats) {
-            val (kept, at) = c.sessionHeard.radioStart(songs, startIndex)
-            if (kept.size < songs.size) { startFiltered(kept, at, source, shuffle, rest); return }
-        }
-        startFiltered(songs, startIndex, source, shuffle, rest)
+            // Tapping a song already in the queue playing: move to it instead of building the whole list's media sources
+            // again. In a long playlist that start held the tap's frame for 20-50 ms (setMediaItems and prepare on the
+            // main thread), which is the mini player's first frames. The list is the same one (its title, and its origin
+            // when both have one), all of it is in the queue, and the item at the tapped place is the tapped song.
+            if (!shuffle) {
+                val now = c.queue.source.value
+                val sameList = now.title == source.title &&
+                    (now.originId == null || source.originId == null || now.originId == source.originId)
+                val p = player
+                val at = startIndex.coerceIn(0, songs.lastIndex)
+                if (sameList && p != null && p.mediaItemCount >= songs.size &&
+                    p.getMediaItemAt(at).mediaId == songs[at].id
+                ) {
+                    if (now != source) c.queue.source.value = source
+                    p.seekToDefaultPosition(at)
+                    p.play()
+                    return
+                }
+            }
+            // "No repeats this session" (#159): a radio starts without what's been heard, on the song it starts on.
+            if (source.kind == QueueKind.RADIO && c.settings.current.behavior.autoplayNoRepeats) {
+                val (kept, at) = c.sessionHeard.radioStart(songs, startIndex)
+                if (kept.size < songs.size) { startFiltered(kept, at, source, shuffle, rest); return }
+            }
+            startFiltered(songs, startIndex, source, shuffle, rest)
     }
 
     private fun startFiltered(songs: List<Song>, startIndex: Int, source: QueueSource, shuffle: Boolean, rest: (suspend () -> List<Song>?)?) {
@@ -659,7 +678,11 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
 
     /** [songs] at the end of the queue (before autoplay's suggestions), and shuffled in among what's still to come. */
     private suspend fun addFilled(songs: List<Song>, still: () -> Boolean = { true }) {
-        val items = withContext(Dispatchers.Default) { songs.map { it.toMediaItem() } }
+        // The file on the phone each is played from, chosen here, off the main thread: the factory then doesn't match
+        // (and normalise) every item as it's added, which was 30 ms of a frame for a batch of a long queue.
+        val items = withContext(Dispatchers.Default) {
+            songs.map { it.toMediaItem(localFile = c.localFileFor(it), localReady = true) }
+        }
         if (!still()) return
         val p = player ?: return
         val auto = c.queue.autoplayStart.value
@@ -1057,13 +1080,26 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         scope.launch {
             // The first sound first: eight hundred songs made into items beside it was time it spent waiting.
             kotlinx.coroutines.withTimeoutOrNull(2_000) { isPlaying.first { it } }
-            val head = if (headEnd > 0) withContext(Dispatchers.Default) { all.subList(0, headEnd).map { it.toMediaItem() } } else emptyList()
-            val tail = if (tailFrom < all.size) withContext(Dispatchers.Default) { all.subList(tailFrom, all.size).map { it.toMediaItem() } } else emptyList()
+            // Files on the phone (and no file at all) settled here, off the main thread: the factory needn't match every
+            // song of the rest of the queue as it adds it.
+            val head = if (headEnd > 0) withContext(Dispatchers.Default) {
+                all.subList(0, headEnd).map { it.toMediaItem(localFile = c.localFileFor(it), localReady = true) }
+            } else emptyList()
+            val tail = if (tailFrom < all.size) withContext(Dispatchers.Default) {
+                all.subList(tailFrom, all.size).map { it.toMediaItem(localFile = c.localFileFor(it), localReady = true) }
+            } else emptyList()
             if (token != playToken) return@launch
             val p = player ?: return@launch
-            // A few at a time, so the timeline isn't rebuilt and the queue re-read all at once.
-            head.chunked(FILL_BATCH).asReversed().forEach { if (token == playToken) runCatching { p.addMediaItems(0, it) } }
-            tail.chunked(FILL_BATCH).forEach { if (token == playToken) runCatching { p.addMediaItems(p.mediaItemCount, it) } }
+            // A few at a time, so the timeline isn't rebuilt and the queue re-read all at once. Between the batches the
+            // main thread draws a frame, so the rest of a long queue joining doesn't hold the mini player's slide.
+            head.chunked(FILL_BATCH).asReversed().forEach {
+                if (token == playToken) runCatching { p.addMediaItems(0, it) }
+                kotlinx.coroutines.yield()
+            }
+            tail.chunked(FILL_BATCH).forEach {
+                if (token == playToken) runCatching { p.addMediaItems(p.mediaItemCount, it) }
+                kotlinx.coroutines.yield()
+            }
         }
     }
 

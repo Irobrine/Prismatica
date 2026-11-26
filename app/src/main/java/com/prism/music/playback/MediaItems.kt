@@ -10,14 +10,20 @@ import com.prism.music.data.model.hiRes
 
 const val EXTRA_SONG = "prism.song"
 const val EXTRA_VIDEO = "prism.video"
+/** The item's local-file (or no-file) choice is already made: the media source factory needn't match it again. */
+const val EXTRA_LOCAL_READY = "prism.localReady"
 
 /**
  * prism://audio/<id>[?video=<videoId>] – resolved to a real stream URL at load time.
  * Live streams are prism://live/<id>, resolved to their HLS manifest, which carries the picture too: their video mode
  * keeps the same URI (so switching doesn't reload the stream) and only turns the video track on.
+ *
+ * [localFile] is the file on the phone the song plays from, when the queue was built off the main thread ([localReady]):
+ * the item then carries the file's own URI, and the factory doesn't have to match (and normalise) every song in a
+ * thousand-song queue on the main thread just to add it.
  */
-fun Song.toMediaItem(videoId: String? = null): MediaItem {
-    val uri = if (isLive) Uri.Builder().scheme("prism").authority("live").appendPath(id).build()
+fun Song.toMediaItem(videoId: String? = null, localFile: Uri? = null, localReady: Boolean = false): MediaItem {
+    val uri = localFile ?: if (isLive) Uri.Builder().scheme("prism").authority("live").appendPath(id).build()
     else Uri.Builder().scheme("prism").authority("audio").appendPath(id).apply {
         if (videoId != null) appendQueryParameter("video", videoId)
         // The listener's own upload (#101): asked for as their account from the start.
@@ -26,13 +32,14 @@ fun Song.toMediaItem(videoId: String? = null): MediaItem {
     val extras = Bundle().apply {
         putString(EXTRA_SONG, InnerTube.json.encodeToString(Song.serializer(), this@toMediaItem))
         if (videoId != null) putString(EXTRA_VIDEO, videoId)
+        if (localReady) putBoolean(EXTRA_LOCAL_READY, true)
     }
     // #328: shown as the version picked to play in its place (the item itself stays the song, for history and likes).
     val shown = com.prism.music.data.SongVersions.shownOf(this)
     return MediaItem.Builder()
         .setMediaId(id)
         .setUri(uri)
-        .setCustomCacheKey(id)
+        .apply { if (localFile == null) setCustomCacheKey(id) }
         .setMediaMetadata(
             MediaMetadata.Builder()
                 .setTitle(shown.title)

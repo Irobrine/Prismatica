@@ -1269,7 +1269,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                 LaunchedEffect(showChrome) {
                     if (showChrome && tour == null) {
                         kotlinx.coroutines.delay(600) // after the first page has drawn
-                        tour = com.prism.music.ui.tour.pendingTour(context, c.returningUser == true)
+                        // The tour's own SharedPreferences are read off the main thread: the first read waits for the file
+                        // to load (170 ms on a V2413), and it landed on the chrome's first entrance.
+                        tour = withContext(Dispatchers.IO) { com.prism.music.ui.tour.pendingTour(context, c.returningUser == true) }
                     }
                 }
                 LaunchedEffect(Unit) { c.tourRequests.collect { playerOpen = false; tour = com.prism.music.ui.tour.fullTour(c.returningUser == true) } }
