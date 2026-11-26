@@ -1538,21 +1538,13 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             lyricsState, isPlaying && !covered, lyricsControlsOpen,
                             onRevealControls = { lyricsControlsOpen = true },
                             onHideControls = { if (!controlsStay) lyricsControlsOpen = false },
-                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT).graphicsLayer {
-                                val fade = panelFade()
-                                alpha = fade
-                                translationY = panelRise(fade).toPx()
-                            },
+                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT).panelMorph(panelFade),
                             onChangeSource = { showProviders = true },
                         )
                     }
                     if (statsOpen) {
                         NerdStatsPanel(
-                            Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
-                                val fade = panelFade()
-                                alpha = fade
-                                translationY = panelRise(fade).toPx()
-                            },
+                            Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).panelMorph(panelFade),
                         )
                     }
                     if (showQueuePanel) {
@@ -1561,11 +1553,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             onHidePlayer = { if (!controlsStay) queueControlsOpen = false },
                             onClose = { haptics.gestureEnd(); toggleQueue() },
                             pull = queuePull,
-                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
-                                val fade = panelFade()
-                                alpha = fade
-                                translationY = panelRise(fade).toPx()
-                            },
+                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).panelMorph(panelFade),
                         )
                     }
                 }
@@ -1833,6 +1821,21 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
 @Composable
 private fun PanelDeck(panelShift: PanelShift, content: @Composable (Float) -> Unit) {
     content(panelShift.value)
+}
+
+/**
+ * A panel's rise and fade, read from the panel's own number in the layer (never in composition).
+ *
+ * The fade modulates each draw's alpha ([CompositingStrategy.ModulateAlpha]) instead of compositing the whole panel
+ * through an offscreen buffer: a full-screen panel faded the usual way was drawn into a texture and composited again
+ * on every frame of its morph, which measured as most of a 120 Hz frame's budget (the panel's frames ran at 7.7 ms
+ * against 8.33 ms, and a third of them missed it). On a panel over a backdrop, one flat fade, the two look alike.
+ */
+private fun Modifier.panelMorph(fade: () -> Float): Modifier = graphicsLayer {
+    val f = fade()
+    alpha = f
+    translationY = panelRise(f).toPx()
+    compositingStrategy = CompositingStrategy.ModulateAlpha
 }
 
 /** The "Theme" player background. Material You: a tonal surface (light or dark, from the scheme). Prism: a deep wash of the accent color, lighter at the top. */
