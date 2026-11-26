@@ -14,36 +14,76 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Library → Songs' "From" (1.8.3, G142, #382): liked songs, as always, and the songs of playlists the listener picks,
- * together and once each. Only a view: nothing is liked and nothing is written to the account.
+ * Library → Songs' "From" (1.8.3, G142, #382): liked songs and the songs of playlists the listener picks, in the
+ * source order they choose, together and once each. Only a view: nothing is liked and nothing is written to the account.
  */
-data class SongsFrom(val liked: Boolean = true, val playlists: List<String> = emptyList()) {
-    /** Liked songs only: Songs as it was before 1.8.3. */
-    val isDefault get() = liked && playlists.isEmpty()
+data class SongsFrom(val sources: List<Source> = listOf(Source.Liked)) {
+    sealed interface Source {
+        data object Liked : Source
+        data class Playlist(val id: String) : Source
+    }
 
-    fun encode(): String = (if (liked) LIKED else "") + "|" + playlists.joinToString(",")
+    /** The old choice shape, still used by callers that only choose membership: Liked first when it is chosen. */
+    constructor(liked: Boolean, playlists: List<String>) : this(buildList {
+        if (liked) add(Source.Liked)
+        playlists.distinct().forEach { add(Source.Playlist(it)) }
+    })
+
+    val liked get() = Source.Liked in sources
+    val playlists get() = sources.filterIsInstance<Source.Playlist>().map { it.id }
+
+    /** Liked songs only: Songs as it was before 1.8.3. */
+    val isDefault get() = sources.size == 1 && sources.single() == Source.Liked
+
+    fun encode(): String = VERSION + "|" + sources.joinToString(",") { source ->
+        when (source) {
+            Source.Liked -> LIKED
+            is Source.Playlist -> PLAYLIST_PREFIX + source.id
+        }
+    }
 
     companion object {
+        private const val VERSION = "v2"
         private const val LIKED = "liked"
+        private const val PLAYLIST_PREFIX = "p:"
         const val KEY = "library:songs:from"
 
         fun decode(s: String?): SongsFrom {
             if (s.isNullOrBlank() || '|' !in s) return SongsFrom()
             val (a, b) = s.split('|', limit = 2)
+            if (a == VERSION) {
+                val sources = b.split(',').mapNotNull { token ->
+                    val trimmed = token.trim()
+                    when {
+                        trimmed == LIKED -> Source.Liked
+                        trimmed.startsWith(PLAYLIST_PREFIX) -> trimmed.removePrefix(PLAYLIST_PREFIX).trim()
+                            .takeIf { it.isNotEmpty() }?.let { Source.Playlist(it) }
+                        else -> null
+                    }
+                }.distinct()
+                // Nothing chosen at all would be an empty tab with no way to tell why: liked songs then.
+                return if (sources.isEmpty()) SongsFrom() else SongsFrom(sources)
+            }
             val lists = b.split(',').map { it.trim() }.filter { it.isNotEmpty() }.distinct()
-            // Nothing chosen at all would be an empty tab with no way to tell why: liked songs then.
+            // Legacy values are liked|id1,id2: their Liked source was always first.
             return if (a != LIKED && lists.isEmpty()) SongsFrom() else SongsFrom(a == LIKED, lists)
         }
 
         /**
-         * Liked songs first (newest first, as today), then each playlist's songs in the order they were picked and
-         * in the playlist's own order; a song in several shows once, where it first comes.
+         * Each source's songs as a block, in the listener's chosen source order and each playlist's own order; a song
+         * in several shows once, where it first comes.
          */
         fun merge(liked: List<Song>, lists: List<List<Song>>, from: SongsFrom): List<Song> {
+            val byId = from.playlists.zip(lists).toMap()
             val seen = HashSet<String>()
             val out = ArrayList<Song>()
-            if (from.liked) liked.forEach { if (seen.add(it.id)) out += it }
-            lists.forEach { l -> l.forEach { if (seen.add(it.id)) out += it } }
+            from.sources.forEach { source ->
+                val songs = when (source) {
+                    Source.Liked -> liked
+                    is Source.Playlist -> byId[source.id].orEmpty()
+                }
+                songs.forEach { if (seen.add(it.id)) out += it }
+            }
             return out
         }
     }

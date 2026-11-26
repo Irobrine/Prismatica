@@ -19,30 +19,75 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Library → Songs' "From" (1.8.3, #382): liked songs plus chosen playlists, once each; the choice kept as text; whole
+ * Library → Songs' "From" (1.8.3, #382): chosen source blocks, once each; the ordered choice kept as text; whole
  * playlists read once and kept.
  */
 class SongsFromTest {
     private fun s(id: String) = Song(id, "Song $id", listOf(ArtistRef("Artist")))
 
-    @Test fun likedFirstThenEachPlaylistOnceEach() {
+    @Test fun sourceBlocksFollowTheChosenOrderAndTheFirstSongWins() {
         val liked = listOf(s("a"), s("b"))
         val gym = listOf(s("c"), s("a"), s("d"))
         val road = listOf(s("d"), s("e"))
-        val from = SongsFrom(true, listOf("gym", "road"))
-        assertEquals(listOf("a", "b", "c", "d", "e"), SongsFrom.merge(liked, listOf(gym, road), from).map { it.id })
-        assertEquals("without liked songs", listOf("c", "a", "d", "e"), SongsFrom.merge(liked, listOf(gym, road), from.copy(liked = false)).map { it.id })
-        assertEquals("a playlist with repeats", listOf("c"), SongsFrom.merge(emptyList(), listOf(listOf(s("c"), s("c"))), SongsFrom(false, listOf("x"))).map { it.id })
+        val gymSource = SongsFrom.Source.Playlist("gym")
+        val roadSource = SongsFrom.Source.Playlist("road")
+        assertEquals(
+            "Liked between playlists", listOf("c", "a", "d", "b", "e"),
+            SongsFrom.merge(liked, listOf(gym, road), SongsFrom(listOf(gymSource, SongsFrom.Source.Liked, roadSource))).map { it.id },
+        )
+        assertEquals(
+            "Liked last", listOf("d", "e", "c", "a", "b"),
+            SongsFrom.merge(liked, listOf(road, gym), SongsFrom(listOf(roadSource, gymSource, SongsFrom.Source.Liked))).map { it.id },
+        )
+        assertEquals(
+            "no Liked source", listOf("d", "e", "c", "a"),
+            SongsFrom.merge(liked, listOf(road, gym), SongsFrom(listOf(roadSource, gymSource))).map { it.id },
+        )
+        assertEquals(
+            "repeats within a playlist", listOf("c"),
+            SongsFrom.merge(emptyList(), listOf(listOf(s("c"), s("c"))), SongsFrom(false, listOf("x"))).map { it.id },
+        )
+        val fromPlaylist = s("shared").copy(title = "From playlist")
+        val fromLikes = s("shared").copy(title = "From likes")
+        assertEquals(
+            "the earlier source supplies the song", listOf("From playlist"),
+            SongsFrom.merge(listOf(fromLikes), listOf(listOf(fromPlaylist)), SongsFrom(false, listOf("x"))).map { it.title },
+        )
     }
 
-    @Test fun theChoiceIsKeptAsText() {
-        val from = SongsFrom(false, listOf("PLabc", "prism_123"))
+    @Test fun legacyChoicesStillDecodeWithLikedFirst() {
+        assertEquals(SongsFrom(true, listOf("a", "b")), SongsFrom.decode("liked|a,b"))
+        assertEquals(SongsFrom(false, listOf("a", "b")), SongsFrom.decode("|a,b"))
+        assertEquals(SongsFrom(false, listOf("liked")), SongsFrom.decode("|liked"))
+        assertEquals("repeats and blanks dropped", listOf("a", "b"), SongsFrom.decode("liked|a,,b,a").playlists)
+        assertTrue(SongsFrom.decode("|").isDefault)
+    }
+
+    @Test fun theOrderedChoiceIsKeptAsV2Text() {
+        val from = SongsFrom(listOf(SongsFrom.Source.Playlist("gym"), SongsFrom.Source.Liked, SongsFrom.Source.Playlist("road")))
+        assertEquals("v2|p:gym,liked,p:road", from.encode())
         assertEquals(from, SongsFrom.decode(from.encode()))
         assertEquals(SongsFrom(true, listOf("PLabc")), SongsFrom.decode(SongsFrom(true, listOf("PLabc")).encode()))
-        assertTrue("nothing kept: liked songs, as before", SongsFrom.decode(null).isDefault)
-        assertTrue(SongsFrom.decode("").isDefault)
-        assertTrue("nothing at all chosen falls back to liked songs", SongsFrom.decode("|").isDefault)
-        assertEquals("repeats and blanks dropped", listOf("a", "b"), SongsFrom.decode("liked|a,,b,a").playlists)
+        val playlistNamedLiked = SongsFrom(false, listOf("liked"))
+        assertEquals("v2|p:liked", playlistNamedLiked.encode())
+        assertEquals(playlistNamedLiked, SongsFrom.decode(playlistNamedLiked.encode()))
+        assertFalse("a playlist called liked is not the Liked source", playlistNamedLiked.liked)
+    }
+
+    @Test fun blankDuplicatesAndUnknownV2TokensAreDropped() {
+        val decoded = SongsFrom.decode("v2| p:gym , ,liked,p:gym,unknown,liked,p: road ")
+        assertEquals(
+            listOf(SongsFrom.Source.Playlist("gym"), SongsFrom.Source.Liked, SongsFrom.Source.Playlist("road")),
+            decoded.sources,
+        )
+    }
+
+    @Test fun missingMalformedAndEmptyChoicesFallBackToLikedOnly() {
+        listOf(null, "", " ", "liked", "|", "v2|", "v2| ,unknown,p:,p: ").forEach { stored ->
+            assertTrue("'$stored' falls back to Liked songs", SongsFrom.decode(stored).isDefault)
+        }
+        assertTrue(SongsFrom().isDefault)
+        assertFalse(SongsFrom(false, listOf("a")).isDefault)
         assertFalse(SongsFrom(true, listOf("a")).isDefault)
     }
 

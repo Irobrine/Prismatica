@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -852,7 +853,7 @@ fun LibraryScreen(bottomPadding: Dp) {
                             }
                         }
                         if (songsBase.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) {
-                            // With playlists' songs too, the first order is liked songs, then each playlist's own order.
+                            // Original order follows the chosen source blocks, each playlist in its own order.
                             SortBar(com.prism.music.data.model.songCount(songsShown.size), SongSort.entries, songSort, {
                                 if (it == SongSort.RECENT && !songsFrom.isDefault) tr(R.string.original_order) else it.label
                             }) { songSort = it; c.library.setSort("library:songs", it.name) }
@@ -1309,7 +1310,7 @@ internal fun songsFromLabel(from: com.prism.music.data.SongsFrom): String = list
     from.playlists.size.takeIf { it > 0 }?.let { trp(R.plurals.n_playlists, it) },
 ).joinToString(" + ")
 
-/** Library → Songs → From (1.8.3, #382): liked songs and any of the listener's playlists, ticked. Only a view. */
+/** Library → Songs → From (1.8.3, #382): choose sources and their order. Only a view. */
 @Composable
 private fun SongsFromSheet(
     current: com.prism.music.data.SongsFrom,
@@ -1317,34 +1318,69 @@ private fun SongsFromSheet(
     onDismiss: () -> Unit,
     onDone: (com.prism.music.data.SongsFrom) -> Unit,
 ) {
-    var liked by remember { mutableStateOf(current.liked) }
-    val picked = remember { androidx.compose.runtime.mutableStateListOf<String>().apply { addAll(current.playlists) } }
+    val selected = androidx.compose.runtime.remember(current.sources) {
+        androidx.compose.runtime.mutableStateListOf<com.prism.music.data.SongsFrom.Source>().apply { addAll(current.sources) }
+    }
+    val offered = buildList {
+        add(com.prism.music.data.SongsFrom.Source.Liked)
+        playlists.forEach { add(com.prism.music.data.SongsFrom.Source.Playlist(it.id)) }
+    }.distinct()
+
     @Composable
-    fun Tick(label: String, sub: String?, on: Boolean, tag: String, toggle: () -> Unit) = Row(
-        Modifier.fillMaxWidth().clickable(onClick = toggle).padding(horizontal = 12.dp, vertical = 6.dp).testTag(tag),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        androidx.compose.material3.Checkbox(on, { toggle() })
-        Column(Modifier.weight(1f).padding(start = 6.dp)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            if (!sub.isNullOrBlank()) Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+    fun Tick(source: com.prism.music.data.SongsFrom.Source, on: Boolean, modifier: Modifier, grip: Modifier?) {
+        val playlist = (source as? com.prism.music.data.SongsFrom.Source.Playlist)?.let { picked -> playlists.firstOrNull { it.id == picked.id } }
+        val label = when (source) {
+            com.prism.music.data.SongsFrom.Source.Liked -> tr(R.string.liked_songs)
+            is com.prism.music.data.SongsFrom.Source.Playlist -> playlist?.title ?: source.id
+        }
+        // Keep the Liked row's established tag even if a playlist's id is literally "liked".
+        val tag = when (source) {
+            com.prism.music.data.SongsFrom.Source.Liked -> "from:liked"
+            is com.prism.music.data.SongsFrom.Source.Playlist -> "from:${if (source.id == "liked") "p:$source.id" else source.id}"
+        }
+        Row(
+            modifier.fillMaxWidth().clickable { if (on) selected.remove(source) else selected.add(source) }
+                .padding(horizontal = 12.dp, vertical = 6.dp).testTag(tag),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PrismCheck(on, label = label) { if (on) selected.remove(source) else selected.add(source) }
+            Column(Modifier.weight(1f).padding(start = 6.dp)) {
+                Text(label, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                playlist?.subtitle?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                }
+            }
+            if (grip != null) com.prism.music.ui.components.DragGrip(grip.padding(horizontal = 4.dp), tr(R.string.drag, label))
         }
     }
+
     com.prism.music.ui.components.PrismSheet(onDismiss = onDismiss) {
         Column(Modifier.padding(bottom = 16.dp).testTag("songsFromSheet")) {
             Text(tr(R.string.songs_from), style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium, modifier = Modifier.padding(horizontal = 20.dp))
             Text(tr(R.string.your_likes_stay_as_they_are), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 8.dp))
+            if (selected.isNotEmpty()) Text(
+                tr(R.string.hold_and_drag_or_the_grip), style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 4.dp),
+            )
+            val unselected = offered.filter { it !in selected }
             androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f, fill = false)) {
-                item { Tick(tr(R.string.liked_songs), null, liked, "from:liked") { liked = !liked } }
-                items(playlists.size, key = { playlists[it].id }) { i ->
-                    val p = playlists[i]
-                    Tick(p.title, p.subtitle, p.id in picked, "from:${p.id}") { if (p.id in picked) picked.remove(p.id) else picked.add(p.id) }
+                item(key = "selectedSources") {
+                    com.prism.music.ui.components.ReorderList(selected, { it }, { selected.clear(); selected.addAll(it) }) { source, _, _, row ->
+                        Tick(source, true, row, Modifier.dragHandle())
+                    }
                 }
+                lazyItems(unselected, key = { source ->
+                    when (source) {
+                        com.prism.music.data.SongsFrom.Source.Liked -> "liked"
+                        is com.prism.music.data.SongsFrom.Source.Playlist -> "playlist:${source.id}"
+                    }
+                }) { Tick(it, false, Modifier, null) }
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.End) {
                 PrismTextButton(onClick = onDismiss) { Text(tr(R.string.cancel)) }
-                // Nothing ticked would be an empty tab: it needs one or the other.
-                PrismTextButton(onClick = { onDone(com.prism.music.data.SongsFrom(liked, picked.toList())); onDismiss() }, enabled = liked || picked.isNotEmpty(), modifier = Modifier.testTag("fromDone")) {
+                // Nothing ticked would be an empty tab: it needs at least one source.
+                PrismTextButton(onClick = { onDone(com.prism.music.data.SongsFrom(selected.toList())); onDismiss() }, enabled = selected.isNotEmpty(), modifier = Modifier.testTag("fromDone")) {
                     Text(tr(R.string.done))
                 }
             }
