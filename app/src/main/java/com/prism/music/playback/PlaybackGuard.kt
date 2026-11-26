@@ -74,11 +74,16 @@ internal class PlaybackGuard(
     interface Memory {
         fun lastHeadset(): OutputReturn.Sink?
         fun rememberHeadset(sink: OutputReturn.Sink?)
+        /** The pair paused for a possible 2.4 GHz switch and hasn't played since. */
+        fun switched(): Boolean
+        fun rememberSwitched(on: Boolean)
 
         companion object {
             val None: Memory = object : Memory {
                 override fun lastHeadset(): OutputReturn.Sink? = null
                 override fun rememberHeadset(sink: OutputReturn.Sink?) {}
+                override fun switched(): Boolean = false
+                override fun rememberSwitched(on: Boolean) {}
             }
         }
     }
@@ -96,6 +101,8 @@ internal class PlaybackGuard(
     private var lastHeadset: OutputReturn.Sink? = null
     /** The last outside output seen leaving: the same one coming back is the music's route again (see [check]). */
     private var lastOutsideRemoved: OutputReturn.Sink? = null
+    /** The pair paused for a possible 2.4 GHz switch: only its own play (or a reconnect) lets playback start again. */
+    private var switched = false
 
     /** Why playback is held, for tests and diagnostics. */
     val holding: Hold? get() = hold
@@ -115,11 +122,17 @@ internal class PlaybackGuard(
                     lastHeadset = it
                     android.util.Log.i("PrismControl", "guard remembered the last headset: ${describe(it)}")
                 }
+                if (memory.switched()) {
+                    switched = true
+                    android.util.Log.i("PrismControl", "guard remembered the pair switched to 2.4 GHz")
+                }
                 watcher.start(::onVolume, ::onDevices)
             } else {
                 watcher.stop()
                 lastHeadset = null
+                switched = false
                 memory.rememberHeadset(null)
+                memory.rememberSwitched(false)
                 // Switched off: a play held for the headphones (or the volume) goes through, as it would without the guard.
                 if (hold != null) releaseHold(force = true)
                 return
@@ -134,6 +147,7 @@ internal class PlaybackGuard(
         watching = false
         hold = null
         wanted = false
+        switched = false
         lastOutsideRemoved = null
         expect = null
     }
@@ -183,6 +197,9 @@ internal class PlaybackGuard(
     private fun blockNow(): Hold? = when {
         controls.silent -> Hold.VOLUME
         !controls.hasOutput -> Hold.OUTPUT
+        // The pair paused for a possible switch to its 2.4 GHz receiver: an app play (or a volume resume) mustn't start
+        // it on the phone. The pair's own play, a reconnect, or a speaker picked in Prism ends it.
+        switched && !controls.speakerPicked -> Hold.LOST
         // The route is the phone's own speaker, and either the headphones that were playing are gone or Resume is
         // still waiting for the Bluetooth output that went: nothing plays out loud in that gap. An outside output
         // (the dongle, a pair back, another headset) is allowed: that's where the music can be heard.
@@ -238,8 +255,8 @@ internal class PlaybackGuard(
             Hold.OUTPUT -> controls.hasOutput
             // The route is an outside output again. The same pair is allowed once its entry was seen leaving (back on
             // Bluetooth after a 2.4 GHz switch); a route still naming a pair that never left is the old one, and a
-            // Bluetooth pause held there must stay held until a play.
-            Hold.NOISY, Hold.LOST -> controls.routedOutput.let { routed ->
+            // Bluetooth pause held there must stay held until its own play.
+            Hold.NOISY, Hold.LOST -> !switched && controls.routedOutput.let { routed ->
                 routed != null && !routed.phoneOutput &&
                     (lost == null || !routed.sameAs(lost) || removed?.sameAs(routed) == true)
             }
@@ -247,17 +264,32 @@ internal class PlaybackGuard(
         if (back) releaseHold()
     }
 
-    /** A play while a pause of this kind is held: the listener's own play releases it (the route is an outside output). */
+    /** A pause from the pair itself: on a TWS that can be the switch to its 2.4 GHz receiver (the Bluetooth link stays). */
     fun onRemotePause() {
         if (released || !settingOn()) return
         val lost = lastHeadset ?: return
         // A pause from the pair itself can be it switching to its 2.4 GHz receiver, which keeps the Bluetooth link on
-        // some pairs but sends a pause first. Hold as if the output went; the pair's own play (or the listener's)
-        // releases it, and the persistent card stays away.
+        // some pairs but sends a pause first. Hold as if the output went; only its own play (or a reconnect, or a
+        // picked speaker) releases it, so an app play can't start it on the phone meanwhile.
         if (!lost.bluetooth || routedIsPhone()) return
         wanted = true
+        switched = true
+        memory.rememberSwitched(true)
         holdNow(Hold.LOST)
         android.util.Log.i("PrismControl", "play held: the Bluetooth device paused (possible switch to 2.4 GHz)")
+    }
+
+    /**
+     * The pair played on (a Bluetooth media button): it is back on the phone, or the listener asked from the earbuds.
+     * The switch hold is released and the play goes through even if the route hasn't moved back yet.
+     */
+    fun onRemotePlay() {
+        if (released) return
+        switched = false
+        memory.rememberSwitched(false)
+        android.util.Log.i("PrismControl", "the Bluetooth device played: the 2.4 GHz hold is released")
+        wanted = true
+        if (hold != null) releaseHold(force = true)
     }
 
     private fun onVolume() {
@@ -281,6 +313,11 @@ internal class PlaybackGuard(
         music.firstOrNull { !it.phoneOutput }?.let {
             lastHeadset = it
             memory.rememberHeadset(it)
+            if (switched) {
+                switched = false
+                memory.rememberSwitched(false)
+                android.util.Log.i("PrismControl", "the pair is back: the 2.4 GHz hold is released")
+            }
         }
         removed.lastOrNull { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput }?.let { lastOutsideRemoved = it }
         // The output left while the music was playing: whatever resumed in the gap (a volume-up after "Pause when
@@ -370,7 +407,7 @@ internal class PlaybackGuard(
         override fun rememberHeadset(sink: OutputReturn.Sink?) {
             prefs.edit().apply {
                 if (sink == null) {
-                    remove(KEY_TYPE); remove(KEY_ADDRESS); remove(KEY_NAME); remove(KEY_AT)
+                    remove(KEY_TYPE); remove(KEY_ADDRESS); remove(KEY_NAME); remove(KEY_AT); remove(KEY_SWITCHED)
                 } else {
                     putInt(KEY_TYPE, sink.type)
                     putString(KEY_ADDRESS, sink.address)
@@ -380,11 +417,27 @@ internal class PlaybackGuard(
             }.apply()
         }
 
+        override fun switched(): Boolean {
+            val at = prefs.getLong(KEY_AT, 0L)
+            if (at <= 0L || System.currentTimeMillis() - at > MAX_AGE_MS) return false
+            return prefs.getBoolean(KEY_SWITCHED, false)
+        }
+
+        override fun rememberSwitched(on: Boolean) {
+            prefs.edit().apply {
+                if (on) {
+                    putBoolean(KEY_SWITCHED, true)
+                    putLong(KEY_AT, System.currentTimeMillis())
+                } else remove(KEY_SWITCHED)
+            }.apply()
+        }
+
         private companion object {
             const val KEY_TYPE = "guard_output_type"
             const val KEY_ADDRESS = "guard_output_address"
             const val KEY_NAME = "guard_output_name"
             const val KEY_AT = "guard_output_at"
+            const val KEY_SWITCHED = "guard_switched"
             /** The last outside output matters for the listening session, not for the next day. */
             const val MAX_AGE_MS = 2 * 60 * 60 * 1000L
         }

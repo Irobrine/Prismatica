@@ -3691,6 +3691,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 if (key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PAUSE && controllerInfo.packageName == "com.android.bluetooth" && guardAttached) {
                     playbackGuard.onRemotePause()
                 }
+                if (key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY && controllerInfo.packageName == "com.android.bluetooth" && guardAttached) {
+                    playbackGuard.onRemotePlay()
+                }
             }
             // The notification swiped away (Media3 sends it as a media button with this extra): the listener is closing
             // Prism (Reddit, 1.7.7: it came back once, then sat in "background activity" until stopped by hand).

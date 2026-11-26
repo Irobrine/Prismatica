@@ -91,9 +91,11 @@ class PlaybackGuardTest {
         fun removed(vararg sinks: OutputReturn.Sink) = devices?.invoke(emptyList(), sinks.toList())
     }
 
-    private class FakeMemory(var sink: OutputReturn.Sink? = null) : PlaybackGuard.Memory {
+    private class FakeMemory(var sink: OutputReturn.Sink? = null, var switched: Boolean = false) : PlaybackGuard.Memory {
         override fun lastHeadset() = sink
         override fun rememberHeadset(sink: OutputReturn.Sink?) { this.sink = sink }
+        override fun switched() = switched
+        override fun rememberSwitched(on: Boolean) { switched = on }
     }
 
     private class Rig(on: Boolean = true, val memory: PlaybackGuard.Memory = PlaybackGuard.Memory.None) {
@@ -420,7 +422,8 @@ class PlaybackGuardTest {
     }
 
     /** A pause from the Bluetooth device (a TWS switching modes): held like an output switch until a play. */
-    @Test fun aBluetoothPauseHoldsUntilAPlay() {
+    /** A pause from the Bluetooth device (a TWS switching modes): held until its own play, not an app play. */
+    @Test fun aBluetoothPauseHoldsUntilItsPlay() {
         val r = Rig()
         r.start()
         r.watcher.added(bluetooth())
@@ -433,10 +436,27 @@ class PlaybackGuardTest {
         r.guard.check()
         assertFalse(r.player.playWhenReady)
         assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
-        // The listener's play (or the pair's own) goes through: the pair is still the route.
+        // An app play must not start it while the pair is switched away.
+        r.player.set(true)
+        assertFalse("not from the app while the pair is on 2.4 GHz", r.player.playWhenReady)
+        // The pair's own play (it is back on Bluetooth) starts it.
+        r.guard.onRemotePlay()
         r.player.set(true)
         assertTrue(r.player.playWhenReady)
         assertNull(r.guard.holding)
+    }
+
+    /** A service restart while the pair is switched away: an app play still waits for the pair's own play. */
+    @Test fun aRestartRemembersTheSwitchedPair() {
+        val memory = FakeMemory(bluetooth(), switched = true)
+        val r = Rig(memory = memory)
+        r.start()
+        r.player.set(true)
+        assertFalse(r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        r.guard.onRemotePlay()
+        assertTrue(r.player.playWhenReady)
+        assertFalse(memory.switched)
     }
 
     @Test fun noisyWhilePausedChangesNothing() {
