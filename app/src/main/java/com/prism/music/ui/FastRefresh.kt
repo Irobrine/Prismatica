@@ -40,10 +40,16 @@ object FastRefresh {
     /** The animations asking for it right now; overlapping ones (a panel over the mini player's slide) share the hold. */
     private val holders = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Any, Boolean>())
 
+    /** How long the fastest mode is kept after the last animation settles (see [drop]). */
+    private const val LINGER_MS = 700L
+    private val linger = android.os.Handler(android.os.Looper.getMainLooper())
+    private val letGo = Runnable { letGoNow() }
+
     /** Called once per activity, with the display its window is on. */
     fun attach(w: Window, display: Display?) {
         window = WeakReference(w)
         holders.clear()
+        linger.removeCallbacks(letGo)
         bestMode = 0
         bestRate = 0f
         val modes = display?.supportedModes?.toList().orEmpty()
@@ -61,10 +67,11 @@ object FastRefresh {
 
     /** One animation starts asking for the fastest mode; [token] is the animation's own. */
     fun hold(token: Any) {
-        val w = window.get() ?: return
         if (bestMode == 0) return
         if (!holders.add(token)) return
+        linger.removeCallbacks(letGo)
         if (holders.size > 1) return
+        val w = window.get() ?: return
         w.attributes = w.attributes.apply {
             preferredDisplayModeId = bestMode
             preferredRefreshRate = bestRate
@@ -77,9 +84,18 @@ object FastRefresh {
 
     /** The animation that held it with [token] is over (or was replaced): let go once nothing else is holding it. */
     fun drop(token: Any) {
-        val w = window.get() ?: return
         if (!holders.remove(token)) return
         if (holders.isNotEmpty()) return
+        // A moment's grace: a close usually follows its open within a second, and giving the mode up between the two
+        // left the second move at 72 Hz for its whole length even though it asked for the fastest mode again.
+        linger.removeCallbacks(letGo)
+        linger.postDelayed(letGo, LINGER_MS)
+    }
+
+    /** The grace is over: back to the mode the system picks, and the end of the trace's held section. */
+    private fun letGoNow() {
+        if (holders.isNotEmpty()) return
+        val w = window.get() ?: return
         android.os.Trace.endAsyncSection(MotionTrace.FAST_MODE, 1)
         // A rate that isn't a number is "no preference" to the view API.
         if (android.os.Build.VERSION.SDK_INT >= 35) w.decorView.setRequestedFrameRate(Float.NaN)
