@@ -745,6 +745,19 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
         val miniExit = remember(chromeMs, chromeEase) {
             slideOutVertically(tween(chromeMs, easing = chromeEase)) { it }
         }
+        // A launch's first moments are the app window, the first composition and the restored queue still arriving; a
+        // slide there runs at a low frame rate whatever its length. The mini player is simply there with the chrome on
+        // a launch (no entrance left to skip frames), and slides in for a song started once the app is up.
+        var launchSettled by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(2_000)
+            launchSettled = true
+        }
+        val miniEnterNow = if (launchSettled) miniEnter else androidx.compose.animation.EnterTransition.None
+        val joinedMiniEnter = if (launchSettled) {
+            expandVertically(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = chromeEase), expandFrom = Alignment.Bottom) +
+                fadeIn(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = chromeEase))
+        } else androidx.compose.animation.EnterTransition.None
 
         LaunchedEffect(Unit) {
             c.player.errors.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
@@ -1096,7 +1109,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         AnimatedVisibility(inSession && !playerOpen && route != Routes.TOGETHER, enter = chromeEnter, exit = chromeExit) {
                             TogetherPill(together, Modifier.padding(bottom = 8.dp)) { navigator.go(Routes.TOGETHER) }
                         }
-                        AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini) && !selection.selecting, enter = miniEnter, exit = miniExit) {
+                        AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini) && !selection.selecting, enter = miniEnterNow, exit = miniExit) {
                             MiniPlayer(
                                 Modifier.widthIn(max = 720.dp).customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER)
                                     .playerMorphMini(),
@@ -1128,7 +1141,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         }
                         // "Joined to the tab bar" (1.7.6): one piece of glass, the mini player on top of the tabs.
                         val joined = settings.miniPlayerJoined && settings.navStyle == NavBarStyle.FLOATING
-                        if (!joined) AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini), enter = miniEnter, exit = miniExit) {
+                        if (!joined) AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini), enter = miniEnterNow, exit = miniExit) {
                             // Spectrum's bar (the Card style over the docked tab bar) sits right on the tab bar, edge to edge.
                             val flush = docked && settings.miniPlayerStyle == MiniPlayerStyle.CARD && !(settings.liquidGlass || settings.frostedGlass) &&
                                 !com.prism.music.ui.theme.LocalUi.current.material
@@ -1144,8 +1157,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         val joinedMini: (@Composable () -> Unit)? = if (!joined) null else ({
                             AnimatedVisibility(
                                 song != null && (!playerOpen || morphKeepsMini),
-                                enter = expandVertically(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = chromeEase), expandFrom = Alignment.Bottom) +
-                                    fadeIn(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = chromeEase)),
+                                enter = joinedMiniEnter,
                                 exit = shrinkVertically(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = chromeEase), shrinkTowards = Alignment.Bottom) +
                                     fadeOut(tween(com.prism.music.ui.theme.PrismTokens.Motion.QUICK)),
                             ) {
