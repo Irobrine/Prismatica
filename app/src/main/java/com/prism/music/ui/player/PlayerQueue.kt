@@ -205,19 +205,51 @@ internal fun InlineQueue(
     }
 
     Column(modifier.fillMaxWidth()) {
-        // Pulled down by its title row, the queue closes (#149); the list itself keeps scrolling as before. A flick
-        // down closes it without the pull having to reach the mark, as the player's own panels do.
-        val pullToClose = if (onClose == null) Modifier else Modifier.pointerInput(Unit) {
-            var total = 0f
-            val flick = 700.dp.toPx()
-            val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
-            detectVerticalDragGestures(
-                onDragStart = { total = 0f; tracker.resetTracking() },
-                onDragEnd = { if (total > 90f || tracker.calculateVelocity().y >= flick) onClose() },
-            ) { change, amount ->
-                change.consume()
-                tracker.addPosition(change.uptimeMillis, change.position)
-                total += amount
+        // Pulled down by its title row, the queue follows the finger back into the player, as a pull on the deck or at
+        // the top of the list does (see [PanelPull]): the panel moves under the hand, and letting go settles it from
+        // wherever it was left, at the speed the hand left it. (It used to wait for the finger to lift and then close
+        // at the morph's own speed, not moving at all until then.) Where there is no pull to drive — the queue shown
+        // somewhere that isn't the player's panel — a firm pull or a flick still closes it.
+        val pullToClose = when {
+            pull != null -> Modifier.pointerInput(pull) {
+                var pulled = 0f
+                val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                detectVerticalDragGestures(
+                    onDragStart = {
+                        pulled = 0f
+                        tracker.resetTracking()
+                        pull.begin()
+                    },
+                    onDragCancel = {
+                        pulled = 0f
+                        pull.cancel()
+                    },
+                    onDragEnd = {
+                        val down = tracker.calculateVelocity().y
+                        pulled = 0f
+                        pull.release(down)
+                    },
+                ) { change, amount ->
+                    change.consume()
+                    tracker.addPosition(change.uptimeMillis, change.position)
+                    // Up doesn't take it further than its place: the panel is already open at 1.
+                    pulled = (pulled + amount).coerceAtLeast(0f)
+                    pull.follow(pulled)
+                }
+            }
+            onClose == null -> Modifier
+            else -> Modifier.pointerInput(Unit) {
+                var total = 0f
+                val flick = 700.dp.toPx()
+                val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                detectVerticalDragGestures(
+                    onDragStart = { total = 0f; tracker.resetTracking() },
+                    onDragEnd = { if (total > 90f || tracker.calculateVelocity().y >= flick) onClose() },
+                ) { change, amount ->
+                    change.consume()
+                    tracker.addPosition(change.uptimeMillis, change.position)
+                    total += amount
+                }
             }
         }
         if (selecting) {
