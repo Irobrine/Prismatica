@@ -405,7 +405,8 @@ internal class PlaybackGuard(
     /**
      * The last outside output, kept in the service's preferences: the player is torn down (swiped away, Android reclaiming
      * the service) while the earbuds are switching to their 2.4 GHz dongle, and the next service must still know they went.
-     * Forgotten after [MAX_AGE_MS], so a pair used hours ago doesn't keep the phone's speaker from playing today.
+     * The last-output fallback is forgotten after [MAX_AGE_MS]; the explicit switch flag is kept until the pair plays again,
+     * reconnects, or the setting is turned off.
      */
     class AndroidMemory(context: Context) : Memory {
         private val prefs = context.getSharedPreferences("playback_service", Context.MODE_PRIVATE)
@@ -432,8 +433,8 @@ internal class PlaybackGuard(
         }
 
         override fun switched(): Boolean {
-            val at = prefs.getLong(KEY_AT, 0L)
-            if (at <= 0L || System.currentTimeMillis() - at > MAX_AGE_MS) return false
+            // The explicit 2.4 GHz pause lasts until the pair plays again, reconnects, or the setting is turned off:
+            // a listening session can be all day, and this flag is the only signal while the Bluetooth link stays.
             return prefs.getBoolean(KEY_SWITCHED, false)
         }
 
@@ -453,7 +454,7 @@ internal class PlaybackGuard(
             const val KEY_AT = "guard_output_at"
             const val KEY_SWITCHED = "guard_switched"
             /** The last outside output matters for the listening session, not for the next day. */
-            const val MAX_AGE_MS = 2 * 60 * 60 * 1000L
+            const val MAX_AGE_MS = 24 * 60 * 60 * 1000L
         }
     }
 }
