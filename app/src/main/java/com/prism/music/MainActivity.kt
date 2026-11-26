@@ -216,6 +216,7 @@ open class MainActivity : ComponentActivity() {
         val fresh = savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0
         deepLink.value = if (fresh) linkIn(intent) else null
         if (intent.action != Intent.ACTION_MAIN) setIntent(Intent(this, javaClass).setAction(Intent.ACTION_MAIN))
+        requestFastestRefreshRate()
         setContent {
             CompositionLocalProvider(
                 LocalContainer provides c,
@@ -226,6 +227,30 @@ open class MainActivity : ComponentActivity() {
             }
         }
         quietGraphicsLayers()
+    }
+
+    /**
+     * Asks for the panel's fastest mode. Without it the system keeps Prism's window at 60 Hz (a normal app's frame
+     * rate, even on a 120 Hz panel), so the queue and lyrics panels move at 60 and read as stuttering.
+     */
+    private fun requestFastestRefreshRate() {
+        val d = if (Build.VERSION.SDK_INT >= 30) display else @Suppress("DEPRECATION") windowManager.defaultDisplay
+        val modes = d?.supportedModes?.toList().orEmpty()
+        if (modes.isEmpty()) return
+        val now = d?.mode ?: return
+        // The same size as the window has now (a mode with another resolution could letterbox it), at its fastest.
+        val best = (modes.filter { it.physicalWidth == now.physicalWidth && it.physicalHeight == now.physicalHeight }.maxByOrNull { it.refreshRate }
+            ?: modes.maxByOrNull { it.refreshRate }) ?: return
+        if (best.refreshRate <= 60f) return
+        window.attributes = window.attributes.apply {
+            preferredRefreshRate = best.refreshRate
+            preferredDisplayModeId = best.modeId
+        }
+        // Android 15/16 power-saves by stepping a window down to 60 while it isn't being touched: a panel that eases
+        // open after a tap then runs at 60 on a 120 Hz panel. These ask for the display's own rate through the
+        // animation instead. (Guarded: only the newest Androids have them.)
+        if (Build.VERSION.SDK_INT >= 35) runCatching { window.setFrameRateBoostOnTouchEnabled(true) }
+        if (Build.VERSION.SDK_INT >= 36) runCatching { window.setFrameRatePowerSavingsBalanced(false) }
     }
 
     // ---------------------------------------------------------------- Picture-in-picture
