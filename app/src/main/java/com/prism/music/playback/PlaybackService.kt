@@ -3100,6 +3100,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * since some phones hide a paused session's card.
      */
     private fun placeholderWanted(): Boolean = c.settings.current.persistent.controls &&
+        // Not while the song is only waiting to play on by itself (a held play, the Bluetooth output, the volume): the
+        // card's silent track would take the audio focus and its item would replace the song.
+        !waitingToPlayOn() &&
         (pausedForControls || player.mediaItemCount == 0 ||
             player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED)
 
@@ -3115,6 +3118,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val on = placeholderWanted()
         if (sessionPlayer.placeholder == on) return
         sessionPlayer.setPlaceholder(on)
+        android.util.Log.i("PrismControl", if (on) "persistent card on (${if (pausedForControls) "paused out of sight" else "idle or empty"})" else "persistent card off: ${player.mediaItemCount} songs, playWhenReady ${player.playWhenReady}")
         if (on) setNotificationClosed(false)
         updateButtons()
     }

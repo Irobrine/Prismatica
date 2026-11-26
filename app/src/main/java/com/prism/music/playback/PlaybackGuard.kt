@@ -162,17 +162,17 @@ internal class PlaybackGuard(
 
     private fun holdNow(reason: Hold) {
         hold = reason
+        val why = when (reason) {
+            Hold.VOLUME -> "the phone's media volume is 0 (waiting for it)"
+            Hold.OUTPUT -> "no audio output is connected (waiting for one)"
+            Hold.NOISY -> "the output went away (waiting for a headset or Bluetooth output)"
+            Hold.LOST -> "the headphones that were playing are gone (waiting for them)"
+        }
+        android.util.Log.i("PrismControl", "play held: $why")
         if (!controls.playWhenReady) return
         expect = false
         controls.pause()
-        log(
-            when (reason) {
-                Hold.VOLUME -> "paused: the phone's media volume is 0 (waiting for it)"
-                Hold.OUTPUT -> "paused: no audio output is connected (waiting for one)"
-                Hold.NOISY -> "paused: the output went away (waiting for a headset or Bluetooth output)"
-                Hold.LOST -> "paused: the headphones that were playing are gone (waiting for them)"
-            },
-        )
+        log("paused: $why")
     }
 
     /** Lets a held request start, unless something else blocks it still. [force]: the guard is being switched off. */
@@ -187,6 +187,7 @@ internal class PlaybackGuard(
         if (controls.playWhenReady) return
         expect = true
         controls.play()
+        android.util.Log.i("PrismControl", "held play released: sound is possible again")
         log("playing on: it can be heard again")
     }
 
