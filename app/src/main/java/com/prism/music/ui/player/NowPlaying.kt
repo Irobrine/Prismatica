@@ -571,6 +571,11 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     LaunchedEffect(lyricsOpen, queueOpen, statsOpen, menuBySwipe, showActions) {
         if (panelShift.dragging) return@LaunchedEffect
         val open = lyricsOpen || queueOpen || statsOpen || (menuBySwipe && showActions)
+        // The frame that composes what is arriving — a big list's queue at the rise, the deck coming back at the fall —
+        // is let past, invisible, before the ease starts. Carried by the move's first frame it measured 18-29 ms against
+        // 8.33 ms, and the system then kept the display at 72 Hz for the move that *followed* it (a move made after two
+        // quiet seconds ran at 120). The fastest mode is asked for after this frame, by the ease itself.
+        if (panelShift.value < 0.01f || panelShift.value > 0.99f) androidx.compose.runtime.withFrameNanos { }
         panelShift.animateTo(scope, if (open) 1f else 0f, settings.reduceMotion)
         // The menu has gone: the player opens back up, and the swipe isn't holding it collapsed any more.
         if (menuBySwipe && !showActions) menuBySwipe = false
