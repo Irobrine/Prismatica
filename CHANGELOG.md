@@ -2,6 +2,39 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.4.1
+
+The player opens, closes and moves at the screen's fastest rate, a tapped song starts at once, the queue opens without stalling, and a play can wait until it would actually be heard.
+
+### Playback
+
+- **Play only when it can be heard** (Settings → Playback → Stopping and pausing, off as Prism comes): pressing play waits while the phone's media volume is 0, no audio output is connected, or the headphones that were playing just got unplugged; it starts by itself once sound is possible again, and pressing Play while it waits is taken as asking for the speaker. Casting, Android Auto and calls are left alone.
+- **The whole library now includes the phone's own files**, each once, in the three places that shuffle it: Library's shuffle button beside the tabs, Settings → Playback → Shuffle → Start playing shuffled, and the persistent control, now named "Shuffle the library" (Settings → Controls & gestures → Persistent media controls).
+
+### Library
+
+- **Reorder the sources behind Songs** (Library → Songs → From): picked playlists and Liked songs are dragged by their grip, or held and dragged, and the tab lists each source's songs in that order; the order is kept. Liked songs no longer have to come first.
+
+### The player
+
+- **Opening and closing run at the screen's fastest rate**: the card stays opaque through the morph and fades only over its last few percent, so frames are no longer drawn into an offscreen buffer, which had pinned the animation at 60 Hz.
+- **Panels move with the finger**: the queue's rise, the queue's title row and a swipe on the immersive player all drive the same morph, settling from where they were let go at the speed they were left with; the immersive player no longer snaps.
+- **The queue opens without stalling**: its play order and sections are worked out off the main thread, its panel is composed before the rise begins, and a rising panel no longer recomposes the rest of the player.
+- **A tapped song starts at once**: a tap in a long list seeks to that song instead of rebuilding the queue, and the ripple draws before any player work.
+- **The queue's layer stays out of the lyrics' side**, so the queue's list and the words no longer stand on screen together.
+- **Tabs bring their tint, background and fill in together.**
+
+### Motion & startup
+
+- **The display's fastest mode is held for a move and 700 ms past it**, asked for through Android 15's frame-rate API and released when it settles, with the screen's priority for the UI thread while a move runs; the 90 Hz and offscreen-fade experiments are reverted.
+- **The mini player slides in without recomposing the app on every frame**, and on a launch it is simply there with the chrome while Prism opens.
+- **A long queue finishes joining after the mini player's slide**, 50 songs a frame apart, instead of landing on the animation.
+
+### Under the hood
+
+- New and extended tests: `PlaybackGuardTest`, `WholeLibrarySongsTest`, `SongTapSeekTest`, `PanelSwipesTest`, `SongsFromTest`/`SongsFromAppTest` and `PlaybackPageTest`.
+- The new strings are in all 31 languages.
+
 ## 1.4.0
 
 More from the artist or album playing, community playlists around a song, artist connections, a library-wide shuffle, and queues that start on the phone offline.
