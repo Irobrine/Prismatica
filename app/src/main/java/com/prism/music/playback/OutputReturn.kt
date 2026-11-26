@@ -38,6 +38,8 @@ internal class OutputReturn(
     private var lastRemovedAt = 0L
     /** When a becoming-noisy pause came in: a removal arriving just after it still belongs to that pause. */
     private var noisyAt = 0L
+    /** When "Pause when muted" paused: the listener's pause for it may be reported just before or after the call. */
+    private var mutedAt = 0L
     private var waiting: Waiting? = null
 
     /** Whether a becoming-noisy pause is still waiting for its output to come back. */
@@ -64,7 +66,9 @@ internal class OutputReturn(
      */
     fun paused(reason: Int, now: Long) {
         if (reason != Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY) {
-            forget()
+            // The pause "Pause when muted" itself makes reaches Prism just before or after its notice: keep the wait it
+            // armed (or is about to) either way.
+            if (now - mutedAt > MUTE_GRACE_MS) forget()
             return
         }
         // The output last playing, if it was Bluetooth, is what the pause was about; else a removal just before it (the
@@ -78,6 +82,20 @@ internal class OutputReturn(
         val sink = if (onCable) null else known?.takeIf { it.bluetooth } ?: recent
         waiting = sink?.let { Waiting(it, now) }
         noisyAt = if (onCable) 0L else now
+    }
+
+    /**
+     * "Pause when muted": the phone's media volume reached 0. On a TWS switch to its 2.4 GHz dongle the phone often drops
+     * the volume to 0 as the Bluetooth link goes, so this pause stands in for the becoming-noisy one. It arms the wait
+     * only if the output was seen going just before (or is seen going within [graceMs] after, through [removed]): a mute
+     * on its own doesn't start a wait.
+     */
+    fun muted(now: Long) {
+        mutedAt = now
+        if (waiting == null) {
+            lastRemoved?.takeIf { now - lastRemovedAt <= graceMs }?.let { waiting = Waiting(it, now) }
+        }
+        noisyAt = now
     }
 
     /** Playback started (the listener's Play, a call ending, the persistent card): nothing is waiting any more. */
@@ -121,6 +139,7 @@ internal class OutputReturn(
     private fun forget() {
         waiting = null
         noisyAt = 0L
+        mutedAt = 0L
     }
 
     private companion object {
@@ -130,6 +149,8 @@ internal class OutputReturn(
         const val SWITCH_WINDOW_MS = 15_000L
         /** A removal this soon before (or after) the pause is the output that pause was about. */
         const val REMOVAL_GRACE_MS = 5_000L
+        /** The pause's own listener report this close to "Pause when muted" is that pause, not the listener's. */
+        const val MUTE_GRACE_MS = 1_000L
     }
 }
 

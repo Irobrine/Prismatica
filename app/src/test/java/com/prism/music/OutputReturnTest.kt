@@ -94,6 +94,68 @@ class OutputReturnTest {
         assertTrue(r.returned(listOf(buds("AA:BB")), 31_000))
     }
 
+    /** On a TWS switch the phone drops the media volume to 0 as the link goes: "Pause when muted" arms the wait too. */
+    @Test fun aMutePauseWithTheOutputGoneArmsIt() {
+        val r = OutputReturn()
+        r.current(buds())
+        r.removed(listOf(buds()), 1_000)
+        r.muted(1_200)
+        assertTrue(r.waitingFor)
+        assertTrue(r.returned(listOf(buds()), 4_000))
+    }
+
+    /** The volume reaching 0 on its own is not an output going: nothing waits, nothing plays on later. */
+    @Test fun aMutePauseAloneDoesNotArmIt() {
+        val r = OutputReturn()
+        r.current(buds())
+        r.muted(1_000)
+        assertFalse(r.waitingFor)
+        assertFalse(r.returned(listOf(buds()), 3_000))
+    }
+
+    /** The mute pause came first, the earbuds' entry goes a moment later (the usual order on a switch). */
+    @Test fun aMutePauseThenTheOutputGoingArmsIt() {
+        val r = OutputReturn()
+        r.current(buds())
+        r.muted(1_000)
+        r.removed(listOf(buds()), 2_000)
+        assertTrue(r.waitingFor)
+        assertTrue(r.returned(listOf(buds()), 4_000))
+    }
+
+    /** A mute pause while an output's wait is already armed leaves that wait alone. */
+    @Test fun aMutePauseDoesNotReplaceAWait() {
+        val r = OutputReturn()
+        r.current(buds("AA:BB"))
+        r.removed(listOf(buds("AA:BB")), 1_000)
+        r.paused(noisy, 1_100)
+        r.muted(1_500)
+        assertTrue(r.waitingFor)
+        assertTrue(r.returned(listOf(buds("AA:BB")), 4_000))
+    }
+
+    /** The listener report for the mute pause itself (just before or after the notice) doesn't cancel it. */
+    @Test fun theMutePausesOwnListenerReportKeepsIt() {
+        val r = OutputReturn()
+        r.current(buds())
+        r.removed(listOf(buds()), 1_000)
+        r.muted(1_200)
+        r.paused(asked, 1_250)
+        assertTrue(r.waitingFor)
+        assertTrue(r.returned(listOf(buds()), 4_000))
+    }
+
+    /** A pause made later (the listener's own) still cancels it. */
+    @Test fun aLaterListenersPauseCancels() {
+        val r = OutputReturn()
+        r.current(buds())
+        r.removed(listOf(buds()), 1_000)
+        r.muted(1_200)
+        r.paused(asked, 3_000)
+        assertFalse(r.waitingFor)
+        assertFalse(r.returned(listOf(buds()), 4_000))
+    }
+
     @Test fun anotherPairDoesNotTakeThePlace() {
         val r = OutputReturn()
         r.current(buds("AA:BB"))

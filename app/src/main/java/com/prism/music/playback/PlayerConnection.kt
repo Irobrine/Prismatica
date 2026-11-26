@@ -221,6 +221,13 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     val awaitingOutput: Boolean
         get() = c.settings.current.behavior.resumeOnReturn && outputReturn.waiting(android.os.SystemClock.elapsedRealtime())
 
+    /** "Pause when muted" paused at volume 0: on a TWS switch that is the pause the lost output caused (see [OutputReturn.muted]). */
+    fun onPausedByMute() {
+        if (!c.settings.current.behavior.resumeOnReturn) return
+        outputReturn.muted(android.os.SystemClock.elapsedRealtime())
+        if (outputReturn.waitingFor) AudioDiagnostics.log("route", "paused at volume 0 as the output went: waiting for it to come back")
+    }
+
     init {
         context.getSystemService(AudioManager::class.java)?.registerAudioDeviceCallback(object : AudioDeviceCallback() {
             private var primed = false

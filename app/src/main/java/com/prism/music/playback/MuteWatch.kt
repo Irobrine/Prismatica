@@ -13,7 +13,7 @@ import androidx.media3.common.Player
  * music, turning it back up plays on, but only when it was the mute that paused it (a pause of your own stays).
  * Android announces volume changes through its settings, which this watches while the setting is on.
  */
-class MuteWatch(private val context: Context, private val player: Player, private val on: () -> Boolean) {
+class MuteWatch(private val context: Context, private val player: Player, private val on: () -> Boolean, private val onPausedByMute: () -> Unit = {}) {
     private val audio = context.getSystemService(AudioManager::class.java)
     private var pausedByMute = false
     private var last = -1
@@ -57,6 +57,7 @@ class MuteWatch(private val context: Context, private val player: Player, privat
             now == 0 && was > 0 && player.playWhenReady -> {
                 pausedByMute = true
                 player.pause()
+                onPausedByMute()
                 AudioDiagnostics.log("state", "paused: the phone's media volume went to 0")
             }
             now > 0 && was == 0 && pausedByMute -> {

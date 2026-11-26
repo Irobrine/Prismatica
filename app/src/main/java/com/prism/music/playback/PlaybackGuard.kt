@@ -45,6 +45,8 @@ internal class PlaybackGuard(
         val hasOutput: Boolean
         /** The route carrying media right now (null if unknown): the speaker during a switch, even if the new pair is listed. */
         val routedOutput: OutputReturn.Sink?
+        /** "Resume when Bluetooth comes back" is waiting for the output that went: a play must not go to the speaker now. */
+        val awaitingReturn: Boolean
         /** The listener picked the phone's own speaker in Prism's device sheet: a lost headset mustn't hold it. */
         val speakerPicked: Boolean
         /** Not now: casting, the car (Android Auto), or a call. */
@@ -147,6 +149,9 @@ internal class PlaybackGuard(
     private fun blockNow(): Hold? = when {
         controls.silent -> Hold.VOLUME
         !controls.hasOutput -> Hold.OUTPUT
+        // Resume is still waiting for the Bluetooth output that went: a "Pause when muted" resume at the next volume
+        // change mustn't play on the phone meanwhile.
+        controls.awaitingReturn -> Hold.LOST
         // The headphones the music was going to went, and the route is the phone's own speaker: a switch in progress
         // (a TWS pair moving to its dongle), not an invitation to play out loud. Unless the listener picked the speaker.
         lastHeadset != null && !controls.speakerPicked && routedIsPhone() -> Hold.LOST

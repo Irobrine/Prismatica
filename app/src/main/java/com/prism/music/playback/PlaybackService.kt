@@ -131,7 +131,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     private val edges = EdgeSilenceProcessor()
     private val spatial = SpatialAudioProcessor()
     /** "Pause when muted" (#157). */
-    private val muteWatch by lazy { MuteWatch(this, player) { c.settings.current.behavior.pauseOnMute } }
+    private val muteWatch by lazy { MuteWatch(this, player, { c.settings.current.behavior.pauseOnMute }, onPausedByMute = { c.player.onPausedByMute() }) }
     /** "Play only when it can be heard": holds a play request while it would be silent (Settings → Playback). */
     private var guardAttached = false
     private val playbackGuard by lazy {
@@ -155,6 +155,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                         // can be listed while the sound still comes out of the phone.
                         com.prism.music.data.currentOutput(this@PlaybackService, c.player.preferredOutput.value)?.toSink()
                     }.getOrNull()
+                override val awaitingReturn: Boolean get() = c.player.awaitingOutput
                 override val speakerPicked: Boolean
                     get() = c.player.preferredOutput.value?.let { com.prism.music.data.isPhoneOutput(it.type) } == true
                 override val blocked: Boolean get() = c.cast.casting || carControllers.isNotEmpty() || inCall()

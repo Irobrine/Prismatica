@@ -34,6 +34,7 @@ class PlaybackGuardTest {
                 else OutputReturn.Sink(AudioDeviceInfo.TYPE_BUILTIN_SPEAKER, "", "Phone")
             }
         override var speakerPicked = false
+        override var awaitingReturn = false
         override var blocked = false
         override var playWhenReady = false
         var pauses = 0
@@ -336,6 +337,25 @@ class PlaybackGuardTest {
         r.player.set(true)
         assertTrue(r.player.playWhenReady)
         assertNull(r.guard.holding)
+    }
+
+    /** "Pause when muted" resuming at the next volume change while Resume still waits for the output: held. */
+    @Test fun aPlayWhileResumeWaitsForTheOutputIsHeld() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.player.noisy()
+        r.player.headsetConnected = false
+        r.player.awaitingReturn = true
+        r.player.set(true)
+        assertFalse("not on the phone while the output is waited for", r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        r.player.awaitingReturn = false
+        r.player.routedOutput = OutputReturn.Sink(AudioDeviceInfo.TYPE_USB_DEVICE, "", "Dongle")
+        r.guard.check()
+        assertTrue(r.player.playWhenReady)
     }
 
     @Test fun noisyWhilePausedChangesNothing() {
