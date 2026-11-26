@@ -665,19 +665,24 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
         val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         val chromeEase = com.prism.music.ui.theme.PrismTokens.Motion.Ease
         val slotMs = if (settings.reduceMotion) 0 else com.prism.music.ui.theme.PrismTokens.Motion.STANDARD
-        val miniSlot by animateDpAsState(
+        // Kept as states, never read here: a slot growing used to recompose this whole root — the chrome, the NavHost and
+        // the page inside it — on every frame of the mini player's 300 ms slide in, which showed as the mini player and the
+        // tapped row skipping frames. Each page reads the room where it uses it instead.
+        val miniSlot = animateDpAsState(
             if (song != null) miniHeight(settings.miniPlayerStyle) + 8.dp else 0.dp,
             tween(slotMs, easing = chromeEase),
             label = "miniSlot",
         )
-        val sessionSlot by animateDpAsState(
+        val sessionSlot = animateDpAsState(
             if (inSession) 42.dp else 0.dp,
             tween(slotMs, easing = chromeEase),
             label = "sessionSlot",
         )
-        val bottomPadding = navInset +
-            (if (useRail) 16.dp else navHeight(settings.navStyle, settings.navBarSize, com.prism.music.ui.theme.LocalUi.current.material) + (if (settings.navStyle == NavBarStyle.DOCKED) 0.dp else 16.dp)) +
-            miniSlot + sessionSlot
+        val bottomBase = navInset +
+            (if (useRail) 16.dp else navHeight(settings.navStyle, settings.navBarSize, com.prism.music.ui.theme.LocalUi.current.material) + (if (settings.navStyle == NavBarStyle.DOCKED) 0.dp else 16.dp))
+        val pageBottom = remember(bottomBase, miniSlot, sessionSlot) {
+            derivedStateOf { bottomBase + miniSlot.value + sessionSlot.value }
+        }
         // The two ends of the morph, watched as booleans so the app isn't recomposed for every frame of it: the mini
         // player stays with us until the player has wholly taken over, and the player is laid out from the first frame
         // of the drag (its own picture follows the finger inside [NowPlayingScreen]).
@@ -720,10 +725,26 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
         // The chrome (mini player, Together pill, the selection bar) rises into place and leaves the same way, at one
         // speed everywhere; with reduced motion it's there at once.
         val chromeMs = if (settings.reduceMotion) 0 else com.prism.music.ui.theme.PrismTokens.Motion.STANDARD
-        val chromeEnter = slideInVertically(tween(chromeMs, easing = chromeEase)) { it } +
-            fadeIn(tween(chromeMs, easing = chromeEase))
-        val chromeExit = slideOutVertically(tween(chromeMs, easing = chromeEase)) { it } +
-            fadeOut(tween(if (settings.reduceMotion) 0 else com.prism.music.ui.theme.PrismTokens.Motion.QUICK))
+        // Remembered: a fresh transition object on every recomposition made the visibility transitions restart their
+        // specs mid-animation (the mini player's slide could jerk when anything else recomposed it as it came in).
+        val chromeEnter = remember(chromeMs, chromeEase) {
+            slideInVertically(tween(chromeMs, easing = chromeEase)) { it } +
+                fadeIn(tween(chromeMs, easing = chromeEase))
+        }
+        val chromeExit = remember(chromeMs, chromeEase, settings.reduceMotion) {
+            slideOutVertically(tween(chromeMs, easing = chromeEase)) { it } +
+                fadeOut(tween(if (settings.reduceMotion) 0 else com.prism.music.ui.theme.PrismTokens.Motion.QUICK))
+        }
+        // The mini player's own entrance: slide only, no fade. It is already hidden below the screen (or under the tab bar)
+        // when it starts, so the fade added nothing to see; it did draw the mini player's glass into a picture of its own
+        // every frame, which is most of what a fade costs on a phone's graphics chip (#354, the player's own slide dropped
+        // its fade for the same reason). The joined mini player keeps its expand-and-fade, which is its tab bar's height.
+        val miniEnter = remember(chromeMs, chromeEase) {
+            slideInVertically(tween(chromeMs, easing = chromeEase)) { it }
+        }
+        val miniExit = remember(chromeMs, chromeEase) {
+            slideOutVertically(tween(chromeMs, easing = chromeEase)) { it }
+        }
 
         LaunchedEffect(Unit) {
             c.player.errors.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
@@ -892,7 +913,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         ) {
                             val onboarding = it.arguments?.getBoolean("onboarding") == true
                             ScreenBackdrop(BackdropScreen.SETTINGS) {
-                                com.prism.music.ui.screens.PrismAccountScreen(onboarding, if (onboarding) 0.dp else bottomPadding) {
+                                com.prism.music.ui.screens.PrismAccountScreen(onboarding, if (onboarding) 0.dp else pageBottom.value) {
                                     if (onboarding) navController.navigate(Routes.PICK_ARTISTS + "?onboarding=true") else navController.popBackStack()
                                 }
                             }
@@ -903,24 +924,24 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         ) {
                             val onboarding = it.arguments?.getBoolean("onboarding") == true
                             ScreenBackdrop(BackdropScreen.HOME) {
-                                com.prism.music.ui.screens.PickArtistsScreen(onboarding, if (onboarding) 0.dp else bottomPadding) {
+                                com.prism.music.ui.screens.PickArtistsScreen(onboarding, if (onboarding) 0.dp else pageBottom.value) {
                                     if (onboarding) { c.settings.setOnboarded(true); goRoot() } else navController.popBackStack()
                                 }
                             }
                         }
-                        composable(Routes.NEW_RELEASES) { ScreenBackdrop(BackdropScreen.HOME) { com.prism.music.ui.screens.NewReleasesScreen(bottomPadding) } }
-                        composable(Routes.EXCLUSIONS) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.ExclusionsScreen(bottomPadding) } }
+                        composable(Routes.NEW_RELEASES) { ScreenBackdrop(BackdropScreen.HOME) { com.prism.music.ui.screens.NewReleasesScreen(pageBottom.value) } }
+                        composable(Routes.EXCLUSIONS) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.ExclusionsScreen(pageBottom.value) } }
                         // 1.8.1: Bring your history, and its "Needs a look".
-                        composable(Routes.BRING_HISTORY) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.BringHistoryScreen(bottomPadding) } }
-                        composable(Routes.IMPORT_REVIEW) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.ImportReviewScreen(bottomPadding) } }
+                        composable(Routes.BRING_HISTORY) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.BringHistoryScreen(pageBottom.value) } }
+                        composable(Routes.IMPORT_REVIEW) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.ImportReviewScreen(pageBottom.value) } }
                         composable(
                             Routes.RECOGNIZE + "?start={start}",
                             listOf(navArgument("start") { type = NavType.BoolType; defaultValue = false }),
                         ) {
-                            ScreenBackdrop(BackdropScreen.SEARCH) { com.prism.music.ui.screens.RecognizeScreen(it.arguments?.getBoolean("start") == true, bottomPadding) }
+                            ScreenBackdrop(BackdropScreen.SEARCH) { com.prism.music.ui.screens.RecognizeScreen(it.arguments?.getBoolean("start") == true, pageBottom.value) }
                         }
-                        composable(Routes.RECOGNIZED) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.RecognizedScreen(bottomPadding) } }
-                        composable(Routes.BLENDS) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.BlendsScreen(bottomPadding) } }
+                        composable(Routes.RECOGNIZED) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.RecognizedScreen(pageBottom.value) } }
+                        composable(Routes.BLENDS) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.BlendsScreen(pageBottom.value) } }
                         composable(Routes.BLEND_SCAN) {
                             com.prism.music.ui.screens.BlendScanScreen { code ->
                                 navController.popBackStack()
@@ -935,16 +956,16 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                             }
                         }
                         composable("blend/{who}", listOf(navArgument("who") { type = NavType.StringType })) {
-                            ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.BlendScreen(it.arguments?.getString("who")!!, bottomPadding) }
+                            ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.BlendScreen(it.arguments?.getString("who")!!, pageBottom.value) }
                         }
                         composable("mix/{id}", listOf(navArgument("id") { type = NavType.StringType })) {
-                            Beside { CollectionScreen(CollectionType.MIX, it.arguments?.getString("id")!!, null, bottomPadding) }
+                            Beside { CollectionScreen(CollectionType.MIX, it.arguments?.getString("id")!!, null, pageBottom.value) }
                         }
-                        composable(Routes.HOME) { ScreenBackdrop(BackdropScreen.HOME) { HomeScreen(bottomPadding) } }
-                        composable(Routes.SEARCH) { ScreenBackdrop(BackdropScreen.SEARCH) { SearchScreen(bottomPadding) } }
-                        composable(Routes.LIBRARY) { ScreenBackdrop(BackdropScreen.LIBRARY) { LibraryScreen(bottomPadding) } }
-                        composable(Routes.REPLAY) { ScreenBackdrop(BackdropScreen.REPLAY) { ReplayScreen(bottomPadding) } }
-                        composable(Routes.SETTINGS) { ScreenBackdrop(BackdropScreen.SETTINGS) { SettingsScreen(bottomPadding) } }
+                        composable(Routes.HOME) { ScreenBackdrop(BackdropScreen.HOME) { HomeScreen(pageBottom.value) } }
+                        composable(Routes.SEARCH) { ScreenBackdrop(BackdropScreen.SEARCH) { SearchScreen(pageBottom.value) } }
+                        composable(Routes.LIBRARY) { ScreenBackdrop(BackdropScreen.LIBRARY) { LibraryScreen(pageBottom.value) } }
+                        composable(Routes.REPLAY) { ScreenBackdrop(BackdropScreen.REPLAY) { ReplayScreen(pageBottom.value) } }
+                        composable(Routes.SETTINGS) { ScreenBackdrop(BackdropScreen.SETTINGS) { SettingsScreen(pageBottom.value) } }
                         // The progress notifications' destinations: the sheets themselves, over a matching backdrop.
                         composable(Routes.DEDUP) {
                             com.prism.music.ui.screens.StoredSettings {
@@ -965,7 +986,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                             listOf(navArgument("player") { type = NavType.BoolType; defaultValue = false }),
                         ) {
                             val player = it.arguments?.getBoolean("player") == true
-                            ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.BackgroundsScreen(bottomPadding, forPlayer = player) }
+                            ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.BackgroundsScreen(pageBottom.value, forPlayer = player) }
                         }
                         composable(
                             "settings/{section}?find={find}",
@@ -976,27 +997,27 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         ) {
                             ScreenBackdrop(BackdropScreen.SETTINGS) {
                                 // 1.8.4: a page of the map by its key, or an old page's key (an alias), resolved by Settings itself.
-                                SettingsScreen(bottomPadding, key = it.arguments?.getString("section"), find = it.arguments?.getString("find"))
+                                SettingsScreen(pageBottom.value, key = it.arguments?.getString("section"), find = it.arguments?.getString("find"))
                             }
                         }
-                        composable(Routes.EQ) { ScreenBackdrop(BackdropScreen.SETTINGS) { EqualizerScreen(bottomPadding) } }
-                        composable(Routes.CATALOGUE + "?find={find}", listOf(navArgument("find") { type = NavType.StringType; nullable = true; defaultValue = null })) { ScreenBackdrop(BackdropScreen.HOME) { CatalogueScreen(bottomPadding) } }
-                        composable(Routes.MOODS) { ScreenBackdrop(BackdropScreen.SEARCH) { com.prism.music.ui.screens.MoodsScreen(bottomPadding) } }
-                        composable(Routes.EXPLORE) { ScreenBackdrop(BackdropScreen.SEARCH) { com.prism.music.ui.screens.ExploreScreen(bottomPadding) } }
-                        composable(Routes.IMPORT) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.ImportScreen(bottomPadding) } }
-                        composable(Routes.DESIGN_GALLERY) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.components.DesignGallery(bottomPadding) } }
-                        composable(Routes.TOGETHER) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.TogetherScreen(bottomPadding) } }
-                        composable(Routes.PODCASTS) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.PodcastsScreen(bottomPadding) } }
-                        composable(Routes.UPLOADS) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.UploadsScreen(bottomPadding) } }
-                        composable(Routes.SAVED) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.SavedWhilePlayingScreen(bottomPadding) } }
+                        composable(Routes.EQ) { ScreenBackdrop(BackdropScreen.SETTINGS) { EqualizerScreen(pageBottom.value) } }
+                        composable(Routes.CATALOGUE + "?find={find}", listOf(navArgument("find") { type = NavType.StringType; nullable = true; defaultValue = null })) { ScreenBackdrop(BackdropScreen.HOME) { CatalogueScreen(pageBottom.value) } }
+                        composable(Routes.MOODS) { ScreenBackdrop(BackdropScreen.SEARCH) { com.prism.music.ui.screens.MoodsScreen(pageBottom.value) } }
+                        composable(Routes.EXPLORE) { ScreenBackdrop(BackdropScreen.SEARCH) { com.prism.music.ui.screens.ExploreScreen(pageBottom.value) } }
+                        composable(Routes.IMPORT) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.ImportScreen(pageBottom.value) } }
+                        composable(Routes.DESIGN_GALLERY) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.components.DesignGallery(pageBottom.value) } }
+                        composable(Routes.TOGETHER) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.TogetherScreen(pageBottom.value) } }
+                        composable(Routes.PODCASTS) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.PodcastsScreen(pageBottom.value) } }
+                        composable(Routes.UPLOADS) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.UploadsScreen(pageBottom.value) } }
+                        composable(Routes.SAVED) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.SavedWhilePlayingScreen(pageBottom.value) } }
                         composable("podcast/{id}", listOf(navArgument("id") { type = NavType.StringType })) {
-                            Beside { com.prism.music.ui.screens.PodcastScreen(it.arguments?.getString("id")!!, bottomPadding) }
+                            Beside { com.prism.music.ui.screens.PodcastScreen(it.arguments?.getString("id")!!, pageBottom.value) }
                         }
-                        composable(Routes.DOWNLOADS) { Beside { CollectionScreen(CollectionType.DOWNLOADS, "downloads", null, bottomPadding) } }
+                        composable(Routes.DOWNLOADS) { Beside { CollectionScreen(CollectionType.DOWNLOADS, "downloads", null, pageBottom.value) } }
                         composable("folder/{id}", listOf(navArgument("id") { type = NavType.StringType })) {
-                            ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.FolderScreen(it.arguments?.getString("id")!!, bottomPadding) }
+                            ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.FolderScreen(it.arguments?.getString("id")!!, pageBottom.value) }
                         }
-                        composable(Routes.LOCAL) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.LocalMusicScreen(bottomPadding) } }
+                        composable(Routes.LOCAL) { ScreenBackdrop(BackdropScreen.LIBRARY) { com.prism.music.ui.screens.LocalMusicScreen(pageBottom.value) } }
                         composable(Routes.LOGIN) {
                             LoginScreen(
                                 onDone = goRoot,
@@ -1014,30 +1035,30 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                             )
                         }
                         composable("album/{id}", listOf(navArgument("id") { type = NavType.StringType })) {
-                            Beside { CollectionScreen(CollectionType.ALBUM, it.arguments?.getString("id")!!, null, bottomPadding) }
+                            Beside { CollectionScreen(CollectionType.ALBUM, it.arguments?.getString("id")!!, null, pageBottom.value) }
                         }
                         composable("playlist/{id}", listOf(navArgument("id") { type = NavType.StringType })) {
                             val id = it.arguments?.getString("id")!!
                             // A playlist made in Prism (kept on the phone) opens on the same page, from the phone.
                             val type = if (com.prism.music.data.PrismLibrary.isPrismList(id)) CollectionType.PRISM else CollectionType.PLAYLIST
                             // A tag found by Search (1.8.3) comes as a playlist: its own page.
-                            if (id.startsWith(com.prism.music.ui.screens.TAG_PAGE)) Beside { CollectionScreen(CollectionType.TAG, id.removePrefix(com.prism.music.ui.screens.TAG_PAGE), null, bottomPadding) }
-                            else Beside { CollectionScreen(type, id, null, bottomPadding) }
+                            if (id.startsWith(com.prism.music.ui.screens.TAG_PAGE)) Beside { CollectionScreen(CollectionType.TAG, id.removePrefix(com.prism.music.ui.screens.TAG_PAGE), null, pageBottom.value) }
+                            else Beside { CollectionScreen(type, id, null, pageBottom.value) }
                         }
                         composable("tag/{name}", listOf(navArgument("name") { type = NavType.StringType })) {
-                            Beside { CollectionScreen(CollectionType.TAG, it.arguments?.getString("name")!!, null, bottomPadding) }
+                            Beside { CollectionScreen(CollectionType.TAG, it.arguments?.getString("name")!!, null, pageBottom.value) }
                         }
                         composable("library-search?q={q}", listOf(navArgument("q") { type = NavType.StringType; nullable = true; defaultValue = null })) {
-                            Beside { com.prism.music.ui.screens.LibrarySearchScreen(it.arguments?.getString("q").orEmpty(), bottomPadding) }
+                            Beside { com.prism.music.ui.screens.LibrarySearchScreen(it.arguments?.getString("q").orEmpty(), pageBottom.value) }
                         }
                         composable("liked?genre={genre}", listOf(navArgument("genre") { type = NavType.StringType; nullable = true; defaultValue = null })) {
-                            Beside { CollectionScreen(CollectionType.LIKED, "liked", it.arguments?.getString("genre"), bottomPadding) }
+                            Beside { CollectionScreen(CollectionType.LIKED, "liked", it.arguments?.getString("genre"), pageBottom.value) }
                         }
                         composable("artist/{id}", listOf(navArgument("id") { type = NavType.StringType })) {
-                            Beside { ArtistScreen(it.arguments?.getString("id")!!, bottomPadding) }
+                            Beside { ArtistScreen(it.arguments?.getString("id")!!, pageBottom.value) }
                         }
                         composable("artist-connections/{id}", listOf(navArgument("id") { type = NavType.StringType })) {
-                            Beside { ArtistConnectionsScreen(it.arguments?.getString("id")!!, bottomPadding) }
+                            Beside { ArtistConnectionsScreen(it.arguments?.getString("id")!!, pageBottom.value) }
                         }
                         composable(
                             "browse/{id}?params={params}&title={title}",
@@ -1052,7 +1073,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                                     it.arguments?.getString("id")!!,
                                     it.arguments?.getString("params")?.takeIf { p -> p.isNotBlank() },
                                     it.arguments?.getString("title") ?: "",
-                                    bottomPadding,
+                                    pageBottom.value,
                                 )
                             }
                         }
@@ -1075,7 +1096,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         AnimatedVisibility(inSession && !playerOpen && route != Routes.TOGETHER, enter = chromeEnter, exit = chromeExit) {
                             TogetherPill(together, Modifier.padding(bottom = 8.dp)) { navigator.go(Routes.TOGETHER) }
                         }
-                        AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini) && !selection.selecting, enter = chromeEnter, exit = chromeExit) {
+                        AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini) && !selection.selecting, enter = miniEnter, exit = miniExit) {
                             MiniPlayer(
                                 Modifier.widthIn(max = 720.dp).customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER)
                                     .playerMorphMini(),
@@ -1107,7 +1128,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         }
                         // "Joined to the tab bar" (1.7.6): one piece of glass, the mini player on top of the tabs.
                         val joined = settings.miniPlayerJoined && settings.navStyle == NavBarStyle.FLOATING
-                        if (!joined) AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini), enter = chromeEnter, exit = chromeExit) {
+                        if (!joined) AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini), enter = miniEnter, exit = miniExit) {
                             // Spectrum's bar (the Card style over the docked tab bar) sits right on the tab bar, edge to edge.
                             val flush = docked && settings.miniPlayerStyle == MiniPlayerStyle.CARD && !(settings.liquidGlass || settings.frostedGlass) &&
                                 !com.prism.music.ui.theme.LocalUi.current.material
@@ -1233,14 +1254,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
 
                 // Looks (1.7.3): "Undo" after each change to the look, and "Customize this" while it's on.
                 // Over the player it sits at the top, under "Customize this": lower down it covered the Play button.
-                com.prism.music.ui.components.LookUndoBar(
-                    if (playerOpen && song != null) Modifier.align(Alignment.TopCenter).padding(horizontal = 16.dp).statusBarsPadding().padding(top = 56.dp)
-                    else Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp).padding(bottom = bottomPadding + 8.dp),
-                    overPlayer = playerOpen && song != null,
-                )
-                if (!(playerOpen && song != null)) com.prism.music.ui.components.ScheduleKeptBar(
-                    Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp).padding(bottom = bottomPadding + 8.dp),
-                )
+                // Its own scope reads the room the chrome leaves: read here, it recomposed this whole root on every frame
+                // of the mini player sliding in.
+                BottomBarsAboveChrome(pageBottom, overPlayer = playerOpen && song != null)
                 com.prism.music.ui.components.CustomizingPill(Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 8.dp))
                 customizing?.let { (target, key) ->
                     // Going to the whole settings page leaves the player (it would cover the page).
@@ -1385,6 +1401,27 @@ private fun NavRail(tabs: List<Tab>, route: String?, settings: AppSettings, onSe
             }
         }
     }
+}
+
+/**
+ * The bar that sits just above the chrome ("Undo" after a look change, a schedule's notice). It reads the room the
+ * chrome leaves in its own composition scope: read in [PrismRoot] itself, every frame of the mini player's slide in
+ * recomposed the whole app, its nav graph and the page under it.
+ */
+@Composable
+private fun androidx.compose.foundation.layout.BoxScope.BottomBarsAboveChrome(
+    pageBottom: androidx.compose.runtime.State<Dp>,
+    overPlayer: Boolean,
+) {
+    val bottom = pageBottom.value
+    com.prism.music.ui.components.LookUndoBar(
+        if (overPlayer) Modifier.align(Alignment.TopCenter).padding(horizontal = 16.dp).statusBarsPadding().padding(top = 56.dp)
+        else Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp).padding(bottom = bottom + 8.dp),
+        overPlayer = overPlayer,
+    )
+    if (!overPlayer) com.prism.music.ui.components.ScheduleKeptBar(
+        Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp).padding(bottom = bottom + 8.dp),
+    )
 }
 
 private fun isSelected(tab: Tab, route: String?): Boolean =

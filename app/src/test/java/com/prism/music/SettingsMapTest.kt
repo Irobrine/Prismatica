@@ -253,7 +253,7 @@ class SettingsMapTest {
         assertTrue("Call sites this test can't read (name the page by a constant's key): $unknown", unknown.isEmpty())
         // The app's route hands the key to Settings as it is (new keys and old).
         val main = File("src/main/java/com/prism/music/MainActivity.kt").readText()
-        assertTrue("settings/{section}?find={find}" in main && "SettingsScreen(bottomPadding, key = it.arguments?.getString(\"section\")" in main)
+        assertTrue("settings/{section}?find={find}" in main && "SettingsScreen(pageBottom.value, key = it.arguments?.getString(\"section\")" in main)
     }
 
     // ------------------------------------------------------------------ Search
