@@ -64,6 +64,7 @@ object FastRefresh {
     fun attach(w: Window, display: Display?) {
         window = WeakReference(w)
         holders.clear()
+        movingNow.value = false
         linger.removeCallbacks(letGo)
         bestMode = 0
         bestRate = 0f
@@ -80,11 +81,22 @@ object FastRefresh {
         }
     }
 
+    private val movingNow = kotlinx.coroutines.flow.MutableStateFlow(false)
+
+    /**
+     * Whether a move (the player's morph, a panel's ease, an entrance) is running right now: work that can wait, such as
+     * a long queue filling in, waits for it to end. Every change to the player's queue makes the media session send the
+     * whole queue to the system again and rebuild its notification, all binder calls on the main thread: during a
+     * queue close that ran to 700 calls (147 ms) and stretched the frames to 15–29 ms.
+     */
+    val moving: kotlinx.coroutines.flow.StateFlow<Boolean> = movingNow
+
     /** One animation starts asking for the fastest mode; [token] is the animation's own. */
     fun hold(token: Any) {
-        if (bestMode == 0) return
         if (!holders.add(token)) return
+        movingNow.value = true
         linger.removeCallbacks(letGo)
+        if (bestMode == 0) return
         if (holders.size > 1) return
         val w = window.get() ?: return
         w.attributes = w.attributes.apply {
@@ -117,6 +129,8 @@ object FastRefresh {
     fun drop(token: Any) {
         if (!holders.remove(token)) return
         if (holders.isNotEmpty()) return
+        movingNow.value = false
+        if (bestMode == 0) return
         // A moment's grace: a close usually follows its open within a second, and giving the mode up between the two
         // left the second move at 72 Hz for its whole length even though it asked for the fastest mode again.
         linger.removeCallbacks(letGo)

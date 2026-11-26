@@ -121,6 +121,8 @@ fun lyricShiftOf(songOffsetMs: Long, settingMs: Int, videoLagMs: Long): Long = s
 private const val FILL_BATCH = 400
 /** How many items are put into the player at a time once its first sound is out: small enough not to hold a frame. */
 private const val FILL_ADD = 50
+/** The longest a part of the queue filling in waits for a move on screen to end (see PlayerConnection.betweenMoves). */
+private const val MOVE_WAIT_MS = 3_000L
 /** With this little of the song left, the song after it stays where it is while a list fills in (#356). */
 private const val SOON_MS = 30_000L
 /**
@@ -678,6 +680,18 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         fill = job
     }
 
+    /**
+     * A part of a long list filling in waits for the player's move under way (opening, closing, a panel's rise or fall)
+     * to end: each part changes the player's queue, and the media session answers every change by sending the whole
+     * queue to the system again and rebuilding its notification, binder calls on the main thread. In the first seconds
+     * after a song started from nothing that was up to 700 calls in one queue close, frames at 15–29 ms. Never longer
+     * than [MOVE_WAIT_MS], so a move that never says it ended can't stall the queue. (A test's bare player doesn't wait.)
+     */
+    private suspend fun betweenMoves() {
+        if (service == null || !com.prism.music.ui.FastRefresh.moving.value) return
+        kotlinx.coroutines.withTimeoutOrNull(MOVE_WAIT_MS) { com.prism.music.ui.FastRefresh.moving.first { !it } }
+    }
+
     /** [songs] at the end of the queue (before autoplay's suggestions), and shuffled in among what's still to come. */
     private suspend fun addFilled(songs: List<Song>, still: () -> Boolean = { true }) {
         // The file on the phone each is played from, chosen here, off the main thread: the factory then doesn't match
@@ -693,6 +707,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         // whichever animation was running when it arrived (the mini player's entrance).
         var insertAt = at
         for (part in items.chunked(FILL_ADD)) {
+            betweenMoves()
             if (!still()) return
             p.addMediaItems(insertAt, part)
             insertAt += part.size
@@ -1113,10 +1128,12 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             val p = player ?: return@launch
             // A few at a time, a frame apart, so the timeline isn't rebuilt and the queue re-read all at once.
             head.chunked(FILL_ADD).asReversed().forEach {
+                betweenMoves()
                 if (token == playToken) runCatching { p.addMediaItems(0, it) }
                 if (service != null) kotlinx.coroutines.delay(16)
             }
             tail.chunked(FILL_ADD).forEach {
+                betweenMoves()
                 if (token == playToken) runCatching { p.addMediaItems(p.mediaItemCount, it) }
                 if (service != null) kotlinx.coroutines.delay(16)
             }
