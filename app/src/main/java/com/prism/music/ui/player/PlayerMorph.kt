@@ -443,12 +443,15 @@ internal class PanelShift(start: Float = 0f) {
     private var job: Job? = null
     /** Bumped whenever a running ease is replaced: its `finally` mustn't clear the newer one's state. */
     private var generation = 0
+    /** Where a running ease is heading: an ask for the same place leaves it alone instead of restarting it. */
+    private var heading: Float? = null
 
     fun begin() {
         generation++
         job?.cancel()
         job = null
         animating = false
+        heading = null
         dragging = true
     }
 
@@ -457,6 +460,7 @@ internal class PanelShift(start: Float = 0f) {
         job?.cancel()
         job = null
         animating = false
+        heading = null
         // A fraction (NaN included, which coerceIn passes through) never reaches the layer below.
         if (v.isFinite()) value = v.coerceIn(0f, 1f)
     }
@@ -466,6 +470,8 @@ internal class PanelShift(start: Float = 0f) {
     }
 
     fun animateTo(scope: CoroutineScope, to: Float, reduceMotion: Boolean, velocity: Float = 0f, then: (() -> Unit)? = null) {
+        // Already on its way there (a button started it, and the flag it set asks for the same place a frame later).
+        if (job?.isActive == true && heading == to) return
         job?.cancel()
         val mine = ++generation
         val from = value
@@ -476,6 +482,7 @@ internal class PanelShift(start: Float = 0f) {
             return
         }
         animating = true
+        heading = to
         // A marker in a frame trace (Perfetto) of exactly the frames this ease runs on, next to the display-mode hold
         // FastRefresh logs the same way: the two together say whether a morph's frames were asked for at 120 Hz.
         android.os.Trace.beginAsyncSection(com.prism.music.ui.MotionTrace.PANEL_MORPH, mine)
@@ -490,7 +497,10 @@ internal class PanelShift(start: Float = 0f) {
             } finally {
                 android.os.Trace.endAsyncSection(com.prism.music.ui.MotionTrace.PANEL_MORPH, mine)
                 com.prism.music.ui.FastRefresh.drop(rateToken)
-                if (generation == mine) animating = false
+                if (generation == mine) {
+                    animating = false
+                    heading = null
+                }
             }
         }
     }
