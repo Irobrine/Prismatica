@@ -405,6 +405,36 @@ class PlaybackGuardTest {
         assertEquals("Buds", memory.sink?.name)
     }
 
+    /** A headset's entry goes while the music plays (the pair left for its 2.4 GHz mode): playback stops on the phone. */
+    @Test fun theOutputLeavingDuringPlaybackPausesIt() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        assertTrue(r.player.playWhenReady)
+        r.player.headsetConnected = false
+        r.watcher.removed(bluetooth())
+        assertFalse("not out of the phone after the pair went", r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+    }
+
+    /** A pause from the Bluetooth device (a TWS switching modes): held like an output switch until a play. */
+    @Test fun aBluetoothPauseHoldsUntilAPlay() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.guard.onRemotePause()
+        assertFalse(r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        // The listener's play (or the pair's own) goes through: the pair is still the route.
+        r.player.set(true)
+        assertTrue(r.player.playWhenReady)
+        assertNull(r.guard.holding)
+    }
+
     @Test fun noisyWhilePausedChangesNothing() {
         val r = Rig()
         r.start()

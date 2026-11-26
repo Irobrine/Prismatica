@@ -3686,6 +3686,11 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             }.getOrNull()
             if (key?.action == android.view.KeyEvent.ACTION_DOWN) {
                 AudioDiagnostics.log("control", "media button ${android.view.KeyEvent.keyCodeToString(key.keyCode)} from ${controllerInfo.packageName}")
+                // A pause from the Bluetooth device: on a TWS that can be the switch to its 2.4 GHz receiver. The guard
+                // holds it (and keeps the persistent card away) until the pair or the listener plays on.
+                if (key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PAUSE && controllerInfo.packageName == "com.android.bluetooth" && guardAttached) {
+                    playbackGuard.onRemotePause()
+                }
             }
             // The notification swiped away (Media3 sends it as a media button with this extra): the listener is closing
             // Prism (Reddit, 1.7.7: it came back once, then sat in "background activity" until stopped by hand).

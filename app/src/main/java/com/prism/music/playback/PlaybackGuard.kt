@@ -247,6 +247,19 @@ internal class PlaybackGuard(
         if (back) releaseHold()
     }
 
+    /** A play while a pause of this kind is held: the listener's own play releases it (the route is an outside output). */
+    fun onRemotePause() {
+        if (released || !settingOn()) return
+        val lost = lastHeadset ?: return
+        // A pause from the pair itself can be it switching to its 2.4 GHz receiver, which keeps the Bluetooth link on
+        // some pairs but sends a pause first. Hold as if the output went; the pair's own play (or the listener's)
+        // releases it, and the persistent card stays away.
+        if (!lost.bluetooth || routedIsPhone()) return
+        wanted = true
+        holdNow(Hold.LOST)
+        android.util.Log.i("PrismControl", "play held: the Bluetooth device paused (possible switch to 2.4 GHz)")
+    }
+
     private fun onVolume() {
         if (released || !settingOn()) return
         if (!controls.silent) {
@@ -270,6 +283,14 @@ internal class PlaybackGuard(
             memory.rememberHeadset(it)
         }
         removed.lastOrNull { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput }?.let { lastOutsideRemoved = it }
+        // The output left while the music was playing: whatever resumed in the gap (a volume-up after "Pause when
+        // muted") must not keep playing out of the phone now. This also holds the persistent card back.
+        if (removed.any { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput } &&
+            settingOn() && controls.playWhenReady && routedIsPhone()
+        ) {
+            wanted = true
+            holdNow(Hold.LOST)
+        }
         android.util.Log.i(
             "PrismControl",
             "guard devices: +[${added.joinToString { describe(it) }}] -[${removed.joinToString { describe(it) }}]; " +
