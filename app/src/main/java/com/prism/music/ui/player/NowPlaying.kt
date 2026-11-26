@@ -554,9 +554,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     // The panels' morph (cover into the header, the deck down) follows the finger on a swipe (PanelShift), and eases to
     // match the flags when a button, Back or an action opened them. It is one number, as the player's own morph is.
     val panelShift = remember { PanelShift(if (opensOn != PlayerPage.COVER && askedOnOpen == null) 1f else 0f) }
-    // The panel morph is the one animation that read as stuttering on a 120 Hz panel at the system's 60: hold the
-    // display's fastest mode for exactly its frames.
-    com.prism.music.ui.FastWhile(panelShift.animating)
+    // The display's fastest mode is held by the panel's own ease, from its first frame (see PanelShift.animateTo).
     LaunchedEffect(lyricsOpen, queueOpen, statsOpen, menuBySwipe, showActions) {
         if (panelShift.dragging) return@LaunchedEffect
         val open = lyricsOpen || queueOpen || statsOpen || (menuBySwipe && showActions)

@@ -8,7 +8,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import java.lang.ref.WeakReference
 
@@ -26,22 +25,25 @@ internal object MotionTrace {
 
 /**
  * Asks the display for its fastest mode only while an animation runs, and lets the system choose again afterwards.
- * The system otherwise keeps a window at 60 Hz (and Android 15/16 steps it down while it isn't being touched), which
+ * The system otherwise keeps a window at 60 Hz (and Android 15/16 steps it down while it isn't touched), which
  * made the queue and lyrics panels move at 60 on a 120 Hz panel. Nothing is changed while Prism is still.
  *
- * The mode change is a hint: it takes effect with the animation's first frame and is undone on its last.
+ * The ask has to be in before the animation's first frame: asked a frame or two late, the display stayed where it was
+ * for the whole move (measured: rises that began with the hold already held ran a clean 120 Hz, while ones that asked
+ * 12–18 ms late stayed at 72 Hz throughout). So the animations hold it themselves, from their own start ([hold]), and
+ * each holds with its own token: an ease replaced mid-way lets go of its token without dropping the one that took over.
  */
 object FastRefresh {
     private var window = WeakReference<Window?>(null)
     private var bestMode = 0
     private var bestRate = 0f
-    /** The number of animations asking for it (they can overlap: a panel morph and the mini player's slide). */
-    private var holds = 0
+    /** The animations asking for it right now; overlapping ones (a panel over the mini player's slide) share the hold. */
+    private val holders = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Any, Boolean>())
 
     /** Called once per activity, with the display its window is on. */
     fun attach(w: Window, display: Display?) {
         window = WeakReference(w)
-        holds = 0
+        holders.clear()
         bestMode = 0
         bestRate = 0f
         val modes = display?.supportedModes?.toList().orEmpty()
@@ -57,24 +59,27 @@ object FastRefresh {
         }
     }
 
-    fun acquire() {
+    /** One animation starts asking for the fastest mode; [token] is the animation's own. */
+    fun hold(token: Any) {
         val w = window.get() ?: return
         if (bestMode == 0) return
-        if (holds++ > 0) return
+        if (!holders.add(token)) return
+        if (holders.size > 1) return
         w.attributes = w.attributes.apply {
             preferredDisplayModeId = bestMode
             preferredRefreshRate = bestRate
         }
-        // The mode hint alone lets the system step the display down under the move (measured 72 Hz stretches). Android
-        // 15's view-level rate API asks for the rate itself, as a source that keeps producing frames at it.
+        // Android 15's view-level rate API asks for the rate itself, as a source that keeps producing frames at it:
+        // the mode hint alone let the system step the display down under the move (measured at 72 Hz).
         if (android.os.Build.VERSION.SDK_INT >= 35) w.decorView.setRequestedFrameRate(bestRate)
         android.os.Trace.beginAsyncSection(MotionTrace.FAST_MODE, 1)
     }
 
-    fun release() {
+    /** The animation that held it with [token] is over (or was replaced): let go once nothing else is holding it. */
+    fun drop(token: Any) {
         val w = window.get() ?: return
-        if (holds == 0) return
-        if (--holds > 0) return
+        if (!holders.remove(token)) return
+        if (holders.isNotEmpty()) return
         android.os.Trace.endAsyncSection(MotionTrace.FAST_MODE, 1)
         // A rate that isn't a number is "no preference" to the view API.
         if (android.os.Build.VERSION.SDK_INT >= 35) w.decorView.setRequestedFrameRate(Float.NaN)
@@ -88,23 +93,10 @@ object FastRefresh {
 /** Holds the fastest mode while [active], letting it go when it turns false or this leaves the composition. */
 @Composable
 fun FastWhile(active: Boolean) {
-    val held = remember { mutableStateOf(false) }
-    LaunchedEffect(active) {
-        if (active && !held.value) {
-            held.value = true
-            FastRefresh.acquire()
-        } else if (!active && held.value) {
-            held.value = false
-            FastRefresh.release()
-        }
-    }
+    val token = remember { Any() }
+    LaunchedEffect(active) { if (active) FastRefresh.hold(token) else FastRefresh.drop(token) }
     DisposableEffect(Unit) {
-        onDispose {
-            if (held.value) {
-                held.value = false
-                FastRefresh.release()
-            }
-        }
+        onDispose { FastRefresh.drop(token) }
     }
 }
 

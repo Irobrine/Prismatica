@@ -695,9 +695,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
         // finished.
         val morphKeepsMini by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress < 1f } }
         val morphKeepsPlayer by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress > 0f } }
-        // The fastest display mode is held while the player grows out of (or back into) the mini player, as for the panels.
-        val morphRunning by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.isMorphing } }
-        com.prism.music.ui.FastWhile(morphRunning)
+        // The fastest display mode is held by PlayerMorph's own ease, from its first frame (as the panels do).
 
         // Decided once: the tab Prism opens on is the root every other tab sits on, and the welcome
         // screen is a real destination, so signing in from it navigates inside a graph that already exists.

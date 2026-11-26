@@ -277,17 +277,24 @@ object PlayerMorph {
             then?.invoke()
             return
         }
+        // The fastest mode from this frame on, not a frame later (see FastRefresh): asked late, it isn't taken at all.
+        val rateToken = Any()
+        com.prism.music.ui.FastRefresh.hold(rateToken)
         settleJob = scope.launch {
-            animate(
-                from, to,
-                animationSpec = MorphSettle.spec(
-                    from, to, velocity,
-                    ms = if (to > from) 340 else 300,
-                    reduceMs = 140,
-                    reduceMotion = reduceMotion,
-                ),
-            ) { v, _ -> progress = v.sanely(to) }
-            then?.invoke()
+            try {
+                animate(
+                    from, to,
+                    animationSpec = MorphSettle.spec(
+                        from, to, velocity,
+                        ms = if (to > from) 340 else 300,
+                        reduceMs = 140,
+                        reduceMotion = reduceMotion,
+                    ),
+                ) { v, _ -> progress = v.sanely(to) }
+                then?.invoke()
+            } finally {
+                com.prism.music.ui.FastRefresh.drop(rateToken)
+            }
         }
     }
 
@@ -472,12 +479,17 @@ internal class PanelShift(start: Float = 0f) {
         // A marker in a frame trace (Perfetto) of exactly the frames this ease runs on, next to the display-mode hold
         // FastRefresh logs the same way: the two together say whether a morph's frames were asked for at 120 Hz.
         android.os.Trace.beginAsyncSection(com.prism.music.ui.MotionTrace.PANEL_MORPH, mine)
+        // Asked for here, before the first frame, not from a composable watching the flag: a hold that arrives with
+        // the second frame leaves the display where it was for the whole ease.
+        val rateToken = Any()
+        com.prism.music.ui.FastRefresh.hold(rateToken)
         job = scope.launch {
             try {
                 animate(from, to, animationSpec = MorphSettle.spec(from, to, velocity, ms = 320, reduceMs = 150, reduceMotion)) { v, _ -> value = v.sanely(to) }
                 if (generation == mine) then?.invoke()
             } finally {
                 android.os.Trace.endAsyncSection(com.prism.music.ui.MotionTrace.PANEL_MORPH, mine)
+                com.prism.music.ui.FastRefresh.drop(rateToken)
                 if (generation == mine) animating = false
             }
         }
