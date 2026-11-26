@@ -469,11 +469,15 @@ internal class PanelShift(start: Float = 0f) {
             return
         }
         animating = true
+        // A marker in a frame trace (Perfetto) of exactly the frames this ease runs on, next to the display-mode hold
+        // FastRefresh logs the same way: the two together say whether a morph's frames were asked for at 120 Hz.
+        android.os.Trace.beginAsyncSection(com.prism.music.ui.MotionTrace.PANEL_MORPH, mine)
         job = scope.launch {
             try {
                 animate(from, to, animationSpec = MorphSettle.spec(from, to, velocity, ms = 320, reduceMs = 150, reduceMotion)) { v, _ -> value = v.sanely(to) }
                 if (generation == mine) then?.invoke()
             } finally {
+                android.os.Trace.endAsyncSection(com.prism.music.ui.MotionTrace.PANEL_MORPH, mine)
                 if (generation == mine) animating = false
             }
         }

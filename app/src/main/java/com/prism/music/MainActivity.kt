@@ -1253,9 +1253,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                                 // while the last frames were still moving.
                                 clip = t < 1f
                                 shape = RoundedCornerShape(((1f - t) * 28f).dp)
-                                // No fade on the player itself: fading a whole-screen layer draws the player into a
-                                // picture of its own every frame, which was most of the open/close stutter (#354). The
-                                // card simply grows over the page, its rounded edge showing it around it.
+                                // The page behind (and the tab bar under the mini player) gives way to the player's own
+                                // background all the way through, evenly: strictly linear, with no ramp or snap.
+                                alpha = t
                             } else {
                                 alpha = t
                             }
