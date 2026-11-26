@@ -91,12 +91,17 @@ class PlaybackGuardTest {
         fun removed(vararg sinks: OutputReturn.Sink) = devices?.invoke(emptyList(), sinks.toList())
     }
 
-    private class Rig(on: Boolean = true) {
+    private class FakeMemory(var sink: OutputReturn.Sink? = null) : PlaybackGuard.Memory {
+        override fun lastHeadset() = sink
+        override fun rememberHeadset(sink: OutputReturn.Sink?) { this.sink = sink }
+    }
+
+    private class Rig(on: Boolean = true, val memory: PlaybackGuard.Memory = PlaybackGuard.Memory.None) {
         var setting = on
         var muteHandlesVolume = false
         val watcher = FakeWatcher()
         val player = FakePlayer()
-        val guard = PlaybackGuard(watcher, { setting }, { muteHandlesVolume }, player, log = {})
+        val guard = PlaybackGuard(watcher, { setting }, { muteHandlesVolume }, player, log = {}, memory = memory)
         init { player.guard = guard }
         fun start() = guard.update()
     }
@@ -377,6 +382,27 @@ class PlaybackGuardTest {
         r.guard.check()
         assertTrue("the pair is the route again: it plays", r.player.playWhenReady)
         assertNull(r.guard.holding)
+    }
+
+    /** A service restart while the pair is on 2.4 GHz: the last output is remembered, so the phone stays quiet. */
+    @Test fun aRestartRemembersTheHeadsetThatWentToTheDongle() {
+        val memory = FakeMemory(bluetooth())
+        val r = Rig(memory = memory)
+        r.start()
+        r.player.set(true)
+        assertFalse("not the phone's speaker while the pair is away", r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        r.player.headsetConnected = true
+        r.watcher.added(bluetooth())
+        assertTrue("the pair back on Bluetooth: it plays", r.player.playWhenReady)
+    }
+
+    @Test fun theNextServiceRemembersTheHeadsetSeen() {
+        val memory = FakeMemory()
+        val r = Rig(memory = memory)
+        r.start()
+        r.watcher.added(bluetooth())
+        assertEquals("Buds", memory.sink?.name)
     }
 
     @Test fun noisyWhilePausedChangesNothing() {

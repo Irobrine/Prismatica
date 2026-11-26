@@ -163,6 +163,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 override fun pause() = player.pause()
                 override fun play() = player.play()
             },
+            memory = PlaybackGuard.AndroidMemory(this),
         )
     }
     /** "Pause when face down" (1.8.5): made only while the setting is on ([faceDownSetting]); null otherwise. */

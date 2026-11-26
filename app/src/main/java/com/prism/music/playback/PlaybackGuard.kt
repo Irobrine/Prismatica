@@ -32,6 +32,7 @@ internal class PlaybackGuard(
     private val muteHandlesVolume: () -> Boolean,
     private val controls: Controls,
     private val log: (String) -> Unit = { AudioDiagnostics.log("state", it) },
+    private val memory: Memory = Memory.None,
 ) : Player.Listener {
 
     /** Why playback is waiting, or null when it isn't. */
@@ -66,6 +67,22 @@ internal class PlaybackGuard(
         fun stop()
     }
 
+    /**
+     * The outside output music was last playing on, kept across a service restart (a swipe away, a phone reclaiming the
+     * service) so a pair that went to its 2.4 GHz dongle still holds playback on the phone. Expired by the real one.
+     */
+    interface Memory {
+        fun lastHeadset(): OutputReturn.Sink?
+        fun rememberHeadset(sink: OutputReturn.Sink?)
+
+        companion object {
+            val None: Memory = object : Memory {
+                override fun lastHeadset(): OutputReturn.Sink? = null
+                override fun rememberHeadset(sink: OutputReturn.Sink?) {}
+            }
+        }
+    }
+
     private var watching = false
     private var released = false
     private var hold: Hold? = null
@@ -93,10 +110,16 @@ internal class PlaybackGuard(
             watching = want
             android.util.Log.i("PrismControl", "play guard ${if (want) "on" else "off"}")
             if (want) {
-                // Music already playing when the switch goes on: silence at volume 0 pauses it below.
+                // What the last service was playing on: if it's gone (the pair switched to 2.4 GHz), a play waits.
+                if (lastHeadset == null) memory.lastHeadset()?.let {
+                    lastHeadset = it
+                    android.util.Log.i("PrismControl", "guard remembered the last headset: ${describe(it)}")
+                }
                 watcher.start(::onVolume, ::onDevices)
             } else {
                 watcher.stop()
+                lastHeadset = null
+                memory.rememberHeadset(null)
                 // Switched off: a play held for the headphones (or the volume) goes through, as it would without the guard.
                 if (hold != null) releaseHold(force = true)
                 return
@@ -242,7 +265,10 @@ internal class PlaybackGuard(
         val music = added.filter { com.prism.music.data.isMusicOutput(it.type) }
         // What the music was playing on, remembered even while nothing is held: once it's gone, a play waits for another
         // outside output instead of coming out of the phone's speaker (a pair switching to its 2.4 GHz dongle, say).
-        music.firstOrNull { !it.phoneOutput }?.let { lastHeadset = it }
+        music.firstOrNull { !it.phoneOutput }?.let {
+            lastHeadset = it
+            memory.rememberHeadset(it)
+        }
         removed.lastOrNull { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput }?.let { lastOutsideRemoved = it }
         android.util.Log.i(
             "PrismControl",
@@ -301,6 +327,45 @@ internal class PlaybackGuard(
             observer = null
             devices?.let { runCatching { audio?.unregisterAudioDeviceCallback(it) } }
             devices = null
+        }
+    }
+
+    /**
+     * The last outside output, kept in the service's preferences: the player is torn down (swiped away, Android reclaiming
+     * the service) while the earbuds are switching to their 2.4 GHz dongle, and the next service must still know they went.
+     * Forgotten after [MAX_AGE_MS], so a pair used hours ago doesn't keep the phone's speaker from playing today.
+     */
+    class AndroidMemory(context: Context) : Memory {
+        private val prefs = context.getSharedPreferences("playback_service", Context.MODE_PRIVATE)
+
+        override fun lastHeadset(): OutputReturn.Sink? {
+            val at = prefs.getLong(KEY_AT, 0L)
+            if (at <= 0L || System.currentTimeMillis() - at > MAX_AGE_MS) return null
+            val type = prefs.getInt(KEY_TYPE, -1)
+            if (type < 0) return null
+            return OutputReturn.Sink(type, prefs.getString(KEY_ADDRESS, "").orEmpty(), prefs.getString(KEY_NAME, "").orEmpty())
+        }
+
+        override fun rememberHeadset(sink: OutputReturn.Sink?) {
+            prefs.edit().apply {
+                if (sink == null) {
+                    remove(KEY_TYPE); remove(KEY_ADDRESS); remove(KEY_NAME); remove(KEY_AT)
+                } else {
+                    putInt(KEY_TYPE, sink.type)
+                    putString(KEY_ADDRESS, sink.address)
+                    putString(KEY_NAME, sink.name)
+                    putLong(KEY_AT, System.currentTimeMillis())
+                }
+            }.apply()
+        }
+
+        private companion object {
+            const val KEY_TYPE = "guard_output_type"
+            const val KEY_ADDRESS = "guard_output_address"
+            const val KEY_NAME = "guard_output_name"
+            const val KEY_AT = "guard_output_at"
+            /** The last outside output matters for the listening session, not for the next day. */
+            const val MAX_AGE_MS = 2 * 60 * 60 * 1000L
         }
     }
 }
