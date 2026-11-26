@@ -138,7 +138,7 @@ internal fun AudioDeviceInfo.toSink(): OutputReturn.Sink =
     OutputReturn.Sink(type, addressOrBlank(), productName?.toString().orEmpty())
 
 /** Whether two device entries are the same pair across a reconnect (and across A2DP and LE Audio). */
-private fun OutputReturn.Sink.sameAs(other: OutputReturn.Sink): Boolean {
+internal fun OutputReturn.Sink.sameAs(other: OutputReturn.Sink): Boolean {
     if (address.isNotBlank() && other.address.isNotBlank()) return address.equals(other.address, ignoreCase = true)
     if (name.isNotBlank() && other.name.isNotBlank()) return name.equals(other.name, ignoreCase = true)
     return type == other.type

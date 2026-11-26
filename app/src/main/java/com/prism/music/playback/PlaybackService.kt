@@ -149,12 +149,14 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     }.getOrDefault(false)
                 override val hasOutput: Boolean
                     get() = runCatching { com.prism.music.data.outputOptions(this@PlaybackService).isNotEmpty() }.getOrDefault(true)
-                override val headsetConnected: Boolean
+                override val routedOutput: OutputReturn.Sink?
                     get() = runCatching {
-                        com.prism.music.data.outputOptions(this@PlaybackService).any {
-                            com.prism.music.data.isMusicOutput(it.type) && !com.prism.music.data.isPhoneOutput(it.type)
-                        }
-                    }.getOrDefault(false)
+                        // The route carrying media, not merely a connected device: during a switch the new pair or dongle
+                        // can be listed while the sound still comes out of the phone.
+                        com.prism.music.data.currentOutput(this@PlaybackService, c.player.preferredOutput.value)?.toSink()
+                    }.getOrNull()
+                override val speakerPicked: Boolean
+                    get() = c.player.preferredOutput.value?.let { com.prism.music.data.isPhoneOutput(it.type) } == true
                 override val blocked: Boolean get() = c.cast.casting || carControllers.isNotEmpty() || inCall()
                 override val playWhenReady: Boolean get() = player.playWhenReady
                 override fun pause() = player.pause()
@@ -490,6 +492,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             var tick = 0
             while (isActive) {
                 delay(1000)
+                // A held play (volume, no output, headphones away) can end without a device event: a 2.4 GHz dongle
+                // already connected becomes the route, or the volume/app volume changes in Prism's own control.
+                if (guardAttached && playbackGuard.holding != null) playbackGuard.check()
                 // An episode's place is saved every few seconds while it plays.
                 if (++tick % 5 == 0 && player.isPlaying) saveEpisodePosition()
                 // The persistent card can be swiped away too, and some phones leave no trace of that (no delete intent
@@ -1157,6 +1162,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      */
     private fun showPersistentControls() {
         if (!c.settings.current.persistent.controls) return
+        // The song is only waiting to play on by itself (a held play, the Bluetooth output, the volume): it keeps its
+        // own card, and the card's silent track mustn't take the audio focus from the wait.
+        if (waitingToPlayOn()) return
         if (pausedForControls) return
         if (player.isPlaying) return
         pausedForControls = true

@@ -43,8 +43,10 @@ internal class PlaybackGuard(
         val silent: Boolean
         /** Any music output is connected right now (the phone's own speaker counts). */
         val hasOutput: Boolean
-        /** A headset, earbuds or another outside output is connected (not the phone's own speaker). */
-        val headsetConnected: Boolean
+        /** The route carrying media right now (null if unknown): the speaker during a switch, even if the new pair is listed. */
+        val routedOutput: OutputReturn.Sink?
+        /** The listener picked the phone's own speaker in Prism's device sheet: a lost headset mustn't hold it. */
+        val speakerPicked: Boolean
         /** Not now: casting, the car (Android Auto), or a call. */
         val blocked: Boolean
         val playWhenReady: Boolean
@@ -145,11 +147,13 @@ internal class PlaybackGuard(
     private fun blockNow(): Hold? = when {
         controls.silent -> Hold.VOLUME
         !controls.hasOutput -> Hold.OUTPUT
-        // The headphones the music was going to went, and only the phone's own speaker is left: a switch in progress
-        // (a TWS pair moving to its dongle), not an invitation to play out loud.
-        lastHeadset != null && !controls.headsetConnected -> Hold.LOST
+        // The headphones the music was going to went, and the route is the phone's own speaker: a switch in progress
+        // (a TWS pair moving to its dongle), not an invitation to play out loud. Unless the listener picked the speaker.
+        lastHeadset != null && !controls.speakerPicked && routedIsPhone() -> Hold.LOST
         else -> null
     }
+
+    private fun routedIsPhone(): Boolean = controls.routedOutput?.phoneOutput ?: true
 
     private fun holdNow(reason: Hold) {
         hold = reason
@@ -181,6 +185,24 @@ internal class PlaybackGuard(
         log("playing on: it can be heard again")
     }
 
+    /**
+     * Re-checks a held play: the route can change without a device being added (the earbuds' 2.4 GHz dongle is often
+     * already connected when they switch to it), so the service asks once a second while something is held.
+     */
+    fun check() {
+        if (released || !settingOn()) return
+        val held = hold ?: return
+        val lost = lastHeadset
+        val back = when (held) {
+            Hold.VOLUME -> !controls.silent
+            Hold.OUTPUT -> controls.hasOutput
+            // A 2.4 GHz dongle already connected becomes the route without a device add. The lost pair's own return comes
+            // as an add (onDevices); the route still naming it is the old one.
+            Hold.NOISY, Hold.LOST -> controls.routedOutput.let { it != null && !it.phoneOutput && (lost == null || !it.sameAs(lost)) }
+        }
+        if (back) releaseHold()
+    }
+
     private fun onVolume() {
         if (released || !settingOn()) return
         if (!controls.silent) {
@@ -205,12 +227,9 @@ internal class PlaybackGuard(
         val back = when (held) {
             Hold.VOLUME -> false
             Hold.OUTPUT -> music.isNotEmpty() || controls.hasOutput
-            // Headphones or Bluetooth again: the speaker alone is not where the music was. A 2.4 GHz dongle can already
-            // be connected when the pair switches to it, so the pair going while another outside output is there ends it.
-            Hold.NOISY -> music.any { !it.phoneOutput } ||
-                (removed.any { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput } && controls.headsetConnected)
-            // The outside output that went is back (the pair, its dongle, or another headset): it can be heard again.
-            Hold.LOST -> music.any { !it.phoneOutput } || controls.headsetConnected
+            // A headset, Bluetooth pair or the 2.4 GHz dongle (USB) connected: the sound has somewhere to go. A dongle
+            // already connected when the pair switched is seen by [check] once the route moves to it.
+            Hold.NOISY, Hold.LOST -> music.any { !it.phoneOutput }
         }
         if (back) releaseHold()
     }

@@ -25,7 +25,15 @@ class PlaybackGuardTest {
         lateinit var guard: PlaybackGuard
         override var silent = false
         override var hasOutput = true
-        override var headsetConnected = false
+        override var routedOutput: OutputReturn.Sink? = null
+        /** Test shorthand: an outside route (the same buds the helpers make) or the phone's speaker. */
+        var headsetConnected: Boolean
+            get() = routedOutput?.let { it.type != AudioDeviceInfo.TYPE_BUILTIN_SPEAKER && it.type != AudioDeviceInfo.TYPE_BUILTIN_EARPIECE } ?: false
+            set(value) {
+                routedOutput = if (value) OutputReturn.Sink(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, "AA:BB", "Buds")
+                else OutputReturn.Sink(AudioDeviceInfo.TYPE_BUILTIN_SPEAKER, "", "Phone")
+            }
+        override var speakerPicked = false
         override var blocked = false
         override var playWhenReady = false
         var pauses = 0
@@ -282,7 +290,7 @@ class PlaybackGuardTest {
         assertTrue(r.player.playWhenReady)
     }
 
-    /** A 2.4 GHz dongle already plugged in when the pair switches to it: the pair going is the moment it can be heard. */
+    /** A 2.4 GHz dongle already plugged in when the pair switches to it: the route moving to it ends the wait. */
     @Test fun aDongleAlreadyThereEndsTheWaitWhenThePairGoes() {
         val r = Rig()
         r.start()
@@ -291,9 +299,41 @@ class PlaybackGuardTest {
         r.player.set(true)
         r.player.noisy()
         assertEquals(PlaybackGuard.Hold.NOISY, r.guard.holding)
-        // The earbuds' A2DP entry goes; the USB dongle stays connected.
+        // The earbuds' A2DP entry goes; the USB dongle takes the route (no device add).
         r.watcher.removed(bluetooth())
+        r.player.routedOutput = OutputReturn.Sink(AudioDeviceInfo.TYPE_USB_DEVICE, "", "Dongle")
+        r.guard.check()
+        assertTrue(r.player.playWhenReady)
+        assertNull(r.guard.holding)
+    }
+
+    /** The route can come back without a device being added (a dongle already connected): the tick's check ends it. */
+    @Test fun checkEndsTheWaitWhenTheRouteComesBack() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
         r.player.headsetConnected = true
+        r.player.set(true)
+        r.player.noisy()
+        r.player.headsetConnected = false
+        assertEquals(PlaybackGuard.Hold.NOISY, r.guard.holding)
+        r.player.routedOutput = OutputReturn.Sink(AudioDeviceInfo.TYPE_USB_DEVICE, "", "Dongle")
+        r.guard.check()
+        assertTrue(r.player.playWhenReady)
+        assertNull(r.guard.holding)
+    }
+
+    /** Picking the phone's speaker in Prism's device sheet is a choice: a lost headset doesn't hold it. */
+    @Test fun aPickedSpeakerIsNotHeldByALostHeadset() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.player.noisy()
+        r.player.headsetConnected = false
+        r.player.speakerPicked = true
+        r.player.set(true)
         assertTrue(r.player.playWhenReady)
         assertNull(r.guard.holding)
     }
