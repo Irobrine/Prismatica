@@ -203,6 +203,7 @@ class PlayerMorphAppTest {
         openPlayer()
         theDeckFollowsTheFinger(right = false)
         compose.waitUntil(10_000) { lyricsShown() }
+        assertFalse("the queue's layer stays away from the lyrics", queueShown())
         // And back down.
         swipeTheDeck(right = false, up = false)
         compose.waitUntil(10_000) { !lyricsShown() }
@@ -228,6 +229,7 @@ class PlayerMorphAppTest {
         openPlayer()
         theDeckFollowsTheFinger(right = true)
         compose.waitUntil(10_000) { lyricsShown() }
+        assertFalse("both sides bring the lyrics alone", queueShown())
     }
 
     /** 1.9: the two sides can swap: the left brings the queue, the right the lyrics. */
@@ -244,6 +246,7 @@ class PlayerMorphAppTest {
         compose.waitUntil(10_000) { !queueShown() }
         theDeckFollowsTheFinger(right = true)
         compose.waitUntil(10_000) { lyricsShown() }
+        assertFalse("the swapped side brings the lyrics alone", queueShown())
     }
 
     /** 1.9: off, the deck's swipe opens nothing (the gesture stays away from the player, as it always did). */

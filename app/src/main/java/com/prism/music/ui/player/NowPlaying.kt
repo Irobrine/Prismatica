@@ -581,11 +581,18 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         if (menuBySwipe && !showActions) menuBySwipe = false
     }
     // The queue stays composed while it fades out on close (it used to be cut at once while the deck rose under it);
-    // removed once the morph has reached the cover. A player that is closing drops it at once: a panel still fading
-    // must not be drawn (and faded offscreen) under the player's own close.
+    // removed once the morph has reached the cover. The same number brings the lyrics too, so the layer is only held
+    // for the queue's own move: without that, opening the lyrics from a side set to them composed the queue over the
+    // words (see [queuePanelLast]).
+    var queueLast by remember { mutableStateOf(queueOpen) }
+    LaunchedEffect(lyricsOpen, queueOpen, statsOpen, menuBySwipe, showActions) {
+        queueLast = queuePanelLast(queueOpen, lyricsOpen, statsOpen, menuBySwipe && showActions, queueLast)
+    }
+    // A player that is closing drops it at once: a panel still fading must not be drawn (and faded offscreen) under the
+    // player's own close.
     val showQueuePanel by remember {
         derivedStateOf {
-            (queueOpen || panelShift.value > 0.001f) &&
+            queuePanelShown(queueOpen, queueLast, panelShift.value) &&
                 (!closing || com.prism.music.ui.player.PlayerMorph.progress >= 1f)
         }
     }

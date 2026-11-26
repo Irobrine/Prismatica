@@ -9,6 +9,8 @@ import com.prism.music.data.prefs.lyricsElsewhere
 import com.prism.music.ui.player.PlayerPage
 import com.prism.music.ui.player.page
 import com.prism.music.ui.player.panelRise
+import com.prism.music.ui.player.queuePanelLast
+import com.prism.music.ui.player.queuePanelShown
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -83,6 +85,36 @@ class PanelSwipesTest {
         // A hair past either end (a frame's rounding) is still the fraction the layer can draw.
         assertEquals(26f, panelRise(-0.001f).value, 0f)
         assertEquals(0f, panelRise(1.001f).value, 0f)
+    }
+
+    // ------------------------------------------------------------------ The queue's layer
+
+    /**
+     * The queue's layer is composed for the queue's move only: the lyrics rise on the very same number, and the queue's
+     * list is drawn apart from the words, so both stood on the screen at once when a side set to the lyrics was swiped
+     * up. Closing, the layer stays composed while its list fades away.
+     */
+    @Test fun theQueueLayerIsTheQueuesOwnMoveAndNeverTheLyrics() {
+        // Swiping up the lyrics from either side, in every mode that brings them.
+        for (mode in listOf(PanelSwipes.QUEUE_RIGHT, PanelSwipes.QUEUE_LEFT, PanelSwipes.LYRICS_BOTH)) {
+            for (right in listOf(true, false)) {
+                if (mode.page(right) != PlayerPage.LYRICS) continue
+                val last = queuePanelLast(queueOpen = false, lyricsOpen = true, statsOpen = false, menuUp = false, was = true)
+                assertFalse("$mode from the ${if (right) "right" else "left"}: the queue holds no layer", last)
+                assertFalse("$mode from the ${if (right) "right" else "left"}: both at once", queuePanelShown(false, last, 1f))
+            }
+        }
+        // Opening the queue (both sides) is the queue's move.
+        val queue = queuePanelLast(queueOpen = true, lyricsOpen = false, statsOpen = false, menuUp = false, was = false)
+        assertTrue("opening the queue", queue)
+        assertTrue("opening the queue", queuePanelShown(true, queue, 1f))
+        // Shut, the queue keeps its layer while the move fades it away, and lets go once it's gone.
+        val closing = queuePanelLast(queueOpen = false, lyricsOpen = false, statsOpen = false, menuUp = false, was = true)
+        assertTrue("closing, the queue fades away", queuePanelShown(false, closing, 0.8f))
+        assertFalse("gone at the cover", queuePanelShown(false, closing, 0f))
+        // The other layers take the move: the stats and the menu that a swipe down opens.
+        assertFalse(queuePanelLast(false, lyricsOpen = false, statsOpen = true, menuUp = false, was = true))
+        assertFalse(queuePanelLast(false, lyricsOpen = false, statsOpen = false, menuUp = true, was = true))
     }
 
     // ------------------------------------------------------------------ What's stored

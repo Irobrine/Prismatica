@@ -37,6 +37,23 @@ fun PanelSwipes.page(right: Boolean): PlayerPage? =
     if (this == PanelSwipes.OFF) null else if (queueFrom(right)) PlayerPage.QUEUE else PlayerPage.LYRICS
 
 /**
+ * Whether the panel's one layer is the queue's: the queue open, or — every panel shut — the one it was while the move
+ * fades it away (its list used to be cut away while the deck rose under it). A panel that isn't the queue (the lyrics,
+ * the stats, the menu) takes the layer: the same number brings them, and the queue's list is drawn apart from the words,
+ * so both stood on the screen at once when a side set to the lyrics was swiped up.
+ */
+fun queuePanelLast(queueOpen: Boolean, lyricsOpen: Boolean, statsOpen: Boolean, menuUp: Boolean, was: Boolean): Boolean =
+    when {
+        queueOpen -> true
+        lyricsOpen || statsOpen || menuUp -> false
+        else -> was
+    }
+
+/** Whether the queue's layer is composed: with the queue, and through the move that takes it away ([queuePanelLast]). */
+fun queuePanelShown(queueOpen: Boolean, queueLast: Boolean, panel: Float): Boolean =
+    queueOpen || (queueLast && panel > 0.001f)
+
+/**
  * A page asked for from outside the player, taken by it the next time it's on screen with that song: a recognized song
  * played opens on its lyrics (#215). [lyricsFor] is the song's id.
  */
