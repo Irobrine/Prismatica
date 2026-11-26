@@ -568,8 +568,14 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
         if (menuBySwipe && !showActions) menuBySwipe = false
     }
     // The queue stays composed while it fades out on close (it used to be cut at once while the deck rose under it);
-    // removed once the morph has reached the cover.
-    val showQueuePanel by remember { derivedStateOf { queueOpen || panelShift.value > 0.001f } }
+    // removed once the morph has reached the cover. A player that is closing drops it at once: a panel still fading
+    // must not be drawn (and faded offscreen) under the player's own close.
+    val showQueuePanel by remember {
+        derivedStateOf {
+            (queueOpen || panelShift.value > 0.001f) &&
+                (!closing || com.prism.music.ui.player.PlayerMorph.progress >= 1f)
+        }
+    }
     val p: () -> Float = { panelShift.value }
     // The thresholds that steer composable branches go through derived states: each flips only when the panel's number
     // crosses it, where a direct read invalidated this whole composition on every frame of the panel's morph.

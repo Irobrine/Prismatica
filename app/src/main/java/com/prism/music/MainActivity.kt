@@ -695,6 +695,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
         // finished.
         val morphKeepsMini by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress < 1f } }
         val morphKeepsPlayer by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.progress > 0f } }
+        // The fastest display mode is held while the player grows out of (or back into) the mini player, as for the panels.
+        val morphRunning by remember { derivedStateOf { com.prism.music.ui.player.PlayerMorph.isMorphing } }
+        com.prism.music.ui.FastWhile(morphRunning)
 
         // Decided once: the tab Prism opens on is the root every other tab sits on, and the welcome
         // screen is a real destination, so signing in from it navigates inside a graph that already exists.
@@ -1250,9 +1253,9 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                                 // while the last frames were still moving.
                                 clip = t < 1f
                                 shape = RoundedCornerShape(((1f - t) * 28f).dp)
-                                // The page behind (and the tab bar under the mini player) gives way to the player's own
-                                // background all the way through, evenly: strictly linear, with no ramp or snap.
-                                alpha = t
+                                // No fade on the player itself: fading a whole-screen layer draws the player into a
+                                // picture of its own every frame, which was most of the open/close stutter (#354). The
+                                // card simply grows over the page, its rounded edge showing it around it.
                             } else {
                                 alpha = t
                             }
