@@ -51,6 +51,15 @@ object FastRefresh {
     /** The UI thread's priority before a move raised it (null when no move is holding it). */
     private var uiPriority: Int? = null
 
+    /** Redraws the decor view every frame while a move holds, so its vote is in each of them (see [hold]). */
+    private val revote = object : android.view.Choreographer.FrameCallback {
+        override fun doFrame(frameTimeNanos: Long) {
+            if (holders.isEmpty()) return
+            window.get()?.decorView?.invalidate() ?: return
+            android.view.Choreographer.getInstance().postFrameCallback(this)
+        }
+    }
+
     /** Called once per activity, with the display its window is on. */
     fun attach(w: Window, display: Display?) {
         window = WeakReference(w)
@@ -84,7 +93,16 @@ object FastRefresh {
         }
         // Android 15's view-level rate API asks for the rate itself, as a source that keeps producing frames at it:
         // the mode hint alone let the system step the display down under the move (measured at 72 Hz).
-        if (android.os.Build.VERSION.SDK_INT >= 35) w.decorView.setRequestedFrameRate(bestRate)
+        if (android.os.Build.VERSION.SDK_INT >= 35) {
+            w.decorView.setRequestedFrameRate(bestRate)
+            // A view's vote only counts on the frames it redraws, and in a move only Compose's own view does: its
+            // default vote then asked for 60 on 36% of a move's frames (measured), and the phone's frame-rate manager
+            // followed it, slowing Prism's vsync to 60, 72 or 90 Hz for stretches of the move with the display at 120.
+            // Redrawing the decor view each frame (its children's drawings are reused, not recorded again) keeps its
+            // vote in every frame for as long as a move holds.
+            android.view.Choreographer.getInstance().removeFrameCallback(revote)
+            android.view.Choreographer.getInstance().postFrameCallback(revote)
+        }
         // The dips inside a move are the UI thread being woken up to 12 ms after the vsync (measured: the wake phase
         // alone, against 2-3 ms of recording and 2 ms of GPU), which at 11.1 ms a frame means the frame misses the
         // next vsync. The screen's own priority for the frames of the move asks the scheduler to run it first.
