@@ -430,17 +430,26 @@ internal class PanelShift(start: Float = 0f) {
         private set
     var dragging by mutableStateOf(false)
         private set
+    /** An ease to a place is running (not a finger's follow): the fastest display mode is held for it. */
+    var animating by mutableStateOf(false)
+        private set
     private var job: Job? = null
+    /** Bumped whenever a running ease is replaced: its `finally` mustn't clear the newer one's state. */
+    private var generation = 0
 
     fun begin() {
+        generation++
         job?.cancel()
         job = null
+        animating = false
         dragging = true
     }
 
     fun follow(v: Float) {
+        generation++
         job?.cancel()
         job = null
+        animating = false
         // A fraction (NaN included, which coerceIn passes through) never reaches the layer below.
         if (v.isFinite()) value = v.coerceIn(0f, 1f)
     }
@@ -451,15 +460,22 @@ internal class PanelShift(start: Float = 0f) {
 
     fun animateTo(scope: CoroutineScope, to: Float, reduceMotion: Boolean, velocity: Float = 0f, then: (() -> Unit)? = null) {
         job?.cancel()
+        val mine = ++generation
         val from = value
         if (from == to) {
             job = null
+            animating = false
             then?.invoke()
             return
         }
+        animating = true
         job = scope.launch {
-            animate(from, to, animationSpec = MorphSettle.spec(from, to, velocity, ms = 320, reduceMs = 150, reduceMotion)) { v, _ -> value = v.sanely(to) }
-            then?.invoke()
+            try {
+                animate(from, to, animationSpec = MorphSettle.spec(from, to, velocity, ms = 320, reduceMs = 150, reduceMotion)) { v, _ -> value = v.sanely(to) }
+                if (generation == mine) then?.invoke()
+            } finally {
+                if (generation == mine) animating = false
+            }
         }
     }
 }

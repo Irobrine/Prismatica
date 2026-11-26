@@ -196,6 +196,10 @@ open class MainActivity : ComponentActivity() {
         }
         val c = container
         c.player.connect()
+        com.prism.music.ui.FastRefresh.attach(
+            window,
+            if (Build.VERSION.SDK_INT >= 30) display else @Suppress("DEPRECATION") windowManager.defaultDisplay,
+        )
         // The downloads start in the background (their index and cache come off the disk) while the first frame draws;
         // screens read c.downloadState meanwhile, so they never wait for them (1.7.9.3: Home's first frame waited 3.4 s
         // on a slow phone). Media3's download manager still answers on the main thread.
@@ -1110,6 +1114,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                             TogetherPill(together, Modifier.padding(bottom = 8.dp)) { navigator.go(Routes.TOGETHER) }
                         }
                         AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini) && !selection.selecting, enter = miniEnterNow, exit = miniExit) {
+                            com.prism.music.ui.FastWhileRunning(transition)
                             MiniPlayer(
                                 Modifier.widthIn(max = 720.dp).customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER)
                                     .playerMorphMini(),
@@ -1129,6 +1134,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                     modifier = Modifier.align(Alignment.BottomCenter),
                     enter = chromeEnter, exit = chromeExit,
                 ) {
+                    com.prism.music.ui.FastWhileRunning(transition)
                     val docked = settings.navStyle == NavBarStyle.DOCKED
                     val keyboard = WindowInsets.ime
                     Column(
@@ -1142,6 +1148,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         // "Joined to the tab bar" (1.7.6): one piece of glass, the mini player on top of the tabs.
                         val joined = settings.miniPlayerJoined && settings.navStyle == NavBarStyle.FLOATING
                         if (!joined) AnimatedVisibility(song != null && (!playerOpen || morphKeepsMini), enter = miniEnterNow, exit = miniExit) {
+                            com.prism.music.ui.FastWhileRunning(transition)
                             // Spectrum's bar (the Card style over the docked tab bar) sits right on the tab bar, edge to edge.
                             val flush = docked && settings.miniPlayerStyle == MiniPlayerStyle.CARD && !(settings.liquidGlass || settings.frostedGlass) &&
                                 !com.prism.music.ui.theme.LocalUi.current.material
@@ -1161,6 +1168,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                                 exit = shrinkVertically(tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = chromeEase), shrinkTowards = Alignment.Bottom) +
                                     fadeOut(tween(com.prism.music.ui.theme.PrismTokens.Motion.QUICK)),
                             ) {
+                                com.prism.music.ui.FastWhileRunning(transition)
                                 MiniPlayer(Modifier.customizable(com.prism.music.ui.components.CustomizeTarget.MINI_PLAYER).playerMorphMini(), bare = true) {
                                     PlayerMorph.request(null)
                                     openPlayer()
