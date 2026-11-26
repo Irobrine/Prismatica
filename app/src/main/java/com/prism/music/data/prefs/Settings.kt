@@ -1152,7 +1152,11 @@ enum class SessionButton(val label: String) {
  */
 enum class PersistentAction(val label: String, val key: String) {
     QUICK_PICKS(tr(R.string.persistent_quick_picks), "quick_picks"),
-    LIBRARY_SONGS(tr(R.string.persistent_library_songs), "library_songs"),
+    /**
+     * The whole library, shuffled: liked songs, the playlists picked under "From", and the listener's own local files.
+     * Its stored key stays `library_songs` from when it meant Library → Songs only.
+     */
+    LIBRARY_SONGS(tr(R.string.shuffle_the_library), "library_songs"),
     LAST_PLAYED(tr(R.string.persistent_last_played), "last_played"),
     DAILY_1(tr(R.string.persistent_daily_mix, 1), "daily_1"),
     DAILY_2(tr(R.string.persistent_daily_mix, 2), "daily_2"),

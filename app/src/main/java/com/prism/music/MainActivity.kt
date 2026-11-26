@@ -113,6 +113,7 @@ import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.prism.music.data.model.Song
+import com.prism.music.data.librarySongs
 import com.prism.music.data.model.hiRes
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.MiniPlayerStyle
@@ -515,14 +516,19 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
     val artColor = rememberArtworkColor(song, settings)
     val context = LocalContext.current
     // Settings → Playback → "Start playing shuffled": the one auto-start. Only a fresh launch, only when nothing was
-    // restored (the service's attach queues our commands after its own restoreQueue), and only once the library's liked
-    // songs are in from the database rather than the empty seed.
+    // restored (the service's attach queues our commands after its own restoreQueue), and only once the library is in
+    // from the database rather than the empty seed. The whole library means local files too, so the first scan gets a
+    // moment if the listener has granted access.
     LaunchedEffect(launchFresh) {
         if (!launchFresh || !settings.onboarded || !settings.behavior.startShuffled) return@LaunchedEffect
         kotlinx.coroutines.withTimeoutOrNull(5_000) { c.player.ready.first { it } } ?: return@LaunchedEffect
         if (c.player.currentSong.value != null) return@LaunchedEffect
-        val songs = kotlinx.coroutines.withTimeoutOrNull(2_500) { c.library.likedShown.first { it.isNotEmpty() } }
-            ?: c.library.likedShown.value
+        kotlinx.coroutines.withTimeoutOrNull(2_500) { c.library.likedShown.first { it.isNotEmpty() } }
+        if (c.localMusic.hasPermission() && !c.localMusic.scanned.value) {
+            kotlinx.coroutines.withTimeoutOrNull(1_500) { c.localMusic.scanned.first { it } }
+        }
+        val from = com.prism.music.data.SongsFrom.decode(c.library.sortOf(com.prism.music.data.SongsFrom.KEY))
+        val songs = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { c.librarySongs(from) }
         if (songs.isEmpty()) return@LaunchedEffect
         c.player.playQueue(
             songs, 0, com.prism.music.playback.QueueSource(com.prism.music.playback.QueueKind.LIBRARY, tr(R.string.library)),
