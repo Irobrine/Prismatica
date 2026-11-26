@@ -391,6 +391,11 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     val pastStart by remember { derivedStateOf { position.value > 3000 } }
     val volume = rememberPlayerVolume()
     val scope = rememberCoroutineScope()
+    // The panels' morph (cover into the header, the deck down) follows the finger on a swipe (PanelShift), and eases to
+    // match the flags when a button, Back or an action opened them. It is one number, as the player's own morph is.
+    // Declared up here with the buttons, so a tap starts its panel's ease in the same frame instead of through the
+    // effect below a frame later.
+    val panelShift = remember { PanelShift(if (opensOn != PlayerPage.COVER && askedOnOpen == null) 1f else 0f) }
     // A wide window (tablet, foldable, phone on its side) shows the cover and controls beside lyrics / the queue.
     val window = com.prism.music.ui.theme.LocalWindowLayout.current
     val wide = window.twoPanePlayer || window.shortLandscape || window.tabletop
@@ -439,8 +444,14 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     // Small (#230): they stay too, in less room.
     val controlsStay = panelPlayer == com.prism.music.data.prefs.PanelPlayer.ALWAYS || panelPlayer == com.prism.music.data.prefs.PanelPlayer.SMALL
     val controlsAtOpen = panelPlayer != com.prism.music.data.prefs.PanelPlayer.HIDDEN
-    val openLyrics = { lyricsControlsOpen = controlsAtOpen; lyricsOpen = true; queueOpen = false; statsOpen = false }
-    val closeLyrics = { lyricsControlsOpen = false; lyricsOpen = false }
+    val openLyrics = {
+        lyricsControlsOpen = controlsAtOpen; lyricsOpen = true; queueOpen = false; statsOpen = false
+        panelShift.animateTo(scope, 1f, settings.reduceMotion)
+    }
+    val closeLyrics = {
+        lyricsControlsOpen = false; lyricsOpen = false
+        panelShift.animateTo(scope, 0f, settings.reduceMotion)
+    }
     // #215: a recognized song played opens on its lyrics (taken once, by that song).
     LaunchedEffect(PlayerAsks.lyricsFor, song.id) {
         if (PlayerAsks.lyricsFor == song.id) { PlayerAsks.lyricsFor = null; openLyrics() }
@@ -448,12 +459,14 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     val toggleQueue = {
         val opening = !queueOpen
         queueOpen = opening
-        if (opening) { closeLyrics(); statsOpen = false; queueControlsOpen = controlsAtOpen }
+        if (opening) { lyricsControlsOpen = false; lyricsOpen = false; statsOpen = false; queueControlsOpen = controlsAtOpen }
+        panelShift.animateTo(scope, if (opening) 1f else 0f, settings.reduceMotion)
     }
     val toggleStats = {
         val opening = !statsOpen
         statsOpen = opening
-        if (opening) { closeLyrics(); queueOpen = false }
+        if (opening) { lyricsControlsOpen = false; lyricsOpen = false; queueOpen = false }
+        panelShift.animateTo(scope, if (opening) 1f else 0f, settings.reduceMotion)
     }
     // Sing's controls up over the lyrics: the deck stays (it holds them), and comes back when they're opened.
     val singing by c.sing.on.collectAsState()
@@ -551,16 +564,13 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     }
 
     // ---------------------------------------------------------------- Motion
-    // The panels' morph (cover into the header, the deck down) follows the finger on a swipe (PanelShift), and eases to
-    // match the flags when a button, Back or an action opened them. It is one number, as the player's own morph is.
-    val panelShift = remember { PanelShift(if (opensOn != PlayerPage.COVER && askedOnOpen == null) 1f else 0f) }
     // The display's fastest mode is held by the panel's own ease, from its first frame (see PanelShift.animateTo).
+    // This keeps the number true to the flags for the paths that don't start it themselves (Back, a swipe, the menu,
+    // a page asked for as the player opened): buttons start their own ease at the tap. An ease already heading where
+    // this asks is left alone (see PanelShift.animateTo), so the two don't fight over it.
     LaunchedEffect(lyricsOpen, queueOpen, statsOpen, menuBySwipe, showActions) {
         if (panelShift.dragging) return@LaunchedEffect
         val open = lyricsOpen || queueOpen || statsOpen || (menuBySwipe && showActions)
-        // The panel's content is composed on this frame (a big list's queue, the lyrics): let that frame pass, invisible,
-        // before the rise and fade start, so its first animation frame isn't the one carrying the composition.
-        if (open && panelShift.value < 0.01f) androidx.compose.runtime.withFrameNanos { }
         panelShift.animateTo(scope, if (open) 1f else 0f, settings.reduceMotion)
         // The menu has gone: the player opens back up, and the swipe isn't holding it collapsed any more.
         if (menuBySwipe && !showActions) menuBySwipe = false
@@ -588,11 +598,9 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     // Settings → Player → What's on the player (1.8.0): a hidden part leaves the player; the cover, title and buttons come
     // back in the header over the lyrics and the queue, where they say which song it is.
     val inHeader = { part: PlayerPart -> settings.shows(part) || collapsePastHalf }
-    // The panel rides the whole move and follows a finger pulling it away: its rise and fade begin once the cover has
-    // started folding (a fifth of the way) and keep pace with it to the end, instead of arriving only in the morph's
-    // last half — which read as the move stalling half-way and then crawling. Its number is read where it is used,
-    // inside the three layers below.
-    val panelFade: () -> Float = { ((panelShift.value - 0.2f) / 0.8f).coerceIn(0f, 1f) }
+    // The panel itself comes in with the morph's last part, and follows a finger pulling it away. Its number is read
+    // where it is used, inside the three layers below.
+    val panelFade: () -> Float = { ((panelShift.value - 0.55f) / 0.45f).coerceIn(0f, 1f) }
     // The listener's own Reduce motion, not Performance mode's (Reddit, 1.7.9.3: Performance mode turns Reduce motion on,
     // which took the shrink away too; it's one scale of one layer, nothing to save).
     val ownReduceMotion = c.settings.stored.collectAsState().value.reduceMotion
@@ -1540,13 +1548,21 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             lyricsState, isPlaying && !covered, lyricsControlsOpen,
                             onRevealControls = { lyricsControlsOpen = true },
                             onHideControls = { if (!controlsStay) lyricsControlsOpen = false },
-                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT).panelMorph(panelFade),
+                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT).graphicsLayer {
+                                val fade = panelFade()
+                                alpha = fade
+                                translationY = panelRise(fade).toPx()
+                            },
                             onChangeSource = { showProviders = true },
                         )
                     }
                     if (statsOpen) {
                         NerdStatsPanel(
-                            Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).panelMorph(panelFade),
+                            Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
+                                val fade = panelFade()
+                                alpha = fade
+                                translationY = panelRise(fade).toPx()
+                            },
                         )
                     }
                     if (showQueuePanel) {
@@ -1555,7 +1571,11 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             onHidePlayer = { if (!controlsStay) queueControlsOpen = false },
                             onClose = { haptics.gestureEnd(); toggleQueue() },
                             pull = queuePull,
-                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).panelMorph(panelFade),
+                            modifier = Modifier.fillMaxSize().padding(top = HEADER_HEIGHT + 8.dp).graphicsLayer {
+                                val fade = panelFade()
+                                alpha = fade
+                                translationY = panelRise(fade).toPx()
+                            },
                         )
                     }
                 }
@@ -1823,21 +1843,6 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
 @Composable
 private fun PanelDeck(panelShift: PanelShift, content: @Composable (Float) -> Unit) {
     content(panelShift.value)
-}
-
-/**
- * A panel's rise and fade, read from the panel's own number in the layer (never in composition).
- *
- * The fade modulates each draw's alpha ([CompositingStrategy.ModulateAlpha]) instead of compositing the whole panel
- * through an offscreen buffer: a full-screen panel faded the usual way was drawn into a texture and composited again
- * on every frame of its morph, which measured as most of a 120 Hz frame's budget (the panel's frames ran at 7.7 ms
- * against 8.33 ms, and a third of them missed it). On a panel over a backdrop, one flat fade, the two look alike.
- */
-private fun Modifier.panelMorph(fade: () -> Float): Modifier = graphicsLayer {
-    val f = fade()
-    alpha = f
-    translationY = panelRise(f).toPx()
-    compositingStrategy = CompositingStrategy.ModulateAlpha
 }
 
 /** The "Theme" player background. Material You: a tonal surface (light or dark, from the scheme). Prism: a deep wash of the accent color, lighter at the top. */
