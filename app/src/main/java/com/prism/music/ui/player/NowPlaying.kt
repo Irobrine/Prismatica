@@ -1670,6 +1670,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             .graphicsLayer { alpha = PlayerMorph.deckReveal }.inked(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
+                        com.prism.music.ui.player.PanelDeck(panelShift) { panel ->
                         // The deck takes its shape over a panel from the panel's own number (PanelShift), not from an
                         // animation of its own: the parts a panel makes room for fold away as it comes and come back as
                         // it goes, so a drag takes the deck apart under the finger, a pull that turns back puts it
@@ -1677,9 +1678,9 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                         // the deck's height eased after them: a jump up and then a slide down on opening, the same the
                         // other way round on closing.)
                         val panelsUp = lyricsOpen || queueOpen || statsOpen
-                        // The deck genuinely needs the number in composition: it decides which parts are on screen and
-                        // how tall each one is at that instant, so there is no single layer property to defer this to.
-                        val panel = panelShift.value
+                        // The number is read inside this scope, so the deck alone follows a panel's morph: read in the
+                        // player's own composition it recomposed the whole player (the queue panel included) every
+                        // frame of the animation, which was most of its frame time.
                         // Small (#230): over the lyrics or the queue, only the progress, a smaller transport and the
                         // buttons (they switch between lyrics and queue), so the list keeps most of the screen.
                         val smallTarget = (lyricsOpen || queueOpen) && panelPlayer == com.prism.music.data.prefs.PanelPlayer.SMALL
@@ -1797,6 +1798,7 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
                             if (!roomyCover) Spacer(Modifier.height(lerp(14.dp, 0.dp, tight)))
                         }
                         Spacer(Modifier.height(deckGap))
+                        }
                     }
                 }
                 // The controls away over the lyrics or the queue: a swipe up from the bottom edge brings them back (a tap
@@ -1818,6 +1820,15 @@ fun NowPlayingScreen(onCollapse: () -> Unit) {
     }
 
     playerSheets()
+}
+
+/**
+ * The deck's content, composed in a scope of its own so that a panel's morph (reading [PanelShift.value]) recomposes
+ * the deck only, not the whole player — the queue panel included — on every frame of its rise and fade.
+ */
+@Composable
+private fun PanelDeck(panelShift: PanelShift, content: @Composable (Float) -> Unit) {
+    content(panelShift.value)
 }
 
 /** The "Theme" player background. Material You: a tonal surface (light or dark, from the scheme). Prism: a deep wash of the accent color, lighter at the top. */
