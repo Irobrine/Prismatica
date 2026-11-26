@@ -119,6 +119,8 @@ fun lyricShiftOf(songOffsetMs: Long, settingMs: Int, videoLagMs: Long): Long = s
 
 /** A long list's later pages join the queue this many songs at a time (#356). */
 private const val FILL_BATCH = 400
+/** How many items are put into the player at a time once its first sound is out: small enough not to hold a frame. */
+private const val FILL_ADD = 50
 /** With this little of the song left, the song after it stays where it is while a list fills in (#356). */
 private const val SOON_MS = 30_000L
 /**
@@ -687,7 +689,15 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         val p = player ?: return
         val auto = c.queue.autoplayStart.value
         val at = if (auto in 0..p.mediaItemCount) auto else p.mediaItemCount
-        p.addMediaItems(at, items)
+        // A little at a time, a frame apart: the whole of a long list going in at once held the main thread up for
+        // whichever animation was running when it arrived (the mini player's entrance).
+        var insertAt = at
+        for (part in items.chunked(FILL_ADD)) {
+            if (!still()) return
+            p.addMediaItems(insertAt, part)
+            insertAt += part.size
+            if (service != null) kotlinx.coroutines.delay(16)
+        }
         if (auto >= 0) c.queue.autoplayStart.value = auto + items.size
         if (!p.shuffleModeEnabled) return
         val order = p.shuffleOrder as? HistoryShuffleOrder ?: return
@@ -717,6 +727,12 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         var job: kotlinx.coroutines.Job? = null
         job = scope.launch {
             try {
+                // The first song's start and the mini player's slide come first; the rest of a long list joins after.
+                // (A test's bare player has no chrome to wait for and no service clock: it fills at once.)
+                if (service != null) {
+                    kotlinx.coroutines.withTimeoutOrNull(2_000) { isPlaying.first { it } }
+                    kotlinx.coroutines.delay(700)
+                }
                 // Built beside the first song, never before it: the call that started it has already prepared and
                 // played, and this runs on the main thread only to put each batch in.
                 for (chunk in rest.chunked(FILL_BATCH)) {
@@ -1079,7 +1095,12 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         val tailFrom = (start + started).coerceIn(headEnd, all.size)
         scope.launch {
             // The first sound first: eight hundred songs made into items beside it was time it spent waiting.
-            kotlinx.coroutines.withTimeoutOrNull(2_000) { isPlaying.first { it } }
+            // And the mini player's slide (and anything else entering with the first song) is over before the rest of
+            // the list starts joining in. (A test's bare player has no chrome to wait for and no service clock.)
+            if (service != null) {
+                kotlinx.coroutines.withTimeoutOrNull(2_000) { isPlaying.first { it } }
+                kotlinx.coroutines.delay(700)
+            }
             // Files on the phone (and no file at all) settled here, off the main thread: the factory needn't match every
             // song of the rest of the queue as it adds it.
             val head = if (headEnd > 0) withContext(Dispatchers.Default) {
@@ -1090,15 +1111,14 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             } else emptyList()
             if (token != playToken) return@launch
             val p = player ?: return@launch
-            // A few at a time, so the timeline isn't rebuilt and the queue re-read all at once. Between the batches the
-            // main thread draws a frame, so the rest of a long queue joining doesn't hold the mini player's slide.
-            head.chunked(FILL_BATCH).asReversed().forEach {
+            // A few at a time, a frame apart, so the timeline isn't rebuilt and the queue re-read all at once.
+            head.chunked(FILL_ADD).asReversed().forEach {
                 if (token == playToken) runCatching { p.addMediaItems(0, it) }
-                kotlinx.coroutines.yield()
+                if (service != null) kotlinx.coroutines.delay(16)
             }
-            tail.chunked(FILL_BATCH).forEach {
+            tail.chunked(FILL_ADD).forEach {
                 if (token == playToken) runCatching { p.addMediaItems(p.mediaItemCount, it) }
-                kotlinx.coroutines.yield()
+                if (service != null) kotlinx.coroutines.delay(16)
             }
         }
     }
@@ -2113,6 +2133,9 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** The queue's songs, being read off the main thread (null: none to read). */
     private var queueJob: Job? = null
     private var queueVersion = 0
+    /** The play order (next / played), built off the main thread too: a long queue's walk was O(queue) each refresh. */
+    private var orderJob: Job? = null
+    private var orderVersion = 0
 
     private fun refresh(rebuildQueue: Boolean = false) {
         val p = player ?: return
@@ -2150,19 +2173,41 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 }
             }
         }
-        _upNext.value = buildList {
-            val tl = p.currentTimeline
-            if (tl.isEmpty || p.currentMediaItemIndex !in 0 until tl.windowCount) return@buildList
-            var i = tl.getNextWindowIndex(p.currentMediaItemIndex, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled)
-            while (i != C.INDEX_UNSET && size < tl.windowCount) { add(i); i = tl.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled) }
+        // The play order, walked off the main thread: for a queue of thousands each player event rebuilt both lists
+        // here, and the rest of a long queue joining comes with a player event per batch.
+        val tl = p.currentTimeline
+        val cur = p.currentMediaItemIndex
+        val shuffle = p.shuffleModeEnabled
+        val order = ++orderVersion
+        orderJob?.cancel()
+        if (tl.isEmpty || cur !in 0 until tl.windowCount) {
+            _upNext.value = emptyList()
+            _played.value = emptyList()
+        } else {
+            orderJob = scope.launch {
+                val (next, played) = withContext(Dispatchers.Default) {
+                    val windows = tl.windowCount
+                    val up = ArrayList<Int>(windows)
+                    var i = tl.getNextWindowIndex(cur, Player.REPEAT_MODE_OFF, shuffle)
+                    while (i != C.INDEX_UNSET && up.size < windows) {
+                        up.add(i)
+                        i = tl.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, shuffle)
+                    }
+                    // Before the current song in play order, oldest first (#68: the queue only went forward).
+                    val before = ArrayList<Int>(windows)
+                    var j = tl.getPreviousWindowIndex(cur, Player.REPEAT_MODE_OFF, shuffle)
+                    while (j != C.INDEX_UNSET && before.size < windows) {
+                        before.add(j)
+                        j = tl.getPreviousWindowIndex(j, Player.REPEAT_MODE_OFF, shuffle)
+                    }
+                    up to before.asReversed()
+                }
+                if (order == orderVersion) {
+                    _upNext.value = next
+                    _played.value = played
+                }
+            }
         }
-        // Before the current song in play order, oldest first (#68: the queue only went forward).
-        _played.value = buildList {
-            val tl = p.currentTimeline
-            if (tl.isEmpty || p.currentMediaItemIndex !in 0 until tl.windowCount) return@buildList
-            var i = tl.getPreviousWindowIndex(p.currentMediaItemIndex, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled)
-            while (i != C.INDEX_UNSET && size < tl.windowCount) { add(i); i = tl.getPreviousWindowIndex(i, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled) }
-        }.asReversed()
         if (song != null && (changed || song.isLive != wasLive)) checkVideo(song)
         updateLyricTiming()
         // A seek, a pause or a queue change moves where the current song ends: the running timer works its stop out again.
