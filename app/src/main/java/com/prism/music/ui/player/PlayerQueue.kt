@@ -92,12 +92,6 @@ internal fun InlineQueue(
     val played = playedIdx.takeLast(MAX_PLAYED).mapNotNull { queue.getOrNull(it) }
     val nowItem = if (played.isEmpty()) 0 else played.size + 1
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = nowItem)
-    LaunchedEffect(index) {
-        // A scroll the listener is making wins over the queue following the music: it would yank the list out from
-        // under a thumb. The next song that starts with the list at rest brings it back.
-        if (listState.isScrollInProgress) return@LaunchedEffect
-        if (listState.firstVisibleItemIndex != nowItem) listState.animateScrollToItem(nowItem)
-    }
     // Scrolled to the very top, a pull down has nothing above it to show: the queue follows the finger back into the
     // player instead, through the same morph that closes it.
     val topPull = remember(pull, listState) {
@@ -108,18 +102,34 @@ internal fun InlineQueue(
     val autoplayFrom = if (autoplayStart > 0) autoplayStart else queue.size
     val upNext by pc.upNext.collectAsState()
     val shuffled by pc.shuffle.collectAsState()
-    // In play order, so with shuffle on this is the shuffled order. Derived once per queue change, not on every
-    // recomposition: DJ progress and Smart Shuffle's picks tick often, and a thousand-song queue's mapping and
-    // sectioning ran each time.
-    val order = remember(queue, upNext) { upNext.mapNotNull { queue.getOrNull(it) } }
     val userQueued by c.queue.userQueued.collectAsState()
-    // What the listener lined up next has its own heading; every song is listed where it plays (#368).
-    val sections = remember(order, userQueued, autoplayFrom) {
-        com.prism.music.playback.QueueEdit.sections(order, { it.song.id in userQueued }, { it.index >= autoplayFrom })
+    // In play order, and under its headings, worked out off the main thread: a two-thousand-song queue mapped and
+    // sectioned on the frame the panel opened, which is the frame its rise and fade start on. The panel is there at
+    // once; its list arrives a moment later (within the animation).
+    val viewed by androidx.compose.runtime.produceState<Pair<List<QueueEntry>, com.prism.music.playback.QueueEdit.Sections<QueueEntry>>?>(
+        null, queue, upNext, userQueued, autoplayFrom,
+    ) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            val order = upNext.mapNotNull { queue.getOrNull(it) }
+            val sections = com.prism.music.playback.QueueEdit.sections(order, { it.song.id in userQueued }, { it.index >= autoplayFrom })
+            order to sections
+        }
     }
+    val order = viewed?.first.orEmpty()
+    // What the listener lined up next has its own heading; every song is listed where it plays (#368).
+    val sections = viewed?.second ?: com.prism.music.playback.QueueEdit.Sections(emptyList<QueueEntry>(), emptyList(), emptyList())
     val queued = sections.queued
     val upcoming = sections.upcoming
     val autoplay = sections.autoplay
+    LaunchedEffect(index, viewed) {
+        // The list's songs are being worked out (a big queue, off the main thread): the panel opens now and follows
+        // once they're here.
+        if (viewed == null) return@LaunchedEffect
+        // A scroll the listener is making wins over the queue following the music: it would yank the list out from
+        // under a thumb. The next song that starts with the list at rest brings it back.
+        if (listState.isScrollInProgress) return@LaunchedEffect
+        if (listState.firstVisibleItemIndex != nowItem) listState.animateScrollToItem(nowItem)
+    }
 
     val controlsOnScroll = remember { ControlsOnScroll(onHide = onHidePlayer, onReveal = onRevealPlayer) }
     controlsOnScroll.reveals = scrollReveals(settings)
