@@ -21,9 +21,10 @@ import androidx.media3.common.Player
  * mute watch's, and a play pressed at volume 0 is this guard's.
  *
  * A becoming-noisy pause (ACTION_AUDIO_BECOMING_NOISY, which Media3 reports as the pause's reason) only starts the music
- * again through a headset or Bluetooth output (or the same output coming back): the phone's speaker was not where the
- * music was, and playing there after an unplug is the surprise this setting is for. Pressing Play while it waits is
- * taken as the listener asking for the speaker after all.
+ * again through a headset or Bluetooth output (or the same output coming back), never the phone's speaker: the speaker
+ * was not where the music was, and playing there after an unplug is the surprise this setting is for. A pair switching
+ * to its own 2.4 GHz dongle (a USB output to the phone) is waited for the same way: a play waits for any outside
+ * headset/Bluetooth/USB output while the one that was playing is gone.
  */
 internal class PlaybackGuard(
     private val watcher: Watcher,
@@ -34,7 +35,7 @@ internal class PlaybackGuard(
 ) : Player.Listener {
 
     /** Why playback is waiting, or null when it isn't. */
-    enum class Hold { VOLUME, OUTPUT, NOISY }
+    enum class Hold { VOLUME, OUTPUT, NOISY, LOST }
 
     /** What [PlaybackGuard] needs of the player and the service. */
     interface Controls {
@@ -42,6 +43,8 @@ internal class PlaybackGuard(
         val silent: Boolean
         /** Any music output is connected right now (the phone's own speaker counts). */
         val hasOutput: Boolean
+        /** A headset, earbuds or another outside output is connected (not the phone's own speaker). */
+        val headsetConnected: Boolean
         /** Not now: casting, the car (Android Auto), or a call. */
         val blocked: Boolean
         val playWhenReady: Boolean
@@ -68,6 +71,8 @@ internal class PlaybackGuard(
     private var expect: Boolean? = null
     /** The player's playWhenReady as last reported, so a reason-only change to a pause is told from a pause. */
     private var lastPlayWhenReady = false
+    /** The last outside output (headphones, earbuds, USB) seen connected: gone, a play waits for another, not the speaker. */
+    private var lastHeadset: OutputReturn.Sink? = null
 
     /** Why playback is held, for tests and diagnostics. */
     val holding: Hold? get() = hold
@@ -85,7 +90,8 @@ internal class PlaybackGuard(
                 watcher.start(::onVolume, ::onDevices)
             } else {
                 watcher.stop()
-                if (hold != null) releaseHold()
+                // Switched off: a play held for the headphones (or the volume) goes through, as it would without the guard.
+                if (hold != null) releaseHold(force = true)
                 return
             }
         }
@@ -139,6 +145,9 @@ internal class PlaybackGuard(
     private fun blockNow(): Hold? = when {
         controls.silent -> Hold.VOLUME
         !controls.hasOutput -> Hold.OUTPUT
+        // The headphones the music was going to went, and only the phone's own speaker is left: a switch in progress
+        // (a TWS pair moving to its dongle), not an invitation to play out loud.
+        lastHeadset != null && !controls.headsetConnected -> Hold.LOST
         else -> null
     }
 
@@ -152,15 +161,16 @@ internal class PlaybackGuard(
                 Hold.VOLUME -> "paused: the phone's media volume is 0 (waiting for it)"
                 Hold.OUTPUT -> "paused: no audio output is connected (waiting for one)"
                 Hold.NOISY -> "paused: the output went away (waiting for a headset or Bluetooth output)"
+                Hold.LOST -> "paused: the headphones that were playing are gone (waiting for them)"
             },
         )
     }
 
-    /** Lets a held request start, unless something else blocks it still. */
-    private fun releaseHold() {
+    /** Lets a held request start, unless something else blocks it still. [force]: the guard is being switched off. */
+    private fun releaseHold(force: Boolean = false) {
         hold = null
         if (!wanted || controls.blocked) return
-        val block = blockNow()
+        val block = if (force) null else blockNow()
         if (block != null) {
             hold = block
             return
@@ -183,23 +193,31 @@ internal class PlaybackGuard(
     }
 
     private fun onDevices(added: List<OutputReturn.Sink>, removed: List<OutputReturn.Sink>) {
-        if (released || !settingOn()) return
-        val held = hold ?: return
+        if (released) return
         // Only outputs music plays through: earbuds connecting add their call channel (Bluetooth SCO) a moment before
         // their music one, and that alone isn't the headphones back.
         val music = added.filter { com.prism.music.data.isMusicOutput(it.type) }
+        // What the music was playing on, remembered even while nothing is held: once it's gone, a play waits for another
+        // outside output instead of coming out of the phone's speaker (a pair switching to its 2.4 GHz dongle, say).
+        music.firstOrNull { !it.phoneOutput }?.let { lastHeadset = it }
+        if (!settingOn()) return
+        val held = hold ?: return
         val back = when (held) {
             Hold.VOLUME -> false
             Hold.OUTPUT -> music.isNotEmpty() || controls.hasOutput
-            // Headphones or Bluetooth again: the speaker alone is not where the music was.
-            Hold.NOISY -> music.any { !it.phoneOutput }
+            // Headphones or Bluetooth again: the speaker alone is not where the music was. A 2.4 GHz dongle can already
+            // be connected when the pair switches to it, so the pair going while another outside output is there ends it.
+            Hold.NOISY -> music.any { !it.phoneOutput } ||
+                (removed.any { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput } && controls.headsetConnected)
+            // The outside output that went is back (the pair, its dongle, or another headset): it can be heard again.
+            Hold.LOST -> music.any { !it.phoneOutput } || controls.headsetConnected
         }
         if (back) releaseHold()
     }
 
     /** The phone's own sound: the speaker (or an earpiece on a phone without one). */
     private val OutputReturn.Sink.phoneOutput: Boolean
-        get() = type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER || type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE
+        get() = com.prism.music.data.isPhoneOutput(type)
 
     /** The phone's volume and audio outputs, watched only while the setting is on. */
     class AndroidWatcher(private val context: Context) : Watcher {

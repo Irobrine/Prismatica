@@ -9,7 +9,8 @@ import org.junit.Test
 
 /**
  * Output return (Settings → Playback → "Resume when Bluetooth comes back"): only a pause the lost Bluetooth output
- * caused is picked up, only by that same pair, and only within the window. Everything else stays paused.
+ * caused is picked up, by that same pair (or the earbuds' own 2.4 GHz dongle, a USB output, soon after), and only within
+ * the window. Everything else stays paused.
  */
 class OutputReturnTest {
     private val noisy = Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY
@@ -19,6 +20,7 @@ class OutputReturnTest {
         OutputReturn.Sink(type, address, name)
     private fun speaker() = OutputReturn.Sink(AudioDeviceInfo.TYPE_BUILTIN_SPEAKER, "", "Phone")
     private fun wired() = OutputReturn.Sink(AudioDeviceInfo.TYPE_WIRED_HEADPHONES, "", "Headphones")
+    private fun dongle() = OutputReturn.Sink(AudioDeviceInfo.TYPE_USB_DEVICE, "", "Dongle")
 
     @Test fun theSamePairComingBackResumes() {
         val r = OutputReturn()
@@ -60,6 +62,36 @@ class OutputReturnTest {
         r.paused(noisy, 1_000)
         assertTrue(r.waiting(30_000))
         assertFalse(r.waiting(70_000))
+    }
+
+    /** The earbuds' 2.4 GHz dongle is a USB output with a name of its own: the same listening, so the music resumes. */
+    @Test fun theDongleIsTheSameListening() {
+        val r = OutputReturn()
+        r.current(buds())
+        r.removed(listOf(buds()), 1_000)
+        r.paused(noisy, 1_100)
+        assertTrue(r.returned(listOf(dongle()), 6_000))
+        assertFalse(r.waitingFor)
+    }
+
+    /** A quick switch: looking at the outputs after the pause finds the dongle once the earbuds' entry is gone. */
+    @Test fun theDongleFoundAfterTheEntryWentIsAReturn() {
+        val r = OutputReturn()
+        r.current(buds())
+        r.paused(noisy, 1_100)
+        assertFalse("nothing was seen leaving yet", r.returnedAlready(listOf(speaker(), buds(), dongle()), 1_400))
+        r.removed(listOf(buds()), 2_100)
+        assertTrue(r.returnedAlready(listOf(speaker(), dongle()), 2_500))
+    }
+
+    /** Long after the switch (a dongle connected for something else): only the pair that went picks it up. */
+    @Test fun aDongleLongAfterTheSwitchIsNotThePair() {
+        val r = OutputReturn()
+        r.current(buds("AA:BB"))
+        r.removed(listOf(buds("AA:BB")), 1_000)
+        r.paused(noisy, 1_100)
+        assertFalse(r.returned(listOf(dongle()), 30_000))
+        assertTrue(r.returned(listOf(buds("AA:BB")), 31_000))
     }
 
     @Test fun anotherPairDoesNotTakeThePlace() {

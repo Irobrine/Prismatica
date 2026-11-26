@@ -149,6 +149,12 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     }.getOrDefault(false)
                 override val hasOutput: Boolean
                     get() = runCatching { com.prism.music.data.outputOptions(this@PlaybackService).isNotEmpty() }.getOrDefault(true)
+                override val headsetConnected: Boolean
+                    get() = runCatching {
+                        com.prism.music.data.outputOptions(this@PlaybackService).any {
+                            com.prism.music.data.isMusicOutput(it.type) && !com.prism.music.data.isPhoneOutput(it.type)
+                        }
+                    }.getOrDefault(false)
                 override val blocked: Boolean get() = c.cast.casting || carControllers.isNotEmpty() || inCall()
                 override val playWhenReady: Boolean get() = player.playWhenReady
                 override fun pause() = player.pause()

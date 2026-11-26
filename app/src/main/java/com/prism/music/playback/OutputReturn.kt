@@ -10,9 +10,10 @@ import com.prism.music.data.isBluetooth
  * and back drops the Bluetooth link, which pauses playback (Media3's becoming-noisy pause), and connecting it again used
  * to leave the music paused.
  *
- * Only a pause the lost output caused is remembered, and only that same Bluetooth output (or, where the phone gives no
- * address, one of the same name) returns it within [windowMs]. A pause the listener made, a call, the end of the queue
- * or the sleep timer cancels the wait at once, so nothing plays again by itself after those.
+ * Only a pause the lost output caused is remembered. The same Bluetooth output (or, where the phone gives no address,
+ * one of the same name) returns it within [windowMs]; so does the earbuds' own 2.4 GHz dongle, which the phone reports as
+ * a USB audio output, within the first [SWITCH_WINDOW_MS]. A pause the listener made, a call, the end of the queue or the
+ * sleep timer cancels the wait at once, so nothing plays again by itself after those.
  */
 internal class OutputReturn(
     private val windowMs: Long = RETURN_WINDOW_MS,
@@ -21,6 +22,11 @@ internal class OutputReturn(
     /** What a device is, across a reconnect (and across A2DP and LE Audio, which can be separate entries). */
     class Sink(val type: Int, val address: String, val name: String) {
         val bluetooth: Boolean get() = isBluetooth(type)
+        /**
+         * A 2.4 GHz dongle: the earbuds' own receiver, which the phone sees as a USB audio output rather than another
+         * Bluetooth entry.
+         */
+        val dongle: Boolean get() = type == AudioDeviceInfo.TYPE_USB_DEVICE || type == AudioDeviceInfo.TYPE_USB_HEADSET
     }
 
     private class Waiting(val sink: Sink, val at: Long)
@@ -78,16 +84,19 @@ internal class OutputReturn(
     fun played() = forget()
 
     /**
-     * Whether [sinks] hold the output a becoming-noisy pause lost, within the window. The wait is used up either way;
-     * one that ran out is dropped.
+     * Whether [sinks] hold the output a becoming-noisy pause lost, within the window: the same pair, or the earbuds' 2.4
+     * GHz dongle (a USB output) soon after it. The wait is used up either way; one that ran out is dropped.
      */
     fun returned(sinks: List<Sink>, now: Long): Boolean {
         val w = waiting ?: return false
-        if (now - w.at > windowMs) {
+        val since = now - w.at
+        if (since > windowMs) {
             forget()
             return false
         }
-        sinks.firstOrNull { it.bluetooth && it.sameAs(w.sink) } ?: return false
+        val same = sinks.any { it.sameAs(w.sink) }
+        val switched = since <= SWITCH_WINDOW_MS && sinks.any { it.dongle }
+        if (!same && !switched) return false
         lastRemoved = null
         waiting = null
         noisyAt = 0L
@@ -117,6 +126,8 @@ internal class OutputReturn(
     private companion object {
         /** How long after the output went the same one may come back and pick the music up. */
         const val RETURN_WINDOW_MS = 120_000L
+        /** The first moments after the loss, when the earbuds' 2.4 GHz dongle (a USB output) is the pair switching. */
+        const val SWITCH_WINDOW_MS = 15_000L
         /** A removal this soon before (or after) the pause is the output that pause was about. */
         const val REMOVAL_GRACE_MS = 5_000L
     }

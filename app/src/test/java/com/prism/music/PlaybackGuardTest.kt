@@ -25,6 +25,7 @@ class PlaybackGuardTest {
         lateinit var guard: PlaybackGuard
         override var silent = false
         override var hasOutput = true
+        override var headsetConnected = false
         override var blocked = false
         override var playWhenReady = false
         var pauses = 0
@@ -78,6 +79,7 @@ class PlaybackGuardTest {
 
         fun volumeChanged() = volume?.invoke()
         fun added(vararg sinks: OutputReturn.Sink) = devices?.invoke(sinks.toList(), emptyList())
+        fun removed(vararg sinks: OutputReturn.Sink) = devices?.invoke(emptyList(), sinks.toList())
     }
 
     private class Rig(on: Boolean = true) {
@@ -182,19 +184,45 @@ class PlaybackGuardTest {
         r.watcher.added(speaker())
         assertFalse("the phone's own speaker isn't where the music was", r.player.playWhenReady)
         assertEquals(PlaybackGuard.Hold.NOISY, r.guard.holding)
+        r.player.headsetConnected = true
         r.watcher.added(wired())
         assertTrue("the headphones back: it starts", r.player.playWhenReady)
         assertNull(r.guard.holding)
     }
 
-    @Test fun aManualPlayAfterTheUnplugPlaysOnTheSpeaker() {
+    @Test fun aPlayAfterTheUnplugWaitsForTheHeadphones() {
         val r = Rig()
         r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
         r.player.set(true)
         r.player.noisy()
+        r.player.headsetConnected = false
         assertFalse(r.player.playWhenReady)
         r.player.set(true)
-        assertTrue("pressing Play after all means the speaker is fine", r.player.playWhenReady)
+        assertFalse("pressing Play doesn't send it to the speaker", r.player.playWhenReady)
+        assertEquals("it waits for the headphones", PlaybackGuard.Hold.LOST, r.guard.holding)
+        r.player.headsetConnected = true
+        r.watcher.added(bluetooth())
+        assertTrue(r.player.playWhenReady)
+        assertNull(r.guard.holding)
+    }
+
+    /** A TWS pair switching to its 2.4 GHz dongle: the same kind of gap, and the dongle (a USB output) ends it. */
+    @Test fun aSwitchToTheDongleWaitsForTheDongleNotTheSpeaker() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.player.noisy()
+        r.player.headsetConnected = false
+        r.player.set(true)
+        assertFalse("not the speaker", r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        r.player.headsetConnected = true
+        r.watcher.added(OutputReturn.Sink(AudioDeviceInfo.TYPE_USB_DEVICE, "", "Dongle"))
+        assertTrue("the dongle is where the music goes", r.player.playWhenReady)
         assertNull(r.guard.holding)
     }
 
@@ -222,6 +250,7 @@ class PlaybackGuardTest {
         r.player.noisy()
         r.player.reasonWhilePaused(Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS)
         assertEquals(PlaybackGuard.Hold.NOISY, r.guard.holding)
+        r.player.headsetConnected = true
         r.watcher.added(bluetooth())
         assertTrue(r.player.playWhenReady)
     }
@@ -248,8 +277,25 @@ class PlaybackGuardTest {
         r.watcher.added(OutputReturn.Sink(AudioDeviceInfo.TYPE_BLUETOOTH_SCO, "AA:BB", "Buds"))
         assertFalse(r.player.playWhenReady)
         assertEquals(PlaybackGuard.Hold.NOISY, r.guard.holding)
+        r.player.headsetConnected = true
         r.watcher.added(bluetooth())
         assertTrue(r.player.playWhenReady)
+    }
+
+    /** A 2.4 GHz dongle already plugged in when the pair switches to it: the pair going is the moment it can be heard. */
+    @Test fun aDongleAlreadyThereEndsTheWaitWhenThePairGoes() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.player.noisy()
+        assertEquals(PlaybackGuard.Hold.NOISY, r.guard.holding)
+        // The earbuds' A2DP entry goes; the USB dongle stays connected.
+        r.watcher.removed(bluetooth())
+        r.player.headsetConnected = true
+        assertTrue(r.player.playWhenReady)
+        assertNull(r.guard.holding)
     }
 
     @Test fun noisyWhilePausedChangesNothing() {
@@ -272,6 +318,23 @@ class PlaybackGuardTest {
         assertTrue("with the guard off the request goes through", r.player.playWhenReady)
         assertNull(r.guard.holding)
         assertEquals(1, r.watcher.stops)
+    }
+
+    /** Switched off while waiting for the headphones: the play the listener asked for goes through (on the speaker). */
+    @Test fun turningItOffLetsAHeldPlayStartWithTheHeadphonesGone() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.player.noisy()
+        r.player.headsetConnected = false
+        r.player.set(true)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        r.setting = false
+        r.guard.update()
+        assertTrue(r.player.playWhenReady)
+        assertNull(r.guard.holding)
     }
 
     @Test fun releaseStopsWatchingAndTouchingThePlayer() {
