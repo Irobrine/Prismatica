@@ -237,11 +237,11 @@ internal class PlaybackGuard(
             Hold.VOLUME -> !controls.silent
             Hold.OUTPUT -> controls.hasOutput
             // The route is an outside output again. The same pair is allowed once its entry was seen leaving (back on
-            // Bluetooth after a 2.4 GHz switch) or once Resume has stopped waiting for it; a route still naming a pair
-            // that never left is the old, dead one.
+            // Bluetooth after a 2.4 GHz switch); a route still naming a pair that never left is the old one, and a
+            // Bluetooth pause held there must stay held until a play.
             Hold.NOISY, Hold.LOST -> controls.routedOutput.let { routed ->
                 routed != null && !routed.phoneOutput &&
-                    (lost == null || !routed.sameAs(lost) || removed?.sameAs(routed) == true || !controls.awaitingReturn)
+                    (lost == null || !routed.sameAs(lost) || removed?.sameAs(routed) == true)
             }
         }
         if (back) releaseHold()

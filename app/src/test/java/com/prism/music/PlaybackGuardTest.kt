@@ -429,6 +429,10 @@ class PlaybackGuardTest {
         r.guard.onRemotePause()
         assertFalse(r.player.playWhenReady)
         assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        // The route is still the pair; the one-second check must not take that for it coming back.
+        r.guard.check()
+        assertFalse(r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
         // The listener's play (or the pair's own) goes through: the pair is still the route.
         r.player.set(true)
         assertTrue(r.player.playWhenReady)
