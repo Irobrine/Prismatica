@@ -179,8 +179,8 @@ class LyricsOverlayPlayer(
     /** Fades a pause or play in (1.7.8, A5): true when it took the change over, false to make it at once. */
     var gentle: ((play: Boolean) -> Boolean)? = null
 
-    /** The play button on the system's controls: the guard takes it as an explicit play (see PlaybackGuard.playFromControl). */
-    var onPlayFromControl: (() -> Unit)? = null
+    /** A play the listener asked for on the system's controls: the guard takes it as explicit (see PlaybackGuard.playFromUser). */
+    var onPlayFromUser: (() -> Unit)? = null
 
     override fun handleSetPlayWhenReady(playWhenReady: Boolean): com.google.common.util.concurrent.ListenableFuture<*> {
         if (placeholder) {
@@ -189,7 +189,7 @@ class LyricsOverlayPlayer(
             } else onPlaceholderPaused?.invoke()
             return com.google.common.util.concurrent.Futures.immediateVoidFuture()
         }
-        if (playWhenReady) onPlayFromControl?.invoke()
+        if (playWhenReady) onPlayFromUser?.invoke()
         if (gentle?.invoke(playWhenReady) == true) return com.google.common.util.concurrent.Futures.immediateVoidFuture()
         return super.handleSetPlayWhenReady(playWhenReady)
     }

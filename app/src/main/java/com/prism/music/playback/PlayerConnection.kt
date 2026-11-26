@@ -1012,6 +1012,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     private fun startQueue(songs: List<Song>, startIndex: Int, source: QueueSource, shuffle: Boolean, startVideo: String?, startMs: Long = 0, rest: (suspend () -> List<Song>?)? = null) {
+        // A song, playlist, album, radio or set the listener picked: their own start, not an automatic resume.
+        onPlayFromUser?.invoke()
         stopFill()
         // Before the player starts: autoplay would otherwise see a short first page as a queue nearly over.
         c.queue.filling = rest != null
@@ -1219,7 +1221,10 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         val at = p.currentMediaItemIndex
         if (at + 1 < p.mediaItemCount) p.removeMediaItems(at + 1, p.mediaItemCount)
         if (at > 0) p.removeMediaItems(0, at)
-        if (!p.isPlaying) { ensureStarted(); if (p.playbackState == Player.STATE_IDLE) p.prepare(); p.play() }
+        if (!p.isPlaying) {
+            onPlayFromUser?.invoke()
+            ensureStarted(); if (p.playbackState == Player.STATE_IDLE) p.prepare(); p.play()
+        }
         // An autoplay load still out for the old queue is dropped: the radio asks now rather than wait on it.
         service?.dropAutoplay()
         service?.maybeAutoplay()
@@ -1377,6 +1382,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
      */
     fun follow(songs: List<Song>, positionMs: Long, title: String, playing: Boolean, index: Int = 0) {
         if (songs.isEmpty()) return
+        if (playing) onPlayFromUser?.invoke()
         ++playToken
         stopFill()
         c.queue.source.value = QueueSource(QueueKind.OTHER, title)
@@ -1399,6 +1405,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
      */
     fun takeOver(songs: List<Song>, index: Int, positionMs: Long, playing: Boolean, order: List<Int>?, repeat: Int, title: String) {
         if (songs.isEmpty()) return
+        if (playing) onPlayFromUser?.invoke()
         ++playToken
         stopFill()
         djNext = false
@@ -1435,12 +1442,12 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** The listener wants it playing (it may still be buffering). */
     val playWhenReady: Boolean get() = player?.playWhenReady ?: false
 
-    /** The listener's play control (Prism's, a widget's, a remote's): the guard takes it as an explicit play. */
-    var onPlayFromControl: (() -> Unit)? = null
+    /** A play the listener asked for (Prism's, a widget's, a remote's, a song or playlist): the guard takes it as explicit. */
+    var onPlayFromUser: (() -> Unit)? = null
 
     fun setPlaying(playing: Boolean) = withPlayer { p ->
         if (playing) {
-            onPlayFromControl?.invoke()
+            onPlayFromUser?.invoke()
             ensureStarted()
             if (p.playbackState == Player.STATE_IDLE) p.prepare()
             p.play()
@@ -1472,8 +1479,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         if (p.playbackState == Player.STATE_IDLE) p.prepare()
         if (p.playbackState == Player.STATE_ENDED) p.seekTo(0, 0)
         val play = !p.isPlaying
-        // The play button is an explicit play: an override of the 2.4 GHz switch hold; choosing a song or playlist is not.
-        if (play) onPlayFromControl?.invoke()
+        // The play button: the guard takes it as the listener's own start.
+        if (play) onPlayFromUser?.invoke()
         // With "Fade on pause and play" (A5) the service fades it; else at once.
         if (service?.gentle(play) != true) { if (play) p.play() else p.pause() }
     }

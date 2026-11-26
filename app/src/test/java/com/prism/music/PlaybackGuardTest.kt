@@ -481,7 +481,8 @@ class PlaybackGuardTest {
     }
 
     /** The play button (main/system/card/earbuds) is an explicit override; a new selection is not. */
-    @Test fun thePlayControlOverridesTheSwitch() {
+    /** The listener's own start (play button, playlist, card, shuffle) overrides the switch; an automatic play waits. */
+    @Test fun aUserStartOverridesTheSwitch() {
         val r = Rig()
         r.start()
         r.watcher.added(bluetooth())
@@ -489,17 +490,34 @@ class PlaybackGuardTest {
         r.player.set(true)
         r.guard.onRemotePause()
         assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
-        // A song/playlist start (no play control) is held.
+        // An automatic play (a volume resume, no listener start) is held.
         r.player.set(true)
         assertFalse(r.player.playWhenReady)
-        // The play button overrides it.
-        r.guard.playFromControl()
+        // The listener's own start overrides it.
+        r.guard.playFromUser()
         r.player.set(true)
         assertTrue(r.player.playWhenReady)
         assertFalse(r.guard.switchedNow)
     }
 
-    /** Swiped away/stopped, then the pair pauses for 2.4 GHz: the card is not held back, but a play still waits. */
+    /** A play the listener asked for (play button, playlist, persistent shuffle) goes through a stale headset hold. */
+    @Test fun aUserStartPlaysThroughAStaleHeadsetHold() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.player.noisy()
+        r.player.headsetConnected = false
+        assertFalse("an automatic resume is held", r.player.playWhenReady)
+        r.player.set(true)
+        assertFalse(r.player.playWhenReady)
+        r.guard.playFromUser()
+        r.player.set(true)
+        assertTrue("the listener's own start plays", r.player.playWhenReady)
+    }
+
+    /** Swiped away/stopped, then the pair pauses for 2.4 GHz: the card is not held back, but an automatic play still waits. */
     @Test fun aPairPauseWithNothingPlayingDoesNotHoldTheCard() {
         val r = Rig()
         r.start()
@@ -509,9 +527,10 @@ class PlaybackGuardTest {
         assertNull("no song to pause", r.guard.holding)
         assertTrue(r.guard.switchedNow)
         r.player.set(true)
-        assertFalse("a new play still waits for the pair", r.player.playWhenReady)
-        r.guard.onRemotePlay()
-        assertTrue(r.player.playWhenReady)
+        assertFalse("an automatic play waits for the pair", r.player.playWhenReady)
+        r.guard.playFromUser()
+        r.player.set(true)
+        assertTrue("the listener's own start goes through", r.player.playWhenReady)
     }
 
     /** A queue stopped while the switch hold was up: the hold goes (card back), the switch flag stays. */
@@ -527,9 +546,10 @@ class PlaybackGuardTest {
         assertNull("the card may show", r.guard.holding)
         assertTrue(r.guard.switchedNow)
         r.player.set(true)
-        assertFalse("a play from the card still waits", r.player.playWhenReady)
-        r.guard.onRemotePlay()
-        assertTrue(r.player.playWhenReady)
+        assertFalse("an automatic play still waits", r.player.playWhenReady)
+        r.guard.playFromUser()
+        r.player.set(true)
+        assertTrue("a start from the card/playlist plays", r.player.playWhenReady)
     }
 
     @Test fun noisyWhilePausedChangesNothing() {

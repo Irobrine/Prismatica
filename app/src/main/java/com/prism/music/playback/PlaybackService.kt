@@ -337,7 +337,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         sessionPlayer.setPlaceholderItem(placeholderItem())
         sessionPlayer.onPlaceholderPlay = {
             // The card's own play is the play button; its shuffle/quick-pick buttons are new selections and stay held.
-            if (guardAttached) playbackGuard.playFromControl()
+            if (guardAttached) playbackGuard.playFromUser()
             // Play from the card itself: a set that was being made when it was pressed mustn't replace what it starts.
             val press = if (persistentPress.isRunning) persistentPress.supersede() else null
             scope.launch { if (!playLastPlayed(press)) runPersistentAction(PersistentAction.LIBRARY_SONGS, press) }
@@ -418,8 +418,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     if (!guardAttached) {
                         player.addListener(playbackGuard)
                         guardAttached = true
-                        c.player.onPlayFromControl = { playbackGuard.playFromControl() }
-                        sessionPlayer.onPlayFromControl = { playbackGuard.playFromControl() }
+                        c.player.onPlayFromUser = { playbackGuard.playFromUser() }
+                        sessionPlayer.onPlayFromUser = { playbackGuard.playFromUser() }
                     }
                     playbackGuard.update()
                 }
@@ -806,8 +806,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             playbackGuard.release()
             guardAttached = false
         }
-        c.player.onPlayFromControl = null
-        sessionPlayer.onPlayFromControl = null
+        c.player.onPlayFromUser = null
+        sessionPlayer.onPlayFromUser = null
         faceDown?.release()
         c.cast.detach(player)
         c.player.detach()
@@ -3214,6 +3214,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      */
     private suspend fun runPersistentAction(action: PersistentAction, press: Int? = null) {
         if (!stillWanted(press)) return
+        // A persistent button that starts the music is the listener's own start, not an automatic resume.
+        if (action.playsSomething() && guardAttached) playbackGuard.playFromUser()
         val played = when (action) {
             PersistentAction.QUICK_PICKS -> shuffleQuickPicks(press) || shuffleLibrarySongs(press)
             PersistentAction.LIBRARY_SONGS -> shuffleLibrarySongs(press)
@@ -3715,7 +3717,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> playbackGuard.onRemotePause()
                     key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY -> playbackGuard.onRemotePlay()
                     // A single play/pause button: the pair is playing, so this is its play control.
-                    toggleKey && !wasPlaying -> playbackGuard.playFromControl()
+                    toggleKey && !wasPlaying -> playbackGuard.playFromUser()
                 }
             }
             // The notification swiped away (Media3 sends it as a media button with this extra): the listener is closing

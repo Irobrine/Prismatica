@@ -95,6 +95,8 @@ internal class PlaybackGuard(
     private var hold: Hold? = null
     /** The listener wants music: set by their play, dropped by their pause or the end of the queue. */
     private var wanted = false
+    /** A start the listener asked for is about to play: the switch/headset holds don't apply to it (volume still does). */
+    private var userPlay = false
     /** The playWhenReady our own pause or play is about to report, so it isn't taken for the listener's. */
     private var expect: Boolean? = null
     /** The player's playWhenReady as last reported, so a reason-only change to a pause is told from a pause. */
@@ -131,6 +133,7 @@ internal class PlaybackGuard(
                 offCleared = true
                 lastHeadset = null
                 switched = false
+                userPlay = false
                 lastOutsideRemoved = null
                 memory.rememberHeadset(null)
                 memory.rememberSwitched(false)
@@ -162,6 +165,7 @@ internal class PlaybackGuard(
         watching = false
         hold = null
         wanted = false
+        userPlay = false
         switched = false
         lastOutsideRemoved = null
         expect = null
@@ -183,7 +187,14 @@ internal class PlaybackGuard(
         if (playWhenReady) {
             wanted = true
             if (!settingOn() || controls.blocked) {
+                userPlay = false
                 hold = null
+                return
+            }
+            if (userPlay) {
+                // The listener's own start: a 2.4 GHz switch or a stale headset hold doesn't stop it. Silence still does.
+                userPlay = false
+                if (controls.silent) holdNow(Hold.VOLUME) else hold = null
                 return
             }
             val block = blockNow()
@@ -206,6 +217,7 @@ internal class PlaybackGuard(
         }
         // Anything else (the listener's pause, the end of the queue, the sleep timer) ends the request.
         wanted = false
+        userPlay = false
         hold = null
     }
 
@@ -301,16 +313,17 @@ internal class PlaybackGuard(
     }
 
     /**
-     * The listener pressed a play control (Prism's play button, the system media controls, the persistent card's play,
-     * the earbuds): an explicit override of the 2.4 GHz switch. Choosing a playlist, a song, or a shuffle action does
-     * not call this, so those stay held while the pair is on 2.4 GHz.
+     * A play the listener asked for — the play button, a song or playlist, a shuffle, the persistent card, the earbuds.
+     * It releases the 2.4 GHz switch and a stale headset hold; automatic resumes do not call this. Silence (volume 0)
+     * still holds the play when it lands.
      */
-    fun playFromControl() {
-        if (released || !settingOn() || !switched) return
+    fun playFromUser() {
+        if (released || !settingOn()) return
         switched = false
         memory.rememberSwitched(false)
-        if (hold == Hold.LOST) hold = null
-        android.util.Log.i("PrismControl", "play control: the 2.4 GHz hold is released")
+        if (hold == Hold.LOST || hold == Hold.NOISY) hold = null
+        if (!controls.playWhenReady) userPlay = true
+        android.util.Log.i("PrismControl", "play from the listener: the 2.4 GHz/headset hold is released")
     }
 
     /**
@@ -334,6 +347,7 @@ internal class PlaybackGuard(
         if (released) return
         hold = null
         wanted = false
+        userPlay = false
         // switched stays: a new play from the card still waits for the pair while it is in 2.4 GHz.
     }
 
