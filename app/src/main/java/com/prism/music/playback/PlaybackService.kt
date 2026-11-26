@@ -147,8 +147,6 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                         // Prism's own volume can be at 0 with the phone's up; the phone's 0 silences Prism's sound either way.
                         phoneMuted || (s.volumeControl == com.prism.music.data.prefs.VolumeControl.PRISM && s.appVolume <= 0f)
                     }.getOrDefault(false)
-                override val hasOutput: Boolean
-                    get() = runCatching { com.prism.music.data.outputOptions(this@PlaybackService).isNotEmpty() }.getOrDefault(true)
                 override val routedOutput: OutputReturn.Sink?
                     get() = runCatching {
                         // The route carrying media, not merely a connected device: during a switch the new pair or dongle
@@ -337,6 +335,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         // in the session's timeline to show controls at all.)
         sessionPlayer.setPlaceholderItem(placeholderItem())
         sessionPlayer.onPlaceholderPlay = {
+            // The card's own play is the play button; its shuffle/quick-pick buttons are new selections and stay held.
+            if (guardAttached) playbackGuard.playFromControl()
             // Play from the card itself: a set that was being made when it was pressed mustn't replace what it starts.
             val press = if (persistentPress.isRunning) persistentPress.supersede() else null
             scope.launch { if (!playLastPlayed(press)) runPersistentAction(PersistentAction.LIBRARY_SONGS, press) }
@@ -417,6 +417,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     if (!guardAttached) {
                         player.addListener(playbackGuard)
                         guardAttached = true
+                        c.player.onPlayFromControl = { playbackGuard.playFromControl() }
+                        sessionPlayer.onPlayFromControl = { playbackGuard.playFromControl() }
                     }
                     playbackGuard.update()
                 }
@@ -798,8 +800,13 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         }
         mix.release()
         muteWatch.release()
-        if (guardAttached) { player.removeListener(playbackGuard); guardAttached = false }
-        playbackGuard.release()
+        if (guardAttached) {
+            player.removeListener(playbackGuard)
+            playbackGuard.release()
+            guardAttached = false
+        }
+        c.player.onPlayFromControl = null
+        sessionPlayer.onPlayFromControl = null
         faceDown?.release()
         c.cast.detach(player)
         c.player.detach()
@@ -3694,15 +3701,20 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 @Suppress("DEPRECATION")
                 intent.getParcelableExtra<android.view.KeyEvent>(Intent.EXTRA_KEY_EVENT)
             }.getOrNull()
+            val bluetoothKey = key?.action == android.view.KeyEvent.ACTION_DOWN &&
+                controllerInfo.packageName == "com.android.bluetooth" && guardAttached
+            val toggleKey = key?.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE ||
+                key?.keyCode == android.view.KeyEvent.KEYCODE_HEADSETHOOK
+            val wasPlaying = player.playWhenReady
             if (key?.action == android.view.KeyEvent.ACTION_DOWN) {
                 AudioDiagnostics.log("control", "media button ${android.view.KeyEvent.keyCodeToString(key.keyCode)} from ${controllerInfo.packageName}")
                 // A pause from the Bluetooth device: on a TWS that can be the switch to its 2.4 GHz receiver. The guard
                 // holds it (and keeps the persistent card away) until the pair or the listener plays on.
-                if (key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PAUSE && controllerInfo.packageName == "com.android.bluetooth" && guardAttached) {
-                    playbackGuard.onRemotePause()
-                }
-                if (key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY && controllerInfo.packageName == "com.android.bluetooth" && guardAttached) {
-                    playbackGuard.onRemotePlay()
+                if (bluetoothKey) when {
+                    key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> playbackGuard.onRemotePause()
+                    key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY -> playbackGuard.onRemotePlay()
+                    // A single play/pause button: the pair is playing, so this is its play control.
+                    toggleKey && !wasPlaying -> playbackGuard.playFromControl()
                 }
             }
             // The notification swiped away (Media3 sends it as a media button with this extra): the listener is closing
@@ -3712,7 +3724,10 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 scope.launch { closedFromNotification() }
                 return handled
             }
-            return super.onMediaButtonEvent(session, controllerInfo, intent)
+            val handled = super.onMediaButtonEvent(session, controllerInfo, intent)
+            // A single play/pause button that paused: after the toggle lands, record the possible 2.4 GHz switch.
+            if (bluetoothKey && toggleKey && wasPlaying) playbackGuard.onRemotePause()
+            return handled
         }
 
         override fun onCustomCommand(

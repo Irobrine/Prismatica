@@ -24,7 +24,6 @@ class PlaybackGuardTest {
     private class FakePlayer : PlaybackGuard.Controls {
         lateinit var guard: PlaybackGuard
         override var silent = false
-        override var hasOutput = true
         override var routedOutput: OutputReturn.Sink? = null
         /** Test shorthand: an outside route (the same buds the helpers make) or the phone's speaker. */
         var headsetConnected: Boolean
@@ -67,6 +66,8 @@ class PlaybackGuardTest {
     private class FakeWatcher : PlaybackGuard.Watcher {
         var volume: (() -> Unit)? = null
         var devices: ((List<OutputReturn.Sink>, List<OutputReturn.Sink>) -> Unit)? = null
+        /** What the phone reports as already connected when watching starts (the real callback does this once). */
+        var initial: List<OutputReturn.Sink> = emptyList()
         var starts = 0
         var stops = 0
         val on get() = volume != null
@@ -78,6 +79,7 @@ class PlaybackGuardTest {
             starts++
             volume = onVolume
             this.devices = devices
+            devices(initial, emptyList())
         }
 
         override fun stop() {
@@ -170,22 +172,6 @@ class PlaybackGuardTest {
         r.guard.update()
         assertFalse("turned on at 0: what plays pauses at once", r.player.playWhenReady)
         assertEquals(PlaybackGuard.Hold.VOLUME, r.guard.holding)
-    }
-
-    @Test fun playWaitsForAnOutput() {
-        val r = Rig()
-        r.start()
-        r.player.hasOutput = false
-        r.player.set(true)
-        assertFalse(r.player.playWhenReady)
-        assertEquals(PlaybackGuard.Hold.OUTPUT, r.guard.holding)
-        // The volume coming back doesn't make up for an output that isn't there.
-        r.watcher.volumeChanged()
-        assertFalse(r.player.playWhenReady)
-        r.player.hasOutput = true
-        r.watcher.added(speaker())
-        assertTrue(r.player.playWhenReady)
-        assertNull(r.guard.holding)
     }
 
     @Test fun noisyWaitsForAHeadsetNotTheSpeaker() {
@@ -421,8 +407,7 @@ class PlaybackGuardTest {
         assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
     }
 
-    /** A pause from the Bluetooth device (a TWS switching modes): held like an output switch until a play. */
-    /** A pause from the Bluetooth device (a TWS switching modes): held until its own play, not an app play. */
+    /** A pause from the Bluetooth device (a TWS switching modes): held until its own play or a play control. */
     @Test fun aBluetoothPauseHoldsUntilItsPlay() {
         val r = Rig()
         r.start()
@@ -446,6 +431,20 @@ class PlaybackGuardTest {
         assertNull(r.guard.holding)
     }
 
+    /** A service restart replays the connected pair; that snapshot must not count as the pair coming back. */
+    @Test fun aPrimingSnapshotKeepsTheRememberedSwitch() {
+        val memory = FakeMemory(bluetooth(), switched = true)
+        val r = Rig(memory = memory)
+        r.watcher.initial = listOf(bluetooth())
+        r.start()
+        assertTrue("still switched", r.guard.switchedNow)
+        r.player.set(true)
+        assertFalse(r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        r.guard.onRemotePlay()
+        assertTrue(r.player.playWhenReady)
+    }
+
     /** A service restart while the pair is switched away: an app play still waits for the pair's own play. */
     @Test fun aRestartRemembersTheSwitchedPair() {
         val memory = FakeMemory(bluetooth(), switched = true)
@@ -457,6 +456,25 @@ class PlaybackGuardTest {
         r.guard.onRemotePlay()
         assertTrue(r.player.playWhenReady)
         assertFalse(memory.switched)
+    }
+
+    /** The play button (main/system/card/earbuds) is an explicit override; a new selection is not. */
+    @Test fun thePlayControlOverridesTheSwitch() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.guard.onRemotePause()
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        // A song/playlist start (no play control) is held.
+        r.player.set(true)
+        assertFalse(r.player.playWhenReady)
+        // The play button overrides it.
+        r.guard.playFromControl()
+        r.player.set(true)
+        assertTrue(r.player.playWhenReady)
+        assertFalse(r.guard.switchedNow)
     }
 
     /** Swiped away/stopped, then the pair pauses for 2.4 GHz: the card is not held back, but a play still waits. */
