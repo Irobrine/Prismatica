@@ -197,7 +197,14 @@ fun ImmersivePlayer(
         }
     }
 
-    var drag by remember { mutableFloatStateOf(0f) }
+    // Pulled down, the player itself follows the finger, as it does on the normal player: the card's morph number is
+    // written as the hand moves, so letting go settles it from wherever it was left, at the speed the hand left it.
+    // (It used to slide on its own by the drag's pixels and then either collapse from the top or snap back to it.)
+    val screenPx = with(androidx.compose.ui.platform.LocalDensity.current) {
+        androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx()
+    }
+    val morphSpan = screenPx * PlayerMorph.TRAVEL
+    var closing by remember { mutableStateOf(false) }
     // Sideways, the cover follows the finger a little; past the mark, letting go changes the song.
     val swipe = remember { DragOffset() }
     val blurred = rememberFullArtworkBlur(com.prism.music.data.PlaylistCovers.artOf(song))
@@ -205,7 +212,6 @@ fun ImmersivePlayer(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .graphicsLayer { translationY = drag.coerceAtLeast(0f) }
             // For TalkBack the gestures are actions: a double tap opens the settings (the button only shows for a few
             // seconds), and the swipes and the hold have their own entries in its actions menu.
             .semantics {
@@ -219,23 +225,42 @@ fun ImmersivePlayer(
                 )
             }
             .pointerInput(Unit) { detectTapGestures(onTap = { button = !button }) }
-            .pointerInput(Unit) {
-                val flick = 700.dp.toPx()
-                // 72 dp, like the player's own cover swipe on the phone (was 220 raw pixels: a different distance on
-                // every screen density).
-                val close = 72.dp.toPx()
+            .pointerInput(morphSpan) {
                 val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                fun letGoSpeed(): Float = -tracker.calculateVelocity().y / morphSpan
                 detectVerticalDragGestures(
-                    onDragStart = { tracker.resetTracking() },
-                    onDragEnd = {
-                        if (drag > close || tracker.calculateVelocity().y >= flick) onCollapse()
-                        drag = 0f
+                    onDragStart = {
+                        if (!closing) {
+                            PlayerMorph.beginDrag(towardPlayer = false)
+                            tracker.resetTracking()
+                        }
                     },
-                    onDragCancel = { drag = 0f },
+                    onDragEnd = {
+                        if (!closing) {
+                            val v = letGoSpeed()
+                            if (PlayerMorph.completes(PlayerMorph.progress, towardPlayer = false, velocity = v)) {
+                                closing = true
+                                PlayerMorph.released(v)
+                                onCollapse()
+                                scope.launch { delay(if (c.settings.current.reduceMotion) 160 else 380); closing = false }
+                            } else {
+                                PlayerMorph.endDrag(
+                                    towardPlayer = false, complete = false, scope = scope,
+                                    reduceMotion = c.settings.current.reduceMotion, velocity = v,
+                                )
+                            }
+                        }
+                    },
+                    onDragCancel = {
+                        if (!closing) PlayerMorph.endDrag(
+                            towardPlayer = false, complete = false, scope = scope,
+                            reduceMotion = c.settings.current.reduceMotion,
+                        )
+                    },
                 ) { change, amount ->
                     change.consume()
                     tracker.addPosition(change.uptimeMillis, change.position)
-                    drag += amount
+                    if (!closing) PlayerMorph.dragTo(PlayerMorph.progress - amount / morphSpan)
                 }
             }
             .pointerInput(Unit) {
