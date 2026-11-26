@@ -24,14 +24,19 @@ internal object MotionTrace {
 }
 
 /**
- * Asks the display for its fastest mode only while an animation runs, and lets the system choose again afterwards.
- * The system otherwise keeps a window at 60 Hz (and Android 15/16 steps it down while it isn't touched), which
- * made the queue and lyrics panels move at 60 on a 120 Hz panel. Nothing is changed while Prism is still.
+ * Asks the display for a fixed rate only while an animation runs, and lets the system choose again afterwards. The
+ * system otherwise keeps a window at 60 Hz (and Android 15/16 steps it down while it isn't touched), which made the
+ * queue and lyrics panels move at 60 on a 120 Hz panel. Nothing is changed while Prism is still.
  *
  * The ask has to be in before the animation's first frame: asked a frame or two late, the display stayed where it was
  * for the whole move (measured: rises that began with the hold already held ran a clean 120 Hz, while ones that asked
  * 12–18 ms late stayed at 72 Hz throughout). So the animations hold it themselves, from their own start ([hold]), and
  * each holds with its own token: an ease replaced mid-way lets go of its token without dropping the one that took over.
+ *
+ * The rate is [MOVES_AT] rather than the panel's fastest: read from the display's own present times, a Prism frame
+ * costs 7–10 ms on this phone even with nothing moving, so at 120 Hz (8.33 ms a frame) a move's heavier frames tip
+ * over and the display answers by stepping down — measured as 25–33 ms stretches (30–40 fps) inside a move. 90 Hz
+ * leaves 11.1 ms a frame, which those frames fit.
  */
 object FastRefresh {
     private var window = WeakReference<Window?>(null)
@@ -40,7 +45,10 @@ object FastRefresh {
     /** The animations asking for it right now; overlapping ones (a panel over the mini player's slide) share the hold. */
     private val holders = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Any, Boolean>())
 
-    /** How long the fastest mode is kept after the last animation settles (see [drop]). */
+    /** The rate a move asks for: see the class comment for why it isn't the panel's fastest (120 on this panel). */
+    private const val MOVES_AT = 90f
+
+    /** How long that rate is kept after the last animation settles (see [drop]). */
     private const val LINGER_MS = 700L
     private val linger = android.os.Handler(android.os.Looper.getMainLooper())
     private val letGo = Runnable { letGoNow() }
@@ -54,10 +62,11 @@ object FastRefresh {
         bestRate = 0f
         val modes = display?.supportedModes?.toList().orEmpty()
         val now = display?.mode ?: return
-        // The fastest mode at the size the window has now: another resolution could letterbox it.
+        // The mode nearest the rate moves ask for, at the size the window has now: another resolution could letterbox
+        // it. (The panel offers 60, 72, 90 and 120 here, so this lands on its own 90 Hz mode.)
         val best = modes.filter { it.physicalWidth == now.physicalWidth && it.physicalHeight == now.physicalHeight }
-            .maxByOrNull { it.refreshRate }
-            ?: modes.maxByOrNull { it.refreshRate }
+            .minByOrNull { kotlin.math.abs(it.refreshRate - MOVES_AT) }
+            ?: modes.minByOrNull { kotlin.math.abs(it.refreshRate - MOVES_AT) }
             ?: return
         if (best.refreshRate > 60f) {
             bestMode = best.modeId
