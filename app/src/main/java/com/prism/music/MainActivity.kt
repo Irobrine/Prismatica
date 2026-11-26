@@ -13,7 +13,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -94,6 +93,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -1343,6 +1343,7 @@ private fun Beside(content: @Composable () -> Unit) {
 @Composable
 private fun NavRail(tabs: List<Tab>, route: String?, settings: AppSettings, onSelect: (String) -> Unit, modifier: Modifier) {
     val scheme = MaterialTheme.colorScheme
+    val glyphTint = Modifier.tabTint(settings.shapes.tabTint)
     GlassSurface(modifier.width(RAIL_WIDTH), shape = RoundedCornerShape(RAIL_WIDTH / 2)) {
         Column(
             Modifier.testTag(NAV_TABS_TAG).padding(vertical = 8.dp, horizontal = 6.dp).verticalScroll(rememberScrollState()),
@@ -1352,15 +1353,20 @@ private fun NavRail(tabs: List<Tab>, route: String?, settings: AppSettings, onSe
             tabs.forEach { tab ->
                 val selected = isSelected(tab, route)
                 val material = com.prism.music.ui.theme.LocalUi.current.material
-                val fg = if (selected) (if (material) scheme.onSecondaryContainer else scheme.primary) else scheme.onSurfaceVariant
-                val indicator by animateColorAsState(
-                    if (selected) (if (material) scheme.secondaryContainer else scheme.primary.copy(alpha = 0.16f)) else Color.Transparent,
+                // The bar's own tabs' single clock (see TabItem): the ink, the tint, the capsule and the glyph together.
+                val change by animateFloatAsState(
+                    if (selected) 1f else 0f,
                     tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = com.prism.music.ui.theme.PrismTokens.Motion.Ease),
                     label = "railTab",
                 )
+                val quiet = scheme.onSurfaceVariant
+                val current = if (material) scheme.onSecondaryContainer else scheme.primary
+                val fg = androidx.compose.ui.graphics.lerp(quiet, current, change)
+                val lifted = if (material) scheme.secondaryContainer else scheme.primary.copy(alpha = 0.16f)
+                val capsule = lifted.copy(alpha = lifted.alpha * change)
                 val showLabel = settings.navLabels == NavLabels.ALWAYS || settings.navLabels == NavLabels.WORDS || (settings.navLabels == NavLabels.SELECTED && selected)
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(if (material) 16.dp else 22.dp)).background(indicator)
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(if (material) 16.dp else 22.dp)).background(capsule)
                         .clickable(
                             interactionSource = null,
                             indication = null,
@@ -1369,7 +1375,7 @@ private fun NavRail(tabs: List<Tab>, route: String?, settings: AppSettings, onSe
                         .padding(vertical = if (showLabel) 8.dp else 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(if (selected) tab.selectedIcon else tab.icon, tab.label, tint = fg, modifier = Modifier.size(24.dp).then(if (selected) Modifier.tabTint(settings.shapes.tabTint) else Modifier))
+                    TabGlyph(tab, change, quiet, current, glyphTint)
                     if (showLabel) Text(
                         tab.label, color = fg, style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1,
@@ -1508,21 +1514,24 @@ internal fun navFill(fill: com.prism.music.data.prefs.NavBarFill): Color {
 private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Float, modifier: Modifier, line: Boolean = false, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val material = com.prism.music.ui.theme.LocalUi.current.material
-    // One speed and one ease for every part of a tab changing: ink, the lifted glass, the line. (Colors used a spring,
-    // which could overshoot the accent on its way in.)
+    // One speed, one ease and now one clock for every part of a tab changing: the ink, the current tab's tint, the
+    // lifted glass with its fill, the line and the glyph. The tint and the filled glyph used to switch on the tap while
+    // the capsule eased in behind them, so a tab arrived as colour first, then its background, then the background's
+    // own colour. (Colors used a spring, which could overshoot the accent on its way in.)
     val tabEase = com.prism.music.ui.theme.PrismTokens.Motion.Ease
     val tabMs = com.prism.music.ui.theme.PrismTokens.Motion.STANDARD
-    val fg by animateColorAsState(
-        if (selected) (if (material) scheme.onSecondaryContainer else scheme.onSurface) else (if (material) scheme.onSurfaceVariant else scheme.ink3),
-        tween(tabMs, easing = tabEase), label = "tabInk",
-    )
+    val change by animateFloatAsState(if (selected) 1f else 0f, tween(tabMs, easing = tabEase), label = "tabChange")
+    val quietFg = if (material) scheme.onSurfaceVariant else scheme.ink3
+    val currentFg = if (material) scheme.onSecondaryContainer else scheme.onSurface
     // Material 3 writes the current tab's name in onSurface, its icon in onSecondaryContainer.
-    val labelFg = if (material && selected) scheme.onSurface else fg
+    val labelFg = androidx.compose.ui.graphics.lerp(quietFg, if (material) scheme.onSurface else currentFg, change)
     // Aura × Spectrum: the current tab is lifted on the glass, with a short line of split light under it. Material You:
     // Material 3's secondary-container pill behind the icon, and no line.
     val lifted = if (material) scheme.secondaryContainer else com.prism.music.ui.components.frostFill(2.6f)
-    val indicator by animateColorAsState(if (selected) lifted else Color.Transparent, tween(tabMs, easing = tabEase), label = "tab")
-    val mark by animateFloatAsState(if (selected && !material) 1f else 0f, tween(tabMs, easing = tabEase), label = "tabLine")
+    // Its own colour, only its alpha coming up with the rest: fading in from Transparent (black) made the capsule a
+    // grey patch first, its colour filling in after it.
+    val capsule = lifted.copy(alpha = lifted.alpha * change)
+    val mark = if (material) 0f else change
     val dark = com.prism.music.ui.theme.LocalIsDark.current
     // Holding the Settings tab switches "Customize this" on and off (1.7.3).
     val c = LocalContainer.current
@@ -1537,9 +1546,9 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
         onLongClick = if (tab.route == Routes.SETTINGS) ({ c.customizing.value = !c.customizing.value }) else null,
         onClick = onClick,
     ).semantics { this.selected = selected }
-    val icon = if (selected) tab.selectedIcon else tab.icon
     // The current tab's icon in ink, the accent or the light (1.7.7).
     val tabTint = com.prism.music.ui.theme.LocalAppSettings.current.shapes.tabTint
+    val glyphTint = Modifier.tabTint(tabTint)
     val spectrumLine = Modifier.drawWithContent {
         drawContent()
         if (mark > 0f) {
@@ -1555,16 +1564,16 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
     }
     when (labels) {
         NavLabels.ALWAYS -> Column(
-            (if (material) pressedModifier else pressedModifier.clip(RoundedCornerShape(26.dp)).background(indicator)).then(if (material) Modifier else spectrumLine).then(click),
+            (if (material) pressedModifier else pressedModifier.clip(RoundedCornerShape(26.dp)).background(capsule)).then(if (material) Modifier else spectrumLine).then(click),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             if (material) Box(
-                Modifier.size(width = 56.dp, height = 32.dp).clip(CircleShape).background(indicator),
+                Modifier.size(width = 56.dp, height = 32.dp).clip(CircleShape).background(capsule),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, tab.label, tint = fg, modifier = Modifier.size(24.dp).then(if (selected) Modifier.tabTint(tabTint) else Modifier))
-            } else Icon(icon, tab.label, tint = fg, modifier = Modifier.size(24.dp).then(if (selected) Modifier.tabTint(tabTint) else Modifier))
+                TabGlyph(tab, change, quietFg, currentFg, glyphTint)
+            } else TabGlyph(tab, change, quietFg, currentFg, glyphTint)
             // #237: a long name ("Liked songs") gets smaller rather than cut off, kept clear of the rounded corners, and
             // its line keeps its full height with big text; the bar slimming down only hides it.
             if (compact < 0.98f) {
@@ -1587,9 +1596,9 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Box(Modifier.size(52.dp, 32.dp).clip(CircleShape).background(indicator), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(52.dp, 32.dp).clip(CircleShape).background(capsule), contentAlignment = Alignment.Center) {
                 // 24 dp as in the other label styles (#272: 22 here made every icon a little smaller with "Selected").
-                Icon(icon, tab.label, tint = fg, modifier = Modifier.size(24.dp).then(if (selected) Modifier.tabTint(tabTint) else Modifier))
+                TabGlyph(tab, change, quietFg, currentFg, glyphTint)
             }
             AnimatedVisibility(
                 selected && compact < 0.5f,
@@ -1606,14 +1615,14 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
             }
         }
         NavLabels.NEVER -> Box(pressedModifier.then(spectrumLine).then(click), contentAlignment = Alignment.Center) {
-            Box(Modifier.size(52.dp, 40.dp).clip(CircleShape).background(indicator), contentAlignment = Alignment.Center) {
-                Icon(icon, tab.label, tint = fg, modifier = Modifier.size(24.dp).then(if (selected) Modifier.tabTint(tabTint) else Modifier))
+            Box(Modifier.size(52.dp, 40.dp).clip(CircleShape).background(capsule), contentAlignment = Alignment.Center) {
+                TabGlyph(tab, change, quietFg, currentFg, glyphTint)
             }
         }
         // Words only (1.7.6): the tabs' names, no icons; the current one bolder.
         // Five or six tabs: the names get smaller rather than cut short.
         NavLabels.WORDS -> Box(pressedModifier.then(spectrumLine).then(click), contentAlignment = Alignment.Center) {
-            Box(Modifier.height(40.dp).clip(CircleShape).background(indicator).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.height(40.dp).clip(CircleShape).background(capsule).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
                 Text(
                     tab.label, color = labelFg, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.labelLarge, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
@@ -1624,15 +1633,36 @@ private fun TabItem(tab: Tab, selected: Boolean, labels: NavLabels, compact: Flo
     }
 }
 
+/**
+ * A tab's glyph: its outline handing over to the filled twin (and the current tab's tint) on the same clock as the
+ * capsule, so the tab arrives whole. One name for the tab either way, and mid-way, when both twins are drawn.
+ */
+@Composable
+private fun TabGlyph(tab: Tab, change: Float, quiet: Color, current: Color, currentModifier: Modifier = Modifier, size: Dp = 24.dp) {
+    Box(Modifier.size(size).semantics { contentDescription = tab.label }) {
+        if (change < 1f) Icon(
+            tab.icon, null, tint = quiet,
+            modifier = Modifier.matchParentSize().graphicsLayer { alpha = 1f - change },
+        )
+        if (change > 0f) Icon(
+            tab.selectedIcon, null, tint = current,
+            modifier = Modifier.matchParentSize().then(currentModifier).graphicsLayer { alpha = change },
+        )
+    }
+}
+
 @Composable
 private fun MinimalTab(tab: Tab, selected: Boolean, height: Dp = 44.dp, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val material = com.prism.music.ui.theme.LocalUi.current.material
-    val bg by animateColorAsState(
-        if (selected) (if (material) scheme.secondaryContainer else scheme.onSurface) else Color.Transparent,
+    // One clock for the pill and the glyph, as the bar's own tabs (see TabItem).
+    val change by animateFloatAsState(
+        if (selected) 1f else 0f,
         tween(com.prism.music.ui.theme.PrismTokens.Motion.STANDARD, easing = com.prism.music.ui.theme.PrismTokens.Motion.Ease),
         label = "minTab",
     )
+    val pill = if (material) scheme.secondaryContainer else scheme.onSurface
+    val bg = pill.copy(alpha = pill.alpha * change)
     val press = remember { MutableInteractionSource() }
     val down by press.collectIsPressedAsState()
     val pressScale by animateFloatAsState(if (down) 0.9f else 1f, tween(90), label = "minTabPress")
@@ -1645,10 +1675,11 @@ private fun MinimalTab(tab: Tab, selected: Boolean, height: Dp = 44.dp, onClick:
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            if (selected) tab.selectedIcon else tab.icon, tab.label,
-            tint = if (selected) (if (material) scheme.onSecondaryContainer else scheme.surface) else scheme.onSurfaceVariant,
-            modifier = Modifier.size(23.dp),
+        TabGlyph(
+            tab, change,
+            quiet = scheme.onSurfaceVariant,
+            current = if (material) scheme.onSecondaryContainer else scheme.surface,
+            size = 23.dp,
         )
     }
 }
