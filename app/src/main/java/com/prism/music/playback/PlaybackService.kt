@@ -336,8 +336,6 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         // in the session's timeline to show controls at all.)
         sessionPlayer.setPlaceholderItem(placeholderItem())
         sessionPlayer.onPlaceholderPlay = {
-            // The card's own play is the play button; its shuffle/quick-pick buttons are new selections and stay held.
-            if (guardAttached) playbackGuard.playFromUser()
             // Play from the card itself: a set that was being made when it was pressed mustn't replace what it starts.
             val press = if (persistentPress.isRunning) persistentPress.supersede() else null
             scope.launch { if (!playLastPlayed(press)) runPersistentAction(PersistentAction.LIBRARY_SONGS, press) }
@@ -418,8 +416,6 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     if (!guardAttached) {
                         player.addListener(playbackGuard)
                         guardAttached = true
-                        c.player.onPlayFromUser = { playbackGuard.playFromUser() }
-                        sessionPlayer.onPlayFromUser = { playbackGuard.playFromUser() }
                     }
                     playbackGuard.update()
                 }
@@ -806,8 +802,6 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             playbackGuard.release()
             guardAttached = false
         }
-        c.player.onPlayFromUser = null
-        sessionPlayer.onPlayFromUser = null
         faceDown?.release()
         c.cast.detach(player)
         c.player.detach()
@@ -1194,9 +1188,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * "Resume when Bluetooth comes back" waits for the output that went, or "Pause when muted" waits for the volume.
      */
     private fun waitingToPlayOn(): Boolean {
-        // A 2.4 GHz switch is not a pending resume: the card may show (and its silent track stops when the pair plays),
-        // while the guard holds every play until the pair does.
-        if (guardAttached && playbackGuard.switchedNow) return false
+        // A 2.4 GHz switch keeps the persistent card away while the chosen pair is away; its own play ends it.
+        if (guardAttached && playbackGuard.switchedNow) return true
+        // An empty queue has nothing to play on: the card may start something else; a held play keeps it away.
         return player.mediaItemCount > 0 &&
             ((guardAttached && playbackGuard.holding != null) || c.player.awaitingOutput || muteWatch.waiting)
     }
@@ -3214,8 +3208,6 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      */
     private suspend fun runPersistentAction(action: PersistentAction, press: Int? = null) {
         if (!stillWanted(press)) return
-        // A persistent button that starts the music is the listener's own start, not an automatic resume.
-        if (action.playsSomething() && guardAttached) playbackGuard.playFromUser()
         val played = when (action) {
             PersistentAction.QUICK_PICKS -> shuffleQuickPicks(press) || shuffleLibrarySongs(press)
             PersistentAction.LIBRARY_SONGS -> shuffleLibrarySongs(press)
@@ -3712,12 +3704,12 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             if (key?.action == android.view.KeyEvent.ACTION_DOWN) {
                 AudioDiagnostics.log("control", "media button ${android.view.KeyEvent.keyCodeToString(key.keyCode)} from ${controllerInfo.packageName}")
                 // A pause from the Bluetooth device: on a TWS that can be the switch to its 2.4 GHz receiver. The guard
-                // holds it (and keeps the persistent card away) until the pair or the listener plays on.
+                // holds it (and keeps the persistent card away) until the pair plays on.
                 if (bluetoothKey) when {
                     key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> playbackGuard.onRemotePause()
                     key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY -> playbackGuard.onRemotePlay()
-                    // A single play/pause button: the pair is playing, so this is its play control.
-                    toggleKey && !wasPlaying -> playbackGuard.playFromUser()
+                    // A single play/pause button, paused: the pair is playing, so this is its switch back.
+                    toggleKey && !wasPlaying -> playbackGuard.onRemotePlayToggle()
                 }
             }
             // The notification swiped away (Media3 sends it as a media button with this extra): the listener is closing

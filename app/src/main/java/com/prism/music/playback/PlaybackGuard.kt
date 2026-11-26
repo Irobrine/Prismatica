@@ -95,8 +95,8 @@ internal class PlaybackGuard(
     private var hold: Hold? = null
     /** The listener wants music: set by their play, dropped by their pause or the end of the queue. */
     private var wanted = false
-    /** A start the listener asked for is about to play: the switch/headset holds don't apply to it (volume still does). */
-    private var userPlay = false
+    /** The pair's own play (its switch back) is landing: the switch/route holds don't apply to it (volume still does). */
+    private var pairPlay = false
     /** The playWhenReady our own pause or play is about to report, so it isn't taken for the listener's. */
     private var expect: Boolean? = null
     /** The player's playWhenReady as last reported, so a reason-only change to a pause is told from a pause. */
@@ -133,7 +133,7 @@ internal class PlaybackGuard(
                 offCleared = true
                 lastHeadset = null
                 switched = false
-                userPlay = false
+                pairPlay = false
                 lastOutsideRemoved = null
                 memory.rememberHeadset(null)
                 memory.rememberSwitched(false)
@@ -165,7 +165,7 @@ internal class PlaybackGuard(
         watching = false
         hold = null
         wanted = false
-        userPlay = false
+        pairPlay = false
         switched = false
         lastOutsideRemoved = null
         expect = null
@@ -187,13 +187,13 @@ internal class PlaybackGuard(
         if (playWhenReady) {
             wanted = true
             if (!settingOn() || controls.blocked) {
-                userPlay = false
+                pairPlay = false
                 hold = null
                 return
             }
-            if (userPlay) {
-                // The listener's own start: a 2.4 GHz switch or a stale headset hold doesn't stop it. Silence still does.
-                userPlay = false
+            if (pairPlay) {
+                // The pair's own play (its switch back): the switch/route holds don't stop it. Silence still does.
+                pairPlay = false
                 if (controls.silent) holdNow(Hold.VOLUME) else hold = null
                 return
             }
@@ -217,7 +217,7 @@ internal class PlaybackGuard(
         }
         // Anything else (the listener's pause, the end of the queue, the sleep timer) ends the request.
         wanted = false
-        userPlay = false
+        pairPlay = false
         hold = null
     }
 
@@ -313,30 +313,27 @@ internal class PlaybackGuard(
     }
 
     /**
-     * A play the listener asked for — the play button, a song or playlist, a shuffle, the persistent card, the earbuds.
-     * It releases the 2.4 GHz switch and a stale headset hold; automatic resumes do not call this. Silence (volume 0)
-     * still holds the play when it lands.
-     */
-    fun playFromUser() {
-        if (released || !settingOn()) return
-        switched = false
-        memory.rememberSwitched(false)
-        if (hold == Hold.LOST || hold == Hold.NOISY) hold = null
-        if (!controls.playWhenReady) userPlay = true
-        android.util.Log.i("PrismControl", "play from the listener: the 2.4 GHz/headset hold is released")
-    }
-
-    /**
-     * The pair played on (a Bluetooth media button): it is back on the phone, or the listener asked from the earbuds.
-     * The switch hold is released and the play goes through even if the route hasn't moved back yet.
+     * The pair played on (a Bluetooth media button): its switch back. The switch and a stale headset hold are released,
+     * and the play the system is about to make is allowed even if the route still reads as the phone. Silence still
+     * holds it; the pair's play at volume 0 waits for the volume.
      */
     fun onRemotePlay() {
         if (released) return
+        pairPlay = true
         switched = false
         memory.rememberSwitched(false)
+        if (hold == Hold.LOST || hold == Hold.NOISY) hold = null
         android.util.Log.i("PrismControl", "the Bluetooth device played: the 2.4 GHz hold is released")
-        wanted = true
-        if (hold != null) releaseHold(force = true)
+    }
+
+    /** A single play/pause button on the pair, while paused: the same switch back, before the toggle plays. */
+    fun onRemotePlayToggle() {
+        if (released) return
+        pairPlay = true
+        switched = false
+        memory.rememberSwitched(false)
+        if (hold == Hold.LOST || hold == Hold.NOISY) hold = null
+        android.util.Log.i("PrismControl", "the Bluetooth device played: the 2.4 GHz hold is released")
     }
 
     /**
@@ -347,7 +344,7 @@ internal class PlaybackGuard(
         if (released) return
         hold = null
         wanted = false
-        userPlay = false
+        pairPlay = false
         // switched stays: a new play from the card still waits for the pair while it is in 2.4 GHz.
     }
 

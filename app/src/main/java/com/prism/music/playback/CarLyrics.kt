@@ -179,9 +179,7 @@ class LyricsOverlayPlayer(
     /** Fades a pause or play in (1.7.8, A5): true when it took the change over, false to make it at once. */
     var gentle: ((play: Boolean) -> Boolean)? = null
 
-    /** A play the listener asked for on the system's controls: the guard takes it as explicit (see PlaybackGuard.playFromUser). */
-    var onPlayFromUser: (() -> Unit)? = null
-
+    // A play from the system while the pair is in 2.4 GHz waits, like any other: only the pair's own play clears it.
     override fun handleSetPlayWhenReady(playWhenReady: Boolean): com.google.common.util.concurrent.ListenableFuture<*> {
         if (placeholder) {
             if (playWhenReady) {
@@ -189,7 +187,6 @@ class LyricsOverlayPlayer(
             } else onPlaceholderPaused?.invoke()
             return com.google.common.util.concurrent.Futures.immediateVoidFuture()
         }
-        if (playWhenReady) onPlayFromUser?.invoke()
         if (gentle?.invoke(playWhenReady) == true) return com.google.common.util.concurrent.Futures.immediateVoidFuture()
         return super.handleSetPlayWhenReady(playWhenReady)
     }
