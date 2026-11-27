@@ -23,8 +23,9 @@ import androidx.media3.common.Player
  * again through a headset or Bluetooth output (or the same output coming back), never the phone's speaker: the speaker
  * was not where the music was, and playing there after an unplug is the surprise this setting is for. A pair switching
  * to its own 2.4 GHz receiver may keep its Bluetooth entry listed; for the pairs chosen in Settings → Playback →
- * Headphones, its pause is taken as the switch, and a play waits for the pair's own play, its entry coming back, or
- * another outside output before it can start again.
+ * Headphones, its pause is taken as the switch, and a play on the phone waits for the pair's own play before it can
+ * start again. Another output (a different pair, a dongle, wired headphones) plays normally meanwhile, and its
+ * connection, entry or play never clears the switch.
  */
 internal class PlaybackGuard(
     private val watcher: Watcher,
@@ -272,18 +273,26 @@ internal class PlaybackGuard(
     }
 
     /**
-     * Re-checks a held play: the route can change without a device being added (a dongle already connected, or a pair
-     * whose Bluetooth entry stays listed), so the service asks once a second while something is held.
+     * Re-checks the guard while something is held or a 2.4 GHz switch is set: the route can change without a device
+     * being added (a dongle already connected, a pair whose Bluetooth entry stays listed, or a switch to another pair
+     * and back), so the service asks once a second.
      */
     fun check() {
         if (released || !settingOn()) return
-        val held = hold ?: return
+        val held = hold
+        if (held == null) {
+            // The switch is set and the sound moved back to the chosen pair (the phone switched to it while it is still
+            // in 2.4 GHz): hold the music again instead of playing into a pair that isn't listening.
+            if (!switched || !controls.playWhenReady) return
+            holdNow(blockNow() ?: return)
+            return
+        }
         val lost = lastHeadset
         val removed = lastOutsideRemoved
         val back = when (held) {
             Hold.VOLUME -> !controls.silent
-            // A 2.4 GHz switch is over on the pair's play or its entry coming back, never on a look at the route. An
-            // unselected headphone that becomes the route is different: playback there is normal while the switch holds.
+            // A 2.4 GHz switch is over on the pair's play, never on a look at the route. An unselected headphone that
+            // becomes the route is different: playback there is normal while the switch holds.
             Hold.NOISY, Hold.LOST -> if (switched) otherHeadphonesRouted else
                 controls.routedOutput.let { routed ->
                     routed != null && !routed.phoneOutput &&
@@ -373,25 +382,15 @@ internal class PlaybackGuard(
         val outside = music.filter { !it.phoneOutput }
         connectedOutside.removeAll { seen -> removed.any { it.sameAs(seen) } }
         connectedOutside.addAll(outside)
-        val previous = lastHeadset
         // What the music was playing on, remembered even while nothing is held: once it's gone, a play waits for another
         // outside output instead of coming out of the phone's speaker (a pair switching to its 2.4 GHz dongle, say).
         outside.firstOrNull()?.let {
             lastHeadset = it
             memory.rememberHeadset(it)
         }
-        val chosenOutside = outside.filter { isChosen(it) }
-        if (switched) {
-            // Only a chosen pair coming back ends the switch; another device must not clear it. The initial "currently
-            // connected" list from a service start names the pair that stayed listed in 2.4 GHz: that is not a return.
-            val returned = chosenOutside.any { sink -> lastOutsideRemoved?.sameAs(sink) == true }
-            val another = previous != null && chosenOutside.any { sink -> !sink.sameAs(previous) }
-            if (returned || another) {
-                switched = false
-                memory.rememberSwitched(false)
-                android.util.Log.i("PrismControl", "a chosen pair is back: the 2.4 GHz hold is released")
-            }
-        }
+        // A 2.4 GHz switch is over on the pair's own play, never on its Bluetooth entry: a TWS in 2.4 GHz mode can
+        // re-list that entry (taken out of its case, the phone switched back to it), and clearing the switch there would
+        // let the music play into a pair that isn't listening.
         removed.lastOrNull { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput }?.let { lastOutsideRemoved = it }
         // The output left while the music was playing: whatever resumed in the gap (a volume-up after "Pause when
         // muted") must not keep playing out of the phone now. This also holds the persistent card back.
@@ -410,9 +409,9 @@ internal class PlaybackGuard(
         val held = hold ?: return
         val back = when (held) {
             Hold.VOLUME -> false
-            // A headset, Bluetooth pair or the 2.4 GHz dongle (USB) connected: the sound has somewhere to go. Another
-            // headphone's connection releases a hold (the switch flag stays); the chosen pair's connection clears it.
-            Hold.NOISY, Hold.LOST -> outside.isNotEmpty()
+            // A headset, Bluetooth pair or the 2.4 GHz dongle (USB) connected: the sound has somewhere to go. While a
+            // switch is set, only an unselected output counts: the chosen pair's own entry coming back is not a return.
+            Hold.NOISY, Hold.LOST -> if (switched) outside.any { !isChosen(it) } else outside.isNotEmpty()
         }
         if (back) releaseHold()
     }

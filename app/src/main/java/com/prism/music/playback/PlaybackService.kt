@@ -494,8 +494,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             while (isActive) {
                 delay(1000)
                 // A held play (volume, no output, headphones away) can end without a device event: a 2.4 GHz dongle
-                // already connected becomes the route, or the volume/app volume changes in Prism's own control.
-                if (guardAttached && playbackGuard.holding != null) playbackGuard.check()
+                // already connected becomes the route, or the volume/app volume changes in Prism's own control. A set
+                // 2.4 GHz switch is watched too, so music moved back to the chosen pair is held again.
+                if (guardAttached && (playbackGuard.holding != null || playbackGuard.switchedNow)) playbackGuard.check()
                 // An episode's place is saved every few seconds while it plays.
                 if (++tick % 5 == 0 && player.isPlaying) saveEpisodePosition()
                 // The persistent card can be swiped away too, and some phones leave no trace of that (no delete intent

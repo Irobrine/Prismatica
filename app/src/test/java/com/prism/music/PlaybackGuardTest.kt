@@ -500,8 +500,17 @@ class PlaybackGuardTest {
         r.guard.onRemotePlay()
         r.guard.onRemotePlayToggle()
         assertTrue("its play does not unset it either", r.guard.switchedNow)
-        // The chosen pair is back: that is what clears it.
+        // The phone is switched back to the chosen pair while it is still in 2.4 GHz: its entry alone is not a return,
+        // and the music is held again.
+        r.watcher.removed(other)
+        r.player.routedOutput = bluetooth()
         r.watcher.added(bluetooth())
+        assertTrue("its entry back does not unset it", r.guard.switchedNow)
+        r.guard.check()
+        assertFalse("and the music is held again", r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        // Its own play is the switch back.
+        r.guard.onRemotePlay()
         assertFalse(r.guard.switchedNow)
     }
 
@@ -539,8 +548,40 @@ class PlaybackGuardTest {
         r.guard.onRemotePlay()
         r.guard.onRemotePlayToggle()
         assertTrue("an unchosen pair's play does not clear it", r.guard.switchedNow)
-        // The chosen pair listed again is the switch back.
+        // The chosen pair listed again is not its play either.
         r.watcher.added(bluetooth())
+        assertTrue(r.guard.switchedNow)
+    }
+
+    /** The reported flow: another pair plays, then the phone switches back to the chosen pair still in 2.4 GHz. */
+    @Test fun switchingBackToTheChosenPairIn24GHzHoldsTheMusicAgain() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.guard.onRemotePause()
+        assertTrue(r.guard.switchedNow)
+        // The phone is switched to another pair: it plays there normally, the switch stays set.
+        val other = OutputReturn.Sink(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, "11:22", "Other pair")
+        r.watcher.removed(bluetooth())
+        r.player.routedOutput = other
+        r.watcher.added(other)
+        assertTrue("the other pair plays", r.player.playWhenReady)
+        assertNull(r.guard.holding)
+        assertTrue(r.guard.switchedNow)
+        // Back to the chosen pair, still in 2.4 GHz: the entry comes back, nothing plays into it.
+        r.watcher.removed(other)
+        r.player.routedOutput = bluetooth()
+        r.watcher.added(bluetooth())
+        assertTrue("its entry is not its switch back", r.guard.switchedNow)
+        r.guard.check()
+        assertFalse("the music is held", r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        // The pair's own play is what starts it again.
+        r.guard.onRemotePlay()
+        r.player.set(true)
+        assertTrue(r.player.playWhenReady)
         assertFalse(r.guard.switchedNow)
     }
 
