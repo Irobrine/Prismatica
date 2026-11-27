@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -201,23 +202,50 @@ fun PrismTextButton(
 }
 
 /**
- * A text field that lets go of focus when the app goes to the background. Compose brings the keyboard back for a
- * focused field whenever its window regains focus, so a field the keyboard had been put away from (Back) reopened
- * it every time the app came back. Put on every phone text field; TV keeps its D-pad focus and does not use it.
+ * A text field that lets go of focus when its keyboard is put away (Back) or the app goes to the background. Compose
+ * brings the keyboard back — or leaves the cursor blinking — for a focused field whenever its window regains focus,
+ * so a field the keyboard had been put away from came back with a keyboard or a blinking cursor on every reopen.
+ * Put on every phone text field; TV keeps its D-pad focus and does not use it.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun Modifier.releaseFocusWhenHidden(): Modifier {
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-    val focused = androidx.compose.runtime.remember { booleanArrayOf(false) }
+    val imeVisible = androidx.compose.foundation.layout.WindowInsets.isImeVisible
+    // [0] this field has focus; [1] the keyboard was up; [2] it was put away while this field was focused.
+    val state = androidx.compose.runtime.remember { booleanArrayOf(false, false, false) }
+    val resumes = androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    androidx.compose.runtime.LaunchedEffect(imeVisible) {
+        if (imeVisible) {
+            // Visible again means the user came back to typing, not that a stale cursor was restored.
+            if (state[0]) state[2] = false
+        } else if (state[1] && state[0]) {
+            state[2] = true
+            focus.clearFocus(force = true)
+        }
+        state[1] = imeVisible
+    }
     androidx.compose.runtime.DisposableEffect(lifecycle, focus) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP && focused[0]) focus.clearFocus(force = true)
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> if (state[0]) focus.clearFocus(force = true)
+                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> resumes.intValue++
+                else -> Unit
+            }
         }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
     }
-    return this.onFocusChanged { focused[0] = it.isFocused }
+    // Compose can restore the old cursor when the window regains focus, after ON_RESUME. Clear it again then,
+    // but only if the keyboard was deliberately put away earlier — a field asked to focus at startup keeps it.
+    androidx.compose.runtime.LaunchedEffect(resumes.intValue) {
+        if (resumes.intValue > 0 && state[2] && !imeVisible) {
+            kotlinx.coroutines.delay(100)
+            if (state[2] && !imeVisible) focus.clearFocus(force = true)
+        }
+    }
+    return this.onFocusChanged { state[0] = it.isFocused }
 }
 
 /**
