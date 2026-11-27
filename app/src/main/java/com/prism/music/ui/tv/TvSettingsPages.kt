@@ -145,7 +145,26 @@ fun TvSettingsPlace(nav: TvNav) {
         TvSettingGroup(tr(R.string.colors), PrismIcons.Palette, emptyList()) to listOf(
             TvSettingRow(TvSetting(tr(R.string.colors), settings.lightStyle.label), TvSettingAction.Run { pickingLight = true }),
         ),
-        TvSettingGroup(tr(R.string.about_3), PrismIcons.Info, emptyList()) to listOf(
+        TvSettingGroup(tr(R.string.about_3), PrismIcons.Info, emptyList()) to listOfNotNull(
+            // Force TV mode (a phone showing these screens as a TV): the way back to the phone's screens. A real TV has
+            // none, so the row is only there when the mode is on (or was restored from a backup).
+            if (com.prism.music.ui.tv.TvDevice.isRealTv(context) && !settings.tv.forceTv) null else TvSettingRow(
+                TvSetting(tr(R.string.force_tv_mode), on = settings.tv.forceTv, info = tr(R.string.force_tv_mode_info)),
+                TvSettingAction.Run {
+                    // Set before the phone's screen starts: it asks at once, and the setting is written after.
+                    com.prism.music.ui.tv.TvDevice.forced = false
+                    c.settings.setForceTv(false)
+                    // A real TV stays here: the phone's screen would send itself straight back to these. A phone forced
+                    // as a TV goes back to its own screens.
+                    if (!com.prism.music.ui.tv.TvDevice.isRealTv(context)) {
+                        context.startActivity(
+                            android.content.Intent(context, com.prism.music.PrismActivity::class.java)
+                                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                        context.activityOrNull()?.finish()
+                    }
+                },
+            ),
             TvSettingRow(TvSetting(tr(R.string.tv_version, BuildConfig.VERSION_NAME)), TvSettingAction.Run {}),
             TvSettingRow(TvSetting(tr(R.string.check_for_updates)), TvSettingAction.Run { scope.launch { say(runCatching { c.updates.checkNow()?.let { tr(R.string.tv_update_ready, it) } ?: tr(R.string.you_re_up_to_date) }.getOrElse { it.message ?: tr(R.string.you_re_up_to_date) }) } }),
         ),

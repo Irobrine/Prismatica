@@ -27,6 +27,21 @@ class TvActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Not a TV (Force TV mode off, or an old intent from a phone's own media notification): the phone's screens, not
+        // these (1.8.0's TV screens are for a TV or a device asked to be one).
+        if (!com.prism.music.ui.tv.TvDevice.isTv(this)) {
+            // The intent comes along, as the phone's own screen forwards it the other way: a link or a share opened on a
+            // TV when it is one no longer loses where it was going.
+            startActivity(
+                android.content.Intent(intent).setComponent(android.content.ComponentName(this, PrismActivity::class.java))
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            )
+            finish()
+            return
+        }
+        // A phone forced as a TV turns its window to landscape (the phone itself isn't asked to turn): a TV is landscape
+        // already and keeps its own. configChanges has orientation|screenSize, so this never recreates the screens.
+        com.prism.music.ui.tv.TvDevice.orientationFor(com.prism.music.ui.tv.TvDevice.forced)?.let { requestedOrientation = it }
         val c = container
         c.player.connect()
         // As on the phone: the downloads' index comes off the disk in the background, never in the first frame's way.

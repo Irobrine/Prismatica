@@ -4094,6 +4094,8 @@
     <string name="downloader_code_detail">%1$s, टीवी पर Downloader ऐप के लिए</string>
     <string name="downloader_code_info">इंटरनेट से Prism का नया वर्शन पाने के लिए इसे टीवी पर Downloader में टाइप करें। यह इस फ़ोन के बिना भी काम करता है।</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv टीवी टेलीविज़न इंस्टॉल स्थापित apk डाउनलोड भेजना भेजें downloader sideload</string>
+    <string name="force_tv_mode">टीवी मोड बाध्य करें</string>
+    <string name="force_tv_mode_info">इस डिवाइस पर Prism TV की स्क्रीन दिखाता है और ऐप को टीवी की तरह लैंडस्केप में घुमा देता है। आपके दूसरे फ़ोन भी इसे टीवी की तरह इस्तेमाल कर सकते हैं (इसका पेयरिंग कोड टीवी में सेटिंग → खाता में है)। इसे टीवी में सेटिंग → जानकारी से बंद करें।</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s तैयार है</string>
     <string name="tv_update_note">अभी इंस्टॉल करें: Android सिर्फ़ एक बार अनुमति माँगता है</string>

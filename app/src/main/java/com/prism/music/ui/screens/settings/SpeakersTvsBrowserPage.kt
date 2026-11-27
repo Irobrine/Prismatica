@@ -52,6 +52,7 @@ import com.prism.music.ui.screens.SettingsSection
 import com.prism.music.ui.theme.LocalAppSettings
 import com.prism.music.ui.theme.LocalContainer
 import com.prism.music.ui.theme.PrismIcons
+import com.prism.music.ui.tv.activityOrNull
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -92,11 +93,12 @@ fun SpeakersTvsBrowserPage(bottomPadding: Dp, find: String? = null, showBack: Bo
     val onOff: (Boolean) -> String = { ListeningResets.onOff(it) }
     val remoteChanged = reset.add(tr(R.string.control_from_a_browser), s.webRemote, d.webRemote, onOff) { c.settings.setWebRemote(it) }
     val handoffChanged = reset.add(tr(R.string.available_for_handoff), s.handoffAvailable, d.handoffAvailable, onOff) { c.settings.setHandoffAvailable(it) }
+    val forceTvChanged = reset.add(tr(R.string.force_tv_mode), s.tv.forceTv, d.tv.forceTv, onOff) { c.settings.setForceTv(it) }
     // Held by the page, not by its group: the list is lazy, and sharing mustn't stop because a card scrolled away.
     val tv = rememberTvShare()
 
     SettingsPageScaffold(page.title, bottomPadding, showBack = showBack, onSearch = onSearch, find = find, reset = reset.pageReset()) {
-        group(tr(R.string.prism_on_a_tv)) { TvRows(tv) }
+        group(tr(R.string.prism_on_a_tv)) { TvRows(tv, forceTvChanged) }
         group(tr(R.string.cn_browser_remote)) {
             SwitchRow(
                 tr(R.string.control_from_a_browser), s.webRemote, info = tr(R.string.play_search_and_see_the_queue), changed = remoteChanged,
@@ -174,7 +176,7 @@ internal fun copier(): (String) -> Unit {
 
 /** The switch (its line says how it's going), the address to type on the TV while it's on, and the Downloader code. */
 @Composable
-private fun TvRows(tv: TvShare) {
+private fun TvRows(tv: TvShare, forceTvChanged: Boolean) {
     val copy = copier()
     val sent by tv.share.sent.collectAsState()
     SwitchRow(
@@ -199,6 +201,25 @@ private fun TvRows(tv: TvShare) {
     if (code.isNotBlank()) LinkRow(
         tr(R.string.downloader_code), value = tr(R.string.downloader_code_detail, code), info = tr(R.string.downloader_code_info), action = true,
     ) { copy(code) }
+    // 1.8.0's TV screens on a device that isn't a TV (a phone, say): every screen reads the flag through TvDevice. On
+    // a phone the TV takes the whole screen, and its own Settings → About turns it off again.
+    val c = LocalContainer.current
+    val context = LocalContext.current
+    val s = LocalAppSettings.current
+    SwitchRow(
+        tr(R.string.force_tv_mode), s.tv.forceTv,
+        info = tr(R.string.force_tv_mode_info),
+        changed = forceTvChanged,
+    ) { on ->
+        // Set here, not left to the settings' flow: the TV screen opened below asks before that has been written.
+        com.prism.music.ui.tv.TvDevice.forced = on
+        c.settings.setForceTv(on)
+        if (on) {
+            context.startActivity(android.content.Intent(context, com.prism.music.TvActivity::class.java))
+            // A TV has no phone screens: this one goes, and the TV's Settings → About is the way back.
+            context.activityOrNull()?.finish()
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------- Browser remote
@@ -361,6 +382,7 @@ val speakersTvsBrowserIndex: List<SettingEntry> by lazy {
         listOf(
             SettingEntry(page, tvGroup, tr(R.string.share_prism_with_a_tv), tr(R.string.tv_install_keywords) + " " + tr(R.string.from_this_phone_over_your_wi_fi)),
             SettingEntry(page, tvGroup, tr(R.string.downloader_code), tr(R.string.tv_install_keywords)),
+            SettingEntry(page, tvGroup, tr(R.string.force_tv_mode), tr(R.string.tv_install_keywords)),
             // "From a computer or tablet on this Wi-Fi" was the switch's second line.
             SettingEntry(
                 page, browser, tr(R.string.control_from_a_browser),

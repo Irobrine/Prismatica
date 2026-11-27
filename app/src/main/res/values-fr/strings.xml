@@ -4144,6 +4144,8 @@
     <string name="downloader_code_detail">%1$s, pour l’application Downloader sur une TV</string>
     <string name="downloader_code_info">Saisissez-le dans Downloader sur une TV pour obtenir la dernière version de Prism depuis Internet. Cela fonctionne sans ce téléphone.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv télévision installer installation apk télécharger téléchargement sideload downloader envoyer transférer</string>
+    <string name="force_tv_mode">Forcer le mode TV</string>
+    <string name="force_tv_mode_info">Affiche les écrans de Prism TV sur cet appareil et passe l\'app en mode paysage, comme sur un téléviseur. Vos autres téléphones peuvent aussi l\'utiliser comme TV (son code d\'association se trouve dans Paramètres → Compte du téléviseur). Pour le désactiver, ouvrez Paramètres → À propos du téléviseur.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s est prêt</string>
     <string name="tv_update_note">Installez-le maintenant : Android ne demande l\'autorisation qu\'une fois</string>

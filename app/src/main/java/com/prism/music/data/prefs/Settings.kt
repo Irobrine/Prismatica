@@ -599,6 +599,12 @@ data class TvPrefs(
     val ambientMinutes: Int = 3,
     /** Phones: while music plays and the phone is charging, the ambient screen instead of the phone sleeping (#265). */
     val deskMode: Boolean = false,
+    /**
+     * Force TV mode (Settings → Speakers, TVs & browser → Prism on a TV): this device shows Prism TV's screens (in
+     * landscape, as a TV does) and is reachable as a TV, as if it were one, until switched off in the TV's Settings →
+     * About. Not part of a Look (`notLook`): it is this device's, and a TV of its own.
+     */
+    val forceTv: Boolean = false,
     /** How large lyrics are on the TV (1 = as designed). */
     val lyricsScale: Float = 1f,
     /** This TV has shown Prism TV's welcome (sign in with the phone) once: also for a TV that had the phone app before. */
@@ -2192,6 +2198,7 @@ class SettingsRepository(
         val rewindNotification = booleanPreferencesKey("rewind_notification")
         val webRemote = booleanPreferencesKey("web_remote")
         val handoffAvailable = booleanPreferencesKey("handoff_available")
+        val forceTv = booleanPreferencesKey("force_tv")
         val lyricsScale = floatPreferencesKey("lyrics_scale")
         val carLyrics = booleanPreferencesKey("car_lyrics")
         val carLyricsStyle = stringPreferencesKey("car_lyrics_style")
@@ -2639,7 +2646,7 @@ class SettingsRepository(
                 "account_avatar", "haptics", "immersive_player", "preload", "preload_cellular", "canvas_enabled", "canvas_on_cellular",
                 "soft_spatial", "soft_spatial_amount", "lyrics_on_player", "lyrics_order", "lyrics_off", "prefer_synced", "skip_censored",
                 "lyrics_translate", "lyrics_translate_to", "romanize_lyrics", "romanize_all", "lyrics_furigana", "lyrics_furigana_parts", "sing_cellular", "sing_always_ready",
-                "sing_cache_mb", "dj_flow", "release_notifications", "rewind_notification", "web_remote", "handoff_available",
+                "sing_cache_mb", "dj_flow", "release_notifications", "rewind_notification", "web_remote", "handoff_available", "force_tv",
                 "car_lyrics", "car_lyrics_style", "car_lyrics_on_phone", "car_lyrics_keep_title", "auto_grid", "nerd_stats",
                 "show_quality", "square_video_covers", "lyrics_on_mobile_data", "best_part_button", "show_video_switch",
                 "hold_seek_seconds", "previous_always_back", "canvas_with_downloads", "canvas_with_downloads_cellular", "audio_quality", "cellular_quality",
@@ -3072,6 +3079,7 @@ class SettingsRepository(
             tv = TvPrefs(
                 ambientMinutes = (p[K.tvAmbientMinutes] ?: d.tv.ambientMinutes).coerceIn(0, 60),
                 deskMode = p[K.deskMode] ?: d.tv.deskMode,
+                forceTv = p[K.forceTv] ?: d.tv.forceTv,
                 lyricsScale = (p[K.tvLyricsScale] ?: d.tv.lyricsScale).coerceIn(0.75f, 1.5f),
             welcomed = p[K.tvWelcomed] ?: d.tv.welcomed,
                 homeLayout = p[K.tvHomeLayout]?.let { runCatching { json.decodeFromString<List<HomeSectionConfig>>(it) }.getOrNull() } ?: d.tv.homeLayout,
@@ -3568,6 +3576,7 @@ class SettingsRepository(
     fun setRewindNotification(v: Boolean) = edit { it[K.rewindNotification] = v }
     fun setWebRemote(v: Boolean) = edit { it[K.webRemote] = v }
     fun setHandoffAvailable(v: Boolean) = edit { it[K.handoffAvailable] = v }
+    fun setForceTv(v: Boolean) = edit { it[K.forceTv] = v }
     fun setLyricsScale(v: Float) = edit { it[K.lyricsScale] = v }
     fun setCarLyrics(v: Boolean) = edit { it[K.carLyrics] = v }
     fun setCarLyricsStyle(v: CarLyricsStyle) = edit { it[K.carLyricsStyle] = v.name }

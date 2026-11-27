@@ -4094,6 +4094,8 @@
     <string name="downloader_code_detail">%1$s, para sa Downloader app sa TV</string>
     <string name="downloader_code_info">I-type ito sa Downloader sa isang TV para makuha ang pinakabagong Prism mula sa internet. Gumagana ito kahit wala ang teleponong ito.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader telebisyon i-install install i-download download ipadala ibahagi</string>
+    <string name="force_tv_mode">I-force ang TV mode</string>
+    <string name="force_tv_mode_info">Ipinapakita sa device na ito ang mga screen ng Prism TV at ginagawang landscape ang app, gaya ng sa TV. Magagamit din ito ng iba mong phone bilang TV (nasa Mga Setting → Account ng TV ang pairing code nito). I-off ito sa Mga Setting → Tungkol ng TV.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Handa na ang Prism %1$s</string>
     <string name="tv_update_note">I-install na ngayon: minsan lang hihingi ng pahintulot ang Android</string>

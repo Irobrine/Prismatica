@@ -4044,6 +4044,8 @@
     <string name="downloader_code_detail">%1$s, dành cho ứng dụng Downloader trên TV</string>
     <string name="downloader_code_info">Nhập mã này vào Downloader trên TV để tải Prism mới nhất từ internet. Mã hoạt động mà không cần điện thoại này.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader ti vi truyền hình cài cài đặt tải tải xuống gửi chia sẻ</string>
+    <string name="force_tv_mode">Buộc chế độ TV</string>
+    <string name="force_tv_mode_info">Hiển thị các màn hình của Prism TV trên thiết bị này và xoay ứng dụng sang ngang, như trên TV. Các điện thoại khác của bạn cũng có thể dùng nó làm TV (mã ghép nối của nó nằm trong Cài đặt → Tài khoản trên TV). Tắt nó trong Cài đặt → Giới thiệu trên TV.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s đã sẵn sàng</string>
     <string name="tv_update_note">Cài ngay: Android chỉ xin phép một lần</string>

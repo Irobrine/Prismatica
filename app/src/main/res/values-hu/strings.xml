@@ -4094,6 +4094,8 @@
     <string name="downloader_code_detail">%1$s, a TV-n lévő Downloader alkalmazáshoz</string>
     <string name="downloader_code_info">Írd be a TV-n a Downloaderbe, hogy az internetről megkapd a Prism legújabb verzióját. Ez a telefon nélkül is működik.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv televízió telepítés telepíteni apk letöltés letölteni küldés küldeni downloader sideload</string>
+    <string name="force_tv_mode">TV mód kényszerítése</string>
+    <string name="force_tv_mode_info">A Prism TV képernyőit mutatja ezen az eszközön, és fekvő tájolásra fordítja az appot, ahogy a tévében van. A többi telefonod is használhatja tévéként (a párosítókódja a tévében a Beállítások → Fiók menüben van). A tévében a Beállítások → Névjegy menüben kapcsolhatod ki.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Elkészült a Prism %1$s</string>
     <string name="tv_update_note">Telepítsd most: az Android csak egyszer kér engedélyt</string>

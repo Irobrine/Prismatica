@@ -4044,6 +4044,8 @@
     <string name="downloader_code_detail">%1$s, untuk aplikasi Downloader di TV</string>
     <string name="downloader_code_info">Ketik di Downloader pada TV untuk mendapatkan Prism terbaru dari internet. Tetap berfungsi tanpa ponsel ini.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv televisi pasang memasang instal install apk unduh mengunduh download kirim mengirim downloader sideload</string>
+    <string name="force_tv_mode">Paksa mode TV</string>
+    <string name="force_tv_mode_info">Menampilkan layar Prism TV di perangkat ini dan memutar aplikasi ke lanskap, seperti di TV. Ponsel lain Anda juga bisa memakainya sebagai TV (kode penyambungannya ada di Setelan → Akun di TV). Matikan di Setelan → Tentang di TV.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s sudah siap</string>
     <string name="tv_update_note">Pasang sekarang: Android hanya meminta izin sekali</string>

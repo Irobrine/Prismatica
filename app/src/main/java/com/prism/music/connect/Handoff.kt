@@ -216,7 +216,11 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
 
     // ------------------------------------------------------------ A TV's side (1.8.0)
 
-    override val isTv: Boolean by lazy { com.prism.music.ui.tv.TvDevice.isTv(app) }
+    /**
+     * Whether this device is a TV (1.8.0), read afresh: Force TV mode (Settings → Speakers, TVs & browser) makes a phone
+     * one at once, without a restart, for the pairing screen, the remote, the sign-in and what's advertised.
+     */
+    override val isTv: Boolean get() = com.prism.music.ui.tv.TvDevice.isTv(app)
 
     private val tvPairing = PairingCode()
     /** A phone's code while one is being shown: reused for a second device asking at the same time, not churned. */
@@ -516,8 +520,23 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
 
     @Volatile private var server: ServerSocket? = null
     private var registration: NsdManager.RegistrationListener? = null
+    /** Registration attempts since the record last registered (the retry after a refusal). */
+    private var tries = 0
 
     fun setAvailable(on: Boolean) { if (on) startServer() else stopServer() }
+
+    /**
+     * Registers this device again while it is available, without closing what it listens on: a record's attributes are
+     * read once, when it is registered, so Force TV mode (the "tv" in it) needs a fresh one. NsdManager takes its
+     * registrations in order, so the unregistration has gone through before the new one.
+     */
+    @Synchronized
+    fun refreshAdvertise() {
+        val port = server?.localPort ?: return
+        registration?.let { l -> runCatching { nsd?.unregisterService(l) } }
+        registration = null
+        register(port)
+    }
 
     /** The port this device listens on while available (null: not listening). */
     val port: Int? get() = server?.localPort
@@ -567,8 +586,24 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
             Lan.ownAddresses().take(3).joinToString(",").takeIf { it.isNotEmpty() }?.let { setAttribute("a", it) }
         }
         val listener = object : NsdManager.RegistrationListener {
-            override fun onServiceRegistered(info: NsdServiceInfo) = Unit
-            override fun onRegistrationFailed(info: NsdServiceInfo, error: Int) { Log.w(TAG, "advertising failed: $error") }
+            override fun onServiceRegistered(info: NsdServiceInfo) { tries = 0 }
+            override fun onRegistrationFailed(info: NsdServiceInfo, error: Int) {
+                Log.w(TAG, "advertising failed: $error")
+                // A record that is still being unregistered is refused at once (Force TV mode registers again): one
+                // more try once that has gone through, then leave it to the next setAvailable, so this device never
+                // keeps advertising a record that says the wrong thing without a way back.
+                synchronized(this@Handoff) {
+                    if (registration !== this) return
+                    registration = null
+                    val p = server?.localPort ?: return
+                    if (tries >= 1) return
+                    tries++
+                    scope.launch {
+                        delay(RETRY_ADVERTISE_MS)
+                        synchronized(this@Handoff) { if (server?.localPort == p && registration == null) register(p) }
+                    }
+                }
+            }
             override fun onServiceUnregistered(info: NsdServiceInfo) = Unit
             override fun onUnregistrationFailed(info: NsdServiceInfo, error: Int) = Unit
         }
@@ -810,6 +845,8 @@ class Handoff(private val app: Application, private val c: AppContainer) : Hando
         val SIGN_IN_KEYS = setOf("cookie", "visitor_data", "data_sync_id", "auth_user", "account_name", "account_email", "account_avatar")
         /** How long a song gets to start here (it may still be loading) before the move counts as failed. */
         private const val START_WAIT_MS = 12_000L
+        /** How long a refused registration waits (the unregistration it collided with) before trying again. */
+        private const val RETRY_ADVERTISE_MS = 600L
         /** Connections served at once (a move, a remote's buttons, a pairing), and from one address. */
         private const val MAX_LINKS = 6
         private const val MAX_LINKS_PER_ADDRESS = 3

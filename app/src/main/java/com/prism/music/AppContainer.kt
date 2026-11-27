@@ -937,6 +937,9 @@ class AppContainer(val app: Application) {
     /** Prism Connect: playback moving between Prism devices on the same Wi-Fi. */
     val handoff by lazy { com.prism.music.connect.Handoff(app, this) }
     init {
+        // Force TV mode (Settings → Speakers, TVs & browser): read now, before the first screen asks what this device is
+        // (a phone that is one every check reads it from TvDevice, never from here).
+        com.prism.music.ui.tv.TvDevice.forced = settings.current.tv.forceTv
         scope.launch {
             settings.flow.map { it.webRemote }.distinctUntilChanged().collect { on ->
                 if (on) webRemote.setEnabled(true) else if (webRemoteMade.isInitialized()) webRemote.setEnabled(false)
@@ -944,8 +947,22 @@ class AppContainer(val app: Application) {
         }
         scope.launch {
             // A TV is always reachable for the phones paired with it (1.8.0: the phone as its remote); it takes new
-            // pairings only while its pairing screen is open.
-            settings.flow.map { it.handoffAvailable }.distinctUntilChanged().collect { on -> handoff.setAvailable(on || handoff.isTv) }
+            // pairings only while its pairing screen is open. Force TV mode makes a phone one at once: its record says
+            // so too (a record's attributes are read once, at registration), and it stays reachable whether or not
+            // "Available for handoff" is on.
+            var lastTv: Boolean? = null
+            settings.flow.map { it.tv.forceTv to it.handoffAvailable }.distinctUntilChanged().collect { (forced, available) ->
+                // The switches write the flag at once (the screen they open asks before the setting lands), so only a
+                // value that has really changed is written here: an emission still on its way can't undo that.
+                val change = com.prism.music.ui.tv.tvModeChange(lastTv, forced)
+                if (change != com.prism.music.ui.tv.TvModeChange.SAME) com.prism.music.ui.tv.TvDevice.forced = forced
+                // A record's attributes are read once, at registration: a mode change while one is up has to register
+                // again (starting the server below already registers the new one when it wasn't up).
+                val up = handoff.port != null
+                handoff.setAvailable(available || handoff.isTv)
+                if (change == com.prism.music.ui.tv.TvModeChange.CHANGED && up) handoff.refreshAdvertise()
+                lastTv = forced
+            }
         }
         // White light / Spectrum: the home-screen widgets are drawn again to match.
         scope.launch {

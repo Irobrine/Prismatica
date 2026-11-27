@@ -4144,6 +4144,8 @@
     <string name="downloader_code_detail">%1$s, עבור האפליקציה Downloader בטלוויזיה</string>
     <string name="downloader_code_info">הקלד אותו ב-Downloader בטלוויזיה כדי להוריד את Prism העדכני ביותר מהאינטרנט. זה עובד גם בלי הטלפון הזה.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv טלוויזיה טלויזיה מסך התקנה להתקין apk הורדה להוריד שליחה לשלוח downloader sideload</string>
+    <string name="force_tv_mode">כפיית מצב TV</string>
+    <string name="force_tv_mode_info">מציג את המסכים של Prism TV במכשיר הזה ומסובב את האפליקציה למצב אופקי, כמו בטלוויזיה. גם הטלפונים האחרים שלך יכולים להשתמש בו כטלוויזיה (קוד ההתאמה שלו נמצא בטלוויזיה, הגדרות ← חשבון). כדי לכבות אותו, פתחו בטלוויזיה הגדרות ← מידע.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">‏Prism %1$s מוכנה</string>
     <string name="tv_update_note">אפשר להתקין עכשיו: Android מבקשת אישור פעם אחת בלבד</string>

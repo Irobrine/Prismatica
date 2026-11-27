@@ -56,6 +56,7 @@ class SpeakersTvsBrowserPageTest : ListeningPageHarness(SettingsPageId.SPEAKERS_
     private val handoffGroup = t(R.string.handoff)
     private val share = t(R.string.share_prism_with_a_tv)
     private val downloader = t(R.string.downloader_code)
+    private val forceTv = t(R.string.force_tv_mode)
     private val remote = t(R.string.control_from_a_browser)
     private val addressAndCode = t(R.string.cn_address_and_code)
     private val handoff = t(R.string.available_for_handoff)
@@ -87,11 +88,12 @@ class SpeakersTvsBrowserPageTest : ListeningPageHarness(SettingsPageId.SPEAKERS_
         show()
         assertBudgets("defaults")
         assertEquals(listOf(tvGroup, browserGroup, handoffGroup), groupTitles())
-        // Share Prism with a TV and the Downloader code; the remote's switch; handoff's switch.
-        assertEquals(listOf(if (TvInstall.DOWNLOADER_CODE.isBlank()) 1 else 2, 1, 1), groupSizes())
+        // Share Prism with a TV, the Downloader code and Force TV mode; the remote's switch; handoff's switch.
+        assertEquals(listOf(if (TvInstall.DOWNLOADER_CODE.isBlank()) 2 else 3, 1, 1), groupSizes())
         assertEquals(0, changedRows())
         assertTrue("no group repeats the page's name", groupTitles().none { it == me.title })
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(share))
+        assertEquals(SettingsTags.ROW_SWITCH, typeOf(forceTv))
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(remote))
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(handoff))
         assertEquals(SettingsTags.ROW_LINK, typeOf(downloader))
@@ -109,11 +111,35 @@ class SpeakersTvsBrowserPageTest : ListeningPageHarness(SettingsPageId.SPEAKERS_
         assertFalse(hasRow(addressAndCode) || hasRow(pairedDevices) || hasRow(t(R.string.address)))
     }
 
+    /**
+     * Force TV mode: the switch that makes this phone a TV. Its tap hands the screen to TvActivity (an in-app test's
+     * job); here the stored switch, the flag every screen reads through `TvDevice`, and the reset putting it back.
+     */
+    @Test fun forceTvModeIsStoredAndResetHere() {
+        show()
+        assertFalse("off as Prism comes", stored.tv.forceTv)
+        assertFalse(com.prism.music.ui.tv.TvDevice.forced)
+        container.settings.setForceTv(true)
+        try {
+            until("force_tv") { it.tv.forceTv }
+            compose.waitUntil(5_000) { com.prism.music.ui.tv.TvDevice.forced }
+            assertEquals("the row marks the change", 1, changedRows())
+            val lines = resetLines(confirm = true)
+            assertEquals(lines.joinToString("\n"), 1, lines.size)
+            assertTrue(lines.toString(), lines.any { it.startsWith("$forceTv: ${t(R.string.on_2)} → ${t(R.string.off)}") })
+            until("the reset") { !it.tv.forceTv }
+            compose.waitUntil(5_000) { !com.prism.music.ui.tv.TvDevice.forced }
+            assertEquals(0, changedRows())
+        } finally {
+            container.settings.setForceTv(false)
+        }
+    }
+
     /** Principle 8: both stored settings the ledger gives the page have their control here, and it stores them. */
     @Test fun everyStoredSettingHasItsControl() {
         show()
         val d = AppSettings()
-        assertFalse(d.webRemote || d.handoffAvailable)
+        assertFalse(d.webRemote || d.handoffAvailable || d.tv.forceTv)
         try {
             // web_remote
             tap(remote)

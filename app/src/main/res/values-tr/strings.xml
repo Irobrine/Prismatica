@@ -4094,6 +4094,8 @@
     <string name="downloader_code_detail">%1$s, bir TV\'deki Downloader uygulaması için</string>
     <string name="downloader_code_info">En yeni Prism\'i internetten almak için bunu bir TV\'deki Downloader\'a yazın. Bu telefon olmadan da çalışır.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader televizyon yükle yükleme kur kurulum indir indirme gönder aktar</string>
+    <string name="force_tv_mode">TV modunu zorla</string>
+    <string name="force_tv_mode_info">Prism TV\'nin ekranlarını bu cihazda gösterir ve uygulamayı TV\'deki gibi yatay konuma çevirir. Diğer telefonların da onu TV olarak kullanmasına olanak verir (eşleme kodu TV\'de Ayarlar → Hesap bölümündedir). TV\'de Ayarlar → Hakkında bölümünden kapatabilirsin.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s hazır</string>
     <string name="tv_update_note">Şimdi yükleyin: Android yalnızca bir kez izin ister</string>

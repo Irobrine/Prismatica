@@ -4294,6 +4294,8 @@
     <string name="downloader_code_detail">%1$s، لتطبيق Downloader على التلفاز</string>
     <string name="downloader_code_info">اكتبه في Downloader على التلفاز لتحصل على أحدث إصدار من Prism عبر الإنترنت. يعمل من دون هذا الهاتف.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader تلفاز تلفزيون شاشة تثبيت تنزيل تحميل إرسال نقل مشاركة</string>
+    <string name="force_tv_mode">فرض وضع التلفزيون</string>
+    <string name="force_tv_mode_info">يعرض شاشات Prism TV على هذا الجهاز ويحوّل التطبيق إلى الوضع الأفقي كما في التلفزيون. يمكن لهواتفك الأخرى استخدامه كتلفزيون أيضًا (رمز الإقران موجود في الإعدادات ← الحساب على التلفزيون). أوقفه من الإعدادات ← حول على التلفزيون.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">‏Prism %1$s جاهز</string>
     <string name="tv_update_note">ثبّته الآن: يطلب Android الإذن مرة واحدة فقط</string>

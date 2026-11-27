@@ -4518,6 +4518,9 @@
     <string name="downloader_code_detail">%1$s, for the Downloader app on a TV</string>
     <string name="downloader_code_info">Type it into Downloader on a TV to get the newest Prism from the internet. It works without this phone.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv install apk download sideload downloader send put on</string>
+    <!-- Force TV mode (1.8.0's TV screens on a device that isn't a TV), Settings → Prism on a TV. -->
+    <string name="force_tv_mode">Force TV mode</string>
+    <string name="force_tv_mode_info">Shows Prism TV\'s screens on this device and turns the app to landscape, as a TV has them. Your other phones can use it as a TV too (its pairing code is in the TV\'s Settings → Account). Turn it off in the TV\'s Settings → About.</string>
     <!-- 1.8.0 desk mode and the tour -->
     <string name="desk_mode">Desk mode</string>
     <string name="desk_mode_detail">While the phone charges and music plays</string>

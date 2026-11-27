@@ -4044,6 +4044,8 @@
     <string name="downloader_code_detail">%1$s、テレビの Downloader アプリ用</string>
     <string name="downloader_code_info">テレビの Downloader に入力すると、インターネットから最新の Prism を入手できます。このスマートフォンがなくても使えます。</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv テレビ インストール 入れる apk ダウンロード 送信 送る downloader sideload</string>
+    <string name="force_tv_mode">TV モードを強制</string>
+    <string name="force_tv_mode_info">Prism TV の画面をこの端末に表示し、テレビと同じようにアプリを横向きにします。他のスマートフォンもテレビとして使えます（ペア設定コードはテレビの 設定 → アカウント にあります）。オフにするには、テレビの 設定 → 情報 を開いてください。</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s の準備ができました</string>
     <string name="tv_update_note">今すぐインストール：Android が許可を求めるのは最初の 1 回だけです</string>

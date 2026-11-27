@@ -4094,6 +4094,8 @@
     <string name="downloader_code_detail">%1$s, för appen Downloader på en TV</string>
     <string name="downloader_code_info">Skriv in den i Downloader på en TV för att hämta den senaste versionen av Prism från internet. Det fungerar utan den här telefonen.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv installera installation apk ladda ner hämta download sideload downloader skicka television</string>
+    <string name="force_tv_mode">Tvinga TV-läge</string>
+    <string name="force_tv_mode_info">Visar Prism TV:s skärmar på den här enheten och vrider appen till liggande läge, som en tv har. Dina andra telefoner kan också använda den som tv (dess parkopplingskod finns på tv:n under Inställningar → Konto). Du stänger av det på tv:n under Inställningar → Om.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s är redo</string>
     <string name="tv_update_note">Installera nu: Android frågar om lov bara en gång</string>

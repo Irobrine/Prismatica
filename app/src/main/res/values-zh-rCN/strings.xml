@@ -4044,6 +4044,8 @@
     <string name="downloader_code_detail">%1$s，用于电视上的 Downloader 应用</string>
     <string name="downloader_code_info">在电视的 Downloader 中输入它，即可从互联网获取最新的 Prism。无需这部手机也能使用。</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader 电视 电视机 安装 下载 发送 传输 侧载</string>
+    <string name="force_tv_mode">强制电视模式</string>
+    <string name="force_tv_mode_info">在此设备上显示 Prism TV 的界面，并将应用转为横屏，就像电视一样。你的其他手机也可以把它当作电视使用（其配对代码位于电视的 设置 → 账号）。可在电视的 设置 → 关于 中关闭。</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s 已准备好</string>
     <string name="tv_update_note">立即安装：Android 只会请求一次许可</string>

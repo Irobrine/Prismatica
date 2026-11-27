@@ -4094,6 +4094,8 @@
     <string name="downloader_code_detail">%1$s، ٹی وی پر Downloader ایپ کے لیے</string>
     <string name="downloader_code_info">انٹرنیٹ سے Prism کا نیا ترین ورژن لینے کے لیے اسے ٹی وی پر Downloader میں ٹائپ کریں۔ یہ اس فون کے بغیر بھی کام کرتا ہے۔</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader ٹی وی ٹیلی ویژن انسٹال انسٹالیشن ڈاؤن لوڈ بھیجیں شیئر</string>
+    <string name="force_tv_mode">ٹی وی موڈ لازمی کریں</string>
+    <string name="force_tv_mode_info">اس ڈیوائس پر Prism TV کی اسکرینیں دکھاتا ہے اور ایپ کو ٹی وی کی طرح لینڈ اسکیپ میں گھما دیتا ہے۔ آپ کے دوسرے فون بھی اسے ٹی وی کے طور پر استعمال کر سکتے ہیں (اس کا جوڑنے کا کوڈ ٹی وی کی ترتیبات ← اکاؤنٹ میں موجود ہے)۔ اسے ٹی وی میں ترتیبات ← بارے میں سے بند کریں۔</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">‏Prism %1$s تیار ہے</string>
     <string name="tv_update_note">ابھی انسٹال کریں: Android صرف ایک بار اجازت مانگتا ہے</string>

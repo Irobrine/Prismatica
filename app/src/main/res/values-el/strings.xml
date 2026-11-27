@@ -4094,6 +4094,8 @@
     <string name="downloader_code_detail">%1$s, για την εφαρμογή Downloader σε τηλεόραση</string>
     <string name="downloader_code_info">Πληκτρολόγησέ τον στο Downloader σε μια τηλεόραση για να πάρεις το πιο πρόσφατο Prism από το διαδίκτυο. Λειτουργεί χωρίς αυτό το τηλέφωνο.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader τηλεόραση εγκατάσταση λήψη κατέβασμα αποστολή</string>
+    <string name="force_tv_mode">Εξαναγκασμός λειτουργίας TV</string>
+    <string name="force_tv_mode_info">Εμφανίζει τις οθόνες του Prism TV σε αυτή τη συσκευή και γυρίζει την εφαρμογή σε οριζόντια προβολή, όπως σε μια τηλεόραση. Τα άλλα τηλέφωνά σας μπορούν να τη χρησιμοποιήσουν κι αυτά ως τηλεόραση (ο κωδικός σύζευξής της βρίσκεται στην τηλεόραση, Ρυθμίσεις → Λογαριασμός). Απενεργοποιήστε την από την τηλεόραση, Ρυθμίσεις → Σχετικά.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Το Prism %1$s είναι έτοιμο</string>
     <string name="tv_update_note">Εγκαταστήστε το τώρα: το Android ζητά άδεια μόνο μία φορά</string>

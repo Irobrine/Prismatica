@@ -4194,6 +4194,8 @@
     <string name="downloader_code_detail">%1$s, pro aplikaci Downloader v televizi</string>
     <string name="downloader_code_info">Zadej ho do aplikace Downloader v televizi a získáš nejnovější Prism z internetu. Funguje i bez tohoto telefonu.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader televize televizor instalace instalovat stáhnout stažení odeslat sdílet</string>
+    <string name="force_tv_mode">Vynutit režim TV</string>
+    <string name="force_tv_mode_info">Zobrazuje obrazovky Prism TV na tomto zařízení a otočí aplikaci na šířku, jako je má televize. Vaše další telefony jej mohou používat jako televizi (jeho párovací kód je v televizi v Nastavení → Účet). Vypnete jej v televizi v Nastavení → O aplikaci.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s je připraven</string>
     <string name="tv_update_note">Nainstalujte ho hned: Android se zeptá jen jednou</string>

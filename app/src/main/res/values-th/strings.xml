@@ -4044,6 +4044,8 @@
     <string name="downloader_code_detail">%1$s สำหรับแอป Downloader บนทีวี</string>
     <string name="downloader_code_info">พิมพ์รหัสนี้ลงใน Downloader บนทีวีเพื่อรับ Prism เวอร์ชันล่าสุดจากอินเทอร์เน็ต ใช้งานได้โดยไม่ต้องมีโทรศัพท์เครื่องนี้</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader ทีวี โทรทัศน์ ติดตั้ง ดาวน์โหลด ส่ง แชร์ ติดตั้งแอป</string>
+    <string name="force_tv_mode">บังคับโหมดทีวี</string>
+    <string name="force_tv_mode_info">แสดงหน้าจอของ Prism TV บนอุปกรณ์นี้และหมุนแอปเป็นแนวนอนเหมือนบนทีวี โทรศัพท์เครื่องอื่นของคุณก็ใช้เป็นทีวีได้เช่นกัน (รหัสจับคู่อยู่ใน การตั้งค่า → บัญชี บนทีวี) ปิดได้ใน การตั้งค่า → เกี่ยวกับ บนทีวี</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s พร้อมแล้ว</string>
     <string name="tv_update_note">ติดตั้งตอนนี้: Android จะขออนุญาตเพียงครั้งเดียว</string>
