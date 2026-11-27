@@ -181,7 +181,12 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     private val ahead30Command = SessionCommand("prism.AHEAD_30", Bundle.EMPTY)
     /** The persistent card's buttons (Settings → Gestures & buttons → Persistent controls), one command each. */
     private val persistentCommands = PersistentAction.entries.associateWith { SessionCommand("prism.PERSISTENT.${it.key}", Bundle.EMPTY) }
-    private val customCommands get() = listOf(likeCommand, shuffleCommand, repeatCommand, lyricsCommand, radioCommand, dislikeCommand, back10Command, ahead30Command) + persistentCommands.values
+    /**
+     * The compatibility card's Play slot: that card hides the native play/pause, so this is its play control (and so
+     * releases the 2.4 GHz switch, unlike the card's shuffle/quick-pick buttons).
+     */
+    private val cardPlayCommand = SessionCommand("prism.CARD_PLAY", Bundle.EMPTY)
+    private val customCommands get() = listOf(likeCommand, shuffleCommand, repeatCommand, lyricsCommand, radioCommand, dislikeCommand, back10Command, ahead30Command) + persistentCommands.values + cardPlayCommand
     /** What the media session (Android Auto, the notification) sees: the player, with lyrics laid over the title and cover. */
     private lateinit var sessionPlayer: LyricsOverlayPlayer
     private lateinit var carLyrics: CarLyrics
@@ -335,13 +340,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         // The persistent card's own item: no URI, only the title, subtitle and the app's icon. (Android needs a window
         // in the session's timeline to show controls at all.)
         sessionPlayer.setPlaceholderItem(placeholderItem())
-        sessionPlayer.onPlaceholderPlay = {
-            // The card's own play is a play control (the shuffle/quick-pick buttons are not: they choose a set).
-            if (guardAttached) playbackGuard.playFromControl()
-            // Play from the card itself: a set that was being made when it was pressed mustn't replace what it starts.
-            val press = if (persistentPress.isRunning) persistentPress.supersede() else null
-            scope.launch { if (!playLastPlayed(press)) runPersistentAction(PersistentAction.LIBRARY_SONGS, press) }
-        }
+        sessionPlayer.onPlaceholderPlay = { pressCardPlay() }
         sessionPlayer.onPlaceholderPaused = { reactivatePersistentCard() }
         carLyrics = CarLyrics(this, c, player, sessionPlayer, scope)
         // The lyrics button works the car's switch in a car and the notification's elsewhere (#392).
@@ -1195,12 +1194,13 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * "Resume when Bluetooth comes back" waits for the output that went, or "Pause when muted" waits for the volume.
      */
     private fun waitingToPlayOn(): Boolean {
-        // A 2.4 GHz switch keeps the persistent card away while the chosen pair is away. Another headphone on the route
-        // is usable normally, so the card may show then; a play control (or the pair's own play) ends the switch.
+        // An empty or stopped queue has nothing to play on: the card may start something else, whatever is waiting.
+        if (player.mediaItemCount == 0) return false
+        // A 2.4 GHz switch keeps the persistent card away while there is a song it would play on the chosen pair.
+        // Another headphone on the route is usable normally, so the card may show then; a play control (or the pair's
+        // own play) ends the switch.
         if (guardAttached && playbackGuard.switchedNow && !playbackGuard.otherHeadphonesRouted) return true
-        // An empty queue has nothing to play on: the card may start something else; a held play keeps it away.
-        return player.mediaItemCount > 0 &&
-            ((guardAttached && playbackGuard.holding != null) || c.player.awaitingOutput || muteWatch.waiting)
+        return (guardAttached && playbackGuard.holding != null) || c.player.awaitingOutput || muteWatch.waiting
     }
 
     /** Whether one of Prism's own screens is showing (a foreground service alone doesn't count). */
@@ -3036,10 +3036,10 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             // placeholder player takes previous/next away (see LyricsOverlayPlayer).
             val buttons = if (sessionPlayer.placeholderAsPlaying) {
                 // Compatibility mode: no play/pause command is exposed, so the first slot is a Play button that resumes
-                // the last song; the next three slots are the listener's first three buttons.
+                // the last song and releases a 2.4 GHz switch; the next three slots are the listener's first three.
                 val play = CommandButton.Builder(CommandButton.ICON_PLAY)
                     .setDisplayName(tr(R.string.persistent_last_played))
-                    .setSessionCommand(persistentCommands.getValue(PersistentAction.LAST_PLAYED))
+                    .setSessionCommand(cardPlayCommand)
                     .setSlots(CommandButton.SLOT_BACK)
                     .build()
                 val rest = c.settings.current.persistent.buttons.take(3).mapIndexed { i, action ->
@@ -3168,6 +3168,17 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             .setSessionCommand(persistentCommands.getValue(action))
             .setSlots(slot)
             .build()
+    }
+
+    /**
+     * The persistent card's Play (the native one, or the compatibility card's own Play slot): a play control, so it
+     * releases a 2.4 GHz switch, then resumes the last song (or starts a set when there is nothing to resume).
+     */
+    private fun pressCardPlay() {
+        if (guardAttached) playbackGuard.playFromControl()
+        // A set that was being made when it was pressed mustn't replace what it starts.
+        val press = if (persistentPress.isRunning) persistentPress.supersede() else null
+        scope.launch { if (!playLastPlayed(press)) runPersistentAction(PersistentAction.LIBRARY_SONGS, press) }
     }
 
     /**
@@ -3741,6 +3752,11 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         ): ListenableFuture<SessionResult> {
             // A custom command is Prism's library (like, radio, lyrics), not transport: only for a controller that may browse.
             if (!mayBrowse(session, controller)) return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
+            if (customCommand.customAction == cardPlayCommand.customAction) {
+                // The compatibility card's own Play slot: a play control, not one of its song-choosing buttons.
+                pressCardPlay()
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
             persistentCommands.entries.firstOrNull { it.value.customAction == customCommand.customAction }?.let { (action, _) ->
                 pressPersistent(action)
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
