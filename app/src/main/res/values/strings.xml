@@ -4519,6 +4519,14 @@
     <string name="downloader_code_info">Type it into Downloader on a TV to get the newest Prism from the internet. It works without this phone.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv install apk download sideload downloader send put on</string>
     <!-- Force TV mode (1.8.0's TV screens on a device that isn't a TV), Settings → Prism on a TV. -->
+    <!-- TV Settings → Backup: backups go to the TV's Downloads folder (a TV often has no file picker). -->
+    <string name="tv_backup_info">The backup goes to this TV\'s Download/Prism folder. Your sign-in stays out of it: back that up on a phone, with a password.</string>
+    <string name="tv_backup_plain">Settings, library and history</string>
+    <string name="tv_backup_with_downloads">With downloaded songs too</string>
+    <string name="tv_backup_saved_to">Backed up to %1$s</string>
+    <string name="tv_backup_choose_file">Choose a file…</string>
+    <string name="tv_backup_no_picker">This TV can\'t pick files. Put the backup in its Download/Prism folder.</string>
+    <string name="tv_backup_has_password">This backup has a password: restore it on a phone.</string>
     <string name="force_tv_mode">Force TV mode</string>
     <string name="force_tv_mode_info">Shows Prism TV\'s screens on this device and turns the app to landscape, as a TV has them. Your other phones can use it as a TV too (its pairing code is in the TV\'s Settings → Account). Turn it off in the TV\'s Settings → About.</string>
     <!-- 1.8.0 desk mode and the tour -->

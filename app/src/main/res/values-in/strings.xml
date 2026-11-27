@@ -4044,6 +4044,13 @@
     <string name="downloader_code_detail">%1$s, untuk aplikasi Downloader di TV</string>
     <string name="downloader_code_info">Ketik di Downloader pada TV untuk mendapatkan Prism terbaru dari internet. Tetap berfungsi tanpa ponsel ini.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv televisi pasang memasang instal install apk unduh mengunduh download kirim mengirim downloader sideload</string>
+    <string name="tv_backup_info">Cadangan disimpan ke folder Download/Prism di TV ini. Info masuk Anda tidak disertakan: cadangkan itu di ponsel, dengan sandi.</string>
+    <string name="tv_backup_plain">Setelan, koleksi, dan histori</string>
+    <string name="tv_backup_with_downloads">Beserta lagu yang didownload</string>
+    <string name="tv_backup_saved_to">Dicadangkan ke %1$s</string>
+    <string name="tv_backup_choose_file">Pilih file…</string>
+    <string name="tv_backup_no_picker">TV ini tidak dapat memilih file. Taruh cadangan di folder Download/Prism-nya.</string>
+    <string name="tv_backup_has_password">Cadangan ini memiliki sandi: pulihkan di ponsel.</string>
     <string name="force_tv_mode">Paksa mode TV</string>
     <string name="force_tv_mode_info">Menampilkan layar Prism TV di perangkat ini dan memutar aplikasi ke lanskap, seperti di TV. Ponsel lain Anda juga bisa memakainya sebagai TV (kode penyambungannya ada di Setelan → Akun di TV). Matikan di Setelan → Tentang di TV.</string>
     <!-- 1.8.0 TV -->

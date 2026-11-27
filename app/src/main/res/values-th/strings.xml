@@ -4044,6 +4044,13 @@
     <string name="downloader_code_detail">%1$s สำหรับแอป Downloader บนทีวี</string>
     <string name="downloader_code_info">พิมพ์รหัสนี้ลงใน Downloader บนทีวีเพื่อรับ Prism เวอร์ชันล่าสุดจากอินเทอร์เน็ต ใช้งานได้โดยไม่ต้องมีโทรศัพท์เครื่องนี้</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader ทีวี โทรทัศน์ ติดตั้ง ดาวน์โหลด ส่ง แชร์ ติดตั้งแอป</string>
+    <string name="tv_backup_info">ข้อมูลสำรองจะไปอยู่ในโฟลเดอร์ Download/Prism ของทีวีเครื่องนี้ ข้อมูลการลงชื่อเข้าใช้ของคุณไม่รวมอยู่ด้วย: สำรองข้อมูลนั้นในโทรศัพท์ โดยตั้งรหัสผ่าน</string>
+    <string name="tv_backup_plain">การตั้งค่า คลังเพลง และประวัติ</string>
+    <string name="tv_backup_with_downloads">รวมเพลงที่ดาวน์โหลดไว้ด้วย</string>
+    <string name="tv_backup_saved_to">สำรองข้อมูลไปที่ %1$s แล้ว</string>
+    <string name="tv_backup_choose_file">เลือกไฟล์…</string>
+    <string name="tv_backup_no_picker">ทีวีเครื่องนี้เลือกไฟล์ไม่ได้ ให้วางข้อมูลสำรองไว้ในโฟลเดอร์ Download/Prism ของทีวี</string>
+    <string name="tv_backup_has_password">ข้อมูลสำรองนี้มีรหัสผ่าน: กู้คืนในโทรศัพท์</string>
     <string name="force_tv_mode">บังคับโหมดทีวี</string>
     <string name="force_tv_mode_info">แสดงหน้าจอของ Prism TV บนอุปกรณ์นี้และหมุนแอปเป็นแนวนอนเหมือนบนทีวี โทรศัพท์เครื่องอื่นของคุณก็ใช้เป็นทีวีได้เช่นกัน (รหัสจับคู่อยู่ใน การตั้งค่า → บัญชี บนทีวี) ปิดได้ใน การตั้งค่า → เกี่ยวกับ บนทีวี</string>
     <!-- 1.8.0 TV -->

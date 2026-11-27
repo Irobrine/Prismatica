@@ -4144,6 +4144,13 @@
     <string name="downloader_code_detail">%1$s, pentru aplicația Downloader de pe un TV</string>
     <string name="downloader_code_info">Introdu-l în Downloader pe un TV ca să obții cel mai nou Prism de pe internet. Funcționează și fără acest telefon.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv instalare instala instalează apk descărcare descarcă download sideload downloader trimite televizor</string>
+    <string name="tv_backup_info">Backupul ajunge în dosarul Download/Prism al acestui televizor. Conectarea ta nu este inclusă: fă-i backup pe un telefon, cu o parolă.</string>
+    <string name="tv_backup_plain">Setări, bibliotecă și istoric</string>
+    <string name="tv_backup_with_downloads">Și cu melodiile descărcate</string>
+    <string name="tv_backup_saved_to">Backup salvat în %1$s</string>
+    <string name="tv_backup_choose_file">Alege un fișier…</string>
+    <string name="tv_backup_no_picker">Acest televizor nu poate alege fișiere. Pune backupul în dosarul său Download/Prism.</string>
+    <string name="tv_backup_has_password">Acest backup are o parolă: restabilește-l pe un telefon.</string>
     <string name="force_tv_mode">Forțează modul TV</string>
     <string name="force_tv_mode_info">Arată ecranele Prism TV pe acest dispozitiv și rotește aplicația pe orizontală, ca la un televizor. Celelalte telefoane ale tale îl pot folosi și ele ca TV (codul de asociere este în Setări → Cont pe televizor). Îl oprești din Setări → Despre pe televizor.</string>
     <!-- 1.8.0 TV -->

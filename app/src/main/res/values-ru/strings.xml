@@ -4194,6 +4194,13 @@
     <string name="downloader_code_detail">%1$s, для приложения Downloader на телевизоре</string>
     <string name="downloader_code_info">Введи его в Downloader на телевизоре, чтобы скачать из интернета новейшую версию Prism. Работает и без этого телефона.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv тв телевизор установка установить установи apk скачать загрузка загрузить sideload downloader отправить передать</string>
+    <string name="tv_backup_info">Резервная копия сохраняется в папку Download/Prism на этом телевизоре. Данные входа в неё не попадают: сохраните их на телефоне, с паролем.</string>
+    <string name="tv_backup_plain">Настройки, медиатека и история</string>
+    <string name="tv_backup_with_downloads">Вместе со скачанными треками</string>
+    <string name="tv_backup_saved_to">Сохранено в %1$s</string>
+    <string name="tv_backup_choose_file">Выбрать файл…</string>
+    <string name="tv_backup_no_picker">Этот телевизор не умеет выбирать файлы. Положите резервную копию в его папку Download/Prism.</string>
+    <string name="tv_backup_has_password">У этой резервной копии есть пароль: восстановите её на телефоне.</string>
     <string name="force_tv_mode">Принудительный режим ТВ</string>
     <string name="force_tv_mode_info">Показывает экраны Prism TV на этом устройстве и переводит приложение в горизонтальный режим, как на телевизоре. Другие ваши телефоны тоже могут использовать его как телевизор (код связывания находится в Настройки → Аккаунт на телевизоре). Отключить можно в Настройки → О приложении на телевизоре.</string>
     <!-- 1.8.0 TV -->

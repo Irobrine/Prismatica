@@ -23,6 +23,20 @@ import com.prism.music.AppLanguage
 import com.prism.music.BuildConfig
 import com.prism.music.R
 import com.prism.music.data.prefs.AudioQuality
+import com.prism.music.playback.EqPresets
+import com.prism.music.ui.screens.Crossfade
+import com.prism.music.ui.screens.QueueEnd
+import com.prism.music.ui.screens.SoundChoices
+import com.prism.music.ui.screens.TrimSilence
+import com.prism.music.ui.screens.VideoPolicy
+import com.prism.music.ui.screens.settings.LS_TRANSLATE_LANGUAGES
+import com.prism.music.ui.screens.settings.LS_TRANSLATE_OFF
+import com.prism.music.ui.screens.settings.romanizeLabel
+import com.prism.music.ui.screens.settings.romanizeOptions
+import com.prism.music.ui.screens.settings.romanizeToMerged
+import com.prism.music.ui.screens.settings.romanizeToStored
+import com.prism.music.ui.screens.settings.translateLabel
+import com.prism.music.ui.screens.settings.translateToMerged
 import com.prism.music.tr
 import com.prism.music.ui.theme.LocalContainer
 import com.prism.music.ui.theme.PrismIcons
@@ -42,6 +56,10 @@ private class TvSettingRow(val setting: TvSetting, val action: TvSettingAction)
 private val SIZES = listOf(0.85f, 1f, 1.15f, 1.3f)
 private val LYRICS_SIZES = listOf(0.75f, 1f, 1.25f, 1.5f)
 private val AMBIENT_MINUTES = listOf(1, 3, 5, 10)
+/** The music video heights offered (as the phone's Sound & quality). */
+private val TV_VIDEO_HEIGHTS = listOf(480, 720, 1080, 1440)
+/** The sleep timer's steps on a TV (the phone types any number). */
+private val TV_SLEEP_MINUTES = listOf(15, 30, 45, 60, 90, 120)
 /** The background's steps, lighter to darkest ([com.prism.music.data.prefs.TvPrefs.backdropDim]). */
 internal val TV_BACKDROP_DIMS = (com.prism.music.data.prefs.TvPrefs.DIM_LIGHTER..com.prism.music.data.prefs.TvPrefs.DIM_DARKEST).toList()
 
@@ -78,6 +96,29 @@ fun TvSettingsPlace(nav: TvNav) {
     val app = context.applicationContext
     val sayLater: (String) -> Unit = { Toast.makeText(app, it, Toast.LENGTH_LONG).show() }
     fun percent(v: Float) = tr(R.string.tv_percent, (v * 100).toInt())
+    // The sleep timer's deadline (0: none), and whether it waits for the song to end.
+    val sleepAt by c.player.sleepAt.collectAsState()
+    val sleepEndOfSong by c.player.sleepEndOfSong.collectAsState()
+    // On the app's scope: a backup or restore goes on if Settings is left meanwhile.
+    fun backUp(parts: Set<com.prism.music.data.BackupPart>) {
+        sayLater(tr(R.string.backing_up))
+        c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            val r = runCatching { TvBackup.backUp(c, parts) }
+            sayLater(r.exceptionOrNull()?.let { tr(R.string.backup_failed, it.message) } ?: tr(R.string.tv_backup_saved_to, r.getOrThrow()))
+        }
+    }
+    // A restore puts the backup in place and restarts Prism; it only comes back here if it failed.
+    fun restore(uri: android.net.Uri) {
+        c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            // A password can't be typed well with a remote: a protected backup is restored on a phone.
+            if (runCatching { c.backup.isEncrypted(uri) }.getOrDefault(false)) { sayLater(tr(R.string.tv_backup_has_password)); return@launch }
+            sayLater(tr(R.string.restoring))
+            runCatching { c.backup.restore(uri) }.onFailure { sayLater(tr(R.string.couldn_t_restore, it.message)) }
+        }
+    }
+    val pickBackup = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { restore(it) }
+    }
 
     val groups: List<Pair<TvSettingGroup, List<TvSettingRow>>> = listOf(
         TvSettingGroup(tr(R.string.account), PrismIcons.Person, emptyList()) to buildList {
@@ -100,6 +141,27 @@ fun TvSettingsPlace(nav: TvNav) {
                 TvSettingAction.Choose(AudioQuality.entries.map { q -> q.label to { c.settings.setAudioQuality(q) } }),
             ),
             TvSettingRow(TvSetting(tr(R.string.tv_same_loudness), on = settings.normalize, info = tr(R.string.tv_same_loudness_info)), TvSettingAction.Flip({ c.settings.setNormalize(it) }, settings.normalize)),
+            // The phone's merged choices (SoundChoices), so the two read and write the same stored settings.
+            TvSettingRow(
+                TvSetting(tr(R.string.crossfade), SoundChoices.crossfade(settings).label, info = tr(R.string.crossfade_choice_info)),
+                TvSettingAction.Choose(Crossfade.entries.map { x -> x.label to { SoundChoices.setCrossfade(c.settings, x) } }),
+            ),
+            TvSettingRow(
+                TvSetting(tr(R.string.skip_silence), SoundChoices.trimSilence(settings).label, info = tr(R.string.skip_silence_choice_info)),
+                TvSettingAction.Choose(TrimSilence.entries.map { t -> t.label to { SoundChoices.setTrimSilence(c.settings, t) } }),
+            ),
+            // The equalizer's presets (the bands themselves are the phone's screen): a pick turns it on, as there.
+            TvSettingRow(
+                TvSetting(tr(R.string.equalizer), if (settings.eq.enabled) tr(R.string.on, EqPresets.label(settings.eq.preset)) else tr(R.string.off)),
+                TvSettingAction.Choose(
+                    listOf(tr(R.string.off) to { c.settings.setEq(settings.eq.copy(enabled = false)) }) +
+                        EqPresets.presets.map { (name, bands) -> EqPresets.label(name) to { c.settings.setEq(settings.eq.copy(enabled = true, preset = name, bands = bands)) } },
+                ),
+            ),
+            TvSettingRow(
+                TvSetting(tr(R.string.music_video_quality), "${settings.videoMaxHeight}p"),
+                TvSettingAction.Choose(TV_VIDEO_HEIGHTS.map { h -> "${h}p" to { c.settings.setVideoMaxHeight(h) } }),
+            ),
         ),
         TvSettingGroup(tr(R.string.lyrics), PrismIcons.Lyrics, emptyList()) to listOf(
             TvSettingRow(
@@ -116,6 +178,26 @@ fun TvSettingsPlace(nav: TvNav) {
             TvSettingRow(
                 TvSetting(tr(R.string.lyrics_source), settings.lyricsSources.firstOrNull()?.label),
                 TvSettingAction.Choose(settings.lyricsSources.map { s -> s.label to { c.settings.setLyricsOrder(listOf(s) + settings.lyricsOrder.filter { it != s }) } }),
+            ),
+            // The TV draws translations, romanized lines and furigana already: these are the phone's own switches.
+            TvSettingRow(
+                TvSetting(tr(R.string.translate_into), translateLabel(translateToMerged(settings.lyricsTranslate, settings.lyricsTranslateTo)), info = tr(R.string.for_songs_in_another_language_machine)),
+                TvSettingAction.Choose(
+                    (listOf(LS_TRANSLATE_OFF) + LS_TRANSLATE_LANGUAGES.map { it.first }).map { code ->
+                        translateLabel(code) to {
+                            if (code == LS_TRANSLATE_OFF) c.settings.setLyricsTranslate(false)
+                            else { c.settings.setLyricsTranslateTo(code); c.settings.setLyricsTranslate(true) }
+                        }
+                    },
+                ),
+            ),
+            TvSettingRow(
+                TvSetting(tr(R.string.romanize_lyrics), romanizeLabel(romanizeToMerged(settings.romanize, settings.romanizeAll))),
+                TvSettingAction.Choose(romanizeOptions(settings.romanizeAll).map { p -> romanizeLabel(p) to { romanizeToStored(p).let { (mode, all) -> c.settings.setRomanize(mode); c.settings.setRomanizeAll(all) } } }),
+            ),
+            TvSettingRow(
+                TvSetting(tr(R.string.show_furigana), on = settings.lyricsFurigana, info = tr(R.string.hiragana_readings_above_kanji)),
+                TvSettingAction.Flip({ c.settings.setLyricsFurigana(it) }, settings.lyricsFurigana),
             ),
         ),
         TvSettingGroup(tr(R.string.sing), PrismIcons.Mic, emptyList()) to listOf(
@@ -144,6 +226,68 @@ fun TvSettingsPlace(nav: TvNav) {
         // The highlights' light: Spectrum or White light (monochrome), the phone's own Color setting.
         TvSettingGroup(tr(R.string.colors), PrismIcons.Palette, emptyList()) to listOf(
             TvSettingRow(TvSetting(tr(R.string.colors), settings.lightStyle.label), TvSettingAction.Run { pickingLight = true }),
+        ),
+        // Added after the groups that were there (before About), so each earlier group keeps its place in the list.
+        TvSettingGroup(tr(R.string.playback), PrismIcons.Play, emptyList()) to listOf(
+            TvSettingRow(
+                TvSetting(tr(R.string.when_the_queue_ends), SoundChoices.queueEnd(settings).label, info = tr(R.string.when_the_queue_ends_info)),
+                TvSettingAction.Choose(QueueEnd.entries.map { q -> q.label to { SoundChoices.setQueueEnd(c.settings, q) } }),
+            ),
+            TvSettingRow(
+                TvSetting(tr(R.string.music_videos_label), SoundChoices.videoPolicy(settings).label, info = tr(R.string.music_videos_label_info)),
+                TvSettingAction.Choose(VideoPolicy.entries.map { v -> v.label to { SoundChoices.setVideoPolicy(c.settings, v) } }),
+            ),
+            // The phone's sleep timer, in the steps a remote picks easily (its fade and volume are the phone's choices).
+            TvSettingRow(
+                TvSetting(
+                    tr(R.string.sleep_timer),
+                    when {
+                        sleepAt <= 0L -> tr(R.string.off)
+                        sleepEndOfSong && sleepAt <= System.currentTimeMillis() -> tr(R.string.stops_when_this_song_ends)
+                        else -> tr(R.string.stops_in_min, ((sleepAt - System.currentTimeMillis()).coerceAtLeast(0) / 60_000 + 1).toString())
+                    },
+                ),
+                TvSettingAction.Choose(
+                    listOf(tr(R.string.off) to { c.player.cancelSleepTimer() }) +
+                        TV_SLEEP_MINUTES.map { m -> tr(R.string.min, m.toString()) to { c.player.setSleepTimer(m) } } +
+                        (tr(R.string.end_of_song) to { c.player.setSleepEndOfSong(true) }),
+                ),
+            ),
+        ),
+        TvSettingGroup(tr(R.string.downloads), PrismIcons.Download, emptyList()) to listOf(
+            TvSettingRow(TvSetting(tr(R.string.download_on_wi_fi_only), on = settings.downloadWifiOnly), TvSettingAction.Flip({ c.settings.setDownloadWifiOnly(it) }, settings.downloadWifiOnly)),
+            TvSettingRow(
+                TvSetting(tr(R.string.download_songs_when_you_play_them), on = settings.downloadOnStream, info = tr(R.string.download_songs_on_stream_detail)),
+                TvSettingAction.Flip({ c.settings.setDownloadOnStream(it) }, settings.downloadOnStream),
+            ),
+            TvSettingRow(
+                TvSetting(tr(R.string.download_songs_ahead), settings.downloadQueueAhead.coerceIn(0, 5).let { if (it == 0) tr(R.string.off) else it.toString() }, info = tr(R.string.download_songs_ahead_info)),
+                TvSettingAction.Choose((0..5).map { n -> (if (n == 0) tr(R.string.off) else n.toString()) to { c.settings.setDownloadQueueAhead(n) } }),
+            ),
+        ),
+        // Backups (TvBackup): to the TV's Downloads folder, and back from it (or a file picked where the TV has a picker).
+        TvSettingGroup(tr(R.string.backup), PrismIcons.History, emptyList()) to listOf(
+            TvSettingRow(
+                TvSetting(tr(R.string.back_up_prism), info = tr(R.string.tv_backup_info)),
+                TvSettingAction.Choose(
+                    listOf(
+                        tr(R.string.tv_backup_plain) to { backUp(TvBackup.PLAIN) },
+                        tr(R.string.tv_backup_with_downloads) to { backUp(TvBackup.WITH_DOWNLOADS) },
+                    ),
+                ),
+            ),
+            TvSettingRow(
+                TvSetting(tr(R.string.restore_from_a_backup)),
+                TvSettingAction.Run {
+                    scope.launch {
+                        val found = TvBackup.found(c)
+                        choosing = tr(R.string.restore_from_a_backup) to (
+                            found.map { f -> f.name to { restore(f.uri) } } +
+                                (tr(R.string.tv_backup_choose_file) to { runCatching { pickBackup.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }.onFailure { say(tr(R.string.tv_backup_no_picker)) } })
+                            )
+                    }
+                },
+            ),
         ),
         TvSettingGroup(tr(R.string.about_3), PrismIcons.Info, emptyList()) to listOfNotNull(
             // Force TV mode (a phone showing these screens as a TV): the way back to the phone's screens. A real TV has

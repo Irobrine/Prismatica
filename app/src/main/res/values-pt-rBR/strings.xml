@@ -4144,6 +4144,13 @@
     <string name="downloader_code_detail">%1$s, para o app Downloader em uma TV</string>
     <string name="downloader_code_info">Digite-o no Downloader em uma TV para baixar o Prism mais recente da internet. Funciona sem este celular.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv instalar instalação apk baixar download sideload downloader enviar televisão</string>
+    <string name="tv_backup_info">O backup vai para a pasta Download/Prism desta TV. Seu login fica de fora: faça o backup dele em um celular, com uma senha.</string>
+    <string name="tv_backup_plain">Configurações, biblioteca e histórico</string>
+    <string name="tv_backup_with_downloads">Com as músicas baixadas também</string>
+    <string name="tv_backup_saved_to">Backup salvo em %1$s</string>
+    <string name="tv_backup_choose_file">Escolher um arquivo…</string>
+    <string name="tv_backup_no_picker">Esta TV não consegue escolher arquivos. Coloque o backup na pasta Download/Prism dela.</string>
+    <string name="tv_backup_has_password">Este backup tem senha: restaure-o em um celular.</string>
     <string name="force_tv_mode">Forçar modo TV</string>
     <string name="force_tv_mode_info">Mostra as telas do Prism TV neste dispositivo e gira o app para a horizontal, como em uma TV. Seus outros celulares também podem usá-lo como TV (o código de pareamento fica em Configurações → Conta na TV). Desative em Configurações → Sobre na TV.</string>
     <!-- 1.8.0 TV -->

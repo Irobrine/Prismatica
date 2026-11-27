@@ -4094,6 +4094,13 @@
     <string name="downloader_code_detail">%1$s, টিভির Downloader অ্যাপের জন্য</string>
     <string name="downloader_code_info">টিভির Downloader-এ এটি লিখলে ইন্টারনেট থেকে সর্বশেষ Prism পাবেন। এই ফোন ছাড়াই কাজ করে।</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader টিভি টেলিভিশন ইনস্টল ডাউনলোড পাঠান শেয়ার</string>
+    <string name="tv_backup_info">ব্যাকআপটি এই টিভির Download/Prism ফোল্ডারে যায়। আপনার সাইন-ইন এতে থাকে না: সেটি একটি ফোনে পাসওয়ার্ড দিয়ে ব্যাকআপ করুন।</string>
+    <string name="tv_backup_plain">সেটিংস, লাইব্রেরি ও ইতিহাস</string>
+    <string name="tv_backup_with_downloads">ডাউনলোড করা গানসহ</string>
+    <string name="tv_backup_saved_to">%1$s-এ ব্যাকআপ করা হয়েছে</string>
+    <string name="tv_backup_choose_file">একটি ফাইল বেছে নিন…</string>
+    <string name="tv_backup_no_picker">এই টিভি ফাইল বেছে নিতে পারে না। ব্যাকআপটি এর Download/Prism ফোল্ডারে রাখুন।</string>
+    <string name="tv_backup_has_password">এই ব্যাকআপে পাসওয়ার্ড আছে: এটি একটি ফোনে পুনরুদ্ধার করুন।</string>
     <string name="force_tv_mode">টিভি মোড বাধ্যতামূলক করুন</string>
     <string name="force_tv_mode_info">এই ডিভাইসে Prism TV-এর স্ক্রিনগুলো দেখায় এবং অ্যাপটিকে টিভির মতো ল্যান্ডস্কেপে ঘুরিয়ে দেয়। আপনার অন্য ফোনগুলোও এটি টিভি হিসেবে ব্যবহার করতে পারে (এর পেয়ারিং কোড টিভির সেটিংস → অ্যাকাউন্টে আছে)। টিভির সেটিংস → সম্পর্কে থেকে এটি বন্ধ করুন।</string>
     <!-- 1.8.0 TV -->

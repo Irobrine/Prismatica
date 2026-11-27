@@ -4094,6 +4094,13 @@
     <string name="downloader_code_detail">%1$s, für die Downloader-App auf einem Fernseher</string>
     <string name="downloader_code_info">Gib ihn in Downloader auf einem Fernseher ein, um das neueste Prism aus dem Internet zu laden. Funktioniert ohne dieses Handy.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader fernseher installieren herunterladen senden übertragen sideload</string>
+    <string name="tv_backup_info">Die Sicherung landet im Ordner Download/Prism dieses Fernsehers. Deine Anmeldung ist nicht enthalten: Sichere sie auf einem Smartphone, mit einem Passwort.</string>
+    <string name="tv_backup_plain">Einstellungen, Mediathek und Verlauf</string>
+    <string name="tv_backup_with_downloads">Auch mit heruntergeladenen Songs</string>
+    <string name="tv_backup_saved_to">Gesichert unter %1$s</string>
+    <string name="tv_backup_choose_file">Datei auswählen…</string>
+    <string name="tv_backup_no_picker">Dieser Fernseher kann keine Dateien auswählen. Lege die Sicherung in seinen Ordner Download/Prism.</string>
+    <string name="tv_backup_has_password">Diese Sicherung hat ein Passwort: Stelle sie auf einem Smartphone wieder her.</string>
     <string name="force_tv_mode">TV-Modus erzwingen</string>
     <string name="force_tv_mode_info">Zeigt die Bildschirme von Prism TV auf diesem Gerät und dreht die App ins Querformat, wie bei einem Fernseher. Deine anderen Handys können es auch als Fernseher nutzen (der Kopplungscode steht auf dem Fernseher unter Einstellungen → Konto). Ausschalten kannst du es auf dem Fernseher unter Einstellungen → Über.</string>
     <!-- 1.8.0 TV -->

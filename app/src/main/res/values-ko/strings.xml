@@ -4044,6 +4044,13 @@
     <string name="downloader_code_detail">%1$s, TV의 Downloader 앱용</string>
     <string name="downloader_code_info">TV의 Downloader에 입력하면 인터넷에서 최신 Prism을 받아요. 이 휴대전화 없이도 작동해요.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv 티비 텔레비전 설치 인스톨 apk 다운로드 내려받기 보내기 전송 downloader sideload</string>
+    <string name="tv_backup_info">백업은 이 TV의 Download/Prism 폴더에 저장됩니다. 로그인 정보는 포함되지 않으니 휴대전화에서 비밀번호를 설정해 백업하세요.</string>
+    <string name="tv_backup_plain">설정, 보관함, 기록</string>
+    <string name="tv_backup_with_downloads">다운로드한 노래도 포함</string>
+    <string name="tv_backup_saved_to">%1$s에 백업됨</string>
+    <string name="tv_backup_choose_file">파일 선택…</string>
+    <string name="tv_backup_no_picker">이 TV에서는 파일을 선택할 수 없습니다. 백업을 Download/Prism 폴더에 넣으세요.</string>
+    <string name="tv_backup_has_password">이 백업에는 비밀번호가 있습니다. 휴대전화에서 복원하세요.</string>
     <string name="force_tv_mode">TV 모드 강제</string>
     <string name="force_tv_mode_info">이 기기에서 Prism TV의 화면을 표시하고 TV처럼 앱을 가로 방향으로 전환합니다. 다른 휴대전화에서도 TV로 사용할 수 있습니다(페어링 코드는 TV의 설정 → 계정에 있습니다). 끄려면 TV의 설정 → 정보에서 끄세요.</string>
     <!-- 1.8.0 TV -->
