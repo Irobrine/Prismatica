@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,6 +73,8 @@ internal object ConnectTags {
     const val TEXT = "settings:connect:text"
     const val SPOTIFY_CLIENT_ID = "settings:connect:spotify-client-id"
     const val SPOTIFY_CONNECT = "settings:connect:spotify-connect"
+    /** "Turn on" in Force TV mode's confirm. */
+    const val FORCE_TV_CONFIRM = "settings:connect:force-tv-confirm"
 }
 
 /**
@@ -206,20 +209,36 @@ private fun TvRows(tv: TvShare, forceTvChanged: Boolean) {
     val c = LocalContainer.current
     val context = LocalContext.current
     val s = LocalAppSettings.current
+    // Turning it on takes the phone's screens away (until the TV's Settings → About): asked first.
+    var confirming by rememberSaveable { mutableStateOf(false) }
     SwitchRow(
         tr(R.string.force_tv_mode), s.tv.forceTv,
         info = tr(R.string.force_tv_mode_info),
         changed = forceTvChanged,
     ) { on ->
-        // Set here, not left to the settings' flow: the TV screen opened below asks before that has been written.
-        com.prism.music.ui.tv.TvDevice.forced = on
-        c.settings.setForceTv(on)
-        if (on) {
-            context.startActivity(android.content.Intent(context, com.prism.music.TvActivity::class.java))
-            // A TV has no phone screens: this one goes, and the TV's Settings → About is the way back.
-            context.activityOrNull()?.finish()
-        }
+        if (on) confirming = true
+        else { com.prism.music.ui.tv.TvDevice.forced = false; c.settings.setForceTv(false) }
     }
+    if (confirming) AlertDialog(
+        onDismissRequest = { confirming = false },
+        title = { Text(tr(R.string.force_tv_mode_confirm)) },
+        text = { Text(tr(R.string.force_tv_mode_info)) },
+        confirmButton = {
+            com.prism.music.ui.components.PrismTextButton(
+                onClick = {
+                    confirming = false
+                    // Set here, not left to the settings' flow: the TV screen opened below asks before that has been written.
+                    com.prism.music.ui.tv.TvDevice.forced = true
+                    c.settings.setForceTv(true)
+                    context.startActivity(android.content.Intent(context, com.prism.music.TvActivity::class.java))
+                    // A TV has no phone screens: this one goes, and the TV's Settings → About is the way back.
+                    context.activityOrNull()?.finish()
+                },
+                Modifier.testTag(ConnectTags.FORCE_TV_CONFIRM),
+            ) { Text(tr(R.string.turn_on)) }
+        },
+        dismissButton = { com.prism.music.ui.components.PrismTextButton(onClick = { confirming = false }) { Text(tr(R.string.cancel)) } },
+    )
 }
 
 // ---------------------------------------------------------------------------- Browser remote

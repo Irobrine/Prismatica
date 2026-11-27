@@ -4104,6 +4104,7 @@
     <string name="tv_backup_choose_file">فائل منتخب کریں…</string>
     <string name="tv_backup_no_picker">یہ ٹی وی فائلیں منتخب نہیں کر سکتا۔ بیک اپ کو اس کے Download/Prism فولڈر میں رکھیں۔</string>
     <string name="force_tv_mode">ٹی وی موڈ لازمی کریں</string>
+    <string name="force_tv_mode_confirm">\"ٹی وی موڈ لازمی کریں\" آن کریں؟</string>
     <string name="force_tv_mode_info">اس ڈیوائس پر Prism TV کی اسکرینیں دکھاتا ہے اور ایپ کو ٹی وی کی طرح لینڈ اسکیپ میں گھما دیتا ہے۔ آپ کے دوسرے فون بھی اسے ٹی وی کے طور پر استعمال کر سکتے ہیں (اس کا جوڑنے کا کوڈ ٹی وی کی ترتیبات ← اکاؤنٹ میں موجود ہے)۔ اسے ٹی وی میں ترتیبات ← بارے میں سے بند کریں۔</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">‏Prism %1$s تیار ہے</string>

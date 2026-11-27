@@ -4104,6 +4104,7 @@
     <string name="tv_backup_choose_file">انتخاب فایل…</string>
     <string name="tv_backup_no_picker">این تلویزیون نمی‌تواند فایل انتخاب کند. پشتیبان را در پوشهٔ Download/Prism آن بگذارید.</string>
     <string name="force_tv_mode">اجبار حالت تلویزیون</string>
+    <string name="force_tv_mode_confirm">«اجبار حالت تلویزیون» روشن شود؟</string>
     <string name="force_tv_mode_info">صفحه‌های Prism TV را روی این دستگاه نشان می‌دهد و برنامه را مانند تلویزیون به حالت افقی می‌چرخاند. تلفن‌های دیگرتان هم می‌توانند از آن به‌عنوان تلویزیون استفاده کنند (کد جفت‌سازی آن در تلویزیون، تنظیمات ← حساب است). برای خاموش کردنش، در تلویزیون به تنظیمات ← درباره بروید.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">‏Prism %1$s آماده است</string>

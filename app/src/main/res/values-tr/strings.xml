@@ -4104,6 +4104,7 @@
     <string name="tv_backup_choose_file">Dosya seç…</string>
     <string name="tv_backup_no_picker">Bu TV dosya seçemiyor. Yedeği TV\'nin Download/Prism klasörüne koyun.</string>
     <string name="force_tv_mode">TV modunu zorla</string>
+    <string name="force_tv_mode_confirm">\"TV modunu zorla\" açılsın mı?</string>
     <string name="force_tv_mode_info">Prism TV\'nin ekranlarını bu cihazda gösterir ve uygulamayı TV\'deki gibi yatay konuma çevirir. Diğer telefonların da onu TV olarak kullanmasına olanak verir (eşleme kodu TV\'de Ayarlar → Hesap bölümündedir). TV\'de Ayarlar → Hakkında bölümünden kapatabilirsin.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s hazır</string>

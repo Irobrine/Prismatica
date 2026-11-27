@@ -4154,6 +4154,7 @@
     <string name="tv_backup_choose_file">בחירת קובץ…</string>
     <string name="tv_backup_no_picker">הטלוויזיה הזו לא יכולה לבחור קבצים. יש לשים את הגיבוי בתיקייה Download/Prism שלה.</string>
     <string name="force_tv_mode">כפיית מצב TV</string>
+    <string name="force_tv_mode_confirm">להפעיל את \"כפיית מצב TV\"?</string>
     <string name="force_tv_mode_info">מציג את המסכים של Prism TV במכשיר הזה ומסובב את האפליקציה למצב אופקי, כמו בטלוויזיה. גם הטלפונים האחרים שלך יכולים להשתמש בו כטלוויזיה (קוד ההתאמה שלו נמצא בטלוויזיה, הגדרות ← חשבון). כדי לכבות אותו, פתחו בטלוויזיה הגדרות ← מידע.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">‏Prism %1$s מוכנה</string>

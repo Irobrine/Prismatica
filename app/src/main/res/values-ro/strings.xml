@@ -4154,6 +4154,7 @@
     <string name="tv_backup_choose_file">Alege un fișier…</string>
     <string name="tv_backup_no_picker">Acest televizor nu poate alege fișiere. Pune backupul în dosarul său Download/Prism.</string>
     <string name="force_tv_mode">Forțează modul TV</string>
+    <string name="force_tv_mode_confirm">Activezi „Forțează modul TV”?</string>
     <string name="force_tv_mode_info">Arată ecranele Prism TV pe acest dispozitiv și rotește aplicația pe orizontală, ca la un televizor. Celelalte telefoane ale tale îl pot folosi și ele ca TV (codul de asociere este în Setări → Cont pe televizor). Îl oprești din Setări → Despre pe televizor.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s este gata</string>

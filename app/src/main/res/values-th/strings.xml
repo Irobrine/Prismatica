@@ -4054,6 +4054,7 @@
     <string name="tv_backup_choose_file">เลือกไฟล์…</string>
     <string name="tv_backup_no_picker">ทีวีเครื่องนี้เลือกไฟล์ไม่ได้ ให้วางข้อมูลสำรองไว้ในโฟลเดอร์ Download/Prism ของทีวี</string>
     <string name="force_tv_mode">บังคับโหมดทีวี</string>
+    <string name="force_tv_mode_confirm">เปิด \"บังคับโหมดทีวี\" ไหม</string>
     <string name="force_tv_mode_info">แสดงหน้าจอของ Prism TV บนอุปกรณ์นี้และหมุนแอปเป็นแนวนอนเหมือนบนทีวี โทรศัพท์เครื่องอื่นของคุณก็ใช้เป็นทีวีได้เช่นกัน (รหัสจับคู่อยู่ใน การตั้งค่า → บัญชี บนทีวี) ปิดได้ใน การตั้งค่า → เกี่ยวกับ บนทีวี</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s พร้อมแล้ว</string>

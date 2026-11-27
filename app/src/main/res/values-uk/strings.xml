@@ -4204,6 +4204,7 @@
     <string name="tv_backup_choose_file">Вибрати файл…</string>
     <string name="tv_backup_no_picker">Цей телевізор не може вибирати файли. Покладіть резервну копію в його папку Download/Prism.</string>
     <string name="force_tv_mode">Примусовий режим ТБ</string>
+    <string name="force_tv_mode_confirm">Увімкнути «Примусовий режим ТБ»?</string>
     <string name="force_tv_mode_info">Показує екрани Prism TV на цьому пристрої та переводить застосунок у горизонтальний режим, як на телевізорі. Інші ваші телефони також можуть використовувати його як телевізор (код підключення є на телевізорі в Налаштування → Акаунт). Вимкнути його можна на телевізорі в Налаштування → Про застосунок.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s готовий</string>

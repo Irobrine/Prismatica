@@ -4304,6 +4304,7 @@
     <string name="tv_backup_choose_file">اختر ملفًا…</string>
     <string name="tv_backup_no_picker">لا يمكن لهذا التلفزيون اختيار الملفات. ضع النسخة الاحتياطية في المجلد Download/Prism الخاص به.</string>
     <string name="force_tv_mode">فرض وضع التلفزيون</string>
+    <string name="force_tv_mode_confirm">هل تريد تشغيل «فرض وضع التلفزيون»؟</string>
     <string name="force_tv_mode_info">يعرض شاشات Prism TV على هذا الجهاز ويحوّل التطبيق إلى الوضع الأفقي كما في التلفزيون. يمكن لهواتفك الأخرى استخدامه كتلفزيون أيضًا (رمز الإقران موجود في الإعدادات ← الحساب على التلفزيون). أوقفه من الإعدادات ← حول على التلفزيون.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">‏Prism %1$s جاهز</string>

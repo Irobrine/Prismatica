@@ -4054,6 +4054,7 @@
     <string name="tv_backup_choose_file">Pilih fail…</string>
     <string name="tv_backup_no_picker">TV ini tidak dapat memilih fail. Letakkan sandaran dalam folder Download/Prism TV ini.</string>
     <string name="force_tv_mode">Paksa mod TV</string>
+    <string name="force_tv_mode_confirm">Hidupkan \"Paksa mod TV\"?</string>
     <string name="force_tv_mode_info">Memaparkan skrin Prism TV pada peranti ini dan memutarkan apl ke landskap, seperti pada TV. Telefon anda yang lain juga boleh menggunakannya sebagai TV (kod gandingannya ada dalam Tetapan → Akaun pada TV). Matikannya dalam Tetapan → Perihal pada TV.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s sudah sedia</string>

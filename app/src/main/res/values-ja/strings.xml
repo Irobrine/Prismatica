@@ -4054,6 +4054,7 @@
     <string name="tv_backup_choose_file">ファイルを選択…</string>
     <string name="tv_backup_no_picker">このテレビではファイルを選択できません。バックアップを Download/Prism フォルダに置いてください。</string>
     <string name="force_tv_mode">TV モードを強制</string>
+    <string name="force_tv_mode_confirm">「TV モードを強制」をオンにしますか？</string>
     <string name="force_tv_mode_info">Prism TV の画面をこの端末に表示し、テレビと同じようにアプリを横向きにします。他のスマートフォンもテレビとして使えます（ペア設定コードはテレビの 設定 → アカウント にあります）。オフにするには、テレビの 設定 → 情報 を開いてください。</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s の準備ができました</string>

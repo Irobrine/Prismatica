@@ -4104,6 +4104,7 @@
     <string name="tv_backup_choose_file">Datei auswählen…</string>
     <string name="tv_backup_no_picker">Dieser Fernseher kann keine Dateien auswählen. Lege die Sicherung in seinen Ordner Download/Prism.</string>
     <string name="force_tv_mode">TV-Modus erzwingen</string>
+    <string name="force_tv_mode_confirm">„TV-Modus erzwingen“ einschalten?</string>
     <string name="force_tv_mode_info">Zeigt die Bildschirme von Prism TV auf diesem Gerät und dreht die App ins Querformat, wie bei einem Fernseher. Deine anderen Handys können es auch als Fernseher nutzen (der Kopplungscode steht auf dem Fernseher unter Einstellungen → Konto). Ausschalten kannst du es auf dem Fernseher unter Einstellungen → Über.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s ist bereit</string>

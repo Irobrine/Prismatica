@@ -4204,6 +4204,7 @@
     <string name="tv_backup_choose_file">Vybrat soubor…</string>
     <string name="tv_backup_no_picker">Tato televize neumí vybírat soubory. Vložte zálohu do její složky Download/Prism.</string>
     <string name="force_tv_mode">Vynutit režim TV</string>
+    <string name="force_tv_mode_confirm">Zapnout „Vynutit režim TV“?</string>
     <string name="force_tv_mode_info">Zobrazuje obrazovky Prism TV na tomto zařízení a otočí aplikaci na šířku, jako je má televize. Vaše další telefony jej mohou používat jako televizi (jeho párovací kód je v televizi v Nastavení → Účet). Vypnete jej v televizi v Nastavení → O aplikaci.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s je připraven</string>

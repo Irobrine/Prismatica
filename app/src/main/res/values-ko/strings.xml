@@ -4054,6 +4054,7 @@
     <string name="tv_backup_choose_file">파일 선택…</string>
     <string name="tv_backup_no_picker">이 TV에서는 파일을 선택할 수 없습니다. 백업을 Download/Prism 폴더에 넣으세요.</string>
     <string name="force_tv_mode">TV 모드 강제</string>
+    <string name="force_tv_mode_confirm">\"TV 모드 강제\"를 켜시겠습니까?</string>
     <string name="force_tv_mode_info">이 기기에서 Prism TV의 화면을 표시하고 TV처럼 앱을 가로 방향으로 전환합니다. 다른 휴대전화에서도 TV로 사용할 수 있습니다(페어링 코드는 TV의 설정 → 계정에 있습니다). 끄려면 TV의 설정 → 정보에서 끄세요.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s 준비 완료</string>

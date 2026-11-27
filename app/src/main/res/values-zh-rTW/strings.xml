@@ -4054,6 +4054,7 @@
     <string name="tv_backup_choose_file">選擇檔案…</string>
     <string name="tv_backup_no_picker">這台電視無法選擇檔案。請將備份放入其 Download/Prism 資料夾中。</string>
     <string name="force_tv_mode">強制電視模式</string>
+    <string name="force_tv_mode_confirm">要開啟「強制電視模式」嗎？</string>
     <string name="force_tv_mode_info">在此裝置上顯示 Prism TV 的畫面，並將應用程式轉為橫向，就像電視一樣。你的其他手機也可以把它當作電視使用（其配對代碼位於電視的 設定 → 帳戶）。可在電視的 設定 → 關於 中關閉。</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s 已準備就緒</string>

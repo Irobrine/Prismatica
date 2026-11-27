@@ -135,6 +135,22 @@ class SpeakersTvsBrowserPageTest : ListeningPageHarness(SettingsPageId.SPEAKERS_
         }
     }
 
+    /** Turning Force TV mode on takes the phone's screens away: it's asked first, and Cancel changes nothing. */
+    @Test fun forceTvModeAsksFirst() {
+        show()
+        tap(forceTv)
+        val title = t(R.string.force_tv_mode_confirm)
+        assertEquals("the confirm is up", 1, compose.onAllNodes(hasText(title)).fetchSemanticsNodes().size)
+        assertTrue(compose.onAllNodes(hasTestTag(com.prism.music.ui.screens.settings.ConnectTags.FORCE_TV_CONFIRM)).fetchSemanticsNodes().isNotEmpty())
+        assertFalse("nothing is stored before the yes", stored.tv.forceTv)
+        assertFalse(com.prism.music.ui.tv.TvDevice.forced)
+        compose.onNode(hasText(t(R.string.cancel))).performClick()
+        compose.waitForIdle()
+        assertEquals("cancelled", 0, compose.onAllNodes(hasText(title)).fetchSemanticsNodes().size)
+        assertFalse(stored.tv.forceTv)
+        assertFalse(com.prism.music.ui.tv.TvDevice.forced)
+    }
+
     /** Principle 8: both stored settings the ledger gives the page have their control here, and it stores them. */
     @Test fun everyStoredSettingHasItsControl() {
         show()

@@ -4104,6 +4104,7 @@
     <string name="tv_backup_choose_file">Kies een bestand…</string>
     <string name="tv_backup_no_picker">Deze tv kan geen bestanden kiezen. Zet de back-up in de map Download/Prism.</string>
     <string name="force_tv_mode">TV-modus forceren</string>
+    <string name="force_tv_mode_confirm">‘TV-modus forceren’ aanzetten?</string>
     <string name="force_tv_mode_info">Toont de schermen van Prism TV op dit apparaat en zet de app in liggende stand, zoals een tv die heeft. Je andere telefoons kunnen het ook als tv gebruiken (de koppelcode staat op de tv onder Instellingen → Account). Je zet het uit op de tv onder Instellingen → Over.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s staat klaar</string>

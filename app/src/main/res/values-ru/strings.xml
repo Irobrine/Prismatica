@@ -4204,6 +4204,7 @@
     <string name="tv_backup_choose_file">Выбрать файл…</string>
     <string name="tv_backup_no_picker">Этот телевизор не умеет выбирать файлы. Положите резервную копию в его папку Download/Prism.</string>
     <string name="force_tv_mode">Принудительный режим ТВ</string>
+    <string name="force_tv_mode_confirm">Включить «Принудительный режим ТВ»?</string>
     <string name="force_tv_mode_info">Показывает экраны Prism TV на этом устройстве и переводит приложение в горизонтальный режим, как на телевизоре. Другие ваши телефоны тоже могут использовать его как телевизор (код связывания находится в Настройки → Аккаунт на телевизоре). Отключить можно в Настройки → О приложении на телевизоре.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s готов</string>

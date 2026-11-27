@@ -4104,6 +4104,7 @@
     <string name="tv_backup_choose_file">Pumili ng file…</string>
     <string name="tv_backup_no_picker">Hindi makapili ng file ang TV na ito. Ilagay ang backup sa folder na Download/Prism nito.</string>
     <string name="force_tv_mode">I-force ang TV mode</string>
+    <string name="force_tv_mode_confirm">I-on ang \"I-force ang TV mode\"?</string>
     <string name="force_tv_mode_info">Ipinapakita sa device na ito ang mga screen ng Prism TV at ginagawang landscape ang app, gaya ng sa TV. Magagamit din ito ng iba mong phone bilang TV (nasa Mga Setting → Account ng TV ang pairing code nito). I-off ito sa Mga Setting → Tungkol ng TV.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Handa na ang Prism %1$s</string>

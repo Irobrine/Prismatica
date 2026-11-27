@@ -4204,6 +4204,7 @@
     <string name="tv_backup_choose_file">Wybierz plik…</string>
     <string name="tv_backup_no_picker">Ten telewizor nie może wybierać plików. Umieść kopię zapasową w jego folderze Download/Prism.</string>
     <string name="force_tv_mode">Wymuś tryb TV</string>
+    <string name="force_tv_mode_confirm">Włączyć „Wymuś tryb TV”?</string>
     <string name="force_tv_mode_info">Pokazuje ekrany Prism TV na tym urządzeniu i obraca aplikację w poziomie, tak jak w telewizorze. Twoje inne telefony mogą też używać go jako telewizora (jego kod parowania jest w telewizorze w Ustawienia → Konto). Wyłączysz go w telewizorze w Ustawienia → Informacje.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s jest gotowy</string>

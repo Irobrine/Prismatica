@@ -4104,6 +4104,7 @@
     <string name="tv_backup_choose_file">फ़ाइल चुनें…</string>
     <string name="tv_backup_no_picker">यह टीवी फ़ाइलें नहीं चुन सकता। बैकअप को इसके Download/Prism फ़ोल्डर में रखें।</string>
     <string name="force_tv_mode">टीवी मोड बाध्य करें</string>
+    <string name="force_tv_mode_confirm">\"टीवी मोड बाध्य करें\" चालू करें?</string>
     <string name="force_tv_mode_info">इस डिवाइस पर Prism TV की स्क्रीन दिखाता है और ऐप को टीवी की तरह लैंडस्केप में घुमा देता है। आपके दूसरे फ़ोन भी इसे टीवी की तरह इस्तेमाल कर सकते हैं (इसका पेयरिंग कोड टीवी में सेटिंग → खाता में है)। इसे टीवी में सेटिंग → जानकारी से बंद करें।</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s तैयार है</string>

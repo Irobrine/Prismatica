@@ -4104,6 +4104,7 @@
     <string name="tv_backup_choose_file">Fájl kiválasztása…</string>
     <string name="tv_backup_no_picker">Ez a tévé nem tud fájlt választani. Tedd a biztonsági mentést a Download/Prism mappájába.</string>
     <string name="force_tv_mode">TV mód kényszerítése</string>
+    <string name="force_tv_mode_confirm">Bekapcsolod a „TV mód kényszerítése” lehetőséget?</string>
     <string name="force_tv_mode_info">A Prism TV képernyőit mutatja ezen az eszközön, és fekvő tájolásra fordítja az appot, ahogy a tévében van. A többi telefonod is használhatja tévéként (a párosítókódja a tévében a Beállítások → Fiók menüben van). A tévében a Beállítások → Névjegy menüben kapcsolhatod ki.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Elkészült a Prism %1$s</string>

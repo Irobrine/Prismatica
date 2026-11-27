@@ -4154,6 +4154,7 @@
     <string name="tv_backup_choose_file">Scegli un file…</string>
     <string name="tv_backup_no_picker">Questa TV non può scegliere file. Metti il backup nella sua cartella Download/Prism.</string>
     <string name="force_tv_mode">Forza modalità TV</string>
+    <string name="force_tv_mode_confirm">Attivare \"Forza modalità TV\"?</string>
     <string name="force_tv_mode_info">Mostra le schermate di Prism TV su questo dispositivo e ruota l\'app in orizzontale, come su un televisore. Anche i tuoi altri telefoni possono usarlo come TV (il suo codice di associazione è in Impostazioni → Account sul televisore). Per disattivarlo, vai su Impostazioni → Informazioni sul televisore.</string>
     <!-- 1.8.0 TV -->
     <string name="tv_update_ready">Prism %1$s è pronto</string>
