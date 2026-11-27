@@ -1192,14 +1192,12 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
     /**
      * A pause that isn't the listener's and will end by itself: "Play only when it can be heard" holds a play,
      * "Resume when Bluetooth comes back" waits for the output that went, or "Pause when muted" waits for the volume.
+     * A 2.4 GHz switch keeps the card away through that held play; once the song's own card is dismissed the guard
+     * drops the hold ([PlaybackGuard.stopped]) and the persistent card takes its place as it does without a switch.
      */
     private fun waitingToPlayOn(): Boolean {
         // An empty or stopped queue has nothing to play on: the card may start something else, whatever is waiting.
         if (player.mediaItemCount == 0) return false
-        // A 2.4 GHz switch keeps the persistent card away while there is a song it would play on the chosen pair.
-        // Another headphone on the route is usable normally, so the card may show then; a play control (or the pair's
-        // own play) ends the switch.
-        if (guardAttached && playbackGuard.switchedNow && !playbackGuard.otherHeadphonesRouted) return true
         return (guardAttached && playbackGuard.holding != null) || c.player.awaitingOutput || muteWatch.waiting
     }
 
