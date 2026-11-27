@@ -482,6 +482,24 @@ class PlaybackGuardTest {
         assertFalse(memory.switched)
     }
 
+    /** A play control the listener presses releases the switch and starts the music, even on the phone's route. */
+    @Test fun aPlayControlReleasesTheSwitch() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.guard.onRemotePause()
+        assertTrue(r.guard.switchedNow)
+        // Back on Bluetooth without a media button from the pair: the route still reads as the phone's.
+        r.player.routedOutput = speaker()
+        r.guard.playFromControl()
+        assertFalse("the play control releases it", r.guard.switchedNow)
+        assertNull(r.guard.holding)
+        r.player.set(true)
+        assertTrue("and the play goes through", r.player.playWhenReady)
+    }
+
     /** Another pair cannot clear the switch, but playback on it is normal while it is the route. */
     @Test fun anotherPairCannotUnsetTheSwitch() {
         val r = Rig()

@@ -23,9 +23,9 @@ import androidx.media3.common.Player
  * again through a headset or Bluetooth output (or the same output coming back), never the phone's speaker: the speaker
  * was not where the music was, and playing there after an unplug is the surprise this setting is for. A pair switching
  * to its own 2.4 GHz receiver may keep its Bluetooth entry listed; for the pairs chosen in Settings → Playback →
- * Headphones, its pause is taken as the switch, and a play on the phone waits for the pair's own play before it can
- * start again. Another output (a different pair, a dongle, wired headphones) plays normally meanwhile, and its
- * connection, entry or play never clears the switch.
+ * Headphones, its pause is taken as the switch, and a play on the phone waits for the pair's own play, or for a play
+ * control the listener presses, before it can start again. Another output (a different pair, a dongle, wired
+ * headphones) plays normally meanwhile, and its connection, entry or play never clears the switch.
  */
 internal class PlaybackGuard(
     private val watcher: Watcher,
@@ -108,13 +108,13 @@ internal class PlaybackGuard(
     private var lastOutsideRemoved: OutputReturn.Sink? = null
     /** The outside outputs connected right now, as the device watcher last reported them. */
     private val connectedOutside = LinkedHashSet<OutputReturn.Sink>()
-    /** The pair paused for a possible 2.4 GHz switch: only its own play (or a reconnect) lets playback start again. */
+    /** The pair paused for a possible 2.4 GHz switch: its own play or a play control lets playback start again. */
     private var switched = false
 
     /** Why playback is held, for tests and diagnostics. */
     val holding: Hold? get() = hold
 
-    /** The pair paused for a possible 2.4 GHz switch: playback is held until its own play or a reconnect. */
+    /** The pair paused for a possible 2.4 GHz switch: playback is held until its own play or a play control. */
     val switchedNow: Boolean get() = switched
 
     /** Starts or stops watching to match the setting. Call on the main thread when it changes. */
@@ -349,6 +349,21 @@ internal class PlaybackGuard(
         memory.rememberSwitched(false)
         if (hold == Hold.LOST || hold == Hold.NOISY) hold = null
         android.util.Log.i("PrismControl", "the Bluetooth device played: the 2.4 GHz hold is released")
+    }
+
+    /**
+     * The listener pressed a play control (Prism's play button, the system's media controls, the persistent card's play,
+     * a widget): an explicit play, and so an override of the 2.4 GHz switch. It has to be: a pair that goes back to
+     * Bluetooth without a media button sends the phone nothing, so the switch could never end otherwise. Choosing a
+     * song, a playlist or a shuffle action does not come through here, so those stay held while the pair is in 2.4 GHz.
+     */
+    fun playFromControl() {
+        if (released || !settingOn() || !switched) return
+        switched = false
+        memory.rememberSwitched(false)
+        pairPlay = true
+        if (hold == Hold.LOST || hold == Hold.NOISY) hold = null
+        android.util.Log.i("PrismControl", "play control: the 2.4 GHz switch is released")
     }
 
     /**

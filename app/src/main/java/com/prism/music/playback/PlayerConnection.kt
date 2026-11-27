@@ -1437,8 +1437,12 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** The listener wants it playing (it may still be buffering). */
     val playWhenReady: Boolean get() = player?.playWhenReady ?: false
 
+    /** A play control (Prism's play button, a widget, a remote): the guard takes it as an explicit play. */
+    var onPlayFromControl: (() -> Unit)? = null
+
     fun setPlaying(playing: Boolean) = withPlayer { p ->
         if (playing) {
+            onPlayFromControl?.invoke()
             ensureStarted()
             if (p.playbackState == Player.STATE_IDLE) p.prepare()
             p.play()
@@ -1470,6 +1474,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         if (p.playbackState == Player.STATE_IDLE) p.prepare()
         if (p.playbackState == Player.STATE_ENDED) p.seekTo(0, 0)
         val play = !p.isPlaying
+        // The play button is an explicit play (an override of the 2.4 GHz switch); choosing a song or playlist is not.
+        if (play) onPlayFromControl?.invoke()
         // With "Fade on pause and play" (A5) the service fades it; else at once.
         if (service?.gentle(play) != true) { if (play) p.play() else p.pause() }
     }

@@ -336,6 +336,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         // in the session's timeline to show controls at all.)
         sessionPlayer.setPlaceholderItem(placeholderItem())
         sessionPlayer.onPlaceholderPlay = {
+            // The card's own play is a play control (the shuffle/quick-pick buttons are not: they choose a set).
+            if (guardAttached) playbackGuard.playFromControl()
             // Play from the card itself: a set that was being made when it was pressed mustn't replace what it starts.
             val press = if (persistentPress.isRunning) persistentPress.supersede() else null
             scope.launch { if (!playLastPlayed(press)) runPersistentAction(PersistentAction.LIBRARY_SONGS, press) }
@@ -416,6 +418,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     if (!guardAttached) {
                         player.addListener(playbackGuard)
                         guardAttached = true
+                        c.player.onPlayFromControl = { playbackGuard.playFromControl() }
+                        sessionPlayer.onPlayFromControl = { playbackGuard.playFromControl() }
                     }
                     playbackGuard.update()
                 }
@@ -803,6 +807,8 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             playbackGuard.release()
             guardAttached = false
         }
+        c.player.onPlayFromControl = null
+        sessionPlayer.onPlayFromControl = null
         faceDown?.release()
         c.cast.detach(player)
         c.player.detach()
@@ -1190,7 +1196,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      */
     private fun waitingToPlayOn(): Boolean {
         // A 2.4 GHz switch keeps the persistent card away while the chosen pair is away. Another headphone on the route
-        // is usable normally, so the card may show then; its own play ends the switch.
+        // is usable normally, so the card may show then; a play control (or the pair's own play) ends the switch.
         if (guardAttached && playbackGuard.switchedNow && !playbackGuard.otherHeadphonesRouted) return true
         // An empty queue has nothing to play on: the card may start something else; a held play keeps it away.
         return player.mediaItemCount > 0 &&
