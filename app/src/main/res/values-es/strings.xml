@@ -4144,13 +4144,15 @@
     <string name="downloader_code_detail">%1$s, para la app Downloader de un televisor</string>
     <string name="downloader_code_info">Escríbelo en Downloader en un televisor para obtener el Prism más reciente desde internet. Funciona sin este teléfono.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader televisor televisión smart tv instalar descargar enviar compartir</string>
-    <string name="tv_backup_info">La copia de seguridad se guarda en la carpeta Download/Prism de esta TV. Tu inicio de sesión no se incluye: haz una copia en un teléfono, con contraseña.</string>
+    <string name="tv_backup_info">La copia de seguridad se guarda en la carpeta Download/Prism de esta TV. Una copia con tu inicio de sesión se sella con una contraseña, escrita con el teclado de la TV, para que no tengas que volver a iniciar sesión después de restaurarla.</string>
     <string name="tv_backup_plain">Ajustes, biblioteca e historial</string>
     <string name="tv_backup_with_downloads">También con las canciones descargadas</string>
+    <string name="tv_backup_with_sign_in">También con tu inicio de sesión</string>
+    <string name="tv_backup_with_everything">Con tu inicio de sesión y las canciones descargadas</string>
+    <string name="tv_backup_password_title">Contraseña de la copia de seguridad</string>
     <string name="tv_backup_saved_to">Copia guardada en %1$s</string>
     <string name="tv_backup_choose_file">Elegir un archivo…</string>
     <string name="tv_backup_no_picker">Esta TV no puede elegir archivos. Pon la copia de seguridad en su carpeta Download/Prism.</string>
-    <string name="tv_backup_has_password">Esta copia de seguridad tiene contraseña: restáurala en un teléfono.</string>
     <string name="force_tv_mode">Forzar modo TV</string>
     <string name="force_tv_mode_info">Muestra las pantallas de Prism TV en este dispositivo y pone la app en horizontal, como en un televisor. Tus otros teléfonos también pueden usarlo como TV (su código de vinculación está en Configuración → Cuenta del televisor). Desactívalo en Configuración → Acerca de del televisor.</string>
     <!-- 1.8.0 TV -->

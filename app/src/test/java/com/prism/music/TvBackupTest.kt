@@ -2,6 +2,8 @@ package com.prism.music
 
 import com.prism.music.data.BackupPart
 import com.prism.music.ui.tv.TvBackup
+import com.prism.music.ui.tv.TvPasswordStep
+import com.prism.music.ui.tv.tvPasswordStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -18,11 +20,26 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = android.app.Application::class)
 class TvBackupTest {
     @Test
-    fun aTvBackupNeverCarriesTheSignIn() {
-        assertFalse(BackupPart.ACCOUNTS in TvBackup.PLAIN)
-        assertFalse(BackupPart.ACCOUNTS in TvBackup.WITH_DOWNLOADS)
+    fun onlyABackupWithTheSignInIsSealed() {
         assertEquals(setOf(BackupPart.SETTINGS, BackupPart.LIBRARY, BackupPart.HISTORY), TvBackup.PLAIN)
         assertEquals(TvBackup.PLAIN + BackupPart.DOWNLOADS, TvBackup.WITH_DOWNLOADS)
+        assertEquals(TvBackup.PLAIN + BackupPart.ACCOUNTS, TvBackup.WITH_SIGN_IN)
+        assertEquals(BackupPart.entries.toSet(), TvBackup.EVERYTHING)
+        assertFalse(TvBackup.needsPassword(TvBackup.PLAIN))
+        assertFalse(TvBackup.needsPassword(TvBackup.WITH_DOWNLOADS))
+        assertTrue(TvBackup.needsPassword(TvBackup.WITH_SIGN_IN))
+        assertTrue(TvBackup.needsPassword(TvBackup.EVERYTHING))
+    }
+
+    /** A new password is typed twice (as on the phone); opening a backup asks once; nothing empty is taken. */
+    @Test
+    fun thePasswordIsTypedTwiceForANewBackup() {
+        assertEquals(TvPasswordStep.EMPTY, tvPasswordStep(confirm = true, first = "", again = null))
+        assertEquals(TvPasswordStep.AGAIN, tvPasswordStep(confirm = true, first = "secret", again = null))
+        assertEquals(TvPasswordStep.MISMATCH, tvPasswordStep(confirm = true, first = "secret", again = "secrte"))
+        assertEquals(TvPasswordStep.DONE, tvPasswordStep(confirm = true, first = "secret", again = "secret"))
+        assertEquals(TvPasswordStep.DONE, tvPasswordStep(confirm = false, first = "secret", again = null))
+        assertEquals(TvPasswordStep.EMPTY, tvPasswordStep(confirm = false, first = "", again = null))
     }
 
     @Test

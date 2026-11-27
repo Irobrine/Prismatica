@@ -4144,13 +4144,15 @@
     <string name="downloader_code_detail">%1$s, pour l’application Downloader sur une TV</string>
     <string name="downloader_code_info">Saisissez-le dans Downloader sur une TV pour obtenir la dernière version de Prism depuis Internet. Cela fonctionne sans ce téléphone.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv télévision installer installation apk télécharger téléchargement sideload downloader envoyer transférer</string>
-    <string name="tv_backup_info">La sauvegarde est enregistrée dans le dossier Download/Prism de ce téléviseur. Votre connexion n\'y figure pas : sauvegardez-la sur un téléphone, avec un mot de passe.</string>
+    <string name="tv_backup_info">La sauvegarde est enregistrée dans le dossier Download/Prism de ce téléviseur. Une sauvegarde avec votre connexion est scellée par un mot de passe, saisi avec le clavier du téléviseur, pour que vous n\'ayez pas à vous reconnecter après une restauration.</string>
     <string name="tv_backup_plain">Paramètres, bibliothèque et historique</string>
     <string name="tv_backup_with_downloads">Avec les titres téléchargés aussi</string>
+    <string name="tv_backup_with_sign_in">Avec votre connexion aussi</string>
+    <string name="tv_backup_with_everything">Avec votre connexion et les titres téléchargés</string>
+    <string name="tv_backup_password_title">Mot de passe de la sauvegarde</string>
     <string name="tv_backup_saved_to">Sauvegardé dans %1$s</string>
     <string name="tv_backup_choose_file">Choisir un fichier…</string>
     <string name="tv_backup_no_picker">Ce téléviseur ne peut pas choisir de fichiers. Placez la sauvegarde dans son dossier Download/Prism.</string>
-    <string name="tv_backup_has_password">Cette sauvegarde a un mot de passe : restaurez-la sur un téléphone.</string>
     <string name="force_tv_mode">Forcer le mode TV</string>
     <string name="force_tv_mode_info">Affiche les écrans de Prism TV sur cet appareil et passe l\'app en mode paysage, comme sur un téléviseur. Vos autres téléphones peuvent aussi l\'utiliser comme TV (son code d\'association se trouve dans Paramètres → Compte du téléviseur). Pour le désactiver, ouvrez Paramètres → À propos du téléviseur.</string>
     <!-- 1.8.0 TV -->

@@ -100,20 +100,39 @@ fun TvSettingsPlace(nav: TvNav) {
     val sleepAt by c.player.sleepAt.collectAsState()
     val sleepEndOfSong by c.player.sleepEndOfSong.collectAsState()
     // On the app's scope: a backup or restore goes on if Settings is left meanwhile.
-    fun backUp(parts: Set<com.prism.music.data.BackupPart>) {
+    // A backup's password, while one is asked for (typed on the TV's keyboard).
+    var askingPassword by remember { mutableStateOf<TvPasswordAsk?>(null) }
+    fun writeBackup(parts: Set<com.prism.music.data.BackupPart>, password: CharArray?) {
         sayLater(tr(R.string.backing_up))
         c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
-            val r = runCatching { TvBackup.backUp(c, parts) }
+            val r = runCatching { TvBackup.backUp(c, parts, password) }
+            password?.fill('\u0000')
             sayLater(r.exceptionOrNull()?.let { tr(R.string.backup_failed, it.message) } ?: tr(R.string.tv_backup_saved_to, r.getOrThrow()))
         }
     }
+    // With the sign-in, the backup is sealed: its password is asked for twice first, as on the phone.
+    fun backUp(parts: Set<com.prism.music.data.BackupPart>) {
+        if (!TvBackup.needsPassword(parts)) { writeBackup(parts, null); return }
+        askingPassword = TvPasswordAsk(tr(R.string.tv_backup_password_title), tr(R.string.backup_password_note), confirm = true) { pw ->
+            askingPassword = null
+            writeBackup(parts, pw)
+        }
+    }
     // A restore puts the backup in place and restarts Prism; it only comes back here if it failed.
+    fun doRestore(uri: android.net.Uri, password: CharArray?) {
+        sayLater(tr(R.string.restoring))
+        c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            runCatching { c.backup.restore(uri, password) }.onFailure { sayLater(tr(R.string.couldn_t_restore, it.message)) }
+        }
+    }
+    // A sealed backup (one with the sign-in, or any given a password) asks for its password first.
     fun restore(uri: android.net.Uri) {
         c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
-            // A password can't be typed well with a remote: a protected backup is restored on a phone.
-            if (runCatching { c.backup.isEncrypted(uri) }.getOrDefault(false)) { sayLater(tr(R.string.tv_backup_has_password)); return@launch }
-            sayLater(tr(R.string.restoring))
-            runCatching { c.backup.restore(uri) }.onFailure { sayLater(tr(R.string.couldn_t_restore, it.message)) }
+            if (!runCatching { c.backup.isEncrypted(uri) }.getOrDefault(false)) { doRestore(uri, null); return@launch }
+            askingPassword = TvPasswordAsk(tr(R.string.tv_backup_password_title), tr(R.string.backup_password_open), confirm = false) { pw ->
+                askingPassword = null
+                doRestore(uri, pw)
+            }
         }
     }
     val pickBackup = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
@@ -273,6 +292,8 @@ fun TvSettingsPlace(nav: TvNav) {
                     listOf(
                         tr(R.string.tv_backup_plain) to { backUp(TvBackup.PLAIN) },
                         tr(R.string.tv_backup_with_downloads) to { backUp(TvBackup.WITH_DOWNLOADS) },
+                        tr(R.string.tv_backup_with_sign_in) to { backUp(TvBackup.WITH_SIGN_IN) },
+                        tr(R.string.tv_backup_with_everything) to { backUp(TvBackup.EVERYTHING) },
                     ),
                 ),
             ),
@@ -352,6 +373,11 @@ fun TvSettingsPlace(nav: TvNav) {
                     TvInfoCard(s.title, s.info.orEmpty(), Modifier.align(Alignment.Center).tvItem("$TAG_SETTINGS/infoclose", entry = true).clickable { info = null })
                 }
             }
+        }
+        // Over everything else: a backup's password (Back cancels, and nothing is written or restored).
+        askingPassword?.let { ask ->
+            BackHandler { askingPassword = null }
+            TvPanelBox(LocalTvScreen.current + "/password") { TvPasswordPanel(ask) { askingPassword = null } }
         }
     }
 }

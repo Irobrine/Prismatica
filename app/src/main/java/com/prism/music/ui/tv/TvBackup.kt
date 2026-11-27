@@ -14,15 +14,21 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * Backups on a TV (Settings → Backup). A TV often has no file picker (Android's own is left off many TVs) and no way to
- * type a password with ease, so a TV backup goes straight to its Downloads folder, under "Prism", without the sign-in
- * (that part needs a password); restoring lists the backups found there, with "Choose a file" for the picker where
- * there is one. The backup itself is the phone's ([com.prism.music.data.Backup]): a TV's restores on a phone too.
+ * Backups on a TV (Settings → Backup). A TV often has no file picker (Android's own is left off many TVs), so a TV
+ * backup goes straight to its Download/Prism folder; restoring lists the backups found there, with "Choose a file" for
+ * the picker where there is one. A backup with the sign-in is sealed with a password typed on the TV's keyboard
+ * ([TvPasswordPanel]), as the phone's always is. The backup itself is the phone's ([com.prism.music.data.Backup]): a
+ * TV's restores on a phone too, and the other way round.
  */
 object TvBackup {
-    /** The two backups a TV offers: everything but the sign-in, with the downloaded audio or without. */
+    /** The backups a TV offers: everything but the sign-in, then with the downloaded audio, the sign-in, or both. */
     val PLAIN: Set<BackupPart> = BackupPart.entries.toSet() - setOf(BackupPart.ACCOUNTS, BackupPart.DOWNLOADS)
     val WITH_DOWNLOADS: Set<BackupPart> = PLAIN + BackupPart.DOWNLOADS
+    val WITH_SIGN_IN: Set<BackupPart> = PLAIN + BackupPart.ACCOUNTS
+    val EVERYTHING: Set<BackupPart> = BackupPart.entries.toSet()
+
+    /** Whether a backup of [parts] needs a password (the sign-in is never left unsealed). */
+    fun needsPassword(parts: Set<BackupPart>): Boolean = BackupPart.ACCOUNTS in parts
 
     private const val FOLDER = "Prism"
 
@@ -33,8 +39,8 @@ object TvBackup {
     fun fileName(): String =
         tr(R.string.prism_backup) + java.text.SimpleDateFormat(tr(R.string.yyyy_mm_dd), java.util.Locale.US).format(java.util.Date()) + ".zip"
 
-    /** Writes a backup of [parts] to the TV's Downloads/Prism; where it went, in words. Throws when it couldn't. */
-    suspend fun backUp(c: AppContainer, parts: Set<BackupPart>): String = withContext(Dispatchers.IO) {
+    /** Writes a backup of [parts] ([password] seals it) to the TV's Download/Prism; where it went. Throws when it couldn't. */
+    suspend fun backUp(c: AppContainer, parts: Set<BackupPart>, password: CharArray? = null): String = withContext(Dispatchers.IO) {
         val name = fileName()
         if (Build.VERSION.SDK_INT >= 29) {
             val resolver = c.app.contentResolver
@@ -46,7 +52,7 @@ object TvBackup {
             }
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: error(tr(R.string.couldn_t_open_that_file))
             try {
-                c.backup.export(uri, parts)
+                c.backup.export(uri, parts, password)
                 resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
             } catch (t: Throwable) {
                 // A half-written file is no backup: it goes, so it's never offered for a restore.
@@ -57,7 +63,7 @@ object TvBackup {
         } else {
             val dir = File(c.app.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: c.app.filesDir, FOLDER).apply { mkdirs() }
             val file = File(dir, name)
-            try { c.backup.export(Uri.fromFile(file), parts) } catch (t: Throwable) { file.delete(); throw t }
+            try { c.backup.export(Uri.fromFile(file), parts, password) } catch (t: Throwable) { file.delete(); throw t }
             file.absolutePath
         }
     }

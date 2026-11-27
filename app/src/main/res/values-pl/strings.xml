@@ -4194,13 +4194,15 @@
     <string name="downloader_code_detail">%1$s, dla aplikacji Downloader na telewizorze</string>
     <string name="downloader_code_info">Wpisz go w aplikacji Downloader na telewizorze, aby pobrać najnowszy Prism z internetu. Działa bez tego telefonu.</string>
     <string name="tv_install_keywords">tv telewizor telewizja android tv google tv fire tv instalacja instalować zainstaluj apk pobierz pobieranie sideload downloader wyślij wysyłanie</string>
-    <string name="tv_backup_info">Kopia zapasowa trafia do folderu Download/Prism na tym telewizorze. Nie zawiera Twojego logowania: utwórz jego kopię na telefonie, z hasłem.</string>
+    <string name="tv_backup_info">Kopia zapasowa trafia do folderu Download/Prism na tym telewizorze. Kopia z Twoim logowaniem jest zabezpieczona hasłem wpisanym klawiaturą telewizora, więc po przywróceniu nie musisz logować się ponownie.</string>
     <string name="tv_backup_plain">Ustawienia, biblioteka i historia</string>
     <string name="tv_backup_with_downloads">Również z pobranymi utworami</string>
+    <string name="tv_backup_with_sign_in">Również z Twoim logowaniem</string>
+    <string name="tv_backup_with_everything">Z Twoim logowaniem i pobranymi utworami</string>
+    <string name="tv_backup_password_title">Hasło kopii zapasowej</string>
     <string name="tv_backup_saved_to">Kopia zapisana w %1$s</string>
     <string name="tv_backup_choose_file">Wybierz plik…</string>
     <string name="tv_backup_no_picker">Ten telewizor nie może wybierać plików. Umieść kopię zapasową w jego folderze Download/Prism.</string>
-    <string name="tv_backup_has_password">Ta kopia zapasowa ma hasło: przywróć ją na telefonie.</string>
     <string name="force_tv_mode">Wymuś tryb TV</string>
     <string name="force_tv_mode_info">Pokazuje ekrany Prism TV na tym urządzeniu i obraca aplikację w poziomie, tak jak w telewizorze. Twoje inne telefony mogą też używać go jako telewizora (jego kod parowania jest w telewizorze w Ustawienia → Konto). Wyłączysz go w telewizorze w Ustawienia → Informacje.</string>
     <!-- 1.8.0 TV -->

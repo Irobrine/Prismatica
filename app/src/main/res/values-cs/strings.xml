@@ -4194,13 +4194,15 @@
     <string name="downloader_code_detail">%1$s, pro aplikaci Downloader v televizi</string>
     <string name="downloader_code_info">Zadej ho do aplikace Downloader v televizi a získáš nejnovější Prism z internetu. Funguje i bez tohoto telefonu.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader televize televizor instalace instalovat stáhnout stažení odeslat sdílet</string>
-    <string name="tv_backup_info">Záloha se uloží do složky Download/Prism na této televizi. Vaše přihlášení v ní není: zálohujte ho v telefonu, s heslem.</string>
+    <string name="tv_backup_info">Záloha se uloží do složky Download/Prism na této televizi. Záloha s vaším přihlášením je zapečetěná heslem, které zadáte klávesnicí televize, takže se po obnovení nemusíte znovu přihlašovat.</string>
     <string name="tv_backup_plain">Nastavení, knihovna a historie</string>
     <string name="tv_backup_with_downloads">I se staženými skladbami</string>
+    <string name="tv_backup_with_sign_in">I s vaším přihlášením</string>
+    <string name="tv_backup_with_everything">S vaším přihlášením a staženými skladbami</string>
+    <string name="tv_backup_password_title">Heslo zálohy</string>
     <string name="tv_backup_saved_to">Zálohováno do %1$s</string>
     <string name="tv_backup_choose_file">Vybrat soubor…</string>
     <string name="tv_backup_no_picker">Tato televize neumí vybírat soubory. Vložte zálohu do její složky Download/Prism.</string>
-    <string name="tv_backup_has_password">Tato záloha má heslo: obnovte ji v telefonu.</string>
     <string name="force_tv_mode">Vynutit režim TV</string>
     <string name="force_tv_mode_info">Zobrazuje obrazovky Prism TV na tomto zařízení a otočí aplikaci na šířku, jako je má televize. Vaše další telefony jej mohou používat jako televizi (jeho párovací kód je v televizi v Nastavení → Účet). Vypnete jej v televizi v Nastavení → O aplikaci.</string>
     <!-- 1.8.0 TV -->

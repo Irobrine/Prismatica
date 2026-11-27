@@ -4094,13 +4094,15 @@
     <string name="downloader_code_detail">%1$s، برای برنامهٔ Downloader روی تلویزیون</string>
     <string name="downloader_code_info">آن را در Downloader روی تلویزیون وارد کنید تا جدیدترین Prism را از اینترنت بگیرید. بدون این تلفن هم کار می‌کند.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader تلویزیون نصب دانلود ارسال اشتراک‌گذاری</string>
-    <string name="tv_backup_info">پشتیبان در پوشهٔ Download/Prism این تلویزیون ذخیره می‌شود. ورود شما در آن نیست: آن را در یک گوشی، با رمز عبور پشتیبان‌گیری کنید.</string>
+    <string name="tv_backup_info">پشتیبان در پوشهٔ Download/Prism این تلویزیون ذخیره می‌شود. پشتیبانی که ورود شما را دارد با رمز عبوری مهروموم می‌شود که با صفحه‌کلید تلویزیون تایپ می‌کنید، تا پس از بازیابی لازم نباشد دوباره وارد شوید.</string>
     <string name="tv_backup_plain">تنظیمات، کتابخانه و سابقه</string>
     <string name="tv_backup_with_downloads">همراه با آهنگ‌های دانلودشده</string>
+    <string name="tv_backup_with_sign_in">همراه با ورود شما</string>
+    <string name="tv_backup_with_everything">همراه با ورود شما و آهنگ‌های دانلودشده</string>
+    <string name="tv_backup_password_title">رمز عبور پشتیبان</string>
     <string name="tv_backup_saved_to">پشتیبان در %1$s ذخیره شد</string>
     <string name="tv_backup_choose_file">انتخاب فایل…</string>
     <string name="tv_backup_no_picker">این تلویزیون نمی‌تواند فایل انتخاب کند. پشتیبان را در پوشهٔ Download/Prism آن بگذارید.</string>
-    <string name="tv_backup_has_password">این پشتیبان رمز عبور دارد: آن را در یک گوشی بازیابی کنید.</string>
     <string name="force_tv_mode">اجبار حالت تلویزیون</string>
     <string name="force_tv_mode_info">صفحه‌های Prism TV را روی این دستگاه نشان می‌دهد و برنامه را مانند تلویزیون به حالت افقی می‌چرخاند. تلفن‌های دیگرتان هم می‌توانند از آن به‌عنوان تلویزیون استفاده کنند (کد جفت‌سازی آن در تلویزیون، تنظیمات ← حساب است). برای خاموش کردنش، در تلویزیون به تنظیمات ← درباره بروید.</string>
     <!-- 1.8.0 TV -->

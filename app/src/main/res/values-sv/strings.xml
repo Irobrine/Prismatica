@@ -4094,13 +4094,15 @@
     <string name="downloader_code_detail">%1$s, för appen Downloader på en TV</string>
     <string name="downloader_code_info">Skriv in den i Downloader på en TV för att hämta den senaste versionen av Prism från internet. Det fungerar utan den här telefonen.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv installera installation apk ladda ner hämta download sideload downloader skicka television</string>
-    <string name="tv_backup_info">Säkerhetskopian hamnar i mappen Download/Prism på den här tv:n. Din inloggning ingår inte: säkerhetskopiera den på en telefon, med ett lösenord.</string>
+    <string name="tv_backup_info">Säkerhetskopian hamnar i mappen Download/Prism på den här tv:n. En säkerhetskopia med din inloggning förseglas med ett lösenord, som skrivs med tv:ns tangentbord, så att du inte behöver logga in igen efter en återställning.</string>
     <string name="tv_backup_plain">Inställningar, bibliotek och historik</string>
     <string name="tv_backup_with_downloads">Även med nedladdade låtar</string>
+    <string name="tv_backup_with_sign_in">Även med din inloggning</string>
+    <string name="tv_backup_with_everything">Med din inloggning och nedladdade låtar</string>
+    <string name="tv_backup_password_title">Lösenord för säkerhetskopia</string>
     <string name="tv_backup_saved_to">Säkerhetskopierat till %1$s</string>
     <string name="tv_backup_choose_file">Välj en fil…</string>
     <string name="tv_backup_no_picker">Den här tv:n kan inte välja filer. Lägg säkerhetskopian i dess mapp Download/Prism.</string>
-    <string name="tv_backup_has_password">Den här säkerhetskopian har ett lösenord: återställ den på en telefon.</string>
     <string name="force_tv_mode">Tvinga TV-läge</string>
     <string name="force_tv_mode_info">Visar Prism TV:s skärmar på den här enheten och vrider appen till liggande läge, som en tv har. Dina andra telefoner kan också använda den som tv (dess parkopplingskod finns på tv:n under Inställningar → Konto). Du stänger av det på tv:n under Inställningar → Om.</string>
     <!-- 1.8.0 TV -->

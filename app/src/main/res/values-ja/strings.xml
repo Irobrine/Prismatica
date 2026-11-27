@@ -4044,13 +4044,15 @@
     <string name="downloader_code_detail">%1$s、テレビの Downloader アプリ用</string>
     <string name="downloader_code_info">テレビの Downloader に入力すると、インターネットから最新の Prism を入手できます。このスマートフォンがなくても使えます。</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv テレビ インストール 入れる apk ダウンロード 送信 送る downloader sideload</string>
-    <string name="tv_backup_info">バックアップはこのテレビの Download/Prism フォルダに保存されます。ログイン情報は含まれません。スマートフォンでパスワード付きでバックアップしてください。</string>
+    <string name="tv_backup_info">バックアップはこのテレビの Download/Prism フォルダに保存されます。ログイン情報を含むバックアップは、テレビのキーボードで入力したパスワードで保護されるため、復元後にもう一度ログインする必要はありません。</string>
     <string name="tv_backup_plain">設定、ライブラリ、履歴</string>
     <string name="tv_backup_with_downloads">ダウンロードした曲も含める</string>
+    <string name="tv_backup_with_sign_in">ログイン情報も含める</string>
+    <string name="tv_backup_with_everything">ログイン情報とダウンロードした曲を含める</string>
+    <string name="tv_backup_password_title">バックアップのパスワード</string>
     <string name="tv_backup_saved_to">%1$s にバックアップしました</string>
     <string name="tv_backup_choose_file">ファイルを選択…</string>
     <string name="tv_backup_no_picker">このテレビではファイルを選択できません。バックアップを Download/Prism フォルダに置いてください。</string>
-    <string name="tv_backup_has_password">このバックアップにはパスワードがあります。スマートフォンで復元してください。</string>
     <string name="force_tv_mode">TV モードを強制</string>
     <string name="force_tv_mode_info">Prism TV の画面をこの端末に表示し、テレビと同じようにアプリを横向きにします。他のスマートフォンもテレビとして使えます（ペア設定コードはテレビの 設定 → アカウント にあります）。オフにするには、テレビの 設定 → 情報 を開いてください。</string>
     <!-- 1.8.0 TV -->

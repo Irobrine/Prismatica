@@ -4144,13 +4144,15 @@
     <string name="downloader_code_detail">%1$s, עבור האפליקציה Downloader בטלוויזיה</string>
     <string name="downloader_code_info">הקלד אותו ב-Downloader בטלוויזיה כדי להוריד את Prism העדכני ביותר מהאינטרנט. זה עובד גם בלי הטלפון הזה.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv טלוויזיה טלויזיה מסך התקנה להתקין apk הורדה להוריד שליחה לשלוח downloader sideload</string>
-    <string name="tv_backup_info">הגיבוי נשמר בתיקייה Download/Prism של הטלוויזיה הזו. פרטי הכניסה שלך לא נכללים בו: יש לגבות אותם בטלפון, עם סיסמה.</string>
+    <string name="tv_backup_info">הגיבוי נשמר בתיקייה Download/Prism של הטלוויזיה הזו. גיבוי שכולל את ההתחברות שלך נחתם בסיסמה, שמקלידים במקלדת של הטלוויזיה, כך שלא צריך להתחבר שוב אחרי שחזור.</string>
     <string name="tv_backup_plain">הגדרות, ספרייה והיסטוריה</string>
     <string name="tv_backup_with_downloads">כולל השירים שהורדו</string>
+    <string name="tv_backup_with_sign_in">כולל ההתחברות שלך</string>
+    <string name="tv_backup_with_everything">כולל ההתחברות שלך והשירים שהורדו</string>
+    <string name="tv_backup_password_title">סיסמת הגיבוי</string>
     <string name="tv_backup_saved_to">הגיבוי נשמר ב-%1$s</string>
     <string name="tv_backup_choose_file">בחירת קובץ…</string>
     <string name="tv_backup_no_picker">הטלוויזיה הזו לא יכולה לבחור קבצים. יש לשים את הגיבוי בתיקייה Download/Prism שלה.</string>
-    <string name="tv_backup_has_password">לגיבוי הזה יש סיסמה: יש לשחזר אותו בטלפון.</string>
     <string name="force_tv_mode">כפיית מצב TV</string>
     <string name="force_tv_mode_info">מציג את המסכים של Prism TV במכשיר הזה ומסובב את האפליקציה למצב אופקי, כמו בטלוויזיה. גם הטלפונים האחרים שלך יכולים להשתמש בו כטלוויזיה (קוד ההתאמה שלו נמצא בטלוויזיה, הגדרות ← חשבון). כדי לכבות אותו, פתחו בטלוויזיה הגדרות ← מידע.</string>
     <!-- 1.8.0 TV -->

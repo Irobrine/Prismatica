@@ -4094,13 +4094,15 @@
     <string name="downloader_code_detail">%1$s, για την εφαρμογή Downloader σε τηλεόραση</string>
     <string name="downloader_code_info">Πληκτρολόγησέ τον στο Downloader σε μια τηλεόραση για να πάρεις το πιο πρόσφατο Prism από το διαδίκτυο. Λειτουργεί χωρίς αυτό το τηλέφωνο.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader τηλεόραση εγκατάσταση λήψη κατέβασμα αποστολή</string>
-    <string name="tv_backup_info">Το αντίγραφο ασφαλείας αποθηκεύεται στον φάκελο Download/Prism αυτής της τηλεόρασης. Η σύνδεσή σας δεν περιλαμβάνεται: δημιουργήστε αντίγραφό της σε ένα τηλέφωνο, με κωδικό πρόσβασης.</string>
+    <string name="tv_backup_info">Το αντίγραφο ασφαλείας αποθηκεύεται στον φάκελο Download/Prism αυτής της τηλεόρασης. Ένα αντίγραφο με τη σύνδεσή σας σφραγίζεται με κωδικό πρόσβασης, που πληκτρολογείτε με το πληκτρολόγιο της τηλεόρασης, ώστε να μη χρειάζεται να συνδεθείτε ξανά μετά την επαναφορά.</string>
     <string name="tv_backup_plain">Ρυθμίσεις, βιβλιοθήκη και ιστορικό</string>
     <string name="tv_backup_with_downloads">Μαζί με τα τραγούδια που έχουν ληφθεί</string>
+    <string name="tv_backup_with_sign_in">Μαζί με τη σύνδεσή σας</string>
+    <string name="tv_backup_with_everything">Με τη σύνδεσή σας και τα τραγούδια που έχουν ληφθεί</string>
+    <string name="tv_backup_password_title">Κωδικός αντιγράφου ασφαλείας</string>
     <string name="tv_backup_saved_to">Αντίγραφο ασφαλείας στο %1$s</string>
     <string name="tv_backup_choose_file">Επιλογή αρχείου…</string>
     <string name="tv_backup_no_picker">Αυτή η τηλεόραση δεν μπορεί να επιλέξει αρχεία. Βάλτε το αντίγραφο ασφαλείας στον φάκελο Download/Prism της.</string>
-    <string name="tv_backup_has_password">Αυτό το αντίγραφο ασφαλείας έχει κωδικό πρόσβασης: επαναφέρετέ το σε ένα τηλέφωνο.</string>
     <string name="force_tv_mode">Εξαναγκασμός λειτουργίας TV</string>
     <string name="force_tv_mode_info">Εμφανίζει τις οθόνες του Prism TV σε αυτή τη συσκευή και γυρίζει την εφαρμογή σε οριζόντια προβολή, όπως σε μια τηλεόραση. Τα άλλα τηλέφωνά σας μπορούν να τη χρησιμοποιήσουν κι αυτά ως τηλεόραση (ο κωδικός σύζευξής της βρίσκεται στην τηλεόραση, Ρυθμίσεις → Λογαριασμός). Απενεργοποιήστε την από την τηλεόραση, Ρυθμίσεις → Σχετικά.</string>
     <!-- 1.8.0 TV -->

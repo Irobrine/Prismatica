@@ -4094,13 +4094,15 @@
     <string name="downloader_code_detail">%1$s، ٹی وی پر Downloader ایپ کے لیے</string>
     <string name="downloader_code_info">انٹرنیٹ سے Prism کا نیا ترین ورژن لینے کے لیے اسے ٹی وی پر Downloader میں ٹائپ کریں۔ یہ اس فون کے بغیر بھی کام کرتا ہے۔</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader ٹی وی ٹیلی ویژن انسٹال انسٹالیشن ڈاؤن لوڈ بھیجیں شیئر</string>
-    <string name="tv_backup_info">بیک اپ اس ٹی وی کے Download/Prism فولڈر میں جاتا ہے۔ آپ کا سائن ان اس میں شامل نہیں: اس کا بیک اپ کسی فون پر، پاس ورڈ کے ساتھ لیں۔</string>
+    <string name="tv_backup_info">بیک اپ اس ٹی وی کے Download/Prism فولڈر میں جاتا ہے۔ آپ کے سائن ان والا بیک اپ ایک پاس ورڈ سے سیل کیا جاتا ہے، جو ٹی وی کے کی بورڈ سے ٹائپ ہوتا ہے، اس لیے بحالی کے بعد دوبارہ سائن ان نہیں کرنا پڑتا۔</string>
     <string name="tv_backup_plain">ترتیبات، لائبریری اور سرگزشت</string>
     <string name="tv_backup_with_downloads">ڈاؤن لوڈ کیے گئے گانوں کے ساتھ بھی</string>
+    <string name="tv_backup_with_sign_in">آپ کے سائن ان کے ساتھ بھی</string>
+    <string name="tv_backup_with_everything">آپ کے سائن ان اور ڈاؤن لوڈ کیے گئے گانوں کے ساتھ</string>
+    <string name="tv_backup_password_title">بیک اپ پاس ورڈ</string>
     <string name="tv_backup_saved_to">بیک اپ %1$s میں محفوظ ہو گیا</string>
     <string name="tv_backup_choose_file">فائل منتخب کریں…</string>
     <string name="tv_backup_no_picker">یہ ٹی وی فائلیں منتخب نہیں کر سکتا۔ بیک اپ کو اس کے Download/Prism فولڈر میں رکھیں۔</string>
-    <string name="tv_backup_has_password">اس بیک اپ پر پاس ورڈ ہے: اسے کسی فون پر بحال کریں۔</string>
     <string name="force_tv_mode">ٹی وی موڈ لازمی کریں</string>
     <string name="force_tv_mode_info">اس ڈیوائس پر Prism TV کی اسکرینیں دکھاتا ہے اور ایپ کو ٹی وی کی طرح لینڈ اسکیپ میں گھما دیتا ہے۔ آپ کے دوسرے فون بھی اسے ٹی وی کے طور پر استعمال کر سکتے ہیں (اس کا جوڑنے کا کوڈ ٹی وی کی ترتیبات ← اکاؤنٹ میں موجود ہے)۔ اسے ٹی وی میں ترتیبات ← بارے میں سے بند کریں۔</string>
     <!-- 1.8.0 TV -->

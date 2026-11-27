@@ -4294,13 +4294,15 @@
     <string name="downloader_code_detail">%1$s، لتطبيق Downloader على التلفاز</string>
     <string name="downloader_code_info">اكتبه في Downloader على التلفاز لتحصل على أحدث إصدار من Prism عبر الإنترنت. يعمل من دون هذا الهاتف.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader تلفاز تلفزيون شاشة تثبيت تنزيل تحميل إرسال نقل مشاركة</string>
-    <string name="tv_backup_info">تُحفظ النسخة الاحتياطية في المجلد Download/Prism على هذا التلفزيون. لا يدخل فيها تسجيل دخولك: انسخه احتياطيًا على هاتف، بكلمة مرور.</string>
+    <string name="tv_backup_info">تُحفظ النسخة الاحتياطية في المجلد Download/Prism على هذا التلفزيون. النسخة التي تتضمن تسجيل دخولك تُقفل بكلمة مرور تكتبها بلوحة مفاتيح التلفزيون، فلا تحتاج إلى تسجيل الدخول مجددًا بعد الاستعادة.</string>
     <string name="tv_backup_plain">الإعدادات والمكتبة والسجل</string>
     <string name="tv_backup_with_downloads">مع الأغاني المنزّلة أيضًا</string>
+    <string name="tv_backup_with_sign_in">مع تسجيل دخولك أيضًا</string>
+    <string name="tv_backup_with_everything">مع تسجيل دخولك والأغاني المنزّلة</string>
+    <string name="tv_backup_password_title">كلمة مرور النسخة الاحتياطية</string>
     <string name="tv_backup_saved_to">تم النسخ الاحتياطي إلى %1$s</string>
     <string name="tv_backup_choose_file">اختر ملفًا…</string>
     <string name="tv_backup_no_picker">لا يمكن لهذا التلفزيون اختيار الملفات. ضع النسخة الاحتياطية في المجلد Download/Prism الخاص به.</string>
-    <string name="tv_backup_has_password">هذه النسخة الاحتياطية محمية بكلمة مرور: استعدها على هاتف.</string>
     <string name="force_tv_mode">فرض وضع التلفزيون</string>
     <string name="force_tv_mode_info">يعرض شاشات Prism TV على هذا الجهاز ويحوّل التطبيق إلى الوضع الأفقي كما في التلفزيون. يمكن لهواتفك الأخرى استخدامه كتلفزيون أيضًا (رمز الإقران موجود في الإعدادات ← الحساب على التلفزيون). أوقفه من الإعدادات ← حول على التلفزيون.</string>
     <!-- 1.8.0 TV -->

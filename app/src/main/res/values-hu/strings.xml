@@ -4094,13 +4094,15 @@
     <string name="downloader_code_detail">%1$s, a TV-n lévő Downloader alkalmazáshoz</string>
     <string name="downloader_code_info">Írd be a TV-n a Downloaderbe, hogy az internetről megkapd a Prism legújabb verzióját. Ez a telefon nélkül is működik.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv televízió telepítés telepíteni apk letöltés letölteni küldés küldeni downloader sideload</string>
-    <string name="tv_backup_info">A biztonsági mentés ennek a tévének a Download/Prism mappájába kerül. A bejelentkezésed nincs benne: azt telefonon mentsd, jelszóval.</string>
+    <string name="tv_backup_info">A biztonsági mentés ennek a tévének a Download/Prism mappájába kerül. A bejelentkezésedet tartalmazó mentést a tévé billentyűzetén beírt jelszó zárja le, így visszaállítás után nem kell újra bejelentkezned.</string>
     <string name="tv_backup_plain">Beállítások, könyvtár és előzmények</string>
     <string name="tv_backup_with_downloads">A letöltött dalokkal együtt</string>
+    <string name="tv_backup_with_sign_in">A bejelentkezéseddel együtt</string>
+    <string name="tv_backup_with_everything">A bejelentkezéseddel és a letöltött dalokkal</string>
+    <string name="tv_backup_password_title">A biztonsági mentés jelszava</string>
     <string name="tv_backup_saved_to">Mentve ide: %1$s</string>
     <string name="tv_backup_choose_file">Fájl kiválasztása…</string>
     <string name="tv_backup_no_picker">Ez a tévé nem tud fájlt választani. Tedd a biztonsági mentést a Download/Prism mappájába.</string>
-    <string name="tv_backup_has_password">Ez a biztonsági mentés jelszóval védett: telefonon állítsd vissza.</string>
     <string name="force_tv_mode">TV mód kényszerítése</string>
     <string name="force_tv_mode_info">A Prism TV képernyőit mutatja ezen az eszközön, és fekvő tájolásra fordítja az appot, ahogy a tévében van. A többi telefonod is használhatja tévéként (a párosítókódja a tévében a Beállítások → Fiók menüben van). A tévében a Beállítások → Névjegy menüben kapcsolhatod ki.</string>
     <!-- 1.8.0 TV -->

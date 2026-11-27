@@ -4044,13 +4044,15 @@
     <string name="downloader_code_detail">%1$s，用于电视上的 Downloader 应用</string>
     <string name="downloader_code_info">在电视的 Downloader 中输入它，即可从互联网获取最新的 Prism。无需这部手机也能使用。</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader 电视 电视机 安装 下载 发送 传输 侧载</string>
-    <string name="tv_backup_info">备份会保存到这台电视的 Download/Prism 文件夹中。登录信息不包含在内：请在手机上用密码备份。</string>
+    <string name="tv_backup_info">备份会保存到这台电视的 Download/Prism 文件夹中。包含登录信息的备份会用密码加密（用电视键盘输入），这样恢复后无需重新登录。</string>
     <string name="tv_backup_plain">设置、媒体库和历史记录</string>
     <string name="tv_backup_with_downloads">同时包含已下载的歌曲</string>
+    <string name="tv_backup_with_sign_in">同时包含登录信息</string>
+    <string name="tv_backup_with_everything">包含登录信息和已下载的歌曲</string>
+    <string name="tv_backup_password_title">备份密码</string>
     <string name="tv_backup_saved_to">已备份到 %1$s</string>
     <string name="tv_backup_choose_file">选择文件…</string>
     <string name="tv_backup_no_picker">这台电视无法选择文件。请将备份放入其 Download/Prism 文件夹中。</string>
-    <string name="tv_backup_has_password">此备份设有密码：请在手机上恢复。</string>
     <string name="force_tv_mode">强制电视模式</string>
     <string name="force_tv_mode_info">在此设备上显示 Prism TV 的界面，并将应用转为横屏，就像电视一样。你的其他手机也可以把它当作电视使用（其配对代码位于电视的 设置 → 账号）。可在电视的 设置 → 关于 中关闭。</string>
     <!-- 1.8.0 TV -->

@@ -4144,13 +4144,15 @@
     <string name="downloader_code_detail">%1$s, para a app Downloader numa TV</string>
     <string name="downloader_code_info">Introduz-o no Downloader numa TV para obteres o Prism mais recente a partir da internet. Funciona sem este telemóvel.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv instalar instalação apk transferir descarregar download sideload downloader enviar televisão</string>
-    <string name="tv_backup_info">A cópia de segurança vai para a pasta Download/Prism desta TV. O seu início de sessão fica de fora: faça a cópia dele num telemóvel, com uma palavra-passe.</string>
+    <string name="tv_backup_info">A cópia de segurança vai para a pasta Download/Prism desta TV. Uma cópia com o seu início de sessão é selada com uma palavra-passe, escrita com o teclado da TV, para que não tenha de iniciar sessão novamente após um restauro.</string>
     <string name="tv_backup_plain">Definições, biblioteca e histórico</string>
     <string name="tv_backup_with_downloads">Também com as músicas transferidas</string>
+    <string name="tv_backup_with_sign_in">Também com o seu início de sessão</string>
+    <string name="tv_backup_with_everything">Com o seu início de sessão e as músicas transferidas</string>
+    <string name="tv_backup_password_title">Palavra-passe da cópia de segurança</string>
     <string name="tv_backup_saved_to">Cópia guardada em %1$s</string>
     <string name="tv_backup_choose_file">Escolher um ficheiro…</string>
     <string name="tv_backup_no_picker">Esta TV não consegue escolher ficheiros. Coloque a cópia de segurança na pasta Download/Prism dela.</string>
-    <string name="tv_backup_has_password">Esta cópia de segurança tem palavra-passe: restaure-a num telemóvel.</string>
     <string name="force_tv_mode">Forçar modo TV</string>
     <string name="force_tv_mode_info">Mostra os ecrãs do Prism TV neste dispositivo e roda a app para horizontal, como numa TV. Os seus outros telemóveis também podem usá-lo como TV (o código de emparelhamento está nas Definições → Conta da TV). Desative-o nas Definições → Sobre da TV.</string>
     <!-- 1.8.0 TV -->

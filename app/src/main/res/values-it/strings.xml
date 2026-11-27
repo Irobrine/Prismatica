@@ -4144,13 +4144,15 @@
     <string name="downloader_code_detail">%1$s, per l\'app Downloader su una TV</string>
     <string name="downloader_code_info">Digitalo in Downloader su una TV per ottenere da internet l\'ultima versione di Prism. Funziona anche senza questo telefono.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv televisione installare installazione apk scaricare download inviare invio downloader sideload</string>
-    <string name="tv_backup_info">Il backup viene salvato nella cartella Download/Prism di questa TV. Il tuo accesso non è incluso: fanne il backup su un telefono, con una password.</string>
+    <string name="tv_backup_info">Il backup viene salvato nella cartella Download/Prism di questa TV. Un backup con il tuo accesso è protetto da una password, digitata con la tastiera della TV, così non devi accedere di nuovo dopo un ripristino.</string>
     <string name="tv_backup_plain">Impostazioni, raccolta e cronologia</string>
     <string name="tv_backup_with_downloads">Anche con i brani scaricati</string>
+    <string name="tv_backup_with_sign_in">Anche con il tuo accesso</string>
+    <string name="tv_backup_with_everything">Con il tuo accesso e i brani scaricati</string>
+    <string name="tv_backup_password_title">Password del backup</string>
     <string name="tv_backup_saved_to">Backup salvato in %1$s</string>
     <string name="tv_backup_choose_file">Scegli un file…</string>
     <string name="tv_backup_no_picker">Questa TV non può scegliere file. Metti il backup nella sua cartella Download/Prism.</string>
-    <string name="tv_backup_has_password">Questo backup ha una password: ripristinalo su un telefono.</string>
     <string name="force_tv_mode">Forza modalità TV</string>
     <string name="force_tv_mode_info">Mostra le schermate di Prism TV su questo dispositivo e ruota l\'app in orizzontale, come su un televisore. Anche i tuoi altri telefoni possono usarlo come TV (il suo codice di associazione è in Impostazioni → Account sul televisore). Per disattivarlo, vai su Impostazioni → Informazioni sul televisore.</string>
     <!-- 1.8.0 TV -->

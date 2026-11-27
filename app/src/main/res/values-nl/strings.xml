@@ -4094,13 +4094,15 @@
     <string name="downloader_code_detail">%1$s, voor de app Downloader op een tv</string>
     <string name="downloader_code_info">Typ deze in Downloader op een tv om de nieuwste Prism van internet te halen. Dit werkt ook zonder deze telefoon.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv installeren installatie apk downloaden download sideload downloader versturen sturen televisie</string>
-    <string name="tv_backup_info">De back-up komt in de map Download/Prism van deze tv. Je inloggegevens zitten er niet in: maak daarvan een back-up op een telefoon, met een wachtwoord.</string>
+    <string name="tv_backup_info">De back-up komt in de map Download/Prism van deze tv. Een back-up met je inloggegevens wordt verzegeld met een wachtwoord, getypt met het toetsenbord van de tv, zodat je na het terugzetten niet opnieuw hoeft in te loggen.</string>
     <string name="tv_backup_plain">Instellingen, bibliotheek en geschiedenis</string>
     <string name="tv_backup_with_downloads">Ook met gedownloade nummers</string>
+    <string name="tv_backup_with_sign_in">Ook met je inloggegevens</string>
+    <string name="tv_backup_with_everything">Met je inloggegevens en gedownloade nummers</string>
+    <string name="tv_backup_password_title">Wachtwoord van back-up</string>
     <string name="tv_backup_saved_to">Back-up opgeslagen in %1$s</string>
     <string name="tv_backup_choose_file">Kies een bestand…</string>
     <string name="tv_backup_no_picker">Deze tv kan geen bestanden kiezen. Zet de back-up in de map Download/Prism.</string>
-    <string name="tv_backup_has_password">Deze back-up heeft een wachtwoord: zet hem terug op een telefoon.</string>
     <string name="force_tv_mode">TV-modus forceren</string>
     <string name="force_tv_mode_info">Toont de schermen van Prism TV op dit apparaat en zet de app in liggende stand, zoals een tv die heeft. Je andere telefoons kunnen het ook als tv gebruiken (de koppelcode staat op de tv onder Instellingen → Account). Je zet het uit op de tv onder Instellingen → Over.</string>
     <!-- 1.8.0 TV -->

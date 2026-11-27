@@ -4094,13 +4094,15 @@
     <string name="downloader_code_detail">%1$s, para sa Downloader app sa TV</string>
     <string name="downloader_code_info">I-type ito sa Downloader sa isang TV para makuha ang pinakabagong Prism mula sa internet. Gumagana ito kahit wala ang teleponong ito.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader telebisyon i-install install i-download download ipadala ibahagi</string>
-    <string name="tv_backup_info">Mapupunta ang backup sa folder na Download/Prism ng TV na ito. Hindi kasama ang iyong sign-in: i-back up iyon sa isang phone, gamit ang password.</string>
+    <string name="tv_backup_info">Mapupunta ang backup sa folder na Download/Prism ng TV na ito. Ang backup na may sign-in mo ay sine-seal gamit ang password na itina-type sa keyboard ng TV, kaya hindi mo na kailangang mag-sign in ulit pagkatapos ng restore.</string>
     <string name="tv_backup_plain">Mga setting, library at history</string>
     <string name="tv_backup_with_downloads">Kasama rin ang mga na-download na kanta</string>
+    <string name="tv_backup_with_sign_in">Kasama rin ang iyong sign-in</string>
+    <string name="tv_backup_with_everything">Kasama ang iyong sign-in at mga na-download na kanta</string>
+    <string name="tv_backup_password_title">Password ng backup</string>
     <string name="tv_backup_saved_to">Na-back up sa %1$s</string>
     <string name="tv_backup_choose_file">Pumili ng file…</string>
     <string name="tv_backup_no_picker">Hindi makapili ng file ang TV na ito. Ilagay ang backup sa folder na Download/Prism nito.</string>
-    <string name="tv_backup_has_password">May password ang backup na ito: i-restore ito sa isang phone.</string>
     <string name="force_tv_mode">I-force ang TV mode</string>
     <string name="force_tv_mode_info">Ipinapakita sa device na ito ang mga screen ng Prism TV at ginagawang landscape ang app, gaya ng sa TV. Magagamit din ito ng iba mong phone bilang TV (nasa Mga Setting → Account ng TV ang pairing code nito). I-off ito sa Mga Setting → Tungkol ng TV.</string>
     <!-- 1.8.0 TV -->

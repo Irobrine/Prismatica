@@ -4094,13 +4094,15 @@
     <string name="downloader_code_detail">%1$s, bir TV\'deki Downloader uygulaması için</string>
     <string name="downloader_code_info">En yeni Prism\'i internetten almak için bunu bir TV\'deki Downloader\'a yazın. Bu telefon olmadan da çalışır.</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv apk downloader televizyon yükle yükleme kur kurulum indir indirme gönder aktar</string>
-    <string name="tv_backup_info">Yedek, bu TV\'nin Download/Prism klasörüne kaydedilir. Oturum açma bilgileriniz dahil değildir: bunları bir telefonda, şifreyle yedekleyin.</string>
+    <string name="tv_backup_info">Yedek, bu TV\'nin Download/Prism klasörüne kaydedilir. Oturum açma bilgilerinizi içeren yedek, TV\'nin klavyesiyle yazılan bir şifreyle mühürlenir; böylece geri yüklemeden sonra yeniden oturum açmanız gerekmez.</string>
     <string name="tv_backup_plain">Ayarlar, kitaplık ve geçmiş</string>
     <string name="tv_backup_with_downloads">İndirilen şarkılarla birlikte</string>
+    <string name="tv_backup_with_sign_in">Oturum açma bilgilerinizle birlikte</string>
+    <string name="tv_backup_with_everything">Oturum açma bilgileriniz ve indirilen şarkılarla</string>
+    <string name="tv_backup_password_title">Yedek şifresi</string>
     <string name="tv_backup_saved_to">%1$s konumuna yedeklendi</string>
     <string name="tv_backup_choose_file">Dosya seç…</string>
     <string name="tv_backup_no_picker">Bu TV dosya seçemiyor. Yedeği TV\'nin Download/Prism klasörüne koyun.</string>
-    <string name="tv_backup_has_password">Bu yedeğin şifresi var: bir telefonda geri yükleyin.</string>
     <string name="force_tv_mode">TV modunu zorla</string>
     <string name="force_tv_mode_info">Prism TV\'nin ekranlarını bu cihazda gösterir ve uygulamayı TV\'deki gibi yatay konuma çevirir. Diğer telefonların da onu TV olarak kullanmasına olanak verir (eşleme kodu TV\'de Ayarlar → Hesap bölümündedir). TV\'de Ayarlar → Hakkında bölümünden kapatabilirsin.</string>
     <!-- 1.8.0 TV -->

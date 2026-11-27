@@ -4094,13 +4094,15 @@
     <string name="downloader_code_detail">%1$s, टीवी पर Downloader ऐप के लिए</string>
     <string name="downloader_code_info">इंटरनेट से Prism का नया वर्शन पाने के लिए इसे टीवी पर Downloader में टाइप करें। यह इस फ़ोन के बिना भी काम करता है।</string>
     <string name="tv_install_keywords">tv android tv google tv fire tv टीवी टेलीविज़न इंस्टॉल स्थापित apk डाउनलोड भेजना भेजें downloader sideload</string>
-    <string name="tv_backup_info">बैकअप इस टीवी के Download/Prism फ़ोल्डर में जाता है। आपका साइन-इन इसमें शामिल नहीं है: उसका बैकअप किसी फ़ोन पर, पासवर्ड के साथ लें।</string>
+    <string name="tv_backup_info">बैकअप इस टीवी के Download/Prism फ़ोल्डर में जाता है। आपके साइन-इन वाला बैकअप एक पासवर्ड से सील किया जाता है, जो टीवी के कीबोर्ड से टाइप किया जाता है, ताकि रीस्टोर के बाद आपको फिर से साइन इन न करना पड़े।</string>
     <string name="tv_backup_plain">सेटिंग, लाइब्रेरी और इतिहास</string>
     <string name="tv_backup_with_downloads">डाउनलोड किए गए गानों के साथ भी</string>
+    <string name="tv_backup_with_sign_in">आपके साइन-इन के साथ भी</string>
+    <string name="tv_backup_with_everything">आपके साइन-इन और डाउनलोड किए गए गानों के साथ</string>
+    <string name="tv_backup_password_title">बैकअप पासवर्ड</string>
     <string name="tv_backup_saved_to">%1$s में बैकअप लिया गया</string>
     <string name="tv_backup_choose_file">फ़ाइल चुनें…</string>
     <string name="tv_backup_no_picker">यह टीवी फ़ाइलें नहीं चुन सकता। बैकअप को इसके Download/Prism फ़ोल्डर में रखें।</string>
-    <string name="tv_backup_has_password">इस बैकअप पर पासवर्ड है: इसे किसी फ़ोन पर रीस्टोर करें।</string>
     <string name="force_tv_mode">टीवी मोड बाध्य करें</string>
     <string name="force_tv_mode_info">इस डिवाइस पर Prism TV की स्क्रीन दिखाता है और ऐप को टीवी की तरह लैंडस्केप में घुमा देता है। आपके दूसरे फ़ोन भी इसे टीवी की तरह इस्तेमाल कर सकते हैं (इसका पेयरिंग कोड टीवी में सेटिंग → खाता में है)। इसे टीवी में सेटिंग → जानकारी से बंद करें।</string>
     <!-- 1.8.0 TV -->
