@@ -103,9 +103,10 @@ fun TvSettingsPlace(nav: TvNav) {
     // A backup's password, while one is asked for (typed on the TV's keyboard).
     var askingPassword by remember { mutableStateOf<TvPasswordAsk?>(null) }
     fun writeBackup(parts: Set<com.prism.music.data.BackupPart>, password: CharArray?) {
-        sayLater(tr(R.string.backing_up))
+        if (TvBackup.working.value != null) return
+        TvBackup.working.value = tr(R.string.backing_up)
         c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
-            val r = runCatching { TvBackup.backUp(c, parts, password) }
+            val r = try { runCatching { TvBackup.backUp(c, parts, password) } } finally { TvBackup.working.value = null }
             password?.fill('\u0000')
             sayLater(r.exceptionOrNull()?.let { tr(R.string.backup_failed, it.message) } ?: tr(R.string.tv_backup_saved_to, r.getOrThrow()))
         }
@@ -120,9 +121,14 @@ fun TvSettingsPlace(nav: TvNav) {
     }
     // A restore puts the backup in place and restarts Prism; it only comes back here if it failed.
     fun doRestore(uri: android.net.Uri, password: CharArray?) {
-        sayLater(tr(R.string.restoring))
+        if (TvBackup.working.value != null) return
+        // Stays up until Prism restarts with the backup; only a failure takes it away.
+        TvBackup.working.value = tr(R.string.restoring)
         c.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
-            runCatching { c.backup.restore(uri, password) }.onFailure { sayLater(tr(R.string.couldn_t_restore, it.message)) }
+            runCatching { c.backup.restore(uri, password) }.onFailure {
+                TvBackup.working.value = null
+                sayLater(tr(R.string.couldn_t_restore, it.message))
+            }
         }
     }
     // A sealed backup (one with the sign-in, or any given a password) asks for its password first.
@@ -379,6 +385,9 @@ fun TvSettingsPlace(nav: TvNav) {
             BackHandler { askingPassword = null }
             TvPanelBox(LocalTvScreen.current + "/password") { TvPasswordPanel(ask) { askingPassword = null } }
         }
+        // A backup or restore under way: over everything, as the phone's working dialog, until it's done.
+        val working by TvBackup.working.collectAsState()
+        working?.let { what -> TvWorking(what) }
     }
 }
 

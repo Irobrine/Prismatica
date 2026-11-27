@@ -32,6 +32,12 @@ object TvBackup {
 
     private const val FOLDER = "Prism"
 
+    /**
+     * What a backup or restore is doing now ("Backing up…", "Restoring…"), null when nothing is: Settings shows it over
+     * its page, as the phone's working dialog does, and finds it there again if it was left and opened meanwhile.
+     */
+    val working = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
     /** One backup found on this TV: its name (as it's listed) and where it is. */
     data class Found(val name: String, val uri: Uri, val modified: Long)
 

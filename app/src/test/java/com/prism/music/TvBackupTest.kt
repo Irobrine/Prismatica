@@ -42,6 +42,24 @@ class TvBackupTest {
         assertEquals(TvPasswordStep.EMPTY, tvPasswordStep(confirm = false, first = "", again = null))
     }
 
+    @get:org.junit.Rule val compose = androidx.compose.ui.test.junit4.createComposeRule()
+
+    /** While a backup or restore runs, the TV says so with a spinner, as the phone's working dialog, and keeps focus. */
+    @Test
+    fun aBackupUnderWayIsShown() {
+        compose.setContent {
+            com.prism.music.ui.tv.TvTheme(com.prism.music.data.prefs.AppSettings()) {
+                com.prism.music.ui.tv.TvWorking(tr(R.string.backing_up))
+            }
+        }
+        compose.waitForIdle()
+        compose.onNode(androidx.compose.ui.test.hasText(tr(R.string.backing_up))).assertExists()
+        assertTrue(
+            "it holds focus",
+            compose.onAllNodes(androidx.compose.ui.test.hasTestTag(com.prism.music.ui.tv.TAG_WORKING) and androidx.compose.ui.test.isFocused()).fetchSemanticsNodes().isNotEmpty(),
+        )
+    }
+
     @Test
     fun itsFileIsNamedAsAPhonesBackup() {
         val name = TvBackup.fileName()

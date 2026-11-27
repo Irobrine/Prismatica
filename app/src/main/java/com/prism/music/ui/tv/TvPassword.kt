@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -123,4 +125,30 @@ fun TvPasswordPanel(ask: TvPasswordAsk, onCancel: () -> Unit) {
     }
 }
 
+/**
+ * A backup or restore under way (TV): "Backing up…" or "Restoring…" with a spinner over the page, as the phone's
+ * working dialog. It holds focus and Back meanwhile, so nothing behind it is pressed unseen and no second one starts;
+ * the ambient screen doesn't take its place.
+ */
+@Composable
+fun TvWorking(text: String) {
+    val scheme = MaterialTheme.colorScheme
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    androidx.activity.compose.BackHandler {}
+    HoldsAmbient()
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)).tvHoldsFocus(), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier.tvGlass(TvShapes.panel, TvPanelFill).padding(horizontal = 36.dp, vertical = 28.dp)
+                .focusRequester(focus).focusable().testTag(TAG_WORKING),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            com.prism.music.ui.components.PrismSpinner(Modifier.size(32.dp))
+            Spacer(Modifier.width(20.dp))
+            Text(text, style = MaterialTheme.typography.titleLarge, color = scheme.onSurface)
+        }
+    }
+}
+
 const val TAG_PASSWORD = "tv_password"
+const val TAG_WORKING = "tv_working"
