@@ -418,7 +418,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                         player.addListener(playbackGuard)
                         guardAttached = true
                         c.player.onPlayFromControl = { playbackGuard.playFromControl() }
-                        sessionPlayer.onPlayFromControl = { playbackGuard.playFromControl() }
+                        sessionPlayer.onPlayFromControl = { sessionPlayControl() }
                     }
                     playbackGuard.update()
                 }
@@ -3168,12 +3168,30 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             .build()
     }
 
+    /** When a Bluetooth device's play key last arrived ([onMediaButtonEvent]); 0 for none. */
+    private var bluetoothPlayKeyAt = 0L
+
+    /**
+     * A play through the media session (the system's controls, the lock screen, a watch, the persistent card): a play
+     * control, which releases a 2.4 GHz switch. Not when it is a Bluetooth device's play key arriving through the
+     * session: a device's play is the guard's to judge ([PlaybackGuard.onRemotePlay] — the chosen pair's ends the switch,
+     * another pair's must not).
+     */
+    private fun sessionPlayControl() {
+        if (!guardAttached) return
+        if (bluetoothPlayKeyAt != 0L && SystemClock.elapsedRealtime() - bluetoothPlayKeyAt <= BLUETOOTH_KEY_PLAY_MS) {
+            android.util.Log.i("PrismControl", "a Bluetooth play key, not a play control: the 2.4 GHz switch is left to the guard")
+            return
+        }
+        playbackGuard.playFromControl()
+    }
+
     /**
      * The persistent card's Play (the native one, or the compatibility card's own Play slot): a play control, so it
      * releases a 2.4 GHz switch, then resumes the last song (or starts a set when there is nothing to resume).
      */
     private fun pressCardPlay() {
-        if (guardAttached) playbackGuard.playFromControl()
+        sessionPlayControl()
         // A set that was being made when it was pressed mustn't replace what it starts.
         val press = if (persistentPress.isRunning) persistentPress.supersede() else null
         scope.launch { if (!playLastPlayed(press)) runPersistentAction(PersistentAction.LIBRARY_SONGS, press) }
@@ -3724,9 +3742,15 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                 // holds it (and keeps the persistent card away) until the pair plays on.
                 if (bluetoothKey) when {
                     key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> playbackGuard.onRemotePause()
-                    key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY -> playbackGuard.onRemotePlay()
+                    key.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                        bluetoothPlayKeyAt = SystemClock.elapsedRealtime()
+                        playbackGuard.onRemotePlay()
+                    }
                     // A single play/pause button, paused: the pair is playing, so this is its switch back.
-                    toggleKey && !wasPlaying -> playbackGuard.onRemotePlayToggle()
+                    toggleKey && !wasPlaying -> {
+                        bluetoothPlayKeyAt = SystemClock.elapsedRealtime()
+                        playbackGuard.onRemotePlayToggle()
+                    }
                 }
             }
             // The notification swiped away (Media3 sends it as a media button with this extra): the listener is closing
@@ -4293,6 +4317,11 @@ private const val LENGTH_MISMATCH_SEC = 8
 private const val RADIO_REST_MS = 4 * 3_600_000L
 /** How long after a spoken request found its songs they may still come in and start playing. */
 private const val VOICE_START_MS = 10_000L
+/**
+ * How long after a Bluetooth device's play key the session's play is that key's (Media3 turns it into a session play,
+ * after a double-tap wait for a single play/pause button), not a play control the listener pressed on the phone.
+ */
+private const val BLUETOOTH_KEY_PLAY_MS = 1_500L
 /** How many songs ahead DJ mode scans and orders (a quick scan each: three stretches of the song, a few at once). */
 private const val DJ_WINDOW = 40
 /** How long DJ mode waits for more scans before putting the queue in order again. */

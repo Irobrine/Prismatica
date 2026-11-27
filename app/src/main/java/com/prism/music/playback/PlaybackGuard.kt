@@ -78,6 +78,9 @@ internal class PlaybackGuard(
         /** The pair paused for a possible 2.4 GHz switch and hasn't played since. */
         fun switched(): Boolean
         fun rememberSwitched(on: Boolean)
+        /** The pair whose pause set the switch (null: not known, as for a flag kept by an older build). */
+        fun switchedPair(): OutputReturn.Sink? = null
+        fun rememberSwitchedPair(sink: OutputReturn.Sink?) {}
 
         companion object {
             val None: Memory = object : Memory {
@@ -110,12 +113,40 @@ internal class PlaybackGuard(
     private val connectedOutside = LinkedHashSet<OutputReturn.Sink>()
     /** The pair paused for a possible 2.4 GHz switch: its own play or a play control lets playback start again. */
     private var switched = false
+    /** The pair whose pause set [switched] (null: not known, as for a flag an older build remembered). */
+    private var switchedPair: OutputReturn.Sink? = null
 
     /** Why playback is held, for tests and diagnostics. */
     val holding: Hold? get() = hold
 
     /** The pair paused for a possible 2.4 GHz switch: playback is held until its own play or a play control. */
-    val switchedNow: Boolean get() = switched
+    val switchedNow: Boolean get() = switchOn()
+
+    /** Sets the switch for [pair], or clears it (null), here and in the memory a restarted service reads. */
+    private fun setSwitched(pair: OutputReturn.Sink?) {
+        switched = pair != null
+        switchedPair = pair
+        memory.rememberSwitched(pair != null)
+        memory.rememberSwitchedPair(pair)
+    }
+
+    /**
+     * Whether the switch is set for a pair that is still chosen. A pair taken out of Settings → Playback → Headphones (or
+     * an emptied list) is no longer a switch: its flag goes, and the hold its pause made becomes the ordinary pause it
+     * would have been. A flag without a known pair (kept by an older build) stays while any pair is chosen.
+     */
+    private fun switchOn(): Boolean {
+        if (!switched) return false
+        val pair = switchedPair
+        if (if (pair == null) switchDevices().isNotEmpty() else isChosen(pair)) return true
+        setSwitched(null)
+        if (hold == Hold.LOST && !controls.playWhenReady) {
+            hold = null
+            wanted = false
+        }
+        android.util.Log.i("PrismControl", "the switched pair is no longer chosen: the 2.4 GHz switch is cleared")
+        return false
+    }
 
     /** Starts or stops watching to match the setting. Call on the main thread when it changes. */
     fun update() {
@@ -136,11 +167,13 @@ internal class PlaybackGuard(
                 offCleared = true
                 lastHeadset = null
                 switched = false
+                switchedPair = null
                 pairPlay = false
                 lastOutsideRemoved = null
                 connectedOutside.clear()
                 memory.rememberHeadset(null)
                 memory.rememberSwitched(false)
+                memory.rememberSwitchedPair(null)
                 if (hold != null) releaseHold(force = true)
             }
             return
@@ -156,7 +189,8 @@ internal class PlaybackGuard(
             }
             if (memory.switched()) {
                 switched = true
-                android.util.Log.i("PrismControl", "guard remembered the pair switched to 2.4 GHz")
+                switchedPair = memory.switchedPair()
+                android.util.Log.i("PrismControl", "guard remembered the pair switched to 2.4 GHz: ${describe(switchedPair)}")
             }
             watcher.start(::onVolume, ::onDevices)
         }
@@ -171,6 +205,7 @@ internal class PlaybackGuard(
         wanted = false
         pairPlay = false
         switched = false
+        switchedPair = null
         lastOutsideRemoved = null
         connectedOutside.clear()
         expect = null
@@ -230,7 +265,7 @@ internal class PlaybackGuard(
         controls.silent -> Hold.VOLUME
         // The pair paused for a possible switch to its 2.4 GHz receiver: a play mustn't start it on the phone. Another
         // headphone that is the route is allowed; the switch flag stays until the chosen pair itself comes back.
-        switched && !controls.speakerPicked && !otherHeadphonesRouted -> Hold.LOST
+        switchOn() && !controls.speakerPicked && !otherHeadphonesRouted -> Hold.LOST
         // The route is the phone's own speaker, and either the headphones that were playing are gone or Resume is
         // still waiting for the Bluetooth output that went: nothing plays out loud in that gap. An outside output
         // (the dongle, a pair back, another headset) is allowed: that's where the music can be heard.
@@ -279,11 +314,13 @@ internal class PlaybackGuard(
      */
     fun check() {
         if (released || !settingOn()) return
+        // First: a switch whose pair is no longer chosen goes (with its hold) before anything is read below.
+        val switchSet = switchOn()
         val held = hold
         if (held == null) {
             // The switch is set and the sound moved back to the chosen pair (the phone switched to it while it is still
             // in 2.4 GHz): hold the music again instead of playing into a pair that isn't listening.
-            if (!switched || !controls.playWhenReady) return
+            if (!switchSet || !controls.playWhenReady) return
             holdNow(blockNow() ?: return)
             return
         }
@@ -293,7 +330,7 @@ internal class PlaybackGuard(
             Hold.VOLUME -> !controls.silent
             // A 2.4 GHz switch is over on the pair's play, never on a look at the route. An unselected headphone that
             // becomes the route is different: playback there is normal while the switch holds.
-            Hold.NOISY, Hold.LOST -> if (switched) otherHeadphonesRouted else
+            Hold.NOISY, Hold.LOST -> if (switchSet) otherHeadphonesRouted else
                 controls.routedOutput.let { routed ->
                     routed != null && !routed.phoneOutput &&
                         (lost == null || !routed.sameAs(lost) || removed?.sameAs(routed) == true)
@@ -305,15 +342,16 @@ internal class PlaybackGuard(
     /** A pause from the pair itself: on a TWS that can be the switch to its 2.4 GHz receiver (the Bluetooth link stays). */
     fun onRemotePause() {
         if (released || !settingOn()) return
-        val lost = lastHeadset ?: return
-        // Only the headphones the listener chose: another pair's pause is an ordinary pause.
-        if (!isChosen(lost)) return
+        // A media button doesn't say which device sent it, so the route decides: only a chosen Bluetooth pair carrying
+        // the sound now. Another pair's pause (even with the chosen one connected too) is an ordinary pause, and so is
+        // one while the sound is on the phone.
+        val routed = controls.routedOutput ?: return
+        if (routed.phoneOutput || !routed.bluetooth || !isChosen(routed)) return
         // A pause from the pair itself can be it switching to its 2.4 GHz receiver, which keeps the Bluetooth link on
-        // some pairs but sends a pause first. Hold as if the output went; only its own play (or a reconnect, or a
-        // picked speaker) releases it, so an app play can't start it on the phone meanwhile.
-        if (!lost.bluetooth || routedIsPhone()) return
-        switched = true
-        memory.rememberSwitched(true)
+        // some pairs but sends a pause first. Hold as if the output went; only its own play or a play control releases
+        // it, so an app play can't start it on the phone meanwhile.
+        pairPlay = false
+        setSwitched(routed)
         // Nothing playing (swiped away, stopped): there is no song to pause, but a play started now must still wait.
         if (controls.playWhenReady) {
             wanted = true
@@ -334,8 +372,7 @@ internal class PlaybackGuard(
         // Only a chosen pair's play is its switch back; another pair must not clear the flag.
         if (!playIsChosenPair()) return
         pairPlay = true
-        switched = false
-        memory.rememberSwitched(false)
+        setSwitched(null)
         if (hold == Hold.LOST || hold == Hold.NOISY) hold = null
         android.util.Log.i("PrismControl", "the Bluetooth device played: the 2.4 GHz hold is released")
     }
@@ -345,8 +382,7 @@ internal class PlaybackGuard(
         if (released) return
         if (!playIsChosenPair()) return
         pairPlay = true
-        switched = false
-        memory.rememberSwitched(false)
+        setSwitched(null)
         if (hold == Hold.LOST || hold == Hold.NOISY) hold = null
         android.util.Log.i("PrismControl", "the Bluetooth device played: the 2.4 GHz hold is released")
     }
@@ -358,9 +394,8 @@ internal class PlaybackGuard(
      * song, a playlist or a shuffle action does not come through here, so those stay held while the pair is in 2.4 GHz.
      */
     fun playFromControl() {
-        if (released || !settingOn() || !switched) return
-        switched = false
-        memory.rememberSwitched(false)
+        if (released || !settingOn() || !switchOn()) return
+        setSwitched(null)
         pairPlay = true
         if (hold == Hold.LOST || hold == Hold.NOISY) hold = null
         android.util.Log.i("PrismControl", "play control: the 2.4 GHz switch is released")
@@ -406,7 +441,12 @@ internal class PlaybackGuard(
         // A 2.4 GHz switch is over on the pair's own play, never on its Bluetooth entry: a TWS in 2.4 GHz mode can
         // re-list that entry (taken out of its case, the phone switched back to it), and clearing the switch there would
         // let the music play into a pair that isn't listening.
-        removed.lastOrNull { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput }?.let { lastOutsideRemoved = it }
+        removed.lastOrNull { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput }?.let {
+            lastOutsideRemoved = it
+            // A pair's play (or a play control) that hasn't started anything yet is not a pass for whatever plays after
+            // its headphones left: that play must still wait for an outside output instead of the speaker.
+            pairPlay = false
+        }
         // The output left while the music was playing: whatever resumed in the gap (a volume-up after "Pause when
         // muted") must not keep playing out of the phone now. This also holds the persistent card back.
         if (removed.any { com.prism.music.data.isMusicOutput(it.type) && !it.phoneOutput } &&
@@ -421,12 +461,13 @@ internal class PlaybackGuard(
                 "routed ${describe(controls.routedOutput)}, route outside ${!routedIsPhone()}",
         )
         if (!settingOn()) return
+        val switchSet = switchOn()
         val held = hold ?: return
         val back = when (held) {
             Hold.VOLUME -> false
             // A headset, Bluetooth pair or the 2.4 GHz dongle (USB) connected: the sound has somewhere to go. While a
             // switch is set, only an unselected output counts: the chosen pair's own entry coming back is not a return.
-            Hold.NOISY, Hold.LOST -> if (switched) outside.any { !isChosen(it) } else outside.isNotEmpty()
+            Hold.NOISY, Hold.LOST -> if (switchSet) outside.any { !isChosen(it) } else outside.isNotEmpty()
         }
         if (back) releaseHold()
     }
@@ -521,6 +562,7 @@ internal class PlaybackGuard(
             prefs.edit().apply {
                 if (sink == null) {
                     remove(KEY_TYPE); remove(KEY_ADDRESS); remove(KEY_NAME); remove(KEY_AT); remove(KEY_SWITCHED)
+                    remove(KEY_PAIR_TYPE); remove(KEY_PAIR_ADDRESS); remove(KEY_PAIR_NAME)
                 } else {
                     putInt(KEY_TYPE, sink.type)
                     putString(KEY_ADDRESS, sink.address)
@@ -545,12 +587,33 @@ internal class PlaybackGuard(
             }.apply()
         }
 
+        override fun switchedPair(): OutputReturn.Sink? {
+            val type = prefs.getInt(KEY_PAIR_TYPE, -1)
+            if (type < 0) return null
+            return OutputReturn.Sink(type, prefs.getString(KEY_PAIR_ADDRESS, "").orEmpty(), prefs.getString(KEY_PAIR_NAME, "").orEmpty())
+        }
+
+        override fun rememberSwitchedPair(sink: OutputReturn.Sink?) {
+            prefs.edit().apply {
+                if (sink == null) {
+                    remove(KEY_PAIR_TYPE); remove(KEY_PAIR_ADDRESS); remove(KEY_PAIR_NAME)
+                } else {
+                    putInt(KEY_PAIR_TYPE, sink.type)
+                    putString(KEY_PAIR_ADDRESS, sink.address)
+                    putString(KEY_PAIR_NAME, sink.name)
+                }
+            }.apply()
+        }
+
         private companion object {
             const val KEY_TYPE = "guard_output_type"
             const val KEY_ADDRESS = "guard_output_address"
             const val KEY_NAME = "guard_output_name"
             const val KEY_AT = "guard_output_at"
             const val KEY_SWITCHED = "guard_switched"
+            const val KEY_PAIR_TYPE = "guard_switched_pair_type"
+            const val KEY_PAIR_ADDRESS = "guard_switched_pair_address"
+            const val KEY_PAIR_NAME = "guard_switched_pair_name"
             /** The last outside output matters for the listening session, not for the next day. */
             const val MAX_AGE_MS = 24 * 60 * 60 * 1000L
         }

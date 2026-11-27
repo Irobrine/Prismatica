@@ -603,6 +603,74 @@ class PlaybackGuardTest {
         assertFalse(r.guard.switchedNow)
     }
 
+    /** The route says which pair paused: not the pair that happened to connect last. */
+    @Test fun theRoutedPairsPauseDecidesTheSwitch() {
+        val r = Rig()
+        r.start()
+        val other = OutputReturn.Sink(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, "11:22", "Other pair")
+        r.watcher.added(other)
+        r.watcher.added(bluetooth())
+        // The chosen pair connected last, but the other pair carries the sound: its pause is an ordinary pause.
+        r.player.routedOutput = other
+        r.player.set(true)
+        r.guard.onRemotePause()
+        assertFalse("another pair's pause is not a switch", r.guard.switchedNow)
+        assertNull(r.guard.holding)
+        // The other pair connected last, but the chosen one carries the sound: its pause is the switch.
+        r.watcher.added(other)
+        r.player.routedOutput = bluetooth()
+        r.guard.onRemotePause()
+        assertTrue("the chosen pair's pause is", r.guard.switchedNow)
+    }
+
+    /** A pair taken off the chosen list is no longer a switch: its flag and its hold go. */
+    @Test fun aPairTakenOffTheListClearsItsSwitch() {
+        val memory = FakeMemory()
+        val r = Rig(memory = memory)
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.guard.onRemotePause()
+        assertTrue(r.guard.switchedNow)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+        r.switchDevices = emptySet()
+        r.guard.check()
+        assertFalse("not a switch any more", r.guard.switchedNow)
+        assertFalse(memory.switched)
+        assertNull("its pause is an ordinary pause now", r.guard.holding)
+        assertFalse("nothing starts by itself", r.player.playWhenReady)
+        r.player.set(true)
+        assertTrue("a play goes through", r.player.playWhenReady)
+    }
+
+    /** A flag remembered without its pair (an older build's) counts only while some pair is chosen. */
+    @Test fun aRememberedFlagWithoutItsPairNeedsAChosenPair() {
+        val r = Rig(memory = FakeMemory(bluetooth(), switched = true), switchDevices = emptySet())
+        r.start()
+        assertFalse(r.guard.switchedNow)
+        val kept = Rig(memory = FakeMemory(bluetooth(), switched = true))
+        kept.start()
+        assertTrue(kept.guard.switchedNow)
+    }
+
+    /** A play control that started nothing doesn't let a later play out of the speaker after the headphones went. */
+    @Test fun anUnusedPlayControlIsNoPassOnceTheHeadphonesGo() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.guard.onRemotePause()
+        r.guard.playFromControl()
+        assertFalse(r.guard.switchedNow)
+        // Nothing played (an empty queue); then the pair goes and the sound is on the phone.
+        r.player.routedOutput = speaker()
+        r.watcher.removed(bluetooth())
+        r.player.set(true)
+        assertFalse("not out of the speaker", r.player.playWhenReady)
+        assertEquals(PlaybackGuard.Hold.LOST, r.guard.holding)
+    }
+
     /** A pair pause for 2.4 GHz while nothing is playing: no hold, but the switch waits for its play. */
     @Test fun aPairPauseWhileStoppedWaitsForItsPlay() {
         val r = Rig()
