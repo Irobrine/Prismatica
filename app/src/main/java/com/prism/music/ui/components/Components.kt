@@ -607,7 +607,7 @@ fun SearchField(query: String, hint: String, onChange: (String) -> Unit, modifie
                 cursorBrush = androidx.compose.ui.graphics.SolidColor(scheme.primary),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { focus.clearFocus() }),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().releaseFocusWhenHidden(),
             )
         }
         if (query.isNotEmpty()) IconButton(onClick = { onChange(""); focus.clearFocus() }) {

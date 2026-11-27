@@ -70,6 +70,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import com.prism.music.ui.components.releaseFocusWhenHidden
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -323,6 +324,7 @@ fun SearchScreen(bottomPadding: Dp) {
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(onSearch = { submit(query) }),
                         modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).onFocusChanged { focused = it.isFocused }
+                            .releaseFocusWhenHidden()
                             // A hardware keyboard's Enter (a tablet's, a Chromebook's) searches as the on-screen key does;
                             // it used to leave the suggestions over the results and the keyboard up.
                             .onPreviewKeyEvent { e ->

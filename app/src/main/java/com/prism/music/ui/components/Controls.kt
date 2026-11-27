@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -200,6 +201,26 @@ fun PrismTextButton(
 }
 
 /**
+ * A text field that lets go of focus when the app goes to the background. Compose brings the keyboard back for a
+ * focused field whenever its window regains focus, so a field the keyboard had been put away from (Back) reopened
+ * it every time the app came back. Put on every phone text field; TV keeps its D-pad focus and does not use it.
+ */
+@Composable
+fun Modifier.releaseFocusWhenHidden(): Modifier {
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    val focused = androidx.compose.runtime.remember { booleanArrayOf(false) }
+    androidx.compose.runtime.DisposableEffect(lifecycle, focus) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP && focused[0]) focus.clearFocus(force = true)
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    return this.onFocusChanged { focused[0] = it.isFocused }
+}
+
+/**
  * A text field on soft glass: a quiet hairline that firms up to full ink while typing, the label and cursor in ink
  * (no accent box). Same parameters as Material's OutlinedTextField for plain text.
  */
@@ -225,6 +246,7 @@ fun PrismTextField(
 ) {
     val scheme = MaterialTheme.colorScheme
     val ink = scheme.onSurface
+    val modifier = modifier.releaseFocusWhenHidden()
     if (material()) {
         androidx.compose.material3.OutlinedTextField(
             value, onValueChange, modifier, enabled = enabled, textStyle = textStyle, label = label, placeholder = placeholder,
