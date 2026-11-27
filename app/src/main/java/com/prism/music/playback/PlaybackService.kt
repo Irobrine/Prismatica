@@ -1188,8 +1188,9 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
      * "Resume when Bluetooth comes back" waits for the output that went, or "Pause when muted" waits for the volume.
      */
     private fun waitingToPlayOn(): Boolean {
-        // A 2.4 GHz switch keeps the persistent card away while the chosen pair is away; its own play ends it.
-        if (guardAttached && playbackGuard.switchedNow) return true
+        // A 2.4 GHz switch keeps the persistent card away while the chosen pair is away. Another headphone on the route
+        // is usable normally, so the card may show then; its own play ends the switch.
+        if (guardAttached && playbackGuard.switchedNow && !playbackGuard.otherHeadphonesRouted) return true
         // An empty queue has nothing to play on: the card may start something else; a held play keeps it away.
         return player.mediaItemCount > 0 &&
             ((guardAttached && playbackGuard.holding != null) || c.player.awaitingOutput || muteWatch.waiting)

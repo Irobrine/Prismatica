@@ -482,6 +482,68 @@ class PlaybackGuardTest {
         assertFalse(memory.switched)
     }
 
+    /** Another pair cannot clear the switch, but playback on it is normal while it is the route. */
+    @Test fun anotherPairCannotUnsetTheSwitch() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.guard.onRemotePause()
+        assertTrue(r.guard.switchedNow)
+        val other = OutputReturn.Sink(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, "11:22", "Other pair")
+        r.player.routedOutput = other
+        r.watcher.added(other)
+        assertTrue("the other pair's connection does not unset it", r.guard.switchedNow)
+        assertNull("its hold is released", r.guard.holding)
+        assertTrue("and playback is normal on it", r.player.playWhenReady)
+        r.guard.onRemotePlay()
+        r.guard.onRemotePlayToggle()
+        assertTrue("its play does not unset it either", r.guard.switchedNow)
+        // The chosen pair is back: that is what clears it.
+        r.watcher.added(bluetooth())
+        assertFalse(r.guard.switchedNow)
+    }
+
+    /** The sound is on the phone and only the chosen pair is listed: its play over AVRCP is the switch back. */
+    @Test fun theChosenPairsPlayClearsTheSwitchWhenTheSoundIsOnThePhone() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.guard.onRemotePause()
+        assertTrue(r.guard.switchedNow)
+        // The pair switched to its 2.4 GHz receiver: the sound is on the phone, its Bluetooth entry still listed.
+        r.player.routedOutput = speaker()
+        r.guard.check()
+        assertTrue("the route is not taken for the pair coming back", r.guard.switchedNow)
+        r.guard.onRemotePlay()
+        assertFalse("its own play is the switch back", r.guard.switchedNow)
+        r.player.set(true)
+        assertTrue(r.player.playWhenReady)
+    }
+
+    /** Another pair connected with the sound on the phone may have sent the play: it must not clear the switch. */
+    @Test fun anUnchosenPairsPlayOnThePhoneRouteKeepsTheSwitch() {
+        val r = Rig()
+        r.start()
+        r.watcher.added(bluetooth())
+        r.player.headsetConnected = true
+        r.player.set(true)
+        r.guard.onRemotePause()
+        r.player.routedOutput = speaker()
+        r.watcher.removed(bluetooth())
+        val other = OutputReturn.Sink(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, "11:22", "Other pair")
+        r.watcher.added(other)
+        r.guard.onRemotePlay()
+        r.guard.onRemotePlayToggle()
+        assertTrue("an unchosen pair's play does not clear it", r.guard.switchedNow)
+        // The chosen pair listed again is the switch back.
+        r.watcher.added(bluetooth())
+        assertFalse(r.guard.switchedNow)
+    }
+
     /** A pair pause for 2.4 GHz while nothing is playing: no hold, but the switch waits for its play. */
     @Test fun aPairPauseWhileStoppedWaitsForItsPlay() {
         val r = Rig()
