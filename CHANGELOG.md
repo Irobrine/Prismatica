@@ -2,6 +2,33 @@
 
 What changed in each release. Older releases are described on the [Releases page](https://github.com/Yigder/Prism/releases).
 
+## 1.4.2
+
+Force TV mode on any device, TV backup and restore, a 2.4 GHz switch setting, and fixes for playback holds and text fields.
+
+### TV mode
+
+- **Force TV mode** (Settings → Speakers, TVs & browser → Prism on a TV → Force TV mode): Prism TV's screens open on the device in landscape. A dialog asks before it turns on. Turn it off in TV's Settings → About. The pairing code in TV's Settings → Account lets another device use it as a TV.
+- **More settings on the TV** (TV's Settings): playback, sound, lyrics, downloads and backup.
+- **Backup and restore on the TV** (TV's Settings → Backup): four choices — settings, library and history; plus downloaded songs; plus sign-in; or all. Files are saved to Download/Prism on the TV. A backup with sign-in needs a password typed on the TV. Restore lists files in that folder, or opens a file picker if the TV has one. Progress shows while a backup or restore runs.
+
+### Playback
+
+- **2.4 GHz switch** (Settings → Playback → Headphones → 2.4 GHz switch): tick the Bluetooth pairs whose pause means a switch to their 2.4 GHz receiver. Only the ticked pairs' pauses hold playback; other pairs pause normally. No ticked pair means no switch.
+- The switch holds playback until the pair plays, reconnects, or the setting is off, and the hold survives a service restart. An explicit Play control (the app's button, system media controls, the persistent card or a widget) releases it; choosing a song, playlist or shuffle does not. The persistent card stays hidden while a play is held, and can show again after a stop or an empty queue.
+- **Play only when it can be heard** (Settings → Playback → Stopping and pausing) waits for a headset, Bluetooth or USB output, not the phone speaker. It checks the output carrying media and rechecks once a second. Resume when Bluetooth comes back accepts the pair's 2.4 GHz dongle within 15 seconds.
+
+### Keyboard and motion
+
+- Text fields no longer reopen the keyboard each time the app comes back, and the cursor clears when the keyboard is hidden.
+- A long queue adds its remaining songs between player moves instead of rebuilding the media session hundreds of times during one move.
+- The frame-rate request is counted on every frame of a move, which fixes rate drops on some phones.
+
+### Under the hood
+
+- New and extended tests: `TvForceModeTest`, `TvBackupTest`, `PlaybackGuardTest`, `OutputReturnTest`, `PlaybackPageTest` and `SpeakersTvsBrowserPageTest`.
+- 16 new strings in all 31 languages.
+
 ## 1.4.1
 
 The player opens, closes and moves at the screen's fastest rate, a tapped song starts at once, the queue opens without stalling, and a play can wait until it would actually be heard.
