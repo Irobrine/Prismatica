@@ -5869,4 +5869,6 @@
     <string name="analysis_skim">Göz at</string>
     <string name="analysis_score_high">Yüksek</string>
     <string name="analysis_score_low">Düşük</string>
+    <string name="analysis_out_of_date">Ses analizinin önceki bir sürümüyle analiz edildi: bu puan ve bu etiketler o zamandan.</string>
+    <string name="analysis_reanalyse">Yeniden analiz et</string>
 </resources>

@@ -577,11 +577,18 @@ class MixTempo(
         sourceSongId: String? = null, priority: Boolean = false, deferToPlaying: Boolean = false,
         /** The sound analysis wants this song (Settings → Sound analysis): scanned again when it has no current one. */
         analyse: Boolean = false,
+        /**
+         * The sound analysis this song already has is from older descriptors or an older tagger: scanned again to redo it.
+         * Playback asks for this of the song being heard, so a version's change reaches the songs the listener actually
+         * plays instead of waiting for the daily job to come round.
+         */
+        refresh: Boolean = false,
         /** A job Android scheduled (charging, screen off), with limits of its own rather than [BackgroundBudget]'s. */
         scheduled: Boolean = false,
     ): Tempo? {
         fun done() = scanned(id) && !(edges && old(id)) && !(key && !keyed(id)) && !(wave && waves?.has(id) == false) &&
-            !(peak && (noPeak(id) || loudnessOld(id))) && !(analyse && analyzer?.needs(id) == true)
+            !(peak && (noPeak(id) || loudnessOld(id))) && !(analyse && analyzer?.needs(id) == true) &&
+            !(refresh && analyzer?.stale(id) == true)
         // Kept from being scanned ([skip]): its figure can't be had, so neither a walk nor a play asks again.
         if (skipped(id) || (sourceSongId != null && skipped(sourceSongId))) return cached(id)
         if (done() || hasFailed(id)) return cached(id)

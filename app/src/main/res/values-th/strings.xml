@@ -5794,4 +5794,6 @@
     <string name="analysis_skim">ฟังคร่าว ๆ</string>
     <string name="analysis_score_high">สูง</string>
     <string name="analysis_score_low">ต่ำ</string>
+    <string name="analysis_out_of_date">วิเคราะห์ด้วยเวอร์ชันก่อนหน้าของการวิเคราะห์เสียง คะแนนและแท็กนี้มาจากตอนนั้น</string>
+    <string name="analysis_reanalyse">วิเคราะห์อีกครั้ง</string>
 </resources>

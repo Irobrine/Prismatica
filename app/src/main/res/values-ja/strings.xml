@@ -5794,4 +5794,6 @@
     <string name="analysis_skim">かいつまむ</string>
     <string name="analysis_score_high">高い</string>
     <string name="analysis_score_low">低い</string>
+    <string name="analysis_out_of_date">サウンド解析の以前のバージョンで解析済みです。このスコアとタグはその時点のものです。</string>
+    <string name="analysis_reanalyse">再解析</string>
 </resources>

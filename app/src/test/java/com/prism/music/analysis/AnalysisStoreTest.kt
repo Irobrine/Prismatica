@@ -30,6 +30,7 @@ import java.io.File
 @Config(sdk = [34], application = android.app.Application::class)
 class AnalysisStoreTest {
     private lateinit var db: PrismDatabase
+    private lateinit var models: ModelStore
     private lateinit var store: AnalysisStore
     private var prefs = AnalysisPrefs(tagger = true)
     /** The level the player brings songs to (the Normalize target), or null when it doesn't: part of the weights. */
@@ -59,7 +60,8 @@ class AnalysisStoreTest {
         db = Room.inMemoryDatabaseBuilder(app, PrismDatabase::class.java).allowMainThreadQueries().build()
         // The model and every engine build "on the phone" (only their ready marks: the fake tagger needs no files).
         ModelStore.Model.entries.forEach { File(app.filesDir, "models/${it.id}").apply { mkdirs() }.resolve(".ready").writeText("x") }
-        store = AnalysisStore(db.analysis(), ModelStore(app, OkHttpClient()), { prefs }, CoroutineScope(SupervisorJob() + Dispatchers.IO), { fake }, { target })
+        models = ModelStore(app, OkHttpClient())
+        store = AnalysisStore(db.analysis(), models, { prefs }, CoroutineScope(SupervisorJob() + Dispatchers.IO), { fake }, { target })
         runBlocking { store.load() }
     }
 
@@ -86,6 +88,25 @@ class AnalysisStoreTest {
         assertEquals(1024, row.embedding!!.size)
         assertEquals(YamnetTagger.CLASSES, row.scores!!.size)
         assertEquals(1, taggerRuns)
+    }
+
+    @Test fun aSongAnalysedByAnOlderVersionIsAnalysedAgain() = runBlocking {
+        store.record("v", null, features, window)
+        assertFalse(store.stale("v"))
+        // A row written before the descriptors' version changed: read back by a fresh store, it still shows.
+        db.analysis().put(db.analysis().get("v")!!.copy(algorithmVersion = 1, sleepScore = 100))
+        val fresh = AnalysisStore(db.analysis(), models, { prefs }, CoroutineScope(SupervisorJob() + Dispatchers.IO), { fake }, { target })
+        fresh.load()
+        assertTrue("the old analysis still shows", fresh.has("v"))
+        assertTrue("and is out of date", fresh.stale("v"))
+        assertTrue(fresh.needs("v"))
+        // A song analysed by nothing yet isn't stale: that's a walk's work, not a play's.
+        assertFalse(fresh.stale("never"))
+        // A scan redos it, and it's current again.
+        fresh.record("v", null, features, window)
+        assertFalse(fresh.needs("v"))
+        assertFalse(fresh.stale("v"))
+        assertEquals(Descriptors.VERSION, db.analysis().get("v")!!.algorithmVersion)
     }
 
     @Test fun withoutTheTaggerASongIsAnalysedAgainOnceItIsOn() = runBlocking {

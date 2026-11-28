@@ -5794,4 +5794,6 @@
     <string name="analysis_skim">快速瀏覽</string>
     <string name="analysis_score_high">高</string>
     <string name="analysis_score_low">低</string>
+    <string name="analysis_out_of_date">由較早版本的聲音分析完成：此評分和這些標籤來自那時。</string>
+    <string name="analysis_reanalyse">重新分析</string>
 </resources>

@@ -5869,4 +5869,6 @@
     <string name="analysis_skim">جھلک دیکھیں</string>
     <string name="analysis_score_high">زیادہ</string>
     <string name="analysis_score_low">کم</string>
+    <string name="analysis_out_of_date">آواز کے تجزیے کے پرانے ورژن سے تجزیہ کیا گیا: یہ اسکور اور یہ ٹیگ پہلے کے ہیں۔</string>
+    <string name="analysis_reanalyse">دوبارہ تجزیہ کریں</string>
 </resources>

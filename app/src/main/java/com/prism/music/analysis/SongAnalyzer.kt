@@ -9,6 +9,12 @@ interface SongAnalyzer {
     /** Whether [id] has no analysis from the current descriptors and tagger. Fast and safe from any thread. */
     fun needs(id: String): Boolean
 
+    /**
+     * Whether [id] has an analysis, but one made by older descriptors or an older tagger: it's still shown until a scan
+     * redoes it, so a play of the song asks for that scan ([needs] on its own also covers songs analysed by nothing yet).
+     */
+    fun stale(id: String): Boolean
+
     /** Whether the tagger's model is on the phone and switched on: only then are its windows kept. */
     fun taggerReady(): Boolean
 

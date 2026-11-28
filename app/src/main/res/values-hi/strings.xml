@@ -5869,4 +5869,6 @@
     <string name="analysis_skim">झलक देखें</string>
     <string name="analysis_score_high">ज़्यादा</string>
     <string name="analysis_score_low">कम</string>
+    <string name="analysis_out_of_date">ध्वनि विश्लेषण के पुराने संस्करण से विश्लेषित: यह स्कोर और ये टैग पहले के हैं।</string>
+    <string name="analysis_reanalyse">फिर से विश्लेषण करें</string>
 </resources>

@@ -5944,4 +5944,6 @@
     <string name="analysis_skim">Muestrear</string>
     <string name="analysis_score_high">Alto</string>
     <string name="analysis_score_low">Bajo</string>
+    <string name="analysis_out_of_date">Analizado por una versión anterior del análisis de sonido: esta puntuación y estas etiquetas son de antes.</string>
+    <string name="analysis_reanalyse">Analizar de nuevo</string>
 </resources>

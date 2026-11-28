@@ -6019,4 +6019,6 @@
     <string name="analysis_skim">Прогортати</string>
     <string name="analysis_score_high">Висока</string>
     <string name="analysis_score_low">Низька</string>
+    <string name="analysis_out_of_date">Проаналізовано попередньою версією аналізу звуку: ця оцінка й ці теги — з неї.</string>
+    <string name="analysis_reanalyse">Проаналізувати знову</string>
 </resources>

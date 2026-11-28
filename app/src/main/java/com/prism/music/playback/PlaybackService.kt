@@ -1928,9 +1928,6 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
         val s = c.settings.current
         // The waveform progress bar is drawn from the scan too (1.7.4).
         val wave = s.scrubberStyle == com.prism.music.data.prefs.ScrubberStyle.WAVE
-        // A radio tuned calm or energetic goes by what's been scanned, so songs heard are scanned for it too.
-        if (!s.mix && !s.normalize && !wave && s.behavior.radioTune.energy == 0f) return
-        val network = s.mixTempoOnCellular || getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
         val playingItem = player.currentMediaItem
         val playingMedia = playingItem?.mediaId
         // The audio actually heard is the form scanned ([Loudness.formId]): a queued item armed as its video is scanned
@@ -1945,10 +1942,19 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             if (song == null) return if (item.mediaId.startsWith(Song.LOCAL_PREFIX)) null to item.mediaId else null
             return song to c.loudnessIndex.formId(song.id, item.videoModeId)
         }
+        val playingForm = formOf(playingItem)
+        val playing = playingForm?.second
+        // A song heard whose analysis is from older descriptors (or an older tagger) is scanned again to redo it: the
+        // score, tags and similar songs in hand then follow the version that's running, not the one before it. One decode
+        // per song, once, and only for songs analysed before (a song never analysed is the walks' work, not a play's).
+        // Either of its rows counts (the recording's, or the song's when it was filed there).
+        val staleAnalysis = playing != null && listOfNotNull(playing, playingForm?.first?.id).any { c.analysis.stale(it) }
+        // A radio tuned calm or energetic goes by what's been scanned, so songs heard are scanned for it too.
+        if (!s.mix && !s.normalize && !wave && s.behavior.radioTune.energy == 0f && !staleAnalysis) return
+        val network = s.mixTempoOnCellular || getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
         // With nothing named, the playing song and what's next: the player's own item is always one of them.
         val targets = if (items.isNotEmpty()) items.toList()
             else listOf(playingItem) + upcoming(QUEUE_AHEAD)
-        val playing = formOf(playingItem)?.second
         // Whether the form heard now still has no figure of its own: its scan is the one this listen is waiting for, so
         // it's scanned first and outranks a walk of songs the listener set going ([MixTempo.measure]'s priority).
         val playingNeedsFigure = playing != null && s.normalize &&
@@ -1961,14 +1967,16 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
             if (albumOf == null) emptyList()
             else (0 until player.mediaItemCount).map { player.getMediaItemAt(it) }.filter { it.toSong()?.let(::albumKey) == albumOf }
         } else emptyList()
-        val all = (targets + album).mapNotNull(::formOf).distinctBy { it.second }
+        val all = (targets + album + if (staleAnalysis) listOfNotNull(playingItem) else emptyList())
+            .mapNotNull(::formOf).distinctBy { it.second }
         fun worth(): List<String> {
             val usual = MixTempo.worthScanning(
                 all.map { it.second }, playing, c.visible.value, s.mix || wave, QUEUE_AHEAD,
                 playingUnmeasured = playingNeedsFigure,
             )
-            if (album.isEmpty()) return usual
-            return (usual + album.mapNotNull(::formOf).map { it.second }).distinct()
+            val withAlbum = if (album.isEmpty()) usual else (usual + album.mapNotNull(::formOf).map { it.second }).distinct()
+            // The heard song's own out-of-date analysis is reason enough for its scan, whichever screen is up.
+            return if (staleAnalysis && playing != null) (withAlbum + playing).distinct() else withAlbum
         }
         val worth = worth()
         val scans = all.filter { it.second in worth }
@@ -1999,6 +2007,7 @@ open class PlaybackService : MediaLibraryService(), Player.Listener {
                     form, network, edges, wave = wave, peak = s.normalize, sourceSongId = song?.id,
                     // Only a scan the listen is waiting for outranks the walk: its own volume's figure, or the bar's.
                     priority = form == playing && (playingNeedsFigure || wave),
+                    refresh = form == playing && staleAnalysis,
                 )
                 // Its own figure landed while the form just started: it takes over ([LoudnessCatchUp]); later in the
                 // form, a jump would be heard.

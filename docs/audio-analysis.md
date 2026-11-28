@@ -80,6 +80,10 @@ leans on the listener's own feedback as soon as there is any.
 - **Cache and provenance.** A row is keyed by song id and carries `algorithmVersion`, `taggerId`/`taggerVersion` and
   `analyzedAt`. A song is analysed again only when its descriptors' version or the tagger's changed. User decisions
   (tag reviews, sleep votes) live in separate tables and survive re-analysis.
+- **A version's change reaches the songs heard.** A song whose stored analysis is from older descriptors (or an older
+  tagger) is scanned again when it plays (`MixTempo.measure`'s `refresh`, asked by the player for the form it's hearing):
+  one decode, once per song, not the whole library's. Until then the old analysis still shows; the Sound profile says it's
+  from an earlier version and offers "Analyse again" for that song now. "Analyse now" and the daily job redo the rest.
 - **Modular.** `Descriptors` (pure Kotlin, JVM-testable), `AudioTagger` (interface; YAMNet is one implementation),
   `SleepScore` (pure function of features + tags + personal model), `Similarity`, `QueueSequencer` — each replaceable.
 

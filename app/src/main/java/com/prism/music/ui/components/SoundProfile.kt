@@ -81,8 +81,25 @@ fun SoundProfileSheet(song: Song, onDismiss: () -> Unit) {
     val id = remember(changes) { listOf(song.id, formId).firstOrNull { c.analysis.has(it) } }
     var analysing by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
+    // A scan of the recording heard, for the analysis: the same decode the player's figure comes from.
+    fun analyseNow() {
+        analysing = true
+        failed = false
+        c.scope.launch {
+            runCatching {
+                c.mixTempo.measure(
+                    formId, network = c.measureSongs.network(false), edges = false,
+                    sourceSongId = song.id.takeIf { it != formId }, analyse = true,
+                )
+            }
+            analysing = false
+            failed = !c.analysis.has(formId) && !c.analysis.has(song.id)
+        }
+    }
     PrismSheet(onDismiss) { _ ->
         val result: SleepResult? = remember(id, changes) { id?.let { c.analysis.sleepResult(it) } }
+        // Analysed by older descriptors or an older tagger: what's shown is from before, and a scan redos it.
+        val outOfDate = remember(id, changes) { id != null && c.analysis.stale(id) }
         val provenance by produceState<com.prism.music.data.db.SongAnalysisEntity?>(null, id, changes) {
             value = id?.let { withContext(Dispatchers.IO) { runCatching { c.analysis.provenance(it) }.getOrNull() } }
         }
@@ -105,23 +122,21 @@ fun SoundProfileSheet(song: Song, onDismiss: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (analysing) PrismSpinner(Modifier.size(22.dp), stroke = 2.dp)
-                else PrismFilledTonalButton(onClick = {
-                    analysing = true
-                    failed = false
-                    c.scope.launch {
-                        runCatching {
-                            c.mixTempo.measure(
-                                formId, network = c.measureSongs.network(false), edges = false,
-                                sourceSongId = song.id.takeIf { it != formId }, analyse = true,
-                            )
-                        }
-                        analysing = false
-                        failed = !c.analysis.has(formId) && !c.analysis.has(song.id)
-                    }
-                }) { Text(tr(R.string.analysis_now)) }
+                else PrismFilledTonalButton(onClick = ::analyseNow) { Text(tr(R.string.analysis_now)) }
                 return@Column
             }
             SleepScoreBlock(result)
+            if (outOfDate) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    tr(R.string.analysis_out_of_date), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f),
+                )
+                if (analysing) PrismSpinner(Modifier.size(18.dp), stroke = 2.dp)
+                else PrismTextButton(onClick = ::analyseNow) { Text(tr(R.string.analysis_reanalyse)) }
+            }
+            if (outOfDate && failed) Text(
+                tr(R.string.analysis_couldnt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
+            )
             val vote = remember(changes) { c.analysis.vote(id) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PrismChip(vote > 0, { scope.launch { c.analysis.setVote(id, if (vote > 0) 0 else 1) } }, tr(R.string.sleep_good_for_sleep), icon = PrismIcons.Moon)

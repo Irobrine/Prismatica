@@ -5869,4 +5869,6 @@
     <string name="analysis_skim">مرور سریع</string>
     <string name="analysis_score_high">بالا</string>
     <string name="analysis_score_low">پایین</string>
+    <string name="analysis_out_of_date">با نسخهٔ قدیمی‌تر تحلیل صدا تحلیل شده است: این امتیاز و این برچسب‌ها از پیش‌اند.</string>
+    <string name="analysis_reanalyse">تحلیل دوباره</string>
 </resources>

@@ -882,6 +882,10 @@ class AppContainer(val app: Application) {
     val player = PlayerConnection(app, this)
     @Volatile private var songStartedAt = 0L
     init { scope.launch { player.currentSong.collect { songStartedAt = android.os.SystemClock.elapsedRealtime() } } }
+    // The analysis index in memory from the start (a few hundred ms for a whole library, off the main thread): playback
+    // asks it, as each song starts, whether that song's analysis is from an older version and wants redoing. Until it's
+    // read, the question answers no (a song is scanned for the reason it was going to be anyway).
+    init { scope.launch(Dispatchers.IO) { runCatching { analysis.load() } } }
 
     /**
      * Waits until the network is free for background saving (offline copies of playlists, covers, download retries):

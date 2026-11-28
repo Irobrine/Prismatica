@@ -5869,4 +5869,6 @@
     <string name="analysis_skim">Átpörgetés</string>
     <string name="analysis_score_high">Magas</string>
     <string name="analysis_score_low">Alacsony</string>
+    <string name="analysis_out_of_date">A hanganalízis egy korábbi verziója elemezte: ez a pontszám és ezek a címkék korábbról valók.</string>
+    <string name="analysis_reanalyse">Újraelemzés</string>
 </resources>

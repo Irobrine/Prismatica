@@ -5944,4 +5944,6 @@
     <string name="analysis_skim">Răsfoiește</string>
     <string name="analysis_score_high">Mare</string>
     <string name="analysis_score_low">Mic</string>
+    <string name="analysis_out_of_date">Analizat de o versiune mai veche a analizei sunetului: acest scor și aceste etichete sunt de dinainte.</string>
+    <string name="analysis_reanalyse">Analizează din nou</string>
 </resources>

@@ -122,6 +122,9 @@ class AnalysisStore(
         return taggerReady() && v.second != YamnetTagger.VERSION
     }
 
+    /** [needs], for a song that was analysed before ([has]): the one a play redoes, rather than an analysis from nothing. */
+    override fun stale(id: String): Boolean = has(id) && needs(id)
+
     override fun taggerReady(): Boolean {
         if (!prefs().tagger || !models.ready(ModelStore.Model.YAMNET)) return false
         val runtime = ModelStore.Model.singRuntime() ?: return false

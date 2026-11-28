@@ -5869,4 +5869,6 @@
     <string name="analysis_skim">Silipin</string>
     <string name="analysis_score_high">Mataas</string>
     <string name="analysis_score_low">Mababa</string>
+    <string name="analysis_out_of_date">Sinuri ng mas lumang bersyon ng pagsusuri ng tunog: ang score at mga tag na ito ay mula noon.</string>
+    <string name="analysis_reanalyse">Suriin muli</string>
 </resources>
