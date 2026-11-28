@@ -69,6 +69,9 @@ interface SleepAudio {
     fun restoreVolume()
 
     fun reportNoEligibleSongs(maxBpm: Int)
+
+    /** No song left that the sleep-score limit lets through. */
+    fun reportNoCalmSongs(minScore: Int) {}
 }
 
 /** One session's choices, as they were when it started (later edits happen through the active timer menu). */
@@ -79,6 +82,8 @@ data class SleepConfig(
     val finishSong: Boolean,
     /** The volume slider's place, 0 … 1. */
     val volume: Float,
+    /** The lowest sleep score a song may have ([SleepScoreGate]); 0 is no limit. */
+    val minSleepScore: Int = 0,
 )
 
 /**
@@ -117,6 +122,15 @@ object SleepBpm {
     }
 }
 
+/** The sleep-score rule: like [SleepBpm], an unknown score never passes a limit that's set. */
+object SleepScoreGate {
+    fun allows(score: Int?, minScore: Int): Boolean {
+        if (minScore <= 0) return true
+        if (score == null) return false
+        return score >= minScore
+    }
+}
+
 /**
  * The running sleep timer. [SleepTimerPrefs] holds what the listener chose; this holds the one session that is running
  * now: its deadline, overtime, temporary BPM override and the fade being applied.
@@ -128,6 +142,8 @@ class SleepTimerEngine(
     private val wallClock: () -> Long = System::currentTimeMillis,
     /** A session that ended by itself (not cancelled): what a listener set only for that session can be put back. */
     private val onEnded: () -> Unit = {},
+    /** A song's sleep score with the listener's weights and feedback ([com.prism.music.analysis.SleepScore]); null when not analysed. */
+    private val sleepScoreOf: (String) -> Int? = { null },
 ) {
     private val _active = MutableStateFlow(false)
     val active: StateFlow<Boolean> = _active.asStateFlow()
@@ -147,6 +163,10 @@ class SleepTimerEngine(
     /** The limit this session was started with (0 when none). */
     private val _maxBpm = MutableStateFlow(0)
     val maxBpm: StateFlow<Int> = _maxBpm.asStateFlow()
+
+    /** The sleep-score limit this session was started with (0 when none). */
+    private val _minSleepScore = MutableStateFlow(0)
+    val minSleepScore: StateFlow<Int> = _minSleepScore.asStateFlow()
 
     private var deadline = 0L
     private var fadeMs = 0L
@@ -169,6 +189,7 @@ class SleepTimerEngine(
         this.config = config.copy(
             fadeSeconds = (config.fadeSeconds.coerceAtLeast(0)),
             maxBpm = config.maxBpm.coerceAtLeast(0),
+            minSleepScore = config.minSleepScore.coerceIn(0, 100),
             volume = config.volume.coerceIn(0f, 1f),
         )
         fadeMs = SleepClock.fadeMs(this.config.minutes, this.config.fadeSeconds)
@@ -176,6 +197,7 @@ class SleepTimerEngine(
         overtime = false
         overtimeKey = null
         _maxBpm.value = this.config.maxBpm
+        _minSleepScore.value = this.config.minSleepScore
         _finishSong.value = this.config.finishSong
         _bpmDisabled.value = false
         _wallDeadline.value = wallClock() + this.config.minutes * 60_000L
@@ -193,6 +215,7 @@ class SleepTimerEngine(
         _finishSong.value = false
         _bpmDisabled.value = false
         _maxBpm.value = 0
+        _minSleepScore.value = 0
         overtime = false
         overtimeKey = null
         deadline = 0L
@@ -242,6 +265,21 @@ class SleepTimerEngine(
     fun blocksBpm(songId: String?): Boolean {
         if (!_active.value || _bpmDisabled.value || config.maxBpm <= 0) return false
         return !SleepBpm.allows(songId?.let(bpmOf), config.maxBpm)
+    }
+
+    /** Whether the session's sleep-score limit rules [songId] out right now (the same override lifts it). */
+    fun blocksScore(songId: String?): Boolean {
+        if (!_active.value || _bpmDisabled.value || config.minSleepScore <= 0) return false
+        return !SleepScoreGate.allows(songId?.let(sleepScoreOf), config.minSleepScore)
+    }
+
+    /** Whether either limit rules [songId] out: what the queue's gate and autoplay go by. */
+    fun blocks(songId: String?): Boolean = blocksBpm(songId) || blocksScore(songId)
+
+    /** Tells the listener why nothing is left: the score limit when it's the one set, else the BPM limit. */
+    fun reportNoneLeft() {
+        if (config.minSleepScore > 0 && (config.maxBpm <= 0)) audio.reportNoCalmSongs(config.minSleepScore)
+        else audio.reportNoEligibleSongs(config.maxBpm)
     }
 
     /**
@@ -330,6 +368,7 @@ class SleepTimerEngine(
         _finishSong.value = false
         _bpmDisabled.value = false
         _maxBpm.value = 0
+        _minSleepScore.value = 0
         overtime = false
         overtimeKey = null
         deadline = 0L

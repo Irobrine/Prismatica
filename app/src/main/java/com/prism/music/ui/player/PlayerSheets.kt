@@ -327,6 +327,7 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
     var fadeValue by remember(choices.minutes, fade) { mutableFloatStateOf(fade.coerceAtMost(maxFade).toFloat()) }
     var fadeTouched by remember { mutableStateOf(false) }
     var bpmValue by remember(choices.maxBpm) { mutableFloatStateOf(choices.maxBpm.toFloat()) }
+    var scoreValue by remember(choices.minSleepScore) { mutableFloatStateOf(choices.minSleepScore.toFloat()) }
     var volumeValue by remember(choices.volume) { mutableFloatStateOf(choices.volume) }
     var fadeInValue by remember(choices.fadeInSeconds) { mutableFloatStateOf(choices.fadeInSeconds.toFloat()) }
     var choosingAfter by remember { mutableStateOf(false) }
@@ -458,6 +459,19 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                 ) { c.sleepPrefs.setMaxBpm(bpmValue.roundToInt()) }
                 Text(tr(R.string.sleep_timer_bpm_info), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // The sound analysis' sleep score (0–100): only songs at least this calm play while the timer runs.
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr(R.string.sleep_score_minimum), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    Text(if (scoreValue < 1f) tr(R.string.off) else tr(R.string.sleep_score_at_least, scoreValue.roundToInt()),
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                }
+                PrismSlider(scoreValue, { scoreValue = it }, valueRange = 0f..90f, steps = 17) {
+                    c.sleepPrefs.setMinSleepScore(scoreValue.roundToInt())
+                }
+                val analysed by c.analysis.count.collectAsState()
+                Text(tr(R.string.sleep_score_minimum_info, analysed), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(tr(R.string.sleep_timer_volume), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
@@ -476,6 +490,7 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
             PrismTextButton(onClick = {
                 commitMinutes()
                 c.sleepPrefs.setVolume(volumeValue)
+                c.sleepPrefs.setMinSleepScore(scoreValue.roundToInt())
                 if (fadeTouched) c.settings.setSleepFade(fadeValue.roundToInt())
                 pc.startSleepTimer(fadeValue.roundToInt())
                 onDismiss()
@@ -499,6 +514,7 @@ fun SleepTimerEditDialog(onDismiss: () -> Unit) {
     val endOfSong by pc.sleepEndOfSong.collectAsState()
     val bpmDisabled by pc.sleepBpmDisabled.collectAsState()
     val maxBpm by pc.sleepMaxBpm.collectAsState()
+    val minScore by pc.sleepMinScore.collectAsState()
     var volumeValue by remember(choices.volume) { mutableFloatStateOf(choices.volume) }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
@@ -523,9 +539,13 @@ fun SleepTimerEditDialog(onDismiss: () -> Unit) {
                 }
                 Spacer(Modifier.height(12.dp))
                 FilterChip(bpmDisabled, { pc.setSleepBpmDisabled(!bpmDisabled) },
-                    { Text(tr(R.string.temporarily_disable_the_bpm_limit)) })
+                    { Text(if (minScore > 0) tr(R.string.sleep_allow_every_song) else tr(R.string.temporarily_disable_the_bpm_limit)) })
                 if (maxBpm > 0) Text(
                     tr(R.string.sleep_bpm_under, maxBpm), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (minScore > 0) Text(
+                    tr(R.string.sleep_score_limit_on, minScore), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))

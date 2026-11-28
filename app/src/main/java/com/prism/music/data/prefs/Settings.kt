@@ -521,6 +521,8 @@ data class BehaviorPrefs(
     val lyricsCoverPlays: Boolean = false,
     /** Configurable duplicate-song hiding: the global default, per-page overrides and the scan's data choice. Nested here so AppSettings' constructor stays under the JVM's slot limit. */
     val dedup: DedupPrefs = DedupPrefs(),
+    /** The sound analysis (sleep score, tags, audio-aware autoplay; docs/audio-analysis.md). */
+    val analysis: AnalysisPrefs = AnalysisPrefs(),
 ) {
     companion object {
         /** #404: how far [lyricsOffsetMs] goes either way. */
@@ -807,6 +809,8 @@ enum class MenuAction(val group: MenuGroup, val fromPlayer: Boolean = false, val
     CREDITS(MenuGroup.SONG),
     /** #211 (1.8.2): its plays and dates. */
     DETAILS(MenuGroup.SONG),
+    /** Its sound analysis: the sleep score and why, its tags to review, how it was measured. */
+    SOUND_PROFILE(MenuGroup.SONG),
     VERSION(MenuGroup.SONG),
     /** #305 (1.8.1): a cover of the listener's choosing for the song. */
     COVER(MenuGroup.SONG),
@@ -1574,6 +1578,22 @@ data class DedupPrefs(
     val enabled: Boolean = false,
     val overrides: String = "",
     val cellular: Boolean = false,
+)
+
+/**
+ * The sound analysis (Settings → Recommendations & history → Sound analysis), kept apart from [BehaviorPrefs]' own
+ * arguments as [DedupPrefs] is.
+ *
+ * [background]: songs on the phone are analysed once a day by a job ([com.prism.music.analysis.AnalysisWorker]), only
+ * with the screen off and nothing playing; [charging] keeps that job to while the phone charges. Songs are analysed
+ * anyway when they're scanned for Normalize, Crossfade or DJ mode. [tagger]: the tagging model (a download) hears each
+ * analysed song. [vocalsCount]: singing and speech lower the sleep score.
+ */
+data class AnalysisPrefs(
+    val background: Boolean = true,
+    val charging: Boolean = true,
+    val tagger: Boolean = false,
+    val vocalsCount: Boolean = true,
 )
 
 data class AppSettings(
@@ -2395,6 +2415,10 @@ class SettingsRepository(
         }
         val mergeLikedVideos = booleanPreferencesKey("merge_liked_videos")
         val dedupEnabled = booleanPreferencesKey("dedup_enabled")
+        val analysisBackground = booleanPreferencesKey("analysis_background")
+        val analysisCharging = booleanPreferencesKey("analysis_charging")
+        val analysisTagger = booleanPreferencesKey("analysis_tagger")
+        val sleepVocalsCount = booleanPreferencesKey("sleep_vocals_count")
         val dedupOverrides = stringPreferencesKey("dedup_overrides")
         val dedupScanCellular = booleanPreferencesKey("dedup_scan_cellular")
         val hideStatusBar = booleanPreferencesKey("hide_status_bar")
@@ -2706,6 +2730,8 @@ class SettingsRepository(
                 "switch_devices",
                 // 1.9: how lyrics enhancement runs and how much room its generated audio may take.
                 "enhance_align_with_vocals", "enhance_audio_mb",
+                // The sound analysis: what the phone does in the background, not how Prism looks.
+                "analysis_background", "analysis_charging", "analysis_tagger", "sleep_vocals_count",
             )
         }
     }
@@ -3074,6 +3100,12 @@ class SettingsRepository(
                     enabled = p[K.dedupEnabled] ?: d.behavior.dedup.enabled,
                     overrides = p[K.dedupOverrides] ?: d.behavior.dedup.overrides,
                     cellular = p[K.dedupScanCellular] ?: d.behavior.dedup.cellular,
+                ),
+                analysis = AnalysisPrefs(
+                    background = p[K.analysisBackground] ?: d.behavior.analysis.background,
+                    charging = p[K.analysisCharging] ?: d.behavior.analysis.charging,
+                    tagger = p[K.analysisTagger] ?: d.behavior.analysis.tagger,
+                    vocalsCount = p[K.sleepVocalsCount] ?: d.behavior.analysis.vocalsCount,
                 ),
             ),
             tv = TvPrefs(
@@ -3973,6 +4005,10 @@ class SettingsRepository(
     fun setLyricsStripTwoLines(v: Boolean) = edit { it[K.lyricsStripTwoLines] = v }
     fun setMergeLikedVideos(v: Boolean) = edit { it[K.mergeLikedVideos] = v }
     fun setDedupEnabled(v: Boolean) = edit { it[K.dedupEnabled] = v }
+    fun setAnalysisBackground(v: Boolean) = edit { it[K.analysisBackground] = v }
+    fun setAnalysisCharging(v: Boolean) = edit { it[K.analysisCharging] = v }
+    fun setAnalysisTagger(v: Boolean) = edit { it[K.analysisTagger] = v }
+    fun setSleepVocalsCount(v: Boolean) = edit { it[K.sleepVocalsCount] = v }
     /** A page's override: null drops it and makes the page inherit the global setting again. */
     fun setDedupOverride(scope: com.prism.music.data.dedup.DedupScope, v: Boolean?) = edit { p ->
         val kept = (p[K.dedupOverrides] ?: "").split(',').filter { it.isNotBlank() && !it.startsWith(scope.setting + ":") }

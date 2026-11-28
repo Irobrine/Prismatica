@@ -113,6 +113,8 @@ fun PlayerOptionsSheet(
     if (credits) { com.prism.music.ui.components.SongCreditsSheet(song) { credits = false; onDismiss() }; return }
     var details by remember { mutableStateOf(false) }
     if (details) { com.prism.music.ui.components.SongDetailsSheet(song) { details = false; onDismiss() }; return }
+    var soundProfile by remember { mutableStateOf(false) }
+    if (soundProfile) { com.prism.music.ui.components.SoundProfileSheet(song) { soundProfile = false; onDismiss() }; return }
     // Playlists people made around this song: a search by its title and artist, asked only when the row is picked.
     var relatedPlaylists by remember { mutableStateOf(false) }
     if (relatedPlaylists) {
@@ -245,6 +247,8 @@ fun PlayerOptionsSheet(
     if (!song.isEpisode && !local && !song.isLive) put(MenuAction.CREDITS, ActionItem(PrismIcons.Info, tr(R.string.song_credits), keepOpen = true) { credits = true })
     // As in the song menu: YouTube has nothing to say about the listener's own uploads.
     if (!song.isEpisode && !local && !song.isLive && !song.isUpload) put(MenuAction.DETAILS, ActionItem(PrismIcons.Replay, tr(R.string.song_details), keepOpen = true) { details = true })
+    // The sound analysis: its sleep score and why, its tags (files on the phone most of all).
+    if (!song.isEpisode && !song.isLive) put(MenuAction.SOUND_PROFILE, ActionItem(PrismIcons.Equalizer, tr(R.string.sound_profile), keepOpen = true) { soundProfile = true })
     // Another recording in its place (Reddit 1.7.9: an album song played as someone's cover).
     if (!local && !song.isLive && together !is com.prism.music.playback.together.TogetherState.Guest) put(
         MenuAction.VERSION, ActionItem(PrismIcons.SwapVertical, tr(R.string.play_a_different_version), active = song.id in picks, keepOpen = true) { versions = true },
@@ -392,6 +396,7 @@ internal fun menuIcon(a: MenuAction): ImageVector = when (a) {
     MenuAction.PLAYLISTS_WITH_SONG -> PrismIcons.QueueMusic
     MenuAction.CREDITS -> PrismIcons.Info
     MenuAction.DETAILS -> PrismIcons.Replay
+    MenuAction.SOUND_PROFILE -> PrismIcons.Equalizer
     MenuAction.VERSION -> PrismIcons.SwapVertical
     MenuAction.COVER -> PrismIcons.Photo
     MenuAction.NOT_FOR_ME -> PrismIcons.ThumbDown
@@ -436,6 +441,7 @@ internal fun menuLabel(a: MenuAction): String = when (a) {
     MenuAction.PLAYLISTS_WITH_SONG -> tr(R.string.playlists_with_this_song)
     MenuAction.CREDITS -> tr(R.string.song_credits)
     MenuAction.DETAILS -> tr(R.string.song_details)
+    MenuAction.SOUND_PROFILE -> tr(R.string.sound_profile)
     MenuAction.VERSION -> tr(R.string.play_a_different_version)
     MenuAction.COVER -> tr(R.string.change_cover)
     MenuAction.NOT_FOR_ME -> tr(R.string.not_for_me)

@@ -313,6 +313,8 @@ class MixTempo(
     private val waves: com.prism.music.data.SongWaves? = null,
     /** Where what's measured goes too, in one table that can be filtered (1.8.3: `song_traits`). */
     private val traits: com.prism.music.data.TraitsSink? = null,
+    /** The sound analysis (sleep score, tags, similarity), read from the same decode ([com.prism.music.analysis]). */
+    private val analyzer: com.prism.music.analysis.SongAnalyzer? = null,
 ) {
     private val prefs = context.getSharedPreferences("mix_tempo", Context.MODE_PRIVATE)
     /** Form id ([Loudness.formId]) -> integrated loudness (LUFS; NaN when it couldn't be measured). Also marks it as scanned. */
@@ -427,7 +429,13 @@ class MixTempo(
     /** Scanned before the song's fade-out and intro were measured (for Mix's Auto length): scanned again once. */
     private fun old(id: String) = prefs.getString(id, null)?.let(Tempo::isOld) == true
 
-    internal class Scan(val tempo: Tempo?, val lufs: Float?, val key: MusicKey?, val peakDb: Float?, val brightness: Double?)
+    internal class Scan(
+        val tempo: Tempo?, val lufs: Float?, val key: MusicKey?, val peakDb: Float?, val brightness: Double?,
+        /** The sound analysis' descriptors, when the scan was asked for them ([com.prism.music.analysis.SongAnalyzer]). */
+        val features: com.prism.music.analysis.SongFeatures? = null,
+        /** The tagger's 16 kHz windows ([com.prism.music.analysis.TaggerTap]), when its model is on the phone. */
+        val tagWindows: List<FloatArray> = emptyList(),
+    )
 
     // ---------------------------------------------------------------- DJ mode's quick scan
 
@@ -557,9 +565,13 @@ class MixTempo(
     suspend fun measure(
         id: String, network: Boolean = true, edges: Boolean = true, key: Boolean = false, wave: Boolean = false, peak: Boolean = false,
         sourceSongId: String? = null, priority: Boolean = false, deferToPlaying: Boolean = false,
+        /** The sound analysis wants this song (Settings → Sound analysis): scanned again when it has no current one. */
+        analyse: Boolean = false,
+        /** A job Android scheduled (charging, screen off), with limits of its own rather than [BackgroundBudget]'s. */
+        scheduled: Boolean = false,
     ): Tempo? {
         fun done() = scanned(id) && !(edges && old(id)) && !(key && !keyed(id)) && !(wave && waves?.has(id) == false) &&
-            !(peak && (noPeak(id) || loudnessOld(id)))
+            !(peak && (noPeak(id) || loudnessOld(id))) && !(analyse && analyzer?.needs(id) == true)
         // Kept from being scanned ([skip]): its figure can't be had, so neither a walk nor a play asks again.
         if (skipped(id) || (sourceSongId != null && skipped(sourceSongId))) return cached(id)
         if (done() || hasFailed(id)) return cached(id)
@@ -580,8 +592,12 @@ class MixTempo(
                         val before = android.os.Process.getThreadPriority(android.os.Process.myTid())
                         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
                         AudioDiagnostics.log("background", "song scan of $id started (Normalize/Crossfade/DJ)")
+                        // Any scan reads the sound analysis' descriptors too when the song has none yet (they come from
+                        // the same decode, for a fraction of its cost); the tagger's windows only when its model is here.
+                        val describe = analyzer?.needs(id) == true
+                        val tagger = describe && analyzer?.taggerReady() == true
                         val r = try {
-                            runCatching { scan(id, network, sourceSongId) }
+                            runCatching { BackgroundBudget.asJob(scheduled) { scan(id, network, sourceSongId, describe, tagger) } }
                                 .onFailure { if (it !is ScansAbandoned) Log.w(TAG, "scan of $id failed: $it") }
                         } finally {
                             android.os.Process.setThreadPriority(before)
@@ -613,6 +629,13 @@ class MixTempo(
                                     (if (t == null) "no clear music" else "%.1f BPM (confidence %.1f), music %d–%d ms, first beat %d ms"
                                         .format(t.bpm, t.confidence, t.firstSoundMs, t.lastSoundMs, t.firstBeatMs)) +
                                     ", key ${s.key?.let { "${it.name} (${it.camelot}, confidence %.3f)".format(it.confidence) } ?: "unclear"}")
+                                // The analysis last: its tagger's inference never holds up the figure Normalize waits for.
+                                s.features?.let { f ->
+                                    val a = System.nanoTime()
+                                    runCatching { BackgroundBudget.asJob(scheduled) { analyzer?.record(id, sourceSongId, f, s.tagWindows) } }
+                                        .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; Log.w(TAG, "analysis of $id failed: $it") }
+                                    Log.i(TAG, "analysed $id in ${(System.nanoTime() - a) / 1_000_000} ms after its scan (${s.tagWindows.size} tagger windows)")
+                                }
                                 t
                             }
                         }
@@ -649,7 +672,7 @@ class MixTempo(
     }
 
     /** Null when the form's audio isn't on the phone and [network] doesn't allow fetching it. */
-    private fun scan(id: String, network: Boolean, sourceSongId: String? = null): Scan? {
+    private fun scan(id: String, network: Boolean, sourceSongId: String? = null, describe: Boolean = false, tagger: Boolean = false): Scan? {
         val file = File(context.cacheDir, "mix_$id.part")
         try {
             val uri = local(id, sourceSongId ?: id, file)
@@ -664,7 +687,7 @@ class MixTempo(
                         if (!r.isSuccessful) throw java.io.IOException("audio returned HTTP ${r.code}")
                         file.outputStream().use { out -> r.body.byteStream().copyTo(out) }
                     }
-                    return analyse({ decodeAll(android.net.Uri.fromFile(file)) ?: throw java.io.IOException("couldn't decode its audio") }, onSamples = onSamples(id))
+                    return analyse({ decodeAll(android.net.Uri.fromFile(file), describe, tagger) ?: throw java.io.IOException("couldn't decode its audio") }, onSamples = onSamples(id), describe = describe)
                 }
                 // Decoded as it arrives rather than downloaded whole first (1.9): the smallest stream is what the scan
                 // reads either way, and only what's needed for the first [MAX_SECONDS] is fetched at all. Its blocks are
@@ -676,8 +699,9 @@ class MixTempo(
                     // extractor's end of the song, and an outline of its first seconds would outlive the discarded
                     // figure (SongWaves.has would then stop the song being measured again).
                     val scan = analyse(
-                        { decodeAll(ranged) ?: throw java.io.IOException("couldn't decode its audio") },
+                        { decodeAll(ranged, describe, tagger) ?: throw java.io.IOException("couldn't decode its audio") },
                         onSamples = { pcm, count, rate -> if (ranged.failure == null) keepSamples(id, pcm, count, rate) },
+                        describe = describe,
                     )
                     // A read that failed is the extractor's end of the song: a figure from part of one isn't kept (it's
                     // asked again another time), as the quick scan does with the same source.
@@ -687,7 +711,7 @@ class MixTempo(
                     ranged.close()
                 }
             }
-            return analyse({ decodeAll(uri) ?: throw java.io.IOException("couldn't decode its audio") }, onSamples = onSamples(id))
+            return analyse({ decodeAll(uri, describe, tagger) ?: throw java.io.IOException("couldn't decode its audio") }, onSamples = onSamples(id), describe = describe)
         } finally {
             file.delete()
         }
@@ -710,12 +734,22 @@ class MixTempo(
     }
 
     /** A song as mono PCM: the first [count] samples of [pcm], at [rate], its loudest sample before (0 … 1), and its measured loudness (LUFS). */
-    internal class Decoded(val pcm: FloatArray, val count: Int, val rate: Int, val peak: Float, val lufs: Float?)
+    internal class Decoded(
+        val pcm: FloatArray, val count: Int, val rate: Int, val peak: Float, val lufs: Float?,
+        /** The loudness curves and range, when the sound analysis asked ([LoudnessMeter.stats]). */
+        val loudness: com.prism.music.analysis.LoudnessStats? = null,
+        /** The loudest point between samples too (0 … 1), when the sound analysis asked; 0 when not measured. */
+        val truePeak: Float = 0f,
+        /** The tagger's 16 kHz windows ([com.prism.music.analysis.TaggerTap]). */
+        val tagWindows: List<FloatArray> = emptyList(),
+    )
 
-    private fun decodeAll(uri: android.net.Uri): Decoded? = decodeAll { ex -> ex.setDataSource(context, uri, null) }
+    private fun decodeAll(uri: android.net.Uri, describe: Boolean = false, tagger: Boolean = false): Decoded? =
+        decodeAll(describe, tagger) { ex -> ex.setDataSource(context, uri, null) }
 
     /** [decodeAll] of a source read on demand (a stream fetched as the decoder reads it), not a file. */
-    private fun decodeAll(source: android.media.MediaDataSource): Decoded? = decodeAll { ex -> ex.setDataSource(source) }
+    private fun decodeAll(source: android.media.MediaDataSource, describe: Boolean = false, tagger: Boolean = false): Decoded? =
+        decodeAll(describe, tagger) { ex -> ex.setDataSource(source) }
 
     /**
      * The whole file as mono PCM, decimated to roughly 11 kHz, and its loudness over every channel as it decodes
@@ -723,7 +757,7 @@ class MixTempo(
      * 16 MB for a song of 12, and be copied once more at the end); the loudness needs no copy of its own. [open] gives
      * the extractor its source (a file or a stream).
      */
-    private fun decodeAll(open: (MediaExtractor) -> Unit): Decoded? {
+    private fun decodeAll(describe: Boolean, tagger: Boolean, open: (MediaExtractor) -> Unit): Decoded? {
         val ex = MediaExtractor()
         var codec: MediaCodec? = null
         try {
@@ -742,6 +776,11 @@ class MixTempo(
             var out = FloatArray(decodedSize(if (fmt.containsKey(MediaFormat.KEY_DURATION)) fmt.getLong(MediaFormat.KEY_DURATION) / 1000 else 0, rate / factor))
             var count = 0
             val mono = Downmix()
+            // The sound analysis' extras, from the same buffers: the true peak, and the tagger's windows at 16 kHz.
+            mono.measureTruePeak = describe
+            val durationUs = if (fmt.containsKey(MediaFormat.KEY_DURATION)) fmt.getLong(MediaFormat.KEY_DURATION) else 0L
+            var tap: com.prism.music.analysis.TaggerTap? = null
+            var tapRate = 0
             var meter: LoudnessMeter? = null
             var meterRate = 0
             var meterChannels = 0
@@ -783,6 +822,11 @@ class MixTempo(
                         meterRate = sr
                         meterChannels = loudChannels
                     }
+                    if (tagger && tapRate != rate) {
+                        // A new rate part-way (rare) starts the windows over at it: none is ever resampled from two rates.
+                        tap = com.prism.music.analysis.TaggerTap(rate, durationUs / 1000).also { t -> mono.tap = t::sample }
+                        tapRate = rate
+                    }
                     mono.add(buf, frames, channels, isFloat, factor) { v ->
                         if (count == out.size) out = out.copyOf(out.size + out.size / 2)
                         out[count++] = v
@@ -798,7 +842,17 @@ class MixTempo(
             if (count < sr * 20) return null
             // A mono file is heard on both speakers: one channel's power is 3 dB short of what plays.
             val lufs = meter?.loudness()?.let { if (channels == 1) it + 3f else it }
-            return Decoded(out, count, sr, mono.peak, lufs)
+            return Decoded(
+                out, count, sr, mono.peak, lufs,
+                loudness = if (describe) meter?.stats()?.let { st ->
+                    if (channels == 1) com.prism.music.analysis.LoudnessStats(
+                        st.integrated?.plus(3f), st.lra, st.maxMomentary?.plus(3f),
+                        FloatArray(st.momentary.size) { st.momentary[it] + 3f }, FloatArray(st.shortTerm.size) { st.shortTerm[it] + 3f },
+                    ) else st
+                } else null,
+                truePeak = mono.truePeak,
+                tagWindows = tap?.windows().orEmpty(),
+            )
         } finally {
             runCatching { codec?.stop() }
             runCatching { codec?.release() }
@@ -853,19 +907,24 @@ class MixTempo(
             decode: () -> Decoded,
             onSamples: (pcm: FloatArray, count: Int, rate: Int) -> Unit = { _, _, _ -> },
             step: () -> Unit = ::ease,
+            /** Read the sound analysis' descriptors too ([com.prism.music.analysis.Descriptors]), from the same samples. */
+            describe: Boolean = false,
         ): Scan {
-            val heard = hear(decode, onSamples, step)
+            val heard = hear(decode, onSamples, step, describe)
             step()
             // Energy's brightness from the same bands as the tempo (1.8.3; no extra pass).
             val brightness = runCatching { Energy.brightness(heard.bands) }.getOrNull()
-            return Scan(Tempo.analyze(heard.bands, heard.frameMs, offsetMs = heard.offsetMs), heard.lufs, heard.key, heard.peakDb, brightness)
+            return Scan(heard.tempo, heard.lufs, heard.key, heard.peakDb, brightness, heard.features, heard.tagWindows)
         }
 
         /** What a scan reads straight from the samples, and none of the samples themselves. */
-        private class Heard(val lufs: Float?, val bands: Array<FloatArray>, val frameMs: Double, val offsetMs: Double, val key: MusicKey?, val peakDb: Float?)
+        private class Heard(
+            val lufs: Float?, val bands: Array<FloatArray>, val frameMs: Double, val offsetMs: Double, val key: MusicKey?, val peakDb: Float?,
+            val tempo: Tempo?, val features: com.prism.music.analysis.SongFeatures?, val tagWindows: List<FloatArray>,
+        )
 
         /** The only frame that holds the decoded samples: they go when it returns. */
-        private fun hear(decode: () -> Decoded, onSamples: (pcm: FloatArray, count: Int, rate: Int) -> Unit, step: () -> Unit): Heard {
+        private fun hear(decode: () -> Decoded, onSamples: (pcm: FloatArray, count: Int, rate: Int) -> Unit, step: () -> Unit, describe: Boolean = false): Heard {
             val decoded = decode()
             val pcm = decoded.pcm; val rate = decoded.rate; val count = decoded.count
             // Its loudness was measured as it decoded ([LoudnessMeter]): no second pass over the samples.
@@ -876,14 +935,28 @@ class MixTempo(
             // The bands and the key are independent passes over the same samples: the key runs on a spare thread while
             // the bands are worked out here, when the phone may spare it ([spreadBandKey]). Neither's figures depend on
             // the other, and the step between them is kept so a scan still gives way there.
-            val (bands: Array<FloatArray>, key: MusicKey?) = spreadBandKey(
+            // The key from its chromagram (what KeyDetector.detect does), the chromagram kept for the sound analysis.
+            val (bands: Array<FloatArray>, chroma: DoubleArray?) = spreadBandKey(
                 bands = { VideoSync.bandFeatures(pcm, rate, count) },
-                key = { runCatching { KeyDetector.detect(pcm, rate, count) }.getOrNull() },
+                key = { runCatching { KeyDetector.chroma(pcm, rate, count) }.getOrNull() },
                 step = step,
             )
+            val key = chroma?.let { runCatching { KeyDetector.best(it) }.getOrNull() }
             val frameMs = (rate / 100) * 1000.0 / rate
+            val offsetMs = VideoSync.WINDOW / 2 * 1000.0 / rate
             val peakDb = decoded.peak.takeIf { it > 0f }?.let { (20 * kotlin.math.log10(it.toDouble())).toFloat() }
-            return Heard(lufs, bands, frameMs, VideoSync.WINDOW / 2 * 1000.0 / rate, key, peakDb)
+            val tempo = Tempo.analyze(bands, frameMs, offsetMs = offsetMs)
+            val features = if (!describe) null else runCatching {
+                step()
+                com.prism.music.analysis.Descriptors.extract(
+                    com.prism.music.analysis.Descriptors.Input(
+                        pcm, count, rate, bands, frameMs, tempo, key, chroma, decoded.loudness, peakDb,
+                        decoded.truePeak.takeIf { it > 0f }?.let { (20 * kotlin.math.log10(it.toDouble())).toFloat() },
+                    ),
+                    step,
+                )
+            }.onFailure { if (it is ScansAbandoned) throw it; Log.w(TAG, "descriptors failed: $it") }.getOrNull()
+            return Heard(lufs, bands, frameMs, offsetMs, key, peakDb, tempo, features, decoded.tagWindows)
         }
 
         /**
@@ -1104,6 +1177,38 @@ internal class LoudnessMeter(private val rate: Int, channels: Int) {
     private var powers = DoubleArray(INITIAL)
     private var blocks = 0
 
+    /** The last 3 s of hops, for short-term loudness ([stats]). */
+    private val stHops = DoubleArray(ST_HOPS)
+    private var stIndex = 0
+    private var stFilled = 0
+    private var sinceShort = ST_EVERY - 1
+    private var shortPowers = DoubleArray(INITIAL / 10)
+    private var shorts = 0
+
+    /**
+     * The loudness figures the sound analysis reads beside [loudness] (no second pass): loudness range after EBU Tech
+     * 3342 (short-term loudness gated at -70 LUFS and 20 LU under its mean, 10th to 95th percentile), the loudest
+     * momentary loudness, and both curves.
+     */
+    fun stats(): com.prism.music.analysis.LoudnessStats {
+        fun lufs(power: Double) = if (power > 0) (-0.691 + 10 * kotlin.math.log10(power)).toFloat() else Float.NEGATIVE_INFINITY
+        val momentary = FloatArray(blocks) { lufs(powers[it]) }
+        val shortTerm = FloatArray(shorts) { lufs(shortPowers[it]) }
+        val gated = shortTerm.filter { it > -70f }
+        val lra = if (gated.size < 3) null else {
+            val mean = -0.691 + 10 * kotlin.math.log10(gated.sumOf { Math.pow(10.0, (it + 0.691) / 10) } / gated.size)
+            val kept = gated.filter { it > mean - 20 }.sorted()
+            if (kept.size < 3) null else kept[((kept.size - 1) * 0.95).toInt()] - kept[((kept.size - 1) * 0.10).toInt()]
+        }
+        return com.prism.music.analysis.LoudnessStats(
+            integrated = loudness(),
+            lra = lra,
+            maxMomentary = momentary.filter { it.isFinite() }.maxOrNull(),
+            momentary = momentary,
+            shortTerm = shortTerm,
+        )
+    }
+
     /** One frame, a value per channel; each is a sum of [factor] samples when the sound was decimated. */
     fun frame(values: FloatArray, factor: Int = 1) {
         var power = 0.0
@@ -1136,6 +1241,17 @@ internal class LoudnessMeter(private val rate: Int, channels: Int) {
         hopsFilled = minOf(HOPS, hopsFilled + 1)
         hopSum = 0.0
         hopDone = 0
+        // Short-term loudness (3 s) every second, for the loudness range and the sound analysis' dynamics.
+        stHops[stIndex] = hops[(hopIndex + HOPS - 1) % HOPS]
+        stIndex = (stIndex + 1) % ST_HOPS
+        stFilled = minOf(ST_HOPS, stFilled + 1)
+        if (stFilled == ST_HOPS && ++sinceShort >= ST_EVERY) {
+            sinceShort = 0
+            var s = 0.0
+            for (h in 0 until ST_HOPS) s += stHops[h]
+            if (shorts == shortPowers.size) shortPowers = shortPowers.copyOf(shortPowers.size * 2)
+            shortPowers[shorts++] = s / (ST_HOPS * hopFrames)
+        }
         if (hopsFilled < HOPS) return
         var sum = 0.0
         for (h in 0 until HOPS) sum += hops[h]
@@ -1165,6 +1281,9 @@ internal class LoudnessMeter(private val rate: Int, channels: Int) {
     private companion object {
         /** 100 ms hops in a 400 ms block. */
         const val HOPS = 4
+        /** 100 ms hops in a short-term (3 s) block, and how many hops apart the short-term values are taken (1 s). */
+        const val ST_HOPS = 30
+        const val ST_EVERY = 10
         /** Room for ten minutes of blocks (a scan reads fifteen at most). */
         const val INITIAL = 8192
     }

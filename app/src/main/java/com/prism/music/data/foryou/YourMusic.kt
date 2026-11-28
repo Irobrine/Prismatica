@@ -86,17 +86,85 @@ class YourMusic(private val c: AppContainer) {
         // are to it goes by that (#461).
         val seedGenres = seeds.filter { it.id !in s.genres }.takeIf { it.isNotEmpty() }
             ?.let { runCatching { c.meta.cachedGenres(it) }.getOrNull() }.orEmpty()
+        // The sound analysis, where songs have one: how alike they sound, what the listener's music sounds like to them
+        // (long-term and this sitting), what they queue by hand, and — with the sleep timer running — how calm each is.
+        val sound = c.analysis
+        val taste = audioTaste(s, now)
+        val queued = runCatching { sound.queuedCounts() }.getOrDefault(emptyMap())
+        val sleeping = c.player.sleepActive
+        fun lift(song: Song): Double {
+            var k = 1.0 + 0.25 * taste.fit(sound.entry(song.id)?.embedding)
+            k *= 1.0 + 0.05 * minOf(4, queued[song.id] ?: 0)
+            if (sleeping) k *= 0.3 + 0.7 * ((sound.sleepScore(song.id) ?: 40) / 100.0)
+            return k
+        }
         val pool = LocalRadio.Pool(
             // Not clips under a minute (an album's intro, a skit, a sound file on the phone): they'd break the run of songs.
             songs = s.songs.values.filter { ok(it) && !it.isVideo && (it.durationSec == 0 || it.durationSec >= 60) && (!offlineOnly || c.availableOffline(it.id)) },
             coListen = s.coListen,
-            affinity = { s.model.score(it) * rest(s, it.id) },
+            affinity = { s.model.score(it) * rest(s, it.id) * lift(it) },
             genreOf = { s.genres[it] ?: seedGenres[it] },
             keyFit = { a, b -> keyFit(a, b) },
             bpmOf = { c.mixTempo.djBpm(it) },
+            audioSim = { a, b ->
+                val x = sound.entry(a); val y = sound.entry(b)
+                if (x != null && y != null) sound.similarity.between(x, y) else null
+            },
         )
         val day = LocalDate.now().toString()
-        return LocalRadio.pick(seeds, pool, inQueue + recent, count) { id -> 0.9 + 0.2 * (((id + day + seedIds.last()).hashCode().toLong() and 0xffff) / 65535.0) }
+        val picks = LocalRadio.pick(seeds, pool, inQueue + recent, count) { id -> 0.9 + 0.2 * (((id + day + seedIds.last()).hashCode().toLong() and 0xffff) / 65535.0) }
+        return sequenced(picks, seeds, s, sleeping)
+    }
+
+    /**
+     * [picks] as a run to play ([com.prism.music.analysis.QueueSequencer]): smooth steps from the seeds on, no artist or
+     * album back too soon, nothing too like what's just played, a little room for what's new; winding down while the
+     * sleep timer runs. Left as they are when too few have been analysed to order by sound.
+     */
+    private fun sequenced(picks: List<LocalRadio.Pick>, seeds: List<Song>, s: Snapshot, sleeping: Boolean): List<LocalRadio.Pick> {
+        val sound = c.analysis
+        if (picks.count { sound.entry(it.song.id) != null } < 3) return picks
+        val top = picks.maxOf { it.score }.takeIf { it > 0 } ?: 1.0
+        fun cand(song: Song, relevance: Double) = com.prism.music.analysis.QueueSequencer.Candidate(
+            song.id, relevance, song.primaryArtist, song.album?.id ?: song.album?.title, sound.entry(song.id),
+            fresh = if (s.last[song.id] == null) 1.0 else 0.0,
+        )
+        val ordered = com.prism.music.analysis.QueueSequencer.order(
+            picks.map { cand(it.song, it.score / top) }, picks.size, sound.similarity,
+            before = seeds.takeLast(3).map { cand(it, 1.0) },
+            mode = if (sleeping) com.prism.music.analysis.QueueSequencer.Mode.SLEEP else com.prism.music.analysis.QueueSequencer.Mode.NORMAL,
+        )
+        val byId = picks.associateBy { it.song.id }
+        return ordered.mapNotNull { byId[it.id] } + picks.filter { p -> ordered.none { it.id == p.song.id } }
+    }
+
+    /**
+     * The listener's taste in sound ([com.prism.music.analysis.AudioTaste]) from the songs they've analysed: liked, finished
+     * at least twice or queued by hand, against skipped at least twice; and this sitting's (the last hour) finished
+     * against skipped.
+     */
+    private suspend fun audioTaste(s: Snapshot, now: Long): com.prism.music.analysis.AudioTaste {
+        val sound = c.analysis
+        val all = sound.all()
+        if (all.size < 10) return com.prism.music.analysis.AudioTaste.NONE
+        fun emb(id: String) = sound.entry(id)?.embedding
+        fun completion(e: PlayEventEntity): Double? = s.songs[e.songId]?.durationSec?.takeIf { it > 0 }?.let { e.playedMs / (it * 1000.0) }
+        val finished = HashMap<String, Int>(); val skipped = HashMap<String, Int>()
+        for (e in s.events) {
+            val k = completion(e) ?: continue
+            if (k >= 0.8) finished.merge(e.songId, 1, Int::plus) else if (k < 0.3) skipped.merge(e.songId, 1, Int::plus)
+        }
+        val queued = runCatching { sound.queuedCounts() }.getOrDefault(emptyMap())
+        val liked = (s.liked.map { it.id } + finished.filterValues { it >= 2 }.keys + queued.filterValues { it >= 1 }.keys).distinct().mapNotNull(::emb)
+        val avoided = skipped.filterValues { it >= 2 }.keys.filter { (finished[it] ?: 0) == 0 }.mapNotNull(::emb)
+        val centre = com.prism.music.analysis.AudioTaste.mean(all.mapNotNull { it.embedding })
+        val lately = s.events.filter { now - it.timestamp < HOUR }
+        val shortLiked = lately.filter { (completion(it) ?: 0.0) >= 0.7 }.mapNotNull { emb(it.songId) }
+        val shortAvoided = lately.filter { (completion(it) ?: 1.0) < 0.3 }.mapNotNull { emb(it.songId) }
+        return com.prism.music.analysis.AudioTaste(
+            com.prism.music.analysis.AudioTaste.direction(liked, avoided, centre),
+            com.prism.music.analysis.AudioTaste.direction(shortLiked, shortAvoided, centre),
+        )
     }
 
     private fun keyFit(a: String, b: String): Double {

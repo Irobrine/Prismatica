@@ -191,6 +191,8 @@ class PrismApp : Application(), coil3.SingletonImageLoader.Factory {
             runCatching { com.prism.music.data.Recaps.schedule(this@PrismApp) }
             // DJ mode: the songs played most and liked get their key read once a day, on Wi-Fi while charging.
             runCatching { com.prism.music.playback.DjPrescanWorker.schedule(this@PrismApp) }
+            // The sound analysis: the songs on the phone, once a day while charging with nobody using the phone.
+            runCatching { com.prism.music.analysis.AnalysisWorker.schedule(this@PrismApp) }
             // Bring your history: the daily look at whether a fresh Spotify or Takeout download is due (only once one
             // was imported; a restored backup brings the dates with it).
             runCatching { com.prism.music.data.imports.ImportReminders.schedule(this@PrismApp) }
@@ -454,7 +456,17 @@ class AppContainer(val app: Application) {
         // Phones with few cores (or little memory, or Performance mode on): scans make way while the listener scrolls (#343).
         val slow = com.prism.music.playback.MixTempo.isSlowPhone(Runtime.getRuntime().availableProcessors(), com.prism.music.data.DevicePower.mayBeSlow(app), false)
         com.prism.music.playback.MixTempo.slowPhone = { slow || settings.current.performanceMode }
-        com.prism.music.playback.MixTempo(app, streamHttp, streams, ::audioOnPhone, { yieldToPlaying(null) }, { player.isPlaying.value }, waves, traits)
+        com.prism.music.playback.MixTempo(app, streamHttp, streams, ::audioOnPhone, { yieldToPlaying(null) }, { player.isPlaying.value }, waves, traits, analysis)
+    }
+    /**
+     * The sound analysis (docs/audio-analysis.md): descriptors, machine tags, the sleep score and the audio similarity
+     * autoplay reads; filled by the song scan, the daily job ([com.prism.music.analysis.AnalysisWorker]) and the listener.
+     */
+    val analysis by lazy {
+        com.prism.music.analysis.AnalysisStore(
+            db.analysis(), models, { settings.current.behavior.analysis }, scope,
+            makeTagger = { com.prism.music.analysis.AnalysisStore.yamnet(models) },
+        )
     }
     /** What's measured of songs (tempo, key, loudness, energy), in one table that smart playlists filter on (1.8.3). */
     val traits by lazy { com.prism.music.data.TraitsStore(db.traits(), scope) }

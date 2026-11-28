@@ -776,9 +776,10 @@ interface VideoSongDao {
 @Database(
     entities = [SongEntity::class, PlayEventEntity::class, LyricsEntity::class, GenreEntity::class, MotionArtEntity::class, HeatmapEntity::class,
         RomanizedEntity::class, ReleaseEntity::class, MixEntity::class, BlendEntity::class, RecognitionEntity::class,
-        ImportedPlayEntity::class, ImportMatchEntity::class, SongTraitsEntity::class, SongTagEntity::class, VideoSongEntity::class],
+        ImportedPlayEntity::class, ImportMatchEntity::class, SongTraitsEntity::class, SongTagEntity::class, VideoSongEntity::class,
+        SongAnalysisEntity::class, SongAutoTagEntity::class, SleepVoteEntity::class, SongSignalEntity::class],
     views = [CountedPlay::class],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 abstract class PrismDatabase : RoomDatabase() {
@@ -806,6 +807,8 @@ abstract class PrismDatabase : RoomDatabase() {
     abstract fun tags(): TagDao
     /** Which song each music video is of (looked up once, not on every tap). */
     abstract fun videoSongs(): VideoSongDao
+    /** The sound analysis: descriptors, machine tags, sleep votes and listening signals (docs/audio-analysis.md). */
+    abstract fun analysis(): AnalysisDao
 
     companion object {
         /**
@@ -912,6 +915,24 @@ abstract class PrismDatabase : RoomDatabase() {
                     db.execSQL("CREATE TABLE IF NOT EXISTS `video_songs` (`videoId` TEXT NOT NULL, `songId` TEXT, `songJson` TEXT, `checkedAt` INTEGER NOT NULL, PRIMARY KEY(`videoId`))")
                 }
             },
+            // The sound analysis: each song's descriptors and tagger output, its machine tags (apart from the listener's
+            // own), the listener's sleep votes, and the listening signals plays don't carry (docs/audio-analysis.md).
+            object : Migration(13, 14) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_14_SQL.forEach(db::execSQL)
+                }
+            },
+        )
+
+        /** Version 14's tables, exactly as Room makes them (schemas/…/14.json). */
+        internal val MIGRATION_14_SQL = listOf(
+            "CREATE TABLE IF NOT EXISTS `song_analysis` (`songId` TEXT NOT NULL, `algorithmVersion` INTEGER NOT NULL, `taggerId` TEXT, `taggerVersion` INTEGER, `analyzedAt` INTEGER NOT NULL, `featuresJson` TEXT NOT NULL, `scores` BLOB, `embedding` BLOB, `sleepScore` INTEGER, PRIMARY KEY(`songId`))",
+            "CREATE INDEX IF NOT EXISTS `index_song_analysis_sleepScore` ON `song_analysis` (`sleepScore`)",
+            "CREATE TABLE IF NOT EXISTS `song_auto_tags` (`songId` TEXT NOT NULL, `tag` TEXT NOT NULL, `category` TEXT NOT NULL, `confidence` REAL NOT NULL, `source` TEXT NOT NULL, `status` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`songId`, `tag`))",
+            "CREATE INDEX IF NOT EXISTS `index_song_auto_tags_tag` ON `song_auto_tags` (`tag`)",
+            "CREATE INDEX IF NOT EXISTS `index_song_auto_tags_status` ON `song_auto_tags` (`status`)",
+            "CREATE TABLE IF NOT EXISTS `sleep_votes` (`songId` TEXT NOT NULL, `vote` INTEGER NOT NULL, `at` INTEGER NOT NULL, PRIMARY KEY(`songId`))",
+            "CREATE TABLE IF NOT EXISTS `song_signals` (`songId` TEXT NOT NULL, `queued` INTEGER NOT NULL, `sleepSkips` INTEGER NOT NULL, `sleepFinishes` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`songId`))",
         )
 
         fun build(context: Context): PrismDatabase =

@@ -203,10 +203,10 @@ class LegacyBackupTest {
         assertTrue("this phone's Last.fm session", read("shared_prefs/lastfm.xml")!!.contains("this phone's Last.fm session"))
         assertTrue("this phone's last crash", read("shared_prefs/crashlog.xml")!!.contains("this phone's last crash"))
 
-        // The database is the backup's, opened with this version's migrations, and its history survived 11 → 12 → 13.
+        // The database is the backup's, opened with this version's migrations, and its history survived 11 → 12 → 13 → 14.
         val db = Room.databaseBuilder(app, PrismDatabase::class.java, "prism.db")
             .addMigrations(*PrismDatabase.MIGRATIONS).allowMainThreadQueries().build()
-        assertEquals(13, db.openHelper.readableDatabase.version)
+        assertEquals(14, db.openHelper.readableDatabase.version)
         val song = db.songs().get("legacy-song")!!
         assertEquals("Legacy Song", song.title)
         assertTrue("the like kept", song.liked)
@@ -285,7 +285,7 @@ class LegacyBackupTest {
         assertTrue("this phone's last crash", read("shared_prefs/crashlog.xml")!!.contains("this phone's last crash"))
         val room = Room.databaseBuilder(app, PrismDatabase::class.java, "prism.db")
             .addMigrations(*PrismDatabase.MIGRATIONS).allowMainThreadQueries().build()
-        assertEquals(13, room.openHelper.readableDatabase.version)
+        assertEquals(14, room.openHelper.readableDatabase.version)
         assertEquals("Whole Song", room.songs().get("whole-song")!!.title)
         room.close()
     }

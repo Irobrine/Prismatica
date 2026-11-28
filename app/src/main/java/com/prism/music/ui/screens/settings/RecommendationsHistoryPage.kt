@@ -114,6 +114,13 @@ fun RecommendationsHistoryPage(bottomPadding: Dp, find: String? = null, showBack
     val recapChanged = reset.add(tr(R.string.recap_notification), b.recapNotify, d.behavior.recapNotify, onOff) { prefs.setRecapNotify(it) }
     val milestoneChanged = reset.add(tr(R.string.milestone_notification), b.milestoneNotify, d.behavior.milestoneNotify, onOff) { prefs.setMilestoneNotify(it) }
     val finishLyricChanged = reset.add(tr(R.string.finish_lyric_title), b.finishLyric, d.behavior.finishLyric, onOff) { prefs.setFinishLyric(it) }
+    // The sound analysis (sleep score, tags, audio-aware autoplay): on in the background while charging, no tagger, vocals count.
+    val an = b.analysis
+    val dAn = d.behavior.analysis
+    val analysisBackgroundChanged = reset.add(tr(R.string.analysis_background), an.background, dAn.background, onOff) { prefs.setAnalysisBackground(it); AnalysisSchedule.later(c, context) }
+    val analysisChargingChanged = reset.add(tr(R.string.analysis_charging), an.charging, dAn.charging, onOff) { prefs.setAnalysisCharging(it); AnalysisSchedule.later(c, context) }
+    val analysisTaggerChanged = reset.add(tr(R.string.analysis_tagger), an.tagger, dAn.tagger, onOff) { prefs.setAnalysisTagger(it) }
+    val vocalsCountChanged = reset.add(tr(R.string.analysis_vocals_count), an.vocalsCount, dAn.vocalsCount, onOff) { prefs.setSleepVocalsCount(it) }
     // Replay as it comes counts Prism's own plays only.
     val countedChanged = reset.add(tr(R.string.imp_count_history_from), countedNow, emptySet(), ::countedText) { countedNow.forEach { source -> c.imports.setCounted(source, false) } }
 
@@ -154,6 +161,10 @@ fun RecommendationsHistoryPage(bottomPadding: Dp, find: String? = null, showBack
                 changed = energyChanged,
             ) { prefs.setRadioTune(tune.copy(energy = tuneSnap(it))) }
         }
+        // The sound analysis (docs/audio-analysis.md): on the phone, from the scan Normalize already makes.
+        group(tr(R.string.analysis_group), info = tr(R.string.analysis_group_info)) {
+            RhSoundAnalysis(analysisBackgroundChanged, analysisChargingChanged, analysisTaggerChanged, vocalsCountChanged)
+        }
         // 1.8.1: pause history (#296), when a song counts as played (#263), and histories from elsewhere.
         group(tr(R.string.hist_title), info = tr(R.string.hist_info)) {
             // A list in a sheet: "Until I turn it back on" doesn't fit a chip beside three more, and the row says until when.
@@ -193,6 +204,75 @@ fun RecommendationsHistoryPage(bottomPadding: Dp, find: String? = null, showBack
             RhCountHistoryFrom(sources, countedText(countedNow), countedChanged)
         }
     }
+}
+
+/** The daily analysis job, set again after its switches change (the write lands first). */
+private object AnalysisSchedule {
+    fun later(c: com.prism.music.AppContainer, context: Context) {
+        c.scope.launch {
+            kotlinx.coroutines.delay(500)
+            runCatching { com.prism.music.analysis.AnalysisWorker.schedule(context, c.settings.current.behavior.analysis) }
+        }
+    }
+}
+
+/**
+ * Sound analysis' rows: the background job and its charging rule, the tagging model (a download, switched on and off
+ * here), whether vocals lower the sleep score, "Analyse now" with how many songs are analysed, and the suggested tags to
+ * review.
+ */
+@Composable
+private fun RhSoundAnalysis(backgroundChanged: Boolean, chargingChanged: Boolean, taggerChanged: Boolean, vocalsChanged: Boolean) {
+    val c = LocalContainer.current
+    val prefs = c.settings
+    val s = LocalAppSettings.current
+    val an = s.behavior.analysis
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val states by c.models.states.collectAsState()
+    val count by c.analysis.count.collectAsState()
+    val toReview by c.db.analysis().reviewCount().collectAsState(0)
+    val running by c.analysis.analysingNow.collectAsState()
+    var reviewing by rememberSaveable { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { c.analysis.load() }
+    SwitchRow(tr(R.string.analysis_background), an.background, info = tr(R.string.analysis_background_info), changed = backgroundChanged) {
+        prefs.setAnalysisBackground(it); AnalysisSchedule.later(c, context)
+    }
+    SwitchRow(tr(R.string.analysis_charging), an.charging, changed = chargingChanged, enabled = an.background) {
+        prefs.setAnalysisCharging(it); AnalysisSchedule.later(c, context)
+    }
+    val runtime = com.prism.music.data.ModelStore.Model.singRuntime()
+    val needed = listOfNotNull(com.prism.music.data.ModelStore.Model.YAMNET, runtime)
+    val downloading = needed.mapNotNull { states[it] as? com.prism.music.data.ModelStore.State.Downloading }.firstOrNull()
+    val missing = needed.filter { states[it] !is com.prism.music.data.ModelStore.State.Ready }
+    SwitchRow(
+        tr(R.string.analysis_tagger), an.tagger && runtime != null,
+        value = downloading?.let { tr(R.string.tv_percent, (it.fraction * 100).toInt()) },
+        info = tr(R.string.analysis_tagger_info, com.prism.music.data.ModelStore.Model.sizeText(*missing.ifEmpty { listOf(com.prism.music.data.ModelStore.Model.YAMNET) }.toTypedArray())),
+        changed = taggerChanged, enabled = runtime != null,
+    ) { on ->
+        prefs.setAnalysisTagger(on)
+        if (on) scope.launch {
+            val ok = needed.all { c.models.download(it) }
+            if (!ok) {
+                prefs.setAnalysisTagger(false)
+                Toast.makeText(context, tr(R.string.download_failed), Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            // Its 16 MB go with it; the engine stays (Sing's too).
+            c.analysis.closeTagger()
+            c.models.delete(com.prism.music.data.ModelStore.Model.YAMNET)
+        }
+    }
+    SwitchRow(tr(R.string.analysis_vocals_count), an.vocalsCount, info = tr(R.string.analysis_vocals_count_info), changed = vocalsChanged) { prefs.setSleepVocalsCount(it) }
+    LinkRow(
+        if (running) tr(R.string.stop) else tr(R.string.analysis_now), value = tr(R.string.analysis_count, count),
+        info = tr(R.string.analysis_now_info), action = true,
+    ) {
+        if (running) com.prism.music.analysis.AnalysisWorker.stopNow(context, c.analysis) else com.prism.music.analysis.AnalysisWorker.runNow(context, c.analysis)
+    }
+    LinkRow(tr(R.string.analysis_review_tags), value = if (toReview > 0) toReview.toString() else null, action = true) { reviewing = true }
+    if (reviewing) com.prism.music.ui.components.TagReviewSheet { reviewing = false }
 }
 
 /**
@@ -268,6 +348,7 @@ val recommendationsHistoryIndex: List<SettingEntry> by lazy {
     val radios = tr(R.string.tune_radios)
     val history = tr(R.string.hist_title)
     val replay = tr(R.string.replay_2)
+    val sound = tr(R.string.analysis_group)
     val radioWords = radios + " " + tr(R.string.autoplay)
     val signedIn = Needs(tr(R.string.hist_needs_account)) { it.isLoggedIn }
     listOf(
@@ -305,5 +386,12 @@ val recommendationsHistoryIndex: List<SettingEntry> by lazy {
         SettingEntry(page, replay, tr(R.string.milestone_notification), tr(R.string.milestones)),
         SettingEntry(page, replay, tr(R.string.finish_lyric_title), tr(R.string.finish_lyric_info)),
         SettingEntry(page, replay, tr(R.string.imp_count_history_from), tr(R.string.imp_count_keywords) + " " + tr(R.string.imp_prism_plays)),
+        // The sound analysis.
+        SettingEntry(page, sound, tr(R.string.analysis_background), tr(R.string.analysis_keywords)),
+        SettingEntry(page, sound, tr(R.string.analysis_charging), tr(R.string.analysis_keywords)),
+        SettingEntry(page, sound, tr(R.string.analysis_tagger), tr(R.string.analysis_keywords)),
+        SettingEntry(page, sound, tr(R.string.analysis_vocals_count), tr(R.string.analysis_keywords)),
+        SettingEntry(page, sound, tr(R.string.analysis_now), tr(R.string.analysis_keywords)),
+        SettingEntry(page, sound, tr(R.string.analysis_review_tags), tr(R.string.analysis_keywords)),
     )
 }

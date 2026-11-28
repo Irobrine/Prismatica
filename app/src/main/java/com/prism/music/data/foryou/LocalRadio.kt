@@ -58,6 +58,11 @@ object LocalRadio {
      * picked from search (#461).
      */
     const val CO_CLOSE = 2.0
+    /** Sounding this alike ties a song to a seed; this alike makes it close; this unlike, apart (with no genres to say). */
+    const val SIM_RELATED = 0.55
+    const val SIM_CLOSE = 0.7
+    const val SIM_APART = 0.2
+
     /** Two known tempos further apart than this (after reading one at half or double) aren't one sound. */
     const val TEMPO_APART = 1.2
 
@@ -70,6 +75,11 @@ object LocalRadio {
         val keyFit: (String, String) -> Double = { _, _ -> 0.0 },
         /** A song's measured tempo (DJ mode's scan), null when it hasn't been measured. */
         val bpmOf: (String) -> Double? = { null },
+        /**
+         * 0..1: how alike two songs sound ([com.prism.music.analysis.Similarity]: timbre, instruments, genre and mood as
+         * the tagger heard them, energy, rhythm); null when either hasn't been analysed.
+         */
+        val audioSim: (String, String) -> Double? = { _, _ -> null },
     )
 
     /**
@@ -133,15 +143,20 @@ object LocalRadio {
                     val g = seedGenres[seed.id]
                     val sameGenre = g != null && g == xGenre
                     val fit = pool.keyFit(seed.id, x.id)
-                    if (co > 0 || sameArtist || sameGenre) related = true
-                    rel += w * (3.0 * min(1.0, co / 2.0) + 1.2 * (if (sameArtist) 1.0 else 0.0) + 0.8 * (if (sameGenre) 1.0 else 0.0) + 0.5 * fit)
+                    val sim = pool.audioSim(seed.id, x.id)
+                    if (co > 0 || sameArtist || sameGenre || (sim != null && sim >= SIM_RELATED)) related = true
+                    rel += w * (3.0 * min(1.0, co / 2.0) + 1.2 * (if (sameArtist) 1.0 else 0.0) + 0.8 * (if (sameGenre) 1.0 else 0.0) + 0.5 * fit +
+                        1.5 * (sim ?: 0.0))
                     // Closeness, for beside YouTube's radio: the genre decides when both are known (a sitting's
                     // neighbours don't make R&B belong with amapiano); without one, only a lasting habit does.
                     when {
                         sameArtist -> close = true
                         g != null && xGenre != null ->
                             if (sameGenre && !tempoApart(seedBpm.getOrPut(seed.id) { pool.bpmOf(seed.id) }, pool.bpmOf(x.id))) close = true else apart = true
+                        // No genres to go by: how alike they sound decides, then a lasting habit.
+                        sim != null && sim >= SIM_CLOSE -> close = true
                         co >= CO_CLOSE -> close = true
+                        sim != null && sim <= SIM_APART -> apart = true
                     }
                 }
                 val like = pool.affinity(x).coerceIn(0.0, 1.0)

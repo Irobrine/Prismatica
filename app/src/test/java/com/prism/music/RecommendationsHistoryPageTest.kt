@@ -76,6 +76,7 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
 
     private val gMade = t(R.string.made_for_you)
     private val gRadios = t(R.string.tune_radios)
+    private val gSound = t(R.string.analysis_group)
     private val gHistory = t(R.string.hist_title)
     private val gReplay = t(R.string.replay_2)
 
@@ -109,8 +110,8 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
         show()
         assertBudgets("defaults")
         // The ledger's layout with a fresh install's settings ("Bring your history" is a row of History: its group was named as its row).
-        assertEquals(listOf(gMade, gRadios, gHistory, gReplay), groupTitles())
-        assertEquals(listOf(5, 3, 3, 6), groupSizes())
+        assertEquals(listOf(gMade, gRadios, gSound, gHistory, gReplay), groupTitles())
+        assertEquals(listOf(5, 3, 6, 3, 6), groupSizes())
         assertEquals("nothing differs from how Prism comes", 0, changedRows())
         assertTrue(groupTitles().none { it == SettingsPageId.RECOMMENDATIONS_HISTORY.title })
         for (g in groupTitles()) assertFalse("a group and a row are both \"$g\"", hasRow(g))
@@ -150,11 +151,18 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
     @Test fun everyStoredSettingHasItsControl() {
         show(over = signedIn)
         val d = AppSettings()
-        assertEquals("signed in, History has its third setting", listOf(5, 3, 4, 6), groupSizes())
+        assertEquals("signed in, History has its third setting", listOf(5, 3, 6, 4, 6), groupSizes())
 
         // release_notifications
         tap(releases)
         until("release_notifications") { !it.releaseNotifications }
+        // The sound analysis: its background job, the charging rule and whether vocals count (the tagger is a download).
+        tap(t(R.string.analysis_vocals_count))
+        until("sleep_vocals_count") { !it.behavior.analysis.vocalsCount }
+        tap(t(R.string.analysis_charging))
+        until("analysis_charging") { !it.behavior.analysis.charging }
+        tap(t(R.string.analysis_background))
+        until("analysis_background") { !it.behavior.analysis.background }
         // radio_tune_newness, radio_tune_depth, radio_tune_energy: each slider moves its own value and leaves the others.
         slide(newness, 0.5f)
         until("radio_tune_newness") { abs(it.behavior.radioTune.newness - 0.5f) < 0.01f }
@@ -210,19 +218,21 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
 
         // Every row with a setting now differs from how Prism comes, says so, and the page still fits.
         assertBudgets("everything changed")
-        assertEquals(listOf(5, 3, 4, 6), groupSizes())
-        assertEquals(12, changedRows())
+        assertEquals(listOf(5, 3, 6, 4, 6), groupSizes())
+        // Twelve, and the sound analysis' three switches.
+        assertEquals(15, changedRows())
 
         // Reset this page lists each of them and puts them all back (history is recorded again).
         val lines = resetLines(confirm = true)
-        assertEquals(lines.joinToString("\n"), 14, lines.size)
+        assertEquals(lines.joinToString("\n"), 17, lines.size)
         assertTrue(lines.toString(), lines.any { it.startsWith("$pause: ") && it.endsWith("→ " + t(R.string.off)) })
         assertTrue(lines.toString(), lines.any { it == "$countAfter: ${PlayCount.label(30)} → ${PlayCount.label(10)}" })
         until("the reset") {
             it.behavior.radioTune == d.behavior.radioTune && it.behavior.historyPausedUntil == 0L && it.behavior.playCountSeconds == d.behavior.playCountSeconds &&
                 it.behavior.playCountOnAccount == d.behavior.playCountOnAccount && it.releaseNotifications == d.releaseNotifications && it.replayHours == d.replayHours &&
                 it.replayThemeColors == d.replayThemeColors && it.rewindNotification == d.rewindNotification && it.view.replayStoryFont == d.view.replayStoryFont &&
-                !it.behavior.recapNotify && !it.behavior.milestoneNotify && !it.behavior.finishLyric
+                !it.behavior.recapNotify && !it.behavior.milestoneNotify && !it.behavior.finishLyric &&
+                it.behavior.analysis == d.behavior.analysis
         }
         assertEquals(0, changedRows())
     }
@@ -268,7 +278,7 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
         show()
         addRoutes(Routes.BRING_HISTORY)
         compose.waitUntil(5_000) { hasRow(shapeMixes) }
-        assertEquals("with a history brought in, its switch shows", listOf(5, 3, 4, 6), groupSizes())
+        assertEquals("with a history brought in, its switch shows", listOf(5, 3, 6, 4, 6), groupSizes())
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(shapeMixes))
         assertEquals(t(R.string.imp_prism_plays), valueOf(countFrom))
 

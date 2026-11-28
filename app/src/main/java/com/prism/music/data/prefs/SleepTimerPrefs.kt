@@ -30,6 +30,11 @@ data class SleepTimerChoices(
     val fadeInSeconds: Int = 0,
     /** Whether the after-timer track starts over when it ends. */
     val loopAfter: Boolean = false,
+    /**
+     * The lowest sleep score ([com.prism.music.analysis.SleepScore]) a song may have while the timer runs; 0 is no limit.
+     * Like [maxBpm], a song not analysed yet doesn't pass a limit that's set.
+     */
+    val minSleepScore: Int = 0,
 )
 
 /** Stores [SleepTimerChoices] in SharedPreferences, read at start and shown in Compose at once (like SnoozeStore). */
@@ -48,6 +53,7 @@ class SleepTimerPrefs(context: Context) {
         },
         fadeInSeconds = (prefs.getInt(KEY_FADE_IN, 0)).coerceIn(0, MAX_FADE_IN_SECONDS),
         loopAfter = prefs.getBoolean(KEY_LOOP_AFTER, false),
+        minSleepScore = prefs.getInt(KEY_MIN_SLEEP_SCORE, 0).coerceIn(0, 100),
     )
 
     @Synchronized
@@ -55,6 +61,9 @@ class SleepTimerPrefs(context: Context) {
 
     @Synchronized
     fun setMaxBpm(maxBpm: Int) = put { putInt(KEY_MAX_BPM, maxBpm.coerceIn(0, MAX_BPM_LIMIT)) }
+
+    @Synchronized
+    fun setMinSleepScore(score: Int) = put { putInt(KEY_MIN_SLEEP_SCORE, score.coerceIn(0, 100)) }
 
     @Synchronized
     fun setFinishSong(on: Boolean) = put { putBoolean(KEY_FINISH_SONG, on) }
@@ -97,5 +106,6 @@ class SleepTimerPrefs(context: Context) {
         private const val KEY_AFTER_SONG = "after_song"
         private const val KEY_FADE_IN = "fade_in"
         private const val KEY_LOOP_AFTER = "loop_after"
+        private const val KEY_MIN_SLEEP_SCORE = "min_sleep_score"
     }
 }

@@ -37,6 +37,8 @@ class ModelStore(private val context: Context, private val http: OkHttpClient) {
         val unpacked: Long,
         /** Where the zip is, when it isn't on Prism's `models-v1` release (null: there). */
         val url: String? = null,
+        /** The download is the file itself (kept under its own name), not a zip to unpack. */
+        val raw: Boolean = false,
     ) {
         /** Kuromoji's IPADIC dictionary (Apache-2.0 / IPADIC licence): readings for Japanese lyrics' kanji. */
         JAPANESE(
@@ -70,6 +72,17 @@ class ModelStore(private val context: Context, private val http: OkHttpClient) {
         SING_RUNTIME_X86_64(
             "onnxruntime-x86_64", "onnxruntime-1.31.0-x86_64.zip",
             "3627836c2fdc6837d4f6e5d32abfbbc2b0c3ee565ab249f8bb2c3aaa7b788bfa", 14_993_395, tr(R.string.sing_s_engine), 40_828_092,
+        ),
+        /**
+         * Google's YAMNet (Apache-2.0) as ONNX, for the sound analysis' tags and similarity
+         * ([com.prism.music.analysis.YamnetTagger]): from its Hugging Face conversion, pinned to a commit, runs on the
+         * same ONNX Runtime as Sing.
+         */
+        YAMNET(
+            "yamnet", "yamnet.onnx",
+            "1510041dce24a2e9e84ec546807ac408ae496da6d1ed41bc3ccba649623f8e19", 16_093_603, tr(R.string.analysis_tagging_model), 16_093_603,
+            "https://huggingface.co/zeropointnine/yamnet-onnx/resolve/ac2ca3bd45d12ec1f19f1144205ea529b4e9dedf/yamnet.onnx",
+            raw = true,
         ),
         ;
 
@@ -175,6 +188,11 @@ class ModelStore(private val context: Context, private val http: OkHttpClient) {
         val dir = dir(m)
         dir.deleteRecursively()
         dir.mkdirs()
+        if (m.raw) {
+            if (!zip.renameTo(File(dir, m.file))) { zip.copyTo(File(dir, m.file), overwrite = true); zip.delete() }
+            File(dir, READY).writeText(m.sha256)
+            return
+        }
         ZipInputStream(zip.inputStream().buffered()).use { z ->
             while (true) {
                 val e = z.nextEntry ?: break

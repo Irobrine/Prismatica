@@ -82,9 +82,9 @@ class SleepTimerConnectionTest {
         timer()
         // The song playing at the start is over the limit: the first allowed one after it plays.
         assertEquals(2, player.currentMediaItemIndex)
-        assertTrue(c.player.sleepBlocksBpm("fast"))
-        assertTrue(c.player.sleepBlocksBpm("unknown"))
-        assertFalse(c.player.sleepBlocksBpm("slow"))
+        assertTrue(c.player.sleepBlocks("fast"))
+        assertTrue(c.player.sleepBlocks("unknown"))
+        assertFalse(c.player.sleepBlocks("slow"))
     }
 
     @Test fun withNoAllowedSongLeftItStopsInsteadOfSkippingForEver() {
@@ -101,7 +101,7 @@ class SleepTimerConnectionTest {
         assertEquals(1, player.currentMediaItemIndex)
         // Off: the limit holds nothing back (the song picked plays as it is).
         c.player.setSleepBpmDisabled(true)
-        assertFalse(c.player.sleepBlocksBpm("fast"))
+        assertFalse(c.player.sleepBlocks("fast"))
         c.player.skipTo(0)
         assertEquals(0, player.currentMediaItemIndex)
         // On again: the current song is checked immediately, not at the next song.
@@ -134,7 +134,7 @@ class SleepTimerConnectionTest {
         c.player.adjustSleepTimer(-5)
         assertEquals(0, c.sleepPrefs.choices.value.maxBpm)
         assertEquals(0, c.player.sleepMaxBpm.value)
-        assertFalse(c.player.sleepBlocksBpm("fast"))
+        assertFalse(c.player.sleepBlocks("fast"))
     }
 
     @Test fun finishingTheCurrentSongAlsoPutsTheFilterBackOff() {

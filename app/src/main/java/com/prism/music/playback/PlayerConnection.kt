@@ -1237,6 +1237,8 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         val auto = c.queue.autoplayStart.value
         if (auto >= at) c.queue.autoplayStart.value = auto + songs.size
         c.queue.userQueued.value = c.queue.userQueued.value + songs.map { it.id }
+        // Queued by hand: autoplay's taste counts it as a song the listener reaches for.
+        c.analysis.noteQueued(songs.map { it.id })
     }
 
     /**
@@ -1789,12 +1791,14 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         override fun setSessionVolume(volume: Float) { NormalizerProcessor.sleepVolume = NormalizerProcessor.volumeFor(volume) }
         override fun restoreVolume() { NormalizerProcessor.fadeVolume = 1f; NormalizerProcessor.sleepVolume = 1f }
         override fun reportNoEligibleSongs(maxBpm: Int) { reportError(tr(R.string.sleep_bpm_none_left, maxBpm)) }
+        override fun reportNoCalmSongs(minScore: Int) { reportError(tr(R.string.sleep_score_none_left, minScore)) }
     }
 
     /** The one running sleep session: its clock, fade and BPM gate (see [SleepTimerEngine]). */
     private val sleepTimer = SleepTimerEngine(
         audio = sleepAudio,
         bpmOf = { id -> c.mixTempo.djBpm(id) },
+        sleepScoreOf = { id -> c.analysis.sleepScore(id) },
         onEnded = { onSleepSessionEnded() },
     )
     private var sleepJob: Job? = null
@@ -1818,6 +1822,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     private fun onSleepSessionEnded() {
         pausedBySleepBpm = false
         c.sleepPrefs.setMaxBpm(0)
+        c.sleepPrefs.setMinSleepScore(0)
         val choices = c.sleepPrefs.choices.value
         val song = choices.afterSong ?: return
         afterTimerFadeJob?.cancel()
@@ -1911,6 +1916,12 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     /** The limit the running session was started with (0 when none). */
     val sleepMaxBpm: StateFlow<Int> = sleepTimer.maxBpm
 
+    /** The sleep-score limit the running session was started with (0 when none). */
+    val sleepMinScore: StateFlow<Int> = sleepTimer.minSleepScore
+
+    /** Whether a sleep session is running now (the sound analysis learns from what's skipped or heard through then). */
+    val sleepActive: Boolean get() = sleepTimer.active.value
+
     /**
      * Starts the one sleep session from the menu's saved choices and the fade set in Settings. Any running session is
      * replaced, and the BPM limit (if one was picked) applies to the song playing now at once.
@@ -1925,6 +1936,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 // after a drag must still use what was shown, not the value before the write landed.
                 fadeSeconds = fadeSeconds ?: c.settings.current.sound.sleepFadeSeconds,
                 maxBpm = choices.maxBpm,
+                minSleepScore = choices.minSleepScore,
                 finishSong = choices.finishSong,
                 volume = choices.volume,
             ),
@@ -1943,6 +1955,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 minutes = minutes,
                 fadeSeconds = c.settings.current.sound.sleepFadeSeconds,
                 maxBpm = choices.maxBpm,
+                minSleepScore = choices.minSleepScore,
                 finishSong = choices.finishSong,
                 volume = choices.volume,
             ),
@@ -1961,6 +1974,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 minutes = choices.minutes,
                 fadeSeconds = c.settings.current.sound.sleepFadeSeconds,
                 maxBpm = choices.maxBpm,
+                minSleepScore = choices.minSleepScore,
                 finishSong = true,
                 volume = choices.volume,
             ),
@@ -2036,7 +2050,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
     }
 
     /** Whether the running session's limit rules [songId] out (false when no timer runs, or the override is on). */
-    fun sleepBlocksBpm(songId: String?): Boolean = sleepTimer.blocksBpm(songId)
+    fun sleepBlocks(songId: String?): Boolean = sleepTimer.blocks(songId)
 
     /** Called by the service as an item starts: a finished song in overtime ends the session; either way, recalculate. */
     internal fun onSleepItemChanged() = sleepTimer.onItemChanged()
@@ -2057,7 +2071,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
             return
         }
         val song = p.currentMediaItem?.toSong()
-        if (!sleepTimer.blocksBpm(song?.id) || p.mediaItemCount == 0) {
+        if (!sleepTimer.blocks(song?.id) || p.mediaItemCount == 0) {
             pausedBySleepBpm = false
             return
         }
@@ -2069,10 +2083,10 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         }
         pausedBySleepBpm = true
         p.pause()
-        sleepAudio.reportNoEligibleSongs(sleepTimer.maxBpm.value)
+        sleepTimer.reportNoneLeft()
     }
 
-    internal fun reportSleepBpmExhausted() = sleepAudio.reportNoEligibleSongs(sleepTimer.maxBpm.value)
+    internal fun reportSleepBpmExhausted() = sleepTimer.reportNoneLeft()
 
     /** The first item after the one playing (in play order) the limit allows, or [C.INDEX_UNSET] when none is left. */
     internal fun nextSleepAllowed(p: Player): Int {
@@ -2080,7 +2094,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
         var i = tl.getNextWindowIndex(p.currentMediaItemIndex, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled)
         var seen = 0
         while (i != C.INDEX_UNSET && seen < tl.windowCount) {
-            if (!sleepTimer.blocksBpm(p.getMediaItemAt(i).toSong()?.id)) return i
+            if (!sleepTimer.blocks(p.getMediaItemAt(i).toSong()?.id)) return i
             i = tl.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, p.shuffleModeEnabled)
             seen++
         }
@@ -2101,7 +2115,7 @@ class PlayerConnection(private val context: Context, private val c: AppContainer
                 // a queue edited under the current song, or one added by a car are checked here too.
                 if (sleepTimer.active.value && player?.isPlaying == true) {
                     val song = player?.currentMediaItem?.toSong()
-                    if (sleepTimer.blocksBpm(song?.id)) enforceSleepBpm()
+                    if (sleepTimer.blocks(song?.id)) enforceSleepBpm()
                 }
                 val wait = sleepTimer.tick()
                 if (!sleepTimer.active.value) {

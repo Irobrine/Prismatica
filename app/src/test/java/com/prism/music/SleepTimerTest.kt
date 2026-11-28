@@ -195,6 +195,33 @@ class SleepTimerTest {
         assertFalse(engine.blocksBpm("unknown"))
     }
 
+    // ---------------------------------------------------------------- sleep score
+
+    @Test fun theSleepScoreLimitPassesOverRestlessAndUnknownSongs() {
+        assertTrue(com.prism.music.playback.SleepScoreGate.allows(80, 70))
+        assertTrue(com.prism.music.playback.SleepScoreGate.allows(70, 70))
+        assertFalse(com.prism.music.playback.SleepScoreGate.allows(69, 70))
+        assertFalse(com.prism.music.playback.SleepScoreGate.allows(null, 70))
+        assertTrue(com.prism.music.playback.SleepScoreGate.allows(null, 0))
+
+        val audio = FakeAudio()
+        val scores = mapOf("calm" to 85, "busy" to 30)
+        val engine = SleepTimerEngine(audio, { 100.0 }, { now }, { now }, sleepScoreOf = { scores[it] })
+        engine.start(config(maxBpm = 120).copy(minSleepScore = 70))
+        assertEquals(70, engine.minSleepScore.value)
+        assertFalse(engine.blocks("calm"))
+        assertTrue(engine.blocks("busy"))
+        assertTrue(engine.blocks("unanalysed"))
+        // BPM still applies too (100 BPM passes 120 here), and the same temporary override lifts both.
+        assertFalse(engine.blocksBpm("busy"))
+        engine.setBpmDisabled(true)
+        assertFalse(engine.blocks("busy"))
+        engine.setBpmDisabled(false)
+        engine.cancel()
+        assertFalse(engine.blocks("busy"))
+        assertEquals(0, engine.minSleepScore.value)
+    }
+
     // ---------------------------------------------------------------- the countdown
 
     @Test fun startingAppliesTheChosenVolumeAndTheDeadline() {

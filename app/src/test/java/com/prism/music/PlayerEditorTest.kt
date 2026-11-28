@@ -202,7 +202,7 @@ class PlayerEditorTest {
         assertEquals(listOf(MenuGroup.SONG, MenuGroup.LYRICS, MenuGroup.PLAYING, MenuGroup.HELP), today.groups.map { it.first })
         assertEquals(
             // 1.8.3: Add a tag and Edit metadata, first after the tiles.
-            listOf(MenuAction.TAGS, MenuAction.EDIT_METADATA, MenuAction.ALBUM, MenuAction.ARTIST, MenuAction.MORE_FROM_ARTIST, MenuAction.MORE_FROM_ALBUM, MenuAction.PLAYLISTS_WITH_SONG, MenuAction.CREDITS, MenuAction.DETAILS, MenuAction.VERSION, MenuAction.COVER, MenuAction.NOT_FOR_ME),
+            listOf(MenuAction.TAGS, MenuAction.EDIT_METADATA, MenuAction.ALBUM, MenuAction.ARTIST, MenuAction.MORE_FROM_ARTIST, MenuAction.MORE_FROM_ALBUM, MenuAction.PLAYLISTS_WITH_SONG, MenuAction.CREDITS, MenuAction.DETAILS, MenuAction.SOUND_PROFILE, MenuAction.VERSION, MenuAction.COVER, MenuAction.NOT_FOR_ME),
             today.groups.first { it.first == MenuGroup.SONG }.second,
         )
         assertTrue(today.more.isEmpty())

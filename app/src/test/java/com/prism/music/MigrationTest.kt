@@ -160,6 +160,29 @@ class MigrationTest {
         db.close()
     }
 
+    /** v14: the sound analysis' tables (descriptors, machine tags, sleep votes, listening signals). */
+    @Test
+    fun v14AddsTheSoundAnalysis() {
+        val context = RuntimeEnvironment.getApplication()
+        val name = "migrate-v14-analysis.db"
+        context.deleteDatabase(name)
+        createAt(context.getDatabasePath(name), 13)
+        val db = Room.databaseBuilder(context, PrismDatabase::class.java, name)
+            .addMigrations(*PrismDatabase.MIGRATIONS).allowMainThreadQueries().build()
+        runBlocking {
+            val dao = db.analysis()
+            assertEquals(0, dao.count())
+            dao.put(com.prism.music.data.db.SongAnalysisEntity("song1", 1, null, null, 1L, "{}", null, null, 80))
+            dao.putVote(com.prism.music.data.db.SleepVoteEntity("song1", 1, 2L))
+            dao.bump("song1", queued = 1)
+            assertEquals(1, dao.count())
+            assertEquals(1, dao.vote("song1"))
+            assertEquals(1, dao.signal("song1")!!.queued)
+            assertEquals("history kept", 2, db.plays().count(0, Long.MAX_VALUE))
+        }
+        db.close()
+    }
+
     @Test
     fun currentSchemaIsExported() {
         // A version bump without its exported schema would leave the next migration untestable.

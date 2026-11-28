@@ -61,6 +61,8 @@ private val libraries = listOf(
     Library(tr(R.string.camerax_scanning_a_blend_code), tr(R.string.the_android_open_source_project), tr(R.string.apache_2_0), "apache-2.0", "https://developer.android.com/jetpack/androidx/releases/camera"),
     Library(tr(R.string.onnx_runtime_sing_s_engine_downloaded), tr(R.string.microsoft), "MIT", "onnxruntime", "https://github.com/microsoft/onnxruntime"),
     Library(tr(R.string.spleeter_2_stem_model_sing_downloaded), tr(R.string.deezer_onnx_conversion_by_sherpa_onnx), "MIT", "spleeter", "https://github.com/deezer/spleeter"),
+    // The sound analysis' tagger: downloaded when tagging is switched on, never in the APK.
+    Library(tr(R.string.license_yamnet), tr(R.string.google), tr(R.string.apache_2_0), "yamnet", "https://github.com/tensorflow/models/tree/master/research/audioset/yamnet"),
     // Lyrics enhancement (1.9): both models are downloaded on request, never in the APK.
     Library(tr(R.string.enhance_aligner), tr(R.string.enhance_qwen_team), tr(R.string.apache_2_0), "apache-2.0", "https://github.com/QwenLM/Qwen3-ASR"),
     Library(tr(R.string.enhance_separator), tr(R.string.enhance_stemsplit_team), "MIT", "mit", "https://github.com/StemSplit/demucs-onnx"),
