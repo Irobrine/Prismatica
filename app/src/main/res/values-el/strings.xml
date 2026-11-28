@@ -5871,4 +5871,5 @@
     <string name="analysis_score_low">Χαμηλό</string>
     <string name="analysis_out_of_date">Αναλύθηκε από παλαιότερη έκδοση της ανάλυσης ήχου: αυτό το σκορ και αυτές οι ετικέτες είναι από πριν.</string>
     <string name="analysis_reanalyse">Ανάλυση ξανά</string>
+    <string name="analysis_older">Αναλύθηκε με παλαιότερη έκδοση</string>
 </resources>

@@ -5946,4 +5946,5 @@
     <string name="analysis_score_low">Bas</string>
     <string name="analysis_out_of_date">Analysé par une version antérieure de l\'analyse du son : ce score et ces tags datent d\'avant.</string>
     <string name="analysis_reanalyse">Analyser à nouveau</string>
+    <string name="analysis_older">Analysé avec une version antérieure</string>
 </resources>

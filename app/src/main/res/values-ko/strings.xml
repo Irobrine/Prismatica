@@ -5796,4 +5796,5 @@
     <string name="analysis_score_low">낮음</string>
     <string name="analysis_out_of_date">사운드 분석의 이전 버전으로 분석되었습니다. 이 점수와 태그는 그때의 것입니다.</string>
     <string name="analysis_reanalyse">다시 분석</string>
+    <string name="analysis_older">이전 버전으로 분석됨</string>
 </resources>

@@ -5796,4 +5796,5 @@
     <string name="analysis_score_low">Rendah</string>
     <string name="analysis_out_of_date">Dianalisis oleh versi analisis bunyi yang lebih lama: skor dan tag ini dari sebelum ini.</string>
     <string name="analysis_reanalyse">Analisis semula</string>
+    <string name="analysis_older">Dianalisis dengan versi lebih lama</string>
 </resources>

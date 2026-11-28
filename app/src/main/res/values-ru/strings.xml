@@ -6021,4 +6021,5 @@
     <string name="analysis_score_low">Низкая</string>
     <string name="analysis_out_of_date">Проанализировано предыдущей версией анализа звука: эта оценка и эти теги — от неё.</string>
     <string name="analysis_reanalyse">Анализировать снова</string>
+    <string name="analysis_older">Проанализировано предыдущей версией</string>
 </resources>

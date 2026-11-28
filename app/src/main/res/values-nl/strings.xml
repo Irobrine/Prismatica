@@ -5871,4 +5871,5 @@
     <string name="analysis_score_low">Laag</string>
     <string name="analysis_out_of_date">Geanalyseerd door een eerdere versie van de klankanalyse: deze score en tags zijn van daarvoor.</string>
     <string name="analysis_reanalyse">Opnieuw analyseren</string>
+    <string name="analysis_older">Geanalyseerd met een eerdere versie</string>
 </resources>

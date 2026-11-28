@@ -6021,4 +6021,5 @@
     <string name="analysis_score_low">Nízké</string>
     <string name="analysis_out_of_date">Analyzováno starší verzí analýzy zvuku: toto skóre a tyto štítky jsou z dřívějška.</string>
     <string name="analysis_reanalyse">Analyzovat znovu</string>
+    <string name="analysis_older">Analyzováno starší verzí</string>
 </resources>

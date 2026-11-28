@@ -5871,4 +5871,5 @@
     <string name="analysis_score_low">Niedrig</string>
     <string name="analysis_out_of_date">Von einer früheren Version der Klanganalyse analysiert: dieser Wert und diese Tags stammen von davor.</string>
     <string name="analysis_reanalyse">Erneut analysieren</string>
+    <string name="analysis_older">Mit einer früheren Version analysiert</string>
 </resources>

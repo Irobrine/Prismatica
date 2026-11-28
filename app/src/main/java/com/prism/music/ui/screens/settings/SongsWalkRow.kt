@@ -89,11 +89,15 @@ fun SongsWalkRow(walk: SongsWalk, /** Said after the row's own line of help (wha
     val done by work.progress.collectAsState()
     val couldnt by work.couldnt.collectAsState()
     val title = tr(walk.title)
+    // The sheet's row for songs an earlier version analysed (not a settings row of its own: kept out of the index's scan).
+    val olderTitle = tr(R.string.analysis_older)
     var open by rememberSaveable(title, "songs-walk") { mutableStateOf(false) }
     // How many of each set's songs are left: empty until the sheet has counted them.
     var left by remember(title) { mutableStateOf<Map<MeasureScope, Int>>(emptyMap()) }
     // How many of them the listener has kept from being scanned (the sheet's last row puts them back).
     var kept by remember(title) { mutableIntStateOf(0) }
+    // Songs an earlier version of the analysis made, whose scores and tags are from before: redone by their own row.
+    var older by remember(title) { mutableStateOf<List<String>>(emptyList()) }
     // The counts are taken again after a skip or a let-back, with the sheet open through both.
     var countedAt by remember(title) { mutableIntStateOf(0) }
     // The songs the last walk couldn't do, as the library names them.
@@ -145,6 +149,10 @@ fun SongsWalkRow(walk: SongsWalk, /** Said after the row's own line of help (wha
                 left = left + (set to work.pending(ids).size)
             }
             kept = work.kept(all.toList())
+            older = if (walk == SongsWalk.ANALYSE) runCatching {
+                // Only songs the library knows: an analysis whose song is gone has no page to show it on.
+                c.analysis.oldIds().chunked(500).flatMap { c.db.songs().getAll(it) }.map { it.id }
+            }.getOrDefault(emptyList()) else emptyList()
         }
         RowsSheet(title, { open = false }) {
             // The last walk's songs it couldn't do: said, with a try at each again and a way to keep one from being
@@ -173,6 +181,14 @@ fun SongsWalkRow(walk: SongsWalk, /** Said after the row's own line of help (wha
                     }
                 }
                 Spacer(Modifier.height(6.dp))
+            }
+            // The songs whose analysis an earlier version made, in one row: a version's change is redone without hunting
+            // for the set each song happens to be in (liked, played, downloaded, a file).
+            if (walk == SongsWalk.ANALYSE && older.isNotEmpty()) {
+                LinkRow(olderTitle, value = songCount(older.size), action = true) {
+                    open = false
+                    scope.launch { start(work.pending(older)) }
+                }
             }
             MeasureScope.entries.forEach { set ->
                 val count = left[set]

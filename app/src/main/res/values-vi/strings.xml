@@ -5796,4 +5796,5 @@
     <string name="analysis_score_low">Thấp</string>
     <string name="analysis_out_of_date">Được phân tích bởi phiên bản cũ hơn của phân tích âm thanh: điểm và thẻ này là từ trước.</string>
     <string name="analysis_reanalyse">Phân tích lại</string>
+    <string name="analysis_older">Đã phân tích bằng phiên bản cũ hơn</string>
 </resources>

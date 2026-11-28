@@ -100,12 +100,15 @@ class AnalysisStoreTest {
         assertTrue("the old analysis still shows", fresh.has("v"))
         assertTrue("and is out of date", fresh.stale("v"))
         assertTrue(fresh.needs("v"))
+        // What "Analyse now"'s "Analysed with an earlier version" walks.
+        assertEquals(listOf("v"), fresh.oldIds())
         // A song analysed by nothing yet isn't stale: that's a walk's work, not a play's.
         assertFalse(fresh.stale("never"))
         // A scan redos it, and it's current again.
         fresh.record("v", null, features, window)
         assertFalse(fresh.needs("v"))
         assertFalse(fresh.stale("v"))
+        assertTrue("nothing left older", fresh.oldIds().isEmpty())
         assertEquals(Descriptors.VERSION, db.analysis().get("v")!!.algorithmVersion)
     }
 

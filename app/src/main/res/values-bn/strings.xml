@@ -5871,4 +5871,5 @@
     <string name="analysis_score_low">কম</string>
     <string name="analysis_out_of_date">সাউন্ড বিশ্লেষণের আগের সংস্করণে বিশ্লেষিত: এই স্কোর ও ট্যাগগুলো আগের।</string>
     <string name="analysis_reanalyse">আবার বিশ্লেষণ করুন</string>
+    <string name="analysis_older">আগের সংস্করণে বিশ্লেষিত</string>
 </resources>

@@ -5871,4 +5871,5 @@
     <string name="analysis_score_low">Låg</string>
     <string name="analysis_out_of_date">Analyserad av en tidigare version av ljudanalysen: poängen och taggarna är från då.</string>
     <string name="analysis_reanalyse">Analysera igen</string>
+    <string name="analysis_older">Analyserad med en tidigare version</string>
 </resources>

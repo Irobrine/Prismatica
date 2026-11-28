@@ -125,6 +125,16 @@ class AnalysisStore(
     /** [needs], for a song that was analysed before ([has]): the one a play redoes, rather than an analysis from nothing. */
     override fun stale(id: String): Boolean = has(id) && needs(id)
 
+    /**
+     * Every id whose analysis is out of date: what "Analyse now"'s "Analysed with an earlier version" walks, so a change
+     * of descriptors or tagger doesn't leave songs behind in a set the listener doesn't think to open. An id can be a
+     * song's own or the recording it plays as (a picked version, a file matched to it).
+     */
+    fun oldIds(): List<String> {
+        if (!loaded) { ensureLoading(); return emptyList() }
+        return versions.keys.filter { needs(it) }
+    }
+
     override fun taggerReady(): Boolean {
         if (!prefs().tagger || !models.ready(ModelStore.Model.YAMNET)) return false
         val runtime = ModelStore.Model.singRuntime() ?: return false
