@@ -36,6 +36,22 @@ class SongNamesTest {
         albumId = 0, trackNumber = 0, year = 0, addedAt = 0, mime = "audio/mpeg", size = 1,
     )
 
+    /**
+     * The Sleep scores list draws a row's cover through the app's own lookup ([PlaylistCovers.art]): a file's row in the
+     * songs table may have no thumbnail (it was written by a play), but the phone's scan has its album's picture.
+     */
+    @Test fun aFilesCoverComesFromThePhoneWhenItsRowHasNone() = runBlocking {
+        val unplayed = file("${Song.LOCAL_PREFIX}9002", "A file on the phone", "Its artist")
+        val cover = "content://media/external/audio/albumart/77"
+        val track = unplayed.copy(song = unplayed.song.copy(thumbnail = cover))
+        c.localMusic.putTracksForTests(listOf(track))
+        // The row a play would leave: the same id, no cover on it.
+        c.db.songs().upsertAll(listOf(unplayed.song.toEntity()))
+        val listed = c.songsByIds(listOf(unplayed.song.id))[unplayed.song.id]!!
+        assertEquals("the table's row has no cover", null, listed.thumbnail)
+        assertEquals(cover, c.covers.art(listed))
+    }
+
     @Test fun aFileNeverPlayedIsNamedFromThePhoneNotItsId() = runBlocking {
         val unplayed = file("${Song.LOCAL_PREFIX}9001", "A file on the phone", "Its artist")
         val played = Song("yt1", "A played song", artists = listOf(ArtistRef("Played artist")))

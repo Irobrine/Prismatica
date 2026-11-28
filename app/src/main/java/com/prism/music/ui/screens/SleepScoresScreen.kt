@@ -87,7 +87,9 @@ private fun ScoredRow(r: Scored, onClick: () -> Unit) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Artwork(r.song.thumbnail, Modifier.size(44.dp), LocalUi.current.songArt, placeholderIcon = PrismIcons.Song)
+        // The app's own cover lookup: a file's cover from the phone's scan (the songs table's row may have none), or one
+        // picked for the song or its album — not just the song's own thumbnail, which a scanned file often doesn't carry.
+        Artwork(LocalContainer.current.covers.art(r.song), Modifier.size(44.dp), LocalUi.current.songArt, placeholderIcon = PrismIcons.Song)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(r.song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
