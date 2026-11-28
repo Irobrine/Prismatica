@@ -6172,4 +6172,6 @@
     <string name="analysis_out_of_date">حُلِّل بإصدار أقدم من تحليل الصوت: هذه النتيجة وهذه الوسوم من قبل.</string>
     <string name="analysis_reanalyse">تحليل مرة أخرى</string>
     <string name="analysis_older">حُلِّل بإصدار أقدم</string>
+    <string name="search_lyrics_mode">الكلمات</string>
+    <string name="search_lyrics_mode_description">البحث في كلمات الأغاني أيضًا</string>
 </resources>

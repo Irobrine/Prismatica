@@ -6022,4 +6022,6 @@
     <string name="analysis_out_of_date">Przeanalizowano starszą wersją analizy dźwięku: ta ocena i te tagi są sprzed niej.</string>
     <string name="analysis_reanalyse">Analizuj ponownie</string>
     <string name="analysis_older">Przeanalizowano starszą wersją</string>
+    <string name="search_lyrics_mode">Teksty</string>
+    <string name="search_lyrics_mode_description">Szukaj też w tekstach piosenek</string>
 </resources>

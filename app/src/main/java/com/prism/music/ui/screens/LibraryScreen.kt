@@ -311,6 +311,7 @@ fun LibraryScreen(bottomPadding: Dp) {
     // ---- Sorting (each tab remembers its own, kept between visits)
     var songSort by remember { mutableStateOf(SongSort.entries.firstOrNull { it.name == c.library.sortOf("library:songs") } ?: SongSort.RECENT) }
     var songQuery by rememberSaveable { mutableStateOf("") }
+    val songLyrics = com.prism.music.ui.components.rememberLyricsMode()
     // What's typed in each tab's search (#357), as the Songs tab has had since #184.
     var playlistQuery by rememberSaveable { mutableStateOf("") }
     var albumQuery by rememberSaveable { mutableStateOf("") }
@@ -504,13 +505,23 @@ fun LibraryScreen(bottomPadding: Dp) {
                 }
             }
             val hayBuilding = songQuery.isNotBlank() && songHay.isEmpty() && sortedSongs.isNotEmpty()
-            val shownSongs = remember(sortedSongs, songQuery, songHay) {
+            // Lyrics mode: the songs whose saved lyrics have what's typed, after those found by name.
+            val songIds = remember(sortedSongs) { if (tab == LibTab.SONGS) sortedSongs.mapTo(HashSet()) { it.id } else emptySet() }
+            val lyricMatches = com.prism.music.ui.components.rememberLyricMatches(songQuery, songLyrics, songIds)
+            val byName = remember(sortedSongs, songQuery, songHay) {
                 val words = libraryWords(songQuery)
                 when {
                     songQuery.isBlank() -> sortedSongs
                     // Punctuation only ("!!!" is a band): looked for in the names themselves, as [libraryMatches] does.
                     words.isEmpty() -> sortedSongs.filter { s -> libraryMatches(songQuery, spellings, arrayOf(s.title, s.artistText, s.album?.title.orEmpty())) }
                     else -> sortedSongs.filter { s -> words.all { it in songHay[s.id].orEmpty() } }
+                }
+            }
+            val songLyricLines = remember(byName, lyricMatches) { com.prism.music.ui.components.lyricExtras(byName, lyricMatches) }
+            val shownSongs = remember(byName, songLyricLines, sortedSongs) {
+                if (songLyricLines.isEmpty()) byName else {
+                    val byId = sortedSongs.associateBy { it.id }
+                    byName + songLyricLines.keys.mapNotNull { byId[it] }
                 }
             }
             // Library Songs has its own dedup scope, independent of a playlist's or Downloads' choice.
@@ -580,8 +591,13 @@ fun LibraryScreen(bottomPadding: Dp) {
             var historyLimit by rememberSaveable { androidx.compose.runtime.mutableIntStateOf(300) }
             // #469: a search through the whole of it (not only the plays shown so far), a moment after the typing pauses.
             var historyQuery by rememberSaveable { mutableStateOf("") }
+            // Lyrics mode: the plays of songs whose saved lyrics have what's typed, beside those found by name.
+            val historyLyrics = com.prism.music.ui.components.rememberLyricsMode()
+            var historyLyricLines: Map<String, String> = emptyMap()
             val phoneHistory = if (tab == LibTab.HISTORY) {
                 val rows by remember(historyLimit) { c.db.plays().historyFlow(historyLimit, 0) /* #263: every kept play (how long one takes is the listener's pick) */ }.collectAsState(null)
+                val rowIds = remember(rows) { rows.orEmpty().mapTo(HashSet()) { it.song.id } }
+                val lyricMatches = com.prism.music.ui.components.rememberLyricMatches(historyQuery, historyLyrics, rowIds)
                 val searcher = remember { com.prism.music.data.HistorySearch.Searcher(c.db.plays()) }
                 // Read again as the history changes (the list above emits for a new play or a removal), so a search stays true.
                 val found by androidx.compose.runtime.produceState<List<com.prism.music.data.db.HistoryRow>?>(null, historyQuery, historyLimit, rows) {
@@ -589,7 +605,16 @@ fun LibraryScreen(bottomPadding: Dp) {
                     kotlinx.coroutines.delay(200)
                     value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { searcher.find(historyQuery, historyLimit, rows) }.getOrNull() }
                 }
-                val shownRows = if (historyQuery.isBlank()) rows else found ?: rows
+                val byName = if (historyQuery.isBlank()) rows else found ?: rows
+                val lyricLines = remember(byName, lyricMatches) {
+                    if (lyricMatches.isEmpty() || byName == null) emptyMap()
+                    else com.prism.music.ui.components.lyricExtras(byName.map { it.song.toSong() }.distinctBy { it.id }, lyricMatches)
+                }
+                historyLyricLines = lyricLines
+                val shownRows = remember(byName, lyricLines, rows) {
+                    if (lyricLines.isEmpty() || byName == null) byName
+                    else (byName + rows.orEmpty().filter { it.song.id in lyricLines }).distinctBy { it.eventId }.sortedByDescending { it.playedAt }
+                }
                 remember(shownRows) { shownRows?.let { it.size to historyByDay(it) } }
             } else null
             var accountReload by remember { androidx.compose.runtime.mutableIntStateOf(0) }
@@ -611,16 +636,24 @@ fun LibraryScreen(bottomPadding: Dp) {
             }
             // Filtering the whole account history is only redone when the list or the search changes, not on every
             // recomposition of the tab (a row scrolled in, the playing song's change).
-            val accountSections = if (fromAccountShown) remember(accountHistory, historyQuery, spellings) {
+            val accountIds = remember(accountHistory) { accountHistory?.getOrNull().orEmpty().flatMapTo(HashSet()) { (_, songs) -> songs.map { it.id } } }
+            val accountLyrics = com.prism.music.ui.components.rememberLyricMatches(historyQuery, historyLyrics, if (fromAccountShown) accountIds else emptySet())
+            val accountLyricIds = remember(accountLyrics) { accountLyrics.associate { it.songId to it.line } }
+            var accountLyricLines: Map<String, String> = emptyMap()
+            val accountSections = if (fromAccountShown) remember(accountHistory, historyQuery, spellings, accountLyricIds) {
                 accountHistory?.getOrNull()?.let { all ->
                     if (historyQuery.isBlank()) all
                     else all.map { (t, songs) ->
                         t to songs.filter { s ->
-                            libraryMatches(historyQuery, spellings, arrayOf(s.title, s.artistText, s.album?.title.orEmpty()))
+                            libraryMatches(historyQuery, spellings, arrayOf(s.title, s.artistText, s.album?.title.orEmpty())) || s.id in accountLyricIds
                         }
                     }.filter { it.second.isNotEmpty() }
                 }
             } else null
+            if (fromAccountShown && accountLyricIds.isNotEmpty()) accountLyricLines = remember(accountLyricIds, historyQuery, spellings, accountHistory) {
+                val songs = accountHistory?.getOrNull().orEmpty().flatMap { it.second }.associateBy { it.id }
+                accountLyricIds.filterKeys { id -> songs[id]?.let { s -> !libraryMatches(historyQuery, spellings, arrayOf(s.title, s.artistText, s.album?.title.orEmpty())) } ?: false }
+            }
             // "Go to the playing song" (D54) on Songs: its place among the songs shown (-1: not one of them).
             val locate = remember { com.prism.music.ui.components.LocateState() }
             val playingId = if (tab == LibTab.SONGS) c.player.currentSong.collectAsState().value?.id else null
@@ -634,10 +667,12 @@ fun LibraryScreen(bottomPadding: Dp) {
             }
             val playingRowId = com.prism.music.ui.components.LocatePlaying.rowId(shownSongs, playingAt, playingId)
             /** The search at the top of a tab; once typed in, it stays whatever's left of the list. */
-            fun androidx.compose.foundation.lazy.grid.LazyGridScope.findField(query: String, hint: String, count: Int, onChange: (String) -> Unit) {
+            fun androidx.compose.foundation.lazy.grid.LazyGridScope.findField(
+                query: String, hint: String, count: Int, lyrics: com.prism.music.ui.components.LyricsMode? = null, onChange: (String) -> Unit,
+            ) {
                 if (query.isEmpty() && count < LIBRARY_SEARCH_FROM) return
                 item(key = "find", span = { GridItemSpan(maxLineSpan) }) {
-                    com.prism.music.ui.components.SearchField(query, hint, onChange, Modifier.padding(horizontal = if (asList) 16.dp else 4.dp, vertical = 4.dp))
+                    com.prism.music.ui.components.SearchField(query, hint, onChange, Modifier.padding(horizontal = if (asList) 16.dp else 4.dp, vertical = 4.dp), lyrics = lyrics)
                 }
             }
             fun androidx.compose.foundation.lazy.grid.LazyGridScope.nothingFound(tabName: String, query: String) {
@@ -838,7 +873,7 @@ fun LibraryScreen(bottomPadding: Dp) {
                         }
                         if (songsBase.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) {
                             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                com.prism.music.ui.components.SearchField(songQuery, if (songsFrom.isDefault) tr(R.string.search_liked_songs) else tr(R.string.search_these_songs), { q -> songQuery = q }, Modifier.weight(1f))
+                                com.prism.music.ui.components.SearchField(songQuery, if (songsFrom.isDefault) tr(R.string.search_liked_songs) else tr(R.string.search_these_songs), { q -> songQuery = q }, Modifier.weight(1f), lyrics = songLyrics)
                                 // D54: the tab has no ⋯ menu, so it's a button here, only while the playing song is one of the songs shown.
                                 locate.go?.let { go ->
                                     Spacer(Modifier.width(8.dp))
@@ -864,7 +899,9 @@ fun LibraryScreen(bottomPadding: Dp) {
                             }
                         }
                         items(songsShown, key = { "s" + it.id }, span = { GridItemSpan(maxLineSpan) }) { s ->
-                            SongRow(s, Modifier.locatePulse(locate, s.id), swipe = settings.behavior.songSwipeLibrary) { c.player.playQueue(songsQueue, songQueueIndex[s.id] ?: 0, source) }
+                            androidx.compose.runtime.CompositionLocalProvider(com.prism.music.ui.components.LocalLyricMatches provides songLyricLines) {
+                                SongRow(s, Modifier.locatePulse(locate, s.id), swipe = settings.behavior.songSwipeLibrary) { c.player.playQueue(songsQueue, songQueueIndex[s.id] ?: 0, source) }
+                            }
                         }
                         if (songsBase.isNotEmpty() && shownSongs.isEmpty() && songQuery.isNotBlank() && !hayBuilding) nothingFound(tr(R.string.songs), songQuery)
                     }
@@ -901,7 +938,7 @@ fun LibraryScreen(bottomPadding: Dp) {
                         }
                         // #469: the same search for both; the account's is only what's been read of it (no more requests).
                         val historyCount = if (fromAccountShown) accountHistory?.getOrNull().orEmpty().sumOf { it.second.size } else phoneHistory?.first ?: 0
-                        findField(historyQuery, tr(R.string.search_history), historyCount) { historyQuery = it }
+                        findField(historyQuery, tr(R.string.search_history), historyCount, historyLyrics) { historyQuery = it }
                         if (fromAccountShown) {
                             val result = accountHistory
                             val sections = accountSections
@@ -922,7 +959,9 @@ fun LibraryScreen(bottomPadding: Dp) {
                                 else -> sections.forEachIndexed { si, (title, songs) ->
                                     if (title.isNotBlank()) item(key = "ah$si", span = { GridItemSpan(maxLineSpan) }) { HistoryHeading(title) }
                                     items(songs.size, key = { "a$si-$it" }, span = { GridItemSpan(maxLineSpan) }) { i ->
-                                        SongRow(songs[i], swipe = settings.behavior.songSwipeLibrary) { c.player.playSingle(songs[i]) }
+                                        androidx.compose.runtime.CompositionLocalProvider(com.prism.music.ui.components.LocalLyricMatches provides accountLyricLines) {
+                                            SongRow(songs[i], swipe = settings.behavior.songSwipeLibrary) { c.player.playSingle(songs[i]) }
+                                        }
                                     }
                                 }
                             }
@@ -941,11 +980,13 @@ fun LibraryScreen(bottomPadding: Dp) {
                                     val e = entries[i]
                                     val at = time.format(java.util.Date(e.at))
                                     // #469: the row's own plays out (a run of the same song is one row), not the song's others.
-                                    SongRow(
-                                        e.song, trailingInfo = if (e.times > 1) "$at · ${e.times}×" else at,
-                                        extraActions = listOf(com.prism.music.ui.components.SheetItem(PrismIcons.Delete, tr(R.string.remove_from_history)) { removePlays(e.ids) }),
-                                        swipe = settings.behavior.songSwipeLibrary,
-                                    ) { c.player.playSingle(e.song) }
+                                    androidx.compose.runtime.CompositionLocalProvider(com.prism.music.ui.components.LocalLyricMatches provides historyLyricLines) {
+                                        SongRow(
+                                            e.song, trailingInfo = if (e.times > 1) "$at · ${e.times}×" else at,
+                                            extraActions = listOf(com.prism.music.ui.components.SheetItem(PrismIcons.Delete, tr(R.string.remove_from_history)) { removePlays(e.ids) }),
+                                            swipe = settings.behavior.songSwipeLibrary,
+                                        ) { c.player.playSingle(e.song) }
+                                    }
                                 }
                             }
                             if (count >= historyLimit) item(span = { GridItemSpan(maxLineSpan) }) {

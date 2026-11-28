@@ -237,6 +237,17 @@ fun SearchScreen(bottomPadding: Dp) {
         if (live.isBlank() || onPhone) return@produceState
         value = runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { c.lyricSearch.find(live) } }.getOrDefault(emptyList())
     }
+    // Lyrics mode (toggled in the box while typing): the songs whose lyrics saved on this phone have what's typed, any
+    // length, in Top results ("From the lyrics") and On this phone.
+    val lyricsMode = com.prism.music.ui.components.rememberLyricsMode()
+    val lyricsOn = lyricsMode.active(live)
+    val lyricsVersion by c.savedLyricsSearch.version.collectAsState()
+    val phoneSongs by c.localMusic.tracks.collectAsState()
+    val savedLyricHits by produceState(emptyList<com.prism.music.data.lyrics.LyricSearch.Hit>(), live, lyricsOn, onPhone, lyricsVersion, phoneSongs) {
+        if (!lyricsOn || onPhone) { value = emptyList(); return@produceState }
+        value = runCatching { savedLyricHits(c, live, phoneSongs.map { it.song }) }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }.getOrDefault(emptyList())
+    }
 
     val moods = rememberLoad("moods") { c.taste.rank(runCatching { c.ytm.moodsAndGenres() }.getOrDefault(emptyList())) }
     val onSong: (SongItem) -> Unit = { c.player.playSingle(it.song) }
@@ -323,7 +334,11 @@ fun SearchScreen(bottomPadding: Dp) {
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(onSearch = { submit(query) }),
-                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).onFocusChanged { focused = it.isFocused }
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).onFocusChanged {
+                            // The search made (or the box let go of): lyrics mode goes off for the next one.
+                            if (focused && !it.isFocused) lyricsMode.left(query)
+                            focused = it.isFocused
+                        }
                             .releaseFocusWhenHidden()
                             // A hardware keyboard's Enter (a tablet's, a Chromebook's) searches as the on-screen key does;
                             // it used to leave the suggestions over the results and the keyboard up.
@@ -334,6 +349,7 @@ fun SearchScreen(bottomPadding: Dp) {
                             },
                     )
                 }
+                if (focused) com.prism.music.ui.components.LyricsModeToggle(lyricsMode, query, Modifier.padding(start = 6.dp))
                 if (query.isNotEmpty()) IconButton(onClick = { query = ""; live = ""; top = null; list = null; focusRequester.requestFocus() }) {
                     Icon(PrismIcons.Close, tr(R.string.clear))
                 } else IconButton(onClick = { nav.go(com.prism.music.ui.Routes.RECOGNIZE) }) {
@@ -379,12 +395,12 @@ fun SearchScreen(bottomPadding: Dp) {
             if (loading) com.prism.music.ui.components.PrismProgressBar(null, Modifier.fillMaxWidth())
         }
 
-        if (onPhone) PhoneResults(live, bottomPadding) { saveQuery(live); focus.clearFocus() }
+        if (onPhone) PhoneResults(live, bottomPadding, lyricsMode) { saveQuery(live); focus.clearFocus() }
         else if (filter == SearchFilter.TOP) {
             when (val r = top) {
                 null, Load.Loading -> LoadingState()
                 is Load.Err -> ErrorState(r.message)
-                is Load.Ok -> TopResults(r.value, live, inLibrary, onPhoneHits, lyricHits, bottomPadding, onSeeAll = { filter = it }, onSeePhone = { onPhone = true }, open = open, onSongs = { songs, i ->
+                is Load.Ok -> TopResults(r.value, live, inLibrary, onPhoneHits, if (lyricsOn) (savedLyricHits + lyricHits).distinctBy { it.song.id } else lyricHits, bottomPadding, lyricsOn, onSeeAll = { filter = it }, onSeePhone = { onPhone = true }, open = open, onSongs = { songs, i ->
                     saveQuery(live); focus.clearFocus()
                     c.player.playQueue(songs, i, com.prism.music.playback.QueueSource(com.prism.music.playback.QueueKind.OTHER, tr(R.string.search)))
                 }, onPlay = { item ->
@@ -430,7 +446,7 @@ fun SearchScreen(bottomPadding: Dp) {
  * best matches first (titles that start with it, then titles, artists and albums that have it). They play offline.
  */
 @Composable
-private fun PhoneResults(query: String, bottomPadding: Dp, onPlay: () -> Unit) {
+private fun PhoneResults(query: String, bottomPadding: Dp, lyrics: com.prism.music.ui.components.LyricsMode, onPlay: () -> Unit) {
     val c = LocalContainer.current
     val tracks by c.localMusic.tracks.collectAsState()
     val dls by c.downloadState.collectAsState()
@@ -442,7 +458,20 @@ private fun PhoneResults(query: String, bottomPadding: Dp, onPlay: () -> Unit) {
             phoneMatches(query, tracks.map { it.song }) to phoneMatches(query, c.downloads.completedSongs())
         }
     }
-    val (files, downloads) = found ?: return
+    // Lyrics mode: the files and downloads whose saved lyrics have what's typed, after those found by name.
+    val allSongs = remember(tracks, dls) { tracks.map { it.song } + c.downloads.completedSongs() }
+    val allIds = remember(allSongs) { allSongs.mapTo(HashSet()) { it.id } }
+    val lyricMatches = com.prism.music.ui.components.rememberLyricMatches(query, lyrics, allIds)
+    val withLyrics = remember(found, lyricMatches, allSongs) {
+        val (f, d) = found ?: return@remember null
+        val lines = com.prism.music.ui.components.lyricExtras(f + d, lyricMatches)
+        if (lines.isEmpty()) return@remember Triple(f, d, lines)
+        val fileIds = tracks.mapTo(HashSet()) { it.song.id }
+        val byId = allSongs.associateBy { it.id }
+        val extra = lines.keys.mapNotNull { byId[it] }
+        Triple(f + extra.filter { it.id in fileIds }, d + extra.filter { it.id !in fileIds }, lines)
+    }
+    val (files, downloads, lyricLines) = withLyrics ?: return
     if (files.isEmpty() && downloads.isEmpty()) {
         com.prism.music.ui.components.EmptyState(
             PrismIcons.Phone, tr(R.string.nothing_on_this_phone_matches),
@@ -453,6 +482,7 @@ private fun PhoneResults(query: String, bottomPadding: Dp, onPlay: () -> Unit) {
     Box(Modifier.fillMaxSize()) {
         val resultsState = androidx.compose.foundation.lazy.rememberLazyListState()
         com.prism.music.ui.components.SelectableSongs(files + downloads) {
+        androidx.compose.runtime.CompositionLocalProvider(com.prism.music.ui.components.LocalLyricMatches provides lyricLines) {
         LazyColumn(state = resultsState, contentPadding = PaddingValues(top = 4.dp, bottom = bottomPadding + 16.dp)) {
             listOf(tr(R.string.your_music_files) to files, tr(R.string.downloads) to downloads).forEachIndexed { g, (title, songs) ->
                 if (songs.isEmpty()) return@forEachIndexed
@@ -466,6 +496,7 @@ private fun PhoneResults(query: String, bottomPadding: Dp, onPlay: () -> Unit) {
                     }
                 }
             }
+        }
         }
         }
         com.prism.music.ui.components.FastScroller(
@@ -511,6 +542,28 @@ internal fun phoneMatches(query: String, songs: List<com.prism.music.data.model.
     return songs.mapNotNull { s -> rank(s)?.let { it to s } }.sortedWith(compareBy({ it.first }, { it.second.title.lowercase() })).map { it.second }
 }
 
+/** How many songs "From the lyrics" shows in lyrics mode. */
+private const val LYRICS_MODE_HITS = 10
+
+/**
+ * Lyrics mode in Top results: the songs anywhere whose lyrics saved on this phone have [query], as hits with the line.
+ * Files ([files]) and downloads are found as they are on the phone; the rest from the songs Prism keeps.
+ */
+private suspend fun savedLyricHits(c: com.prism.music.AppContainer, query: String, files: List<com.prism.music.data.model.Song>): List<com.prism.music.data.lyrics.LyricSearch.Hit> {
+    val matches = c.savedLyricsSearch.find(query, limit = LYRICS_MODE_HITS * 3)
+    if (matches.isEmpty()) return emptyList()
+    val ids = matches.map { it.songId }
+    val known = (files + c.downloads.completedSongs()).filter { it.id in ids }.associateBy { it.id }.toMutableMap()
+    val rest = ids.filter { it !in known }
+    if (rest.isNotEmpty()) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching { c.db.songs().getAll(rest) }.getOrDefault(emptyList()).forEach { known[it.id] = it.toSong() }
+    }
+    // Never "sure": what was typed in lyrics mode may as well be a title, whose top card stays first.
+    return matches.mapNotNull { m -> known[m.songId]?.let { com.prism.music.data.lyrics.LyricSearch.Hit(it, m.line, 0.8f - m.rank * 0.05f) } }
+        .filter { com.prism.music.data.ExplicitFilter.shows(c.settings.current.behavior.explicitContent, it.song) }
+        .take(LYRICS_MODE_HITS)
+}
+
 /** Lower case, without accents or punctuation, so "Beyonce" finds "Beyoncé" and "ac dc" finds "AC/DC". */
 internal fun phoneNorm(s: String): String = com.prism.music.data.LibrarySearch.norm(s)
 
@@ -537,17 +590,21 @@ private suspend fun playTop(c: com.prism.music.AppContainer, item: BrowseItem) {
 private fun TopResults(
     r: TopSearch, query: String, inLibrary: List<BrowseItem>, onPhoneHits: List<com.prism.music.data.model.Song>,
     lyricHits: List<com.prism.music.data.lyrics.LyricSearch.Hit>,
-    bottomPadding: Dp, onSeeAll: (SearchFilter) -> Unit, onSeePhone: () -> Unit, open: (BrowseItem) -> Unit,
+    bottomPadding: Dp, lyricsMode: Boolean, onSeeAll: (SearchFilter) -> Unit, onSeePhone: () -> Unit, open: (BrowseItem) -> Unit,
     onSongs: (List<com.prism.music.data.model.Song>, Int) -> Unit, onPlay: (BrowseItem) -> Unit,
 ) {
     // Lyric matches only when the search didn't find the song by its name: when the top card's title has half the words
     // typed or more ("the best you ever had" → "Tonight (Best You Ever Had)"), they were only clutter. Songs already
-    // among the results don't show again.
+    // among the results don't show again. In lyrics mode they were asked for: all of them show.
     val q = com.prism.music.data.lyrics.LyricSearch.words(query)
     val titleFits = r.top?.let { t -> com.prism.music.data.lyrics.LyricSearch.coverage(q, com.prism.music.data.lyrics.LyricSearch.words(t.title)) >= 0.5f } == true
     val shownIds = (listOfNotNull(r.top?.id) + r.sections.flatMap { (_, items) -> items.map { it.id } }).toSet()
     val shownTitles = listOfNotNull(r.top?.title) + r.sections.flatMap { (_, items) -> items.map { it.title } }
-    val hits = if (titleFits) emptyList() else com.prism.music.data.lyrics.LyricSearch.toShow(lyricHits, shownIds, shownTitles).distinctBy { it.song.id }
+    val hits = when {
+        lyricsMode -> lyricHits.distinctBy { it.song.id }.take(LYRICS_MODE_HITS)
+        titleFits -> emptyList()
+        else -> com.prism.music.data.lyrics.LyricSearch.toShow(lyricHits, shownIds, shownTitles).distinctBy { it.song.id }
+    }
     if (r.isEmpty && inLibrary.isEmpty() && onPhoneHits.isEmpty() && hits.isEmpty()) { ErrorState(tr(R.string.no_results)); return }
     // A line typed nearly word for word: the song it's from comes first.
     val lyricsFirst = hits.firstOrNull()?.sure == true

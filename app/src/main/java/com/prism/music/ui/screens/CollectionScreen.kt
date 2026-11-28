@@ -433,13 +433,22 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
         }
     }
     val hayBuilding = query.isNotBlank() && searchHay.isEmpty() && songs.isNotEmpty()
-    val visible = remember(songs, genreFilter, sort, query, explicit, if (genreFilter != null || sort == SortMode.GENRE || groupByGenre) genreVersion else 0, shownRev, searchHay) {
+    // Lyrics mode: the page's songs whose saved lyrics have what's typed are shown too, each with its line.
+    val lyrics = com.prism.music.ui.components.rememberLyricsMode(page.id)
+    val pageIds = remember(page.songs) { page.songs.mapTo(HashSet()) { it.id } }
+    val lyricMatches = com.prism.music.ui.components.rememberLyricMatches(query, lyrics, pageIds)
+    val lyricIds = remember(lyricMatches) { lyricMatches.associate { it.songId to it.line } }
+    val lyricLines = remember(lyricIds, searchHay, query) {
+        val words = libraryWords(query)
+        lyricIds.filterKeys { id -> words.isNotEmpty() && !words.all { it in searchHay[id].orEmpty() } }
+    }
+    val visible = remember(songs, genreFilter, sort, query, explicit, if (genreFilter != null || sort == SortMode.GENRE || groupByGenre) genreVersion else 0, shownRev, searchHay, lyricIds) {
         val words = libraryWords(query)
         val filtered = page.songs.filter { s ->
             com.prism.music.data.ExplicitFilter.shows(explicit, s) &&
             (genreFilter == null || genreFilter in genresOf(s.id)) &&
-                // Every word typed has to turn up in the title, the artists or the album.
-                (words.isEmpty() || words.all { it in searchHay[s.id].orEmpty() })
+                // Every word typed has to turn up in the title, the artists or the album (or, in lyrics mode, the lyrics).
+                (words.isEmpty() || words.all { it in searchHay[s.id].orEmpty() } || s.id in lyricIds)
         }
         when (sort) {
             SortMode.DEFAULT -> filtered
@@ -849,6 +858,7 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
                 playRow()
                 about()
             }
+            androidx.compose.runtime.CompositionLocalProvider(com.prism.music.ui.components.LocalLyricMatches provides lyricLines) {
             com.prism.music.ui.components.SelectableSongs(visible, selectRemover) {
             LazyColumn(
                 state = listState,
@@ -890,7 +900,7 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
                     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (showSearch) com.prism.music.ui.components.SearchField(
                             query, if (type == CollectionType.ALBUM) tr(R.string.search_in_album) else tr(R.string.search_in, title), { query = it }, Modifier.weight(1f),
-                            container = frosted,
+                            container = frosted, lyrics = lyrics,
                         ) else Spacer(Modifier.weight(1f))
                         if (sortable) Box {
                             IconButton(onClick = { sortMenu = true }) {
@@ -1031,6 +1041,7 @@ internal fun CollectionContent(type: CollectionType, live: LiveCollection, initi
                     live.page.artists.firstOrNull { it.id != null }?.let { a -> item("moreby") { MoreBy(a.name, a.id!!, page.id) } }
                 }
             } }
+            }
             }
 
             if (likedRefresh) androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator(

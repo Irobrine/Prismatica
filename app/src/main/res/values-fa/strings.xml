@@ -5872,4 +5872,6 @@
     <string name="analysis_out_of_date">با نسخهٔ قدیمی‌تر تحلیل صدا تحلیل شده است: این امتیاز و این برچسب‌ها از پیش‌اند.</string>
     <string name="analysis_reanalyse">تحلیل دوباره</string>
     <string name="analysis_older">با نسخهٔ قدیمی‌تر تحلیل شده</string>
+    <string name="search_lyrics_mode">متن آهنگ</string>
+    <string name="search_lyrics_mode_description">جستجو در متن آهنگ‌ها هم</string>
 </resources>

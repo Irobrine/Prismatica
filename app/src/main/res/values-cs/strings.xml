@@ -6022,4 +6022,6 @@
     <string name="analysis_out_of_date">Analyzováno starší verzí analýzy zvuku: toto skóre a tyto štítky jsou z dřívějška.</string>
     <string name="analysis_reanalyse">Analyzovat znovu</string>
     <string name="analysis_older">Analyzováno starší verzí</string>
+    <string name="search_lyrics_mode">Texty</string>
+    <string name="search_lyrics_mode_description">Hledat i v textech písní</string>
 </resources>

@@ -5872,4 +5872,6 @@
     <string name="analysis_out_of_date">Αναλύθηκε από παλαιότερη έκδοση της ανάλυσης ήχου: αυτό το σκορ και αυτές οι ετικέτες είναι από πριν.</string>
     <string name="analysis_reanalyse">Ανάλυση ξανά</string>
     <string name="analysis_older">Αναλύθηκε με παλαιότερη έκδοση</string>
+    <string name="search_lyrics_mode">Στίχοι</string>
+    <string name="search_lyrics_mode_description">Αναζήτηση και στους στίχους</string>
 </resources>

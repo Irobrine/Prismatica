@@ -5797,4 +5797,6 @@
     <string name="analysis_out_of_date">วิเคราะห์ด้วยเวอร์ชันก่อนหน้าของการวิเคราะห์เสียง คะแนนและแท็กนี้มาจากตอนนั้น</string>
     <string name="analysis_reanalyse">วิเคราะห์อีกครั้ง</string>
     <string name="analysis_older">วิเคราะห์ด้วยเวอร์ชันก่อนหน้า</string>
+    <string name="search_lyrics_mode">เนื้อเพลง</string>
+    <string name="search_lyrics_mode_description">ค้นหาในเนื้อเพลงด้วย</string>
 </resources>

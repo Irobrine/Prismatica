@@ -5872,4 +5872,6 @@
     <string name="analysis_out_of_date">ध्वनि विश्लेषण के पुराने संस्करण से विश्लेषित: यह स्कोर और ये टैग पहले के हैं।</string>
     <string name="analysis_reanalyse">फिर से विश्लेषण करें</string>
     <string name="analysis_older">पुराने संस्करण से विश्लेषित</string>
+    <string name="search_lyrics_mode">बोल</string>
+    <string name="search_lyrics_mode_description">बोल में भी खोजें</string>
 </resources>

@@ -687,6 +687,14 @@ interface LyricsSearchDao {
     /** Saved lyrics with [word] in them (LIKE ignores ASCII case). */
     @Query("SELECT songId, content FROM lyrics WHERE content LIKE '%' || :word || '%' LIMIT :limit")
     suspend fun containing(word: String, limit: Int): List<LyricsText>
+
+    /** Every saved lyrics text: what lyrics mode searches (the songs' words on this phone, offline). */
+    @Query("SELECT songId, content FROM lyrics WHERE content != ''")
+    suspend fun allSaved(): List<LyricsText>
+
+    /** Changes whenever a saved lyrics text is added or replaced, so lyrics mode reads the table again only then. */
+    @Query("SELECT COUNT(*) || ':' || IFNULL(MAX(fetchedAt), 0) FROM lyrics WHERE content != ''")
+    suspend fun savedStamp(): String
 }
 
 data class LyricsText(val songId: String, val content: String)

@@ -5917,4 +5917,6 @@
     <string name="analysis_out_of_date">Analysed by an earlier version of the sound analysis: this score and these tags are from before.</string>
     <string name="analysis_reanalyse">Analyse again</string>
     <string name="analysis_older">Analysed with an earlier version</string>
+    <string name="search_lyrics_mode">Lyrics</string>
+    <string name="search_lyrics_mode_description">Search the lyrics too</string>
 </resources>

@@ -5872,4 +5872,6 @@
     <string name="analysis_out_of_date">Analyserad av en tidigare version av ljudanalysen: poängen och taggarna är från då.</string>
     <string name="analysis_reanalyse">Analysera igen</string>
     <string name="analysis_older">Analyserad med en tidigare version</string>
+    <string name="search_lyrics_mode">Låttexter</string>
+    <string name="search_lyrics_mode_description">Sök även i låttexter</string>
 </resources>

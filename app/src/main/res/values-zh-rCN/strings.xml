@@ -5797,4 +5797,6 @@
     <string name="analysis_out_of_date">由较早版本的声音分析完成：此评分和这些标签来自那时。</string>
     <string name="analysis_reanalyse">重新分析</string>
     <string name="analysis_older">由较早版本分析</string>
+    <string name="search_lyrics_mode">歌词</string>
+    <string name="search_lyrics_mode_description">也搜索歌词</string>
 </resources>

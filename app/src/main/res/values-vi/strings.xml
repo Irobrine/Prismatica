@@ -5797,4 +5797,6 @@
     <string name="analysis_out_of_date">Được phân tích bởi phiên bản cũ hơn của phân tích âm thanh: điểm và thẻ này là từ trước.</string>
     <string name="analysis_reanalyse">Phân tích lại</string>
     <string name="analysis_older">Đã phân tích bằng phiên bản cũ hơn</string>
+    <string name="search_lyrics_mode">Lời bài hát</string>
+    <string name="search_lyrics_mode_description">Tìm cả trong lời bài hát</string>
 </resources>

@@ -319,7 +319,11 @@ fun LocalMusicScreen(bottomPadding: Dp) {
     }
     // Search in Local files (#225): every word typed has to turn up in the title, the artists or the album, as on playlists.
     var query by rememberSaveable { mutableStateOf("") }
-    val found = remember(tracks, sort, query, shownRev) {
+    // Lyrics mode: the files whose saved lyrics have what's typed, after those found by name.
+    val lyrics = com.prism.music.ui.components.rememberLyricsMode()
+    val trackIds = remember(tracks) { tracks.mapTo(HashSet()) { it.song.id } }
+    val lyricMatches = com.prism.music.ui.components.rememberLyricMatches(query, lyrics, trackIds)
+    val byName = remember(tracks, sort, query, shownRev) {
         val words = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
         if (words.isEmpty()) emptyList()
         else {
@@ -331,6 +335,13 @@ fun LocalMusicScreen(bottomPadding: Dp) {
                     "${text.titleTags.joinToString(" ")} ${text.artistTags.joinToString(" ")} ${text.albumTags.joinToString(" ")}".lowercase()
                 words.all { it in hay } || joined in hay.replace(" ", "")
             }.map { it.song }
+        }
+    }
+    val lyricLines = remember(byName, lyricMatches) { com.prism.music.ui.components.lyricExtras(byName, lyricMatches) }
+    val found = remember(byName, lyricLines, tracks) {
+        if (lyricLines.isEmpty()) byName else {
+            val songs = tracks.associateBy { it.song.id }
+            byName + lyricLines.keys.mapNotNull { songs[it]?.song }
         }
     }
     val section = sections.getOrNull(pager.currentPage)
@@ -439,11 +450,13 @@ fun LocalMusicScreen(bottomPadding: Dp) {
             else -> {
                 com.prism.music.ui.components.SearchField(
                     query, tr(R.string.search_in_local_files), { query = it },
-                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 4.dp), lyrics = lyrics,
                 )
                 if (query.isNotBlank()) {
                     if (found.isEmpty()) EmptyState(PrismIcons.Search, tr(R.string.no_matches), tr(R.string.nothing_in_matches, tr(R.string.local_files), query.trim()) + ".")
-                    else TrackList(found, tr(R.string.local_files), bottomPadding, locate)
+                    else androidx.compose.runtime.CompositionLocalProvider(com.prism.music.ui.components.LocalLyricMatches provides lyricLines) {
+                        TrackList(found, tr(R.string.local_files), bottomPadding, locate)
+                    }
                 } else {
                     SectionChips(sections, pager) { editing = true }
                     // Sideways swipes on a song queue it (SwipeToQueue), so the sections change from the chips.

@@ -166,9 +166,17 @@ fun UploadsScreen(bottomPadding: Dp) {
             s.id to libraryHaystack(listOf(s.title, s.artistText, s.album?.title.orEmpty()), spellings)
         }
     }
-    val songs = remember(sortedSongs, query, songHay) {
+    val byName = remember(sortedSongs, query, songHay) {
         val words = libraryWords(query)
         if (words.isEmpty()) sortedSongs else sortedSongs.filter { s -> val hay = songHay[s.id].orEmpty(); words.all { it in hay } }
+    }
+    // Lyrics mode: the uploads whose saved lyrics have what's typed, after those found by name.
+    val lyrics = com.prism.music.ui.components.rememberLyricsMode()
+    val uploadIds = remember(sortedSongs) { sortedSongs.mapTo(HashSet()) { it.id } }
+    val lyricMatches = com.prism.music.ui.components.rememberLyricMatches(query, lyrics, uploadIds)
+    val lyricLines = remember(byName, lyricMatches) { com.prism.music.ui.components.lyricExtras(byName, lyricMatches) }
+    val songs = remember(byName, lyricLines, sortedSongs) {
+        if (lyricLines.isEmpty()) byName else sortedSongs.associateBy { it.id }.let { byId -> byName + lyricLines.keys.mapNotNull { byId[it] } }
     }
     val sortedAlbums = remember(lists.albums, albumSort) { sortUploadedAlbums(lists.albums, albumSort.name) }
     val albums = remember(sortedAlbums, query, spellings) {
@@ -278,13 +286,14 @@ fun UploadsScreen(bottomPadding: Dp) {
             empty && state is Uploads.State.Failed -> ErrorState(tr(R.string.uploads_couldn_t_load) + ": " + (state as Uploads.State.Failed).message) { scope.launch { c.uploads.load(force = true) } }
             empty -> EmptyState(PrismIcons.Upload, tr(R.string.uploads_none_title), tr(R.string.uploads_none_body))
             else -> {
-                SearchField(query, tr(R.string.uploads_search), { query = it }, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 4.dp))
+                SearchField(query, tr(R.string.uploads_search), { query = it }, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 4.dp), lyrics = lyrics)
                 val pager = rememberPagerState { UploadTab.entries.size }
                 PagerChips(listOf(tr(R.string.songs), tr(R.string.albums), tr(R.string.artists)), pager)
                 // Sideways swipes on a song queue it (SwipeToQueue), so the lists change from the chips, as in Local files.
                 HorizontalPager(pager, Modifier.weight(1f), userScrollEnabled = false) { page ->
                     when (UploadTab.entries[page]) {
                         UploadTab.SONGS -> com.prism.music.ui.components.SelectableSongs(songs) {
+                            androidx.compose.runtime.CompositionLocalProvider(com.prism.music.ui.components.LocalLyricMatches provides lyricLines) {
                             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 8.dp, top = 4.dp, end = 8.dp, bottom = bottomPadding + 16.dp)) {
                                 item { SortBar(songCount(songs.size), UploadSongSort.entries, songSort, { it.label }) { songSort = it; c.library.setSort("uploads:songs", it.name) } }
                                 if (songs.isEmpty()) item { NoUploadMatches(query) }
@@ -299,6 +308,7 @@ fun UploadsScreen(bottomPadding: Dp) {
                                         }
                                     }
                                 }
+                            }
                             }
                         }
                         UploadTab.ALBUMS -> LazyVerticalGrid(GridCells.Adaptive(160.dp), Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = bottomPadding + 16.dp)) {

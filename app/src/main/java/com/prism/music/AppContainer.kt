@@ -807,6 +807,10 @@ class AppContainer(val app: Application) {
     val titleSpellings by lazy {
         com.prism.music.data.TitleSpellings(db.romanized(), scope, { romanizer.readingKey }) { romanizer.spellTitle(it) }
     }
+    /** Lyrics mode in the searches of songs: the lyrics saved on the phone, searched offline (and in Latin letters). */
+    val savedLyricsSearch by lazy {
+        com.prism.music.data.lyrics.SavedLyricsSearch(scope, db.lyricsSearch(), db.romanized(), lyrics::textLines, romanizer)
+    }
     /** Songs' best parts, from YouTube's "Most replayed" curves (and the chorus in the lyrics). */
     val bestParts = com.prism.music.data.BestParts(this)
 

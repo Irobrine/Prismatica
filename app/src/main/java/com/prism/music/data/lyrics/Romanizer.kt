@@ -86,6 +86,22 @@ class Romanizer(
         runCatching { localSpelling(LyricLine(0, text), scripts, japanese) }.getOrNull()?.first?.takeIf { it.isNotBlank() && it != text }
     }
 
+    /**
+     * A song's lyric lines in Latin letters, for lyrics mode's search ("saranghae" finds 사랑해): the phone's own engines
+     * only, never the network, as [spellTitle]. A line in Latin letters, or one no engine here can spell, is null. A
+     * Japanese song's kanji wait for its dictionary rather than being read as Chinese.
+     */
+    suspend fun spellLyricsForSearch(lines: List<String>): List<String?> = withContext(Dispatchers.Default) {
+        val japaneseSong = lines.any { Script.KANA in Script.foreignIn(it) }
+        lines.map { text ->
+            val scripts = Script.foreignIn(text)
+            if (scripts.isEmpty()) return@map null
+            val local = runCatching { localSpelling(LyricLine(0, text), scripts, japaneseSong) }.getOrNull()?.first
+                ?.takeIf { it.isNotBlank() && it != text && Script.foreignIn(it).isEmpty() }
+            local ?: if (japaneseSong) null else com.prism.music.data.local.SearchTags.forText(text).firstOrNull()
+        }
+    }
+
     /** The dictionary that reads Japanese now: Sudachi whenever it's on the phone, else IPADIC. */
     private fun localEngine(): JapaneseEngine? = when {
         japaneseForTests != null -> null

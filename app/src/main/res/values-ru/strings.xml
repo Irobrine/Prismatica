@@ -6022,4 +6022,6 @@
     <string name="analysis_out_of_date">Проанализировано предыдущей версией анализа звука: эта оценка и эти теги — от неё.</string>
     <string name="analysis_reanalyse">Анализировать снова</string>
     <string name="analysis_older">Проанализировано предыдущей версией</string>
+    <string name="search_lyrics_mode">Тексты</string>
+    <string name="search_lyrics_mode_description">Искать и в текстах песен</string>
 </resources>

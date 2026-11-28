@@ -102,13 +102,21 @@ fun LibrarySearchScreen(initial: String, bottomPadding: androidx.compose.ui.unit
         val i = index ?: return@produceState
         value = withContext(Dispatchers.Default) { LibrarySearch.find(i, query, filter) }
     }
+    // Lyrics mode: the library's songs whose saved lyrics have what's typed, after those found by name.
+    val lyrics = com.prism.music.ui.components.rememberLyricsMode()
+    val songIds = remember(entries) { entries.orEmpty().filter { it.kind == LibKind.SONG }.mapTo(HashSet()) { it.item.id } }
+    val lyricMatches = com.prism.music.ui.components.rememberLyricMatches(query, lyrics, songIds)
+    val withLyrics = remember(found, lyricMatches, entries, filter) {
+        LibrarySearch.withLyrics(found, entries.orEmpty(), filter, lyricMatches.map { it.songId })
+    }
+    val lyricLines = remember(withLyrics, lyricMatches) { lyricMatches.filter { it.songId in withLyrics.second }.associate { it.songId to it.line } }
 
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { if (initial.isBlank()) runCatching { focus.requestFocus() } }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.statusBarsPadding().padding(start = 4.dp, end = 16.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { nav.back() }) { Icon(PrismIcons.ArrowBack,tr(R.string.back)) }
-            com.prism.music.ui.components.SearchField(query, tr(R.string.search_your_library), { query = it }, Modifier.weight(1f).focusRequester(focus).testTag("librarySearchField"))
+            com.prism.music.ui.components.SearchField(query, tr(R.string.search_your_library), { query = it }, Modifier.weight(1f).focusRequester(focus).testTag("librarySearchField"), lyrics = lyrics)
         }
         // One kind, or all of them.
         androidx.compose.foundation.lazy.LazyRow(
@@ -128,16 +136,18 @@ fun LibrarySearchScreen(initial: String, bottomPadding: androidx.compose.ui.unit
             item { PrismChip(downloaded, { downloaded = !downloaded }, tr(R.string.downloaded), Modifier.testTag("flag:downloaded"), icon = PrismIcons.Check.takeIf { downloaded }) }
             item { PrismChip(onPhone, { onPhone = !onPhone }, tr(R.string.on_this_phone), Modifier.testTag("flag:onPhone"), icon = PrismIcons.Check.takeIf { onPhone }) }
         }
-        val songs = remember(found) { found.mapNotNull { (it.item as? SongItem)?.song } }
+        val shown = withLyrics.first
+        val songs = remember(shown) { shown.mapNotNull { (it.item as? SongItem)?.song } }
         val source = QueueSource(QueueKind.OTHER, tr(R.string.your_library))
         // Select many: the songs among the results; playlists, tags, artists and albums keep their own taps.
         com.prism.music.ui.components.SelectableSongs(songs) {
+            androidx.compose.runtime.CompositionLocalProvider(com.prism.music.ui.components.LocalLyricMatches provides lyricLines) {
             LazyColumn(Modifier.fillMaxSize().testTag("libraryResults"), contentPadding = PaddingValues(bottom = bottomPadding + 16.dp)) {
-                if (entries != null && found.isEmpty() && (query.isNotBlank() || filter != LibFilter())) item("none") {
+                if (entries != null && shown.isEmpty() && (query.isNotBlank() || filter != LibFilter())) item("none") {
                     EmptyState(PrismIcons.Search, tr(R.string.nothing_in_your_library_matches), tr(R.string.try_fewer_words_or_another_filter))
                 }
                 var last: LibKind? = null
-                found.forEach { e ->
+                shown.forEach { e ->
                     if (e.kind != last && kind == null) {
                         val k = e.kind
                         item("h:${k.name}") {
@@ -152,6 +162,7 @@ fun LibrarySearchScreen(initial: String, bottomPadding: androidx.compose.ui.unit
                         else ResultRow(e.item) { nav.open(e.item) { c.player.playSingle(it.song) } }
                     }
                 }
+            }
             }
         }
     }

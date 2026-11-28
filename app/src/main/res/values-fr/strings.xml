@@ -5947,4 +5947,6 @@
     <string name="analysis_out_of_date">Analysé par une version antérieure de l\'analyse du son : ce score et ces tags datent d\'avant.</string>
     <string name="analysis_reanalyse">Analyser à nouveau</string>
     <string name="analysis_older">Analysé avec une version antérieure</string>
+    <string name="search_lyrics_mode">Paroles</string>
+    <string name="search_lyrics_mode_description">Chercher aussi dans les paroles</string>
 </resources>

@@ -5797,4 +5797,6 @@
     <string name="analysis_out_of_date">サウンド解析の以前のバージョンで解析済みです。このスコアとタグはその時点のものです。</string>
     <string name="analysis_reanalyse">再解析</string>
     <string name="analysis_older">以前のバージョンで解析済み</string>
+    <string name="search_lyrics_mode">歌詞</string>
+    <string name="search_lyrics_mode_description">歌詞からも検索</string>
 </resources>

@@ -5947,4 +5947,6 @@
     <string name="analysis_out_of_date">Analizado por una versión anterior del análisis de sonido: esta puntuación y estas etiquetas son de antes.</string>
     <string name="analysis_reanalyse">Analizar de nuevo</string>
     <string name="analysis_older">Analizado con una versión anterior</string>
+    <string name="search_lyrics_mode">Letras</string>
+    <string name="search_lyrics_mode_description">Buscar también en las letras</string>
 </resources>

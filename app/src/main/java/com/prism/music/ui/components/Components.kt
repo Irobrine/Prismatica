@@ -62,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -305,6 +306,7 @@ fun SongRowLayout(
     val scheme = MaterialTheme.colorScheme
     val ui = com.prism.music.ui.theme.LocalUi.current
     val art = ui.songArt
+    val lyricLine = LocalLyricMatches.current[song.id]
     // #328: shown as the version picked to play in its place, if any.
     @Suppress("NAME_SHADOWING") val song = com.prism.music.data.SongVersions.shownOf(song)
     val pageMark = if (com.prism.music.ui.theme.LocalAppSettings.current.view.playingInPageColor) LocalPageColor.current else null
@@ -356,6 +358,14 @@ fun SongRowLayout(
                     listOfNotNull(song.artistText, trailingInfo ?: song.album?.title?.takeIf { showAlbum }).joinToString(" · "),
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
+                )
+            }
+            // Found in lyrics mode by its lyrics: the line that has what was typed.
+            lyricLine?.let { line ->
+                Text(
+                    "“$line”", maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                    color = scheme.onSurfaceVariant, modifier = Modifier.testTag("lyricLine"),
                 )
             }
         }
@@ -585,10 +595,16 @@ fun MarqueeText(text: String, modifier: Modifier = Modifier, style: androidx.com
 
 /** A search pill for filtering a list in place ("Search in playlist"), as you type. [container] defaults to the theme's. */
 @Composable
-fun SearchField(query: String, hint: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, container: Color = Color.Unspecified) {
+fun SearchField(
+    query: String, hint: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, container: Color = Color.Unspecified,
+    /** A search of songs: its lyrics mode, toggled in the field while it's typed in. */
+    lyrics: LyricsMode? = null,
+) {
     val scheme = MaterialTheme.colorScheme
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val material = com.prism.music.ui.theme.LocalUi.current.material
+    var focused by remember { mutableStateOf(false) }
+    val latestQuery by androidx.compose.runtime.rememberUpdatedState(query)
     // A glass pill (or the page's [container] fill); Material You: Material 3's filled search bar.
     Row(
         modifier.fillMaxWidth().height(if (material) 52.dp else 48.dp).clip(CircleShape)
@@ -607,9 +623,14 @@ fun SearchField(query: String, hint: String, onChange: (String) -> Unit, modifie
                 cursorBrush = androidx.compose.ui.graphics.SolidColor(scheme.primary),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { focus.clearFocus() }),
-                modifier = Modifier.fillMaxWidth().releaseFocusWhenHidden(),
+                modifier = Modifier.fillMaxWidth().releaseFocusWhenHidden()
+                    .then(if (lyrics == null) Modifier else Modifier.onFocusChanged { f ->
+                        if (focused && !f.isFocused) lyrics.left(latestQuery)
+                        focused = f.isFocused
+                    }),
             )
         }
+        if (lyrics != null && focused) LyricsModeToggle(lyrics, query, Modifier.padding(start = 6.dp, end = if (query.isEmpty()) 8.dp else 0.dp))
         if (query.isNotEmpty()) IconButton(onClick = { onChange(""); focus.clearFocus() }) {
             Icon(PrismIcons.Close, tr(R.string.clear_search), Modifier.size(20.dp), tint = scheme.onSurfaceVariant)
         }

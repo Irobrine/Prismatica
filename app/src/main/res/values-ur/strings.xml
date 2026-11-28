@@ -5872,4 +5872,6 @@
     <string name="analysis_out_of_date">آواز کے تجزیے کے پرانے ورژن سے تجزیہ کیا گیا: یہ اسکور اور یہ ٹیگ پہلے کے ہیں۔</string>
     <string name="analysis_reanalyse">دوبارہ تجزیہ کریں</string>
     <string name="analysis_older">پرانے ورژن سے تجزیہ کیا گیا</string>
+    <string name="search_lyrics_mode">بول</string>
+    <string name="search_lyrics_mode_description">بولوں میں بھی تلاش کریں</string>
 </resources>

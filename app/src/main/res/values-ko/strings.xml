@@ -5797,4 +5797,6 @@
     <string name="analysis_out_of_date">사운드 분석의 이전 버전으로 분석되었습니다. 이 점수와 태그는 그때의 것입니다.</string>
     <string name="analysis_reanalyse">다시 분석</string>
     <string name="analysis_older">이전 버전으로 분석됨</string>
+    <string name="search_lyrics_mode">가사</string>
+    <string name="search_lyrics_mode_description">가사에서도 검색</string>
 </resources>

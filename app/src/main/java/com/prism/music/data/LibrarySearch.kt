@@ -109,6 +109,22 @@ object LibrarySearch {
         return hits.sortedWith(compareBy<Pair<Int, Int>> { index.entries[it.first].kind.ordinal }.thenBy { it.second })
             .take(limit).map { index.entries[it.first] }
     }
+
+    /**
+     * Lyrics mode: [found] with the songs of [entries] whose lyrics matched ([lyricIds], best first) and [filter] lets
+     * through, after the songs found by name and before the other kinds. Returns the list and the songs it added.
+     */
+    fun withLyrics(found: List<LibEntry>, entries: List<LibEntry>, filter: LibFilter, lyricIds: List<String>): Pair<List<LibEntry>, Set<String>> {
+        if (lyricIds.isEmpty() || !filter.allows(LibKind.SONG)) return found to emptySet()
+        val have = found.mapTo(HashSet()) { it.item.id }
+        val songs = entries.filter { it.kind == LibKind.SONG }.associateBy { it.item.id }
+        val extra = lyricIds.mapNotNull { id ->
+            songs[id]?.takeIf { e -> e.item.id !in have && !(filter.liked && !e.liked || filter.downloaded && !e.downloaded || filter.onPhone && !e.onPhone) }
+        }
+        if (extra.isEmpty()) return found to emptySet()
+        val at = found.indexOfLast { it.kind == LibKind.SONG } + 1
+        return (found.take(at) + extra + found.drop(at)) to extra.mapTo(HashSet()) { it.item.id }
+    }
 }
 
 /**

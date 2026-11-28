@@ -5947,4 +5947,6 @@
     <string name="analysis_out_of_date">נותח בגרסה קודמת של ניתוח הצליל: הציון והתגיות האלה מלפני כן.</string>
     <string name="analysis_reanalyse">לנתח שוב</string>
     <string name="analysis_older">נותח בגרסה קודמת</string>
+    <string name="search_lyrics_mode">מילים</string>
+    <string name="search_lyrics_mode_description">לחפש גם במילות השירים</string>
 </resources>

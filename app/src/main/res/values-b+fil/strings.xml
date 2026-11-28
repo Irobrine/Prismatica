@@ -5872,4 +5872,6 @@
     <string name="analysis_out_of_date">Sinuri ng mas lumang bersyon ng pagsusuri ng tunog: ang score at mga tag na ito ay mula noon.</string>
     <string name="analysis_reanalyse">Suriin muli</string>
     <string name="analysis_older">Sinuri gamit ang mas lumang bersyon</string>
+    <string name="search_lyrics_mode">Lyrics</string>
+    <string name="search_lyrics_mode_description">Hanapin din sa lyrics</string>
 </resources>
