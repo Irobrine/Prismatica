@@ -5760,7 +5760,7 @@
     <string name="analysis_added_to_tags">เพิ่มในแท็กของคุณแล้ว</string>
     <string name="analysis_provenance">วิเคราะห์เมื่อ %1$s · ตัวอธิบาย v%2$d · %3$s</string>
     <string name="analysis_no_tagger">ไม่มีโมเดลติดแท็ก</string>
-    <string name="analysis_partial">หากไม่ติดแท็ก จะไม่นับเสียงร้อง เครื่องดนตรี และอารมณ์</string>
+    <string name="analysis_partial">หากไม่ติดแท็ก เสียงร้อง เครื่องดนตรี และอารมณ์จะถูกนับเป็นกลาง</string>
     <string name="analysis_group">การวิเคราะห์เสียง</string>
     <string name="analysis_group_info">Prism ฟังเพลงในโทรศัพท์ของคุณเพื่อคำนวณคะแนนการนอน แท็ก และเพลงที่ฟังคล้ายกัน ไม่มีข้อมูลใดออกจากโทรศัพท์</string>
     <string name="analysis_background">วิเคราะห์เพลงในเบื้องหลัง</string>

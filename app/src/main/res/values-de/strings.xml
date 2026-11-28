@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">Zu deinen Tags hinzugefügt</string>
     <string name="analysis_provenance">Analysiert am %1$s · Deskriptoren v%2$d · %3$s</string>
     <string name="analysis_no_tagger">kein Tagger</string>
-    <string name="analysis_partial">Ohne Tagging werden Gesang, Instrumente und Stimmung nicht berücksichtigt.</string>
+    <string name="analysis_partial">Ohne Tagging zählen Gesang, Instrumente und Stimmung als neutral.</string>
     <string name="analysis_group">Klanganalyse</string>
     <string name="analysis_group_info">Prism hört sich deine Songs auf dem Handy an, um einen Schlafwert, Tags und ähnlich klingende Songs zu ermitteln. Nichts verlässt das Handy.</string>
     <string name="analysis_background">Songs im Hintergrund analysieren</string>

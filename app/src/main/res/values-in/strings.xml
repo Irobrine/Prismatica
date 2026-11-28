@@ -5760,7 +5760,7 @@
     <string name="analysis_added_to_tags">Ditambahkan ke tag Anda</string>
     <string name="analysis_provenance">Dianalisis %1$s · deskriptor v%2$d · %3$s</string>
     <string name="analysis_no_tagger">tanpa model tag</string>
-    <string name="analysis_partial">Tanpa tag, vokal, instrumen, dan suasana tidak dihitung.</string>
+    <string name="analysis_partial">Tanpa tag, vokal, instrumen dan suasana dihitung netral.</string>
     <string name="analysis_group">Analisis suara</string>
     <string name="analysis_group_info">Prism mendengarkan lagu di ponsel untuk menghitung skor tidur, tag, dan lagu yang terdengar mirip. Tidak ada yang keluar dari ponsel.</string>
     <string name="analysis_background">Analisis lagu di latar belakang</string>

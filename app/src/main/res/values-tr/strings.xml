@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">Etiketlerinize eklendi</string>
     <string name="analysis_provenance">Analiz: %1$s · tanımlayıcılar v%2$d · %3$s</string>
     <string name="analysis_no_tagger">etiketleyici yok</string>
-    <string name="analysis_partial">Etiketleme olmadan vokal, enstrümanlar ve ruh hâli sayılmaz.</string>
+    <string name="analysis_partial">Etiketleme yoksa vokal, enstrümanlar ve ruh hâli nötr sayılır.</string>
     <string name="analysis_group">Ses analizi</string>
     <string name="analysis_group_info">Prism, uyku puanı, etiketler ve birbirine benzeyen şarkıları bulmak için telefondaki şarkılarınızı dinler. Hiçbir şey telefondan çıkmaz.</string>
     <string name="analysis_background">Şarkıları arka planda analiz et</string>

@@ -118,7 +118,7 @@ MusicBrainz/metadata edits (`SongMetadata`) and user tags (`song_tags`) are neve
 
 | Factor | From | Calm end |
 | --- | --- | --- |
-| Arousal / energy | loudness (LUFS), max momentary, spectral energy | quiet — **weight 0.6 instead of 1.4 with Normalize on**, since the player then brings every song to one level |
+| Arousal / energy | loudness (LUFS), max momentary, spectral energy | quiet — **weight 0.6–1.4 by what the player's gain leaves**: 0.6 once Normalize has equalized the level, rising with the residual dB a peak-limited lift or a "Loud" target leaves |
 | Tempo — *weighted by pulse clarity* | BPM (octave-folded toward 60–90) | ≤ 85 BPM; irrelevant when there's no clear beat |
 | Beat strength | pulse clarity, percussive ratio | soft or no pulse |
 | Rhythmic regularity | tempo stability across segments | steady (predictable) |
@@ -131,6 +131,12 @@ MusicBrainz/metadata edits (`SongMetadata`) and user tags (`song_tags`) are neve
 | Consistency | spread of segment loudness/brightness; loudest segment vs median; intro/outro | even throughout |
 
 A track whose sudden-change factor is very low is capped (≤ 45) whatever else it scores: one crash wakes a sleeper.
+Each factor's pull is `importance × applicability × confidence`: a tempo only counts as far as there's a beat to feel, and
+the tagger's vocals, instruments and mood count as sure as its evidence (a clear voice or clearly none; nothing at all means
+nothing). A figure a song doesn't have — no tagger, no beat — counts as **neutral, not as calm**, so what's unknown can't
+raise a score: the base is pulled toward 50 by how much of the full weight the song's figures cover. That is why a song
+without the tagging model tops out lower than a fully analysed one.
+
 The score follows playback: with **Normalize on** (Prism's default, album mode included) a master's own loudness is
 undone by the player, so ENERGY's pull drops from 1.4 to 0.6 — the figure stays as a proxy for a dense, compressed master,
 but it can't decide a score over what's heard at equal level. Density, brightness, beat, dynamics and sudden changes carry
@@ -196,20 +202,9 @@ Internet Archive's netlabels), run on desktop ONNX Runtime:
 
 - Cost per song (desktop): 40–220 ms descriptors, ~80 ms YAMNet for 72 frames. Phones are roughly 5–10× slower on one
   core, so expect well under 2 s per song, after the decode Normalize already pays for.
-- Sleep order (Normalize on): a soft jazz lick 68, an Irish lullaby 64, ambient 59, then rock, noise, techno and hip-hop
-  at 29–53. With the loudness pull cut for normalized playback the gap between the ambient track and the hip-hop one
-  narrows from 35 to 30 points: the loud tracks gain 3–5 points, the quiet ones lose 1–2, because much of a loud track's
-  penalty already came from its brightness and density rather than its level. The explanations named what you would expect: loud masters (ENERGY), 120–135 BPM with a clear beat
-  (TEMPO), drum machines and drums (INSTRUMENTS), a bright noise wall (BRIGHTNESS 22 % above 1.5 kHz), and +15 to +21 LU
-  sudden rises.
-- Similarity with embeddings centred on the library mean: rock ↔ rock 0.78, metal ↔ rock 0.79, jazz ↔ a
-  percussive piano track 0.85, while unrelated pairs sat near 0. Uncentred cosines put nearly everything at 0.85–0.95,
-  which is why the store centres them.
-- Tags: instruments and character were clear (drum machine 0.71 and electronic on techno, brass 0.82 on a brass
-  arrangement, techno 0.42 and heavy metal 0.26 on the matching tracks). Genre words matched the folder label for 5 of
-  11, and several genre and mood outputs stayed under the sure line, so they went to review. This matches YAMNet's known
-  weakness on genre (AudioSet's genre classes have low mAP). It is the reason uncertain tags are never applied
-  silently, and EfficientAT (mAP 0.47) is the planned upgrade behind the same `AudioTagger` interface.
+- Sleep order (Normalize on): a soft jazz lick 74, an Irish lullaby 65, ambient 64, then noise, rock, techno and hip-hop
+  at 30–56 — the same order as when each recording played at its own level. Loud tracks gain 4–6 points with the
+  gain-accurate weight, quiet ones lose 1–3, and the ambient-to-hip-hop gap narrows from 40 to 34 points.
 
 The real-recording run led to these calibration changes, now covered by tests:
 

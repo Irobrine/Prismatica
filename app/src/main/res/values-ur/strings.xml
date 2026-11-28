@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">آپ کے ٹیگز میں شامل ہو گیا</string>
     <string name="analysis_provenance">تجزیہ %1$s · ڈسکرپٹرز v%2$d · %3$s</string>
     <string name="analysis_no_tagger">کوئی ٹیگر نہیں</string>
-    <string name="analysis_partial">ٹیگنگ کے بغیر گائیکی، ساز اور موڈ شمار نہیں ہوتے۔</string>
+    <string name="analysis_partial">ٹیگنگ کے بغیر گائیکی، ساز اور موڈ غیر جانبدار شمار ہوتے ہیں۔</string>
     <string name="analysis_group">آواز کا تجزیہ</string>
     <string name="analysis_group_info">Prism فون پر آپ کے گانے سن کر نیند اسکور، ٹیگز اور ملتے جلتے گانے معلوم کرتا ہے۔ کچھ بھی فون سے باہر نہیں جاتا۔</string>
     <string name="analysis_background">پس منظر میں گانوں کا تجزیہ</string>

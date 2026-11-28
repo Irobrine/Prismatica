@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">Aan je tags toegevoegd</string>
     <string name="analysis_provenance">Geanalyseerd op %1$s · descriptors v%2$d · %3$s</string>
     <string name="analysis_no_tagger">geen tagger</string>
-    <string name="analysis_partial">Zonder tagging tellen zang, instrumenten en sfeer niet mee.</string>
+    <string name="analysis_partial">Zonder tagging tellen zang, instrumenten en sfeer als neutraal.</string>
     <string name="analysis_group">Geluidsanalyse</string>
     <string name="analysis_group_info">Prism luistert naar je nummers op de telefoon om een slaapscore, tags en gelijkklinkende nummers te bepalen. Niets verlaat de telefoon.</string>
     <string name="analysis_background">Nummers op de achtergrond analyseren</string>

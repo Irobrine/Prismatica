@@ -5910,7 +5910,7 @@
     <string name="analysis_added_to_tags">Aggiunto ai tuoi tag</string>
     <string name="analysis_provenance">Analizzato il %1$s · descrittori v%2$d · %3$s</string>
     <string name="analysis_no_tagger">nessun tagger</string>
-    <string name="analysis_partial">Senza tagging, voce, strumenti e atmosfera non vengono contati.</string>
+    <string name="analysis_partial">Senza tagging, voce, strumenti e atmosfera contano come neutri.</string>
     <string name="analysis_group">Analisi del suono</string>
     <string name="analysis_group_info">Prism ascolta i tuoi brani sul telefono per calcolare un punteggio sonno, i tag e quali brani suonano simili. Nulla lascia il telefono.</string>
     <string name="analysis_background">Analizza i brani in background</string>

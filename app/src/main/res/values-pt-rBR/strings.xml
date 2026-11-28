@@ -5910,7 +5910,7 @@
     <string name="analysis_added_to_tags">Adicionada às suas tags</string>
     <string name="analysis_provenance">Analisada em %1$s · descritores v%2$d · %3$s</string>
     <string name="analysis_no_tagger">sem marcador</string>
-    <string name="analysis_partial">Sem a marcação, vocais, instrumentos e clima não contam.</string>
+    <string name="analysis_partial">Sem a marcação, vocais, instrumentos e clima contam como neutros.</string>
     <string name="analysis_group">Análise de som</string>
     <string name="analysis_group_info">O Prism ouve suas músicas no celular para calcular uma nota de sono, tags e quais músicas soam parecidas. Nada sai do celular.</string>
     <string name="analysis_background">Analisar músicas em segundo plano</string>

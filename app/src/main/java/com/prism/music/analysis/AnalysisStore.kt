@@ -40,8 +40,11 @@ class AnalysisStore(
     private val scope: CoroutineScope,
     /** The tagger, made when it's first needed (null: none can run here). Tests hand in their own. */
     private val makeTagger: () -> AudioTagger? = { null },
-    /** Playback Normalize (the player brings every song to one level): the score counts loudness far less then. */
-    private val normalized: () -> Boolean = { true },
+    /**
+     * The level playback brings every song to (the Normalize target in LUFS), or null when Normalize is off: the score
+     * counts loudness by what the player's gain leaves of it ([SleepWeights.energy]).
+     */
+    private val normalizeTarget: () -> Float? = { -14f },
 ) : SongAnalyzer {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = false }
 
@@ -237,7 +240,7 @@ class AnalysisStore(
     }
 
     /** The weights the listener's settings make now (a change clears the cached scores on the next read). */
-    fun weightsNow() = SleepWeights(vocalsCount = prefs().vocalsCount, normalized = normalized())
+    fun weightsNow() = SleepWeights(vocalsCount = prefs().vocalsCount, normalizeTarget = normalizeTarget())
 
     // ------------------------------------------------------------------ the listener's say
 

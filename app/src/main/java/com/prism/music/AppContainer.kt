@@ -466,7 +466,7 @@ class AppContainer(val app: Application) {
         com.prism.music.analysis.AnalysisStore(
             db.analysis(), models, { settings.current.behavior.analysis }, scope,
             makeTagger = { com.prism.music.analysis.AnalysisStore.yamnet(models) },
-            normalized = ::playsAtOneLevel,
+            normalizeTarget = { if (playsAtOneLevel()) settings.current.sound.normalizeTarget.toFloat() else null },
         )
     }
     /** Whether the player brings every song to one level (Normalize; album mode too), so a master's own level is undone. */

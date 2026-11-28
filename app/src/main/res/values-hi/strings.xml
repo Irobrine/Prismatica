@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">आपके टैग में जोड़ा गया</string>
     <string name="analysis_provenance">विश्लेषण %1$s · डिस्क्रिप्टर v%2$d · %3$s</string>
     <string name="analysis_no_tagger">कोई टैगर नहीं</string>
-    <string name="analysis_partial">टैगिंग के बिना गायन, वाद्य और मूड नहीं गिने जाते।</string>
+    <string name="analysis_partial">टैगिंग के बिना गायन, वाद्य और मूड तटस्थ गिने जाते हैं।</string>
     <string name="analysis_group">ध्वनि विश्लेषण</string>
     <string name="analysis_group_info">Prism फ़ोन पर आपके गाने सुनकर नींद स्कोर, टैग और मिलते-जुलते गाने निकालता है। कुछ भी फ़ोन से बाहर नहीं जाता।</string>
     <string name="analysis_background">बैकग्राउंड में गानों का विश्लेषण</string>

@@ -68,23 +68,75 @@ class SleepScoreTest {
 
     @Test fun withoutTheTaggerTheScoreSaysItIsIncomplete() {
         assertTrue(SleepScore.of(calm).completeness < 0.9f)
-        assertTrue(SleepScore.of(calm, scores(148 to 0.5f)).completeness > 0.99f)
+        // Every figure there (a piano, a tender mood, no voice): everything counts.
+        assertTrue(SleepScore.of(calm, scores(148 to 0.6f, 273 to 0.4f)).completeness > 0.99f)
     }
 
     @Test fun withNormalizeOnLoudnessCountsFarLess() {
         // Normalize (the default) brings every song to one level, so a master's own loudness must not decide the score:
         // ENERGY's weight drops from 1.4 to 0.6, and what's left of energy (density, brightness, beat) has its own factors.
-        val on = SleepScore.of(club, weights = SleepWeights(normalized = true))
-        val off = SleepScore.of(club, weights = SleepWeights(normalized = false))
+        val on = SleepScore.of(club, weights = SleepWeights(normalizeTarget = -14f))
+        val off = SleepScore.of(club, weights = SleepWeights(normalizeTarget = null))
         assertEquals(SleepWeights.NORMALIZED_ENERGY, on.parts.first { it.factor == SleepFactor.ENERGY }.weight, 1e-6f)
         assertEquals(SleepFactor.ENERGY.weight, off.parts.first { it.factor == SleepFactor.ENERGY }.weight, 1e-6f)
         // A loud, compressed master is held back less once its level is equalised, but it's still far from calm.
         assertTrue("on ${on.score}, off ${off.score}", on.score > off.score)
         assertTrue(on.score < 45)
         // A quiet song gains nothing from the cut (its loudness was a calm signal), and both ways stay calm.
-        assertTrue(SleepScore.of(calm, weights = SleepWeights(normalized = true)).score >= 80)
-        // The toggle is part of the weights: the analysis' cache sees the change and re-scores without any re-analysis.
-        assertTrue(SleepWeights(normalized = true) != SleepWeights(normalized = false))
+        assertTrue(SleepScore.of(calm, weights = SleepWeights(normalizeTarget = -14f)).score >= 80)
+        // The target is part of the weights: the analysis' cache sees the change and re-scores without any re-analysis.
+        assertTrue(SleepWeights(normalizeTarget = -14f) != SleepWeights(normalizeTarget = null))
+    }
+
+    @Test fun theEnergyWeightFollowsWhatThePlayersGainLeaves() {
+        val w = SleepWeights(normalizeTarget = -14f)
+        // Loud master the player cuts to target: nothing of its level is left, so loudness only proxies density.
+        assertEquals(SleepWeights.NORMALIZED_ENERGY, w.energy(club.copy(peakDb = -0.1f)), 1e-6f)
+        // Normalize off: the recording plays at its own level.
+        assertEquals(SleepFactor.ENERGY.weight, SleepWeights(normalizeTarget = null).energy(club), 1e-6f)
+        // A very quiet, peak-limited recording: the player can lift it only so far, and some of the level is still heard.
+        val quietPeaky = calm.copy(lufs = -30f, peakDb = -0.5f, maxMomentary = -24f)
+        assertTrue("quiet ${w.energy(quietPeaky)}", w.energy(quietPeaky) > SleepWeights.NORMALIZED_ENERGY + 0.3f)
+        // The target matters: at -23 a -14 master is cut to it exactly (no level left).
+        assertEquals(SleepWeights.NORMALIZED_ENERGY, SleepWeights(normalizeTarget = -23f).energy(club.copy(lufs = -14f)), 1e-6f)
+        // And a residual bigger than the threshold counts in full.
+        assertEquals(SleepFactor.ENERGY.weight, w.energy(calm.copy(lufs = -34f, peakDb = 0f)), 1e-6f)
+    }
+
+    @Test fun evidenceTheTaggerIsUnsureOfCountsForLess() {
+        // Nothing heard at all: no voice isn't proof of an instrumental, and no mood isn't "tender".
+        val silent = FloatArray(YamnetTagger.CLASSES)
+        val clear = scores(24 to 0.7f, 148 to 0.6f, 273 to 0.4f)
+        fun weightOf(s: FloatArray, key: String) = SleepScore.of(calm, s).parts.first { it.factor == keyFactor(key) }.weight
+        assertTrue("vocals ${weightOf(silent, "vocals")} < ${weightOf(clear, "vocals")}", weightOf(silent, "vocals") < weightOf(clear, "vocals"))
+        assertTrue("instruments ${weightOf(silent, "instruments")}", weightOf(silent, "instruments") < 0.2f)
+        assertTrue("mood ${weightOf(silent, "mood")}", weightOf(silent, "mood") < 0.2f)
+        assertTrue(weightOf(clear, "instruments") > 0.6f)
+        // A half-heard voice (a word or two) says less than a clear one.
+        val faint = SleepScore.of(calm, scores(24 to 0.2f)).parts.first { it.factor == SleepFactor.VOCALS }.weight
+        val strong = SleepScore.of(calm, scores(24 to 0.7f)).parts.first { it.factor == SleepFactor.VOCALS }.weight
+        assertTrue("faint $faint, strong $strong", faint < strong)
+        // A tagger that heard nothing leaves the score exactly as the untagged one: no evidence, no invented calm factors.
+        assertEquals(SleepScore.of(calm).score, SleepScore.of(calm, silent).score)
+        assertEquals(SleepScore.of(calm).completeness, SleepScore.of(calm, silent).completeness, 0f)
+    }
+
+    @Test fun whatIsUnknownCountsAsNeutralNotAsCalm() {
+        // Same song, with and without the tagger: the untagged one must not be raised by the factors it lacks.
+        val tagged = SleepScore.of(club, scores(157 to 0.8f, 274 to 0.5f, 31 to 0.6f))
+        val untagged = SleepScore.of(club)
+        assertTrue("untagged ${untagged.score} vs tagged ${tagged.score}", tagged.score < untagged.score)
+        assertTrue("completeness ${untagged.completeness}", untagged.completeness < 0.85f)
+        // A fully figured calm song still scores high; a partial one sits closer to 50 than its figures alone would put it.
+        val calmTagged = SleepScore.of(calm, scores(148 to 0.6f, 273 to 0.4f))
+        assertTrue(calmTagged.completeness > 0.99f)
+        assertTrue("calm ${calmTagged.score} vs partial ${SleepScore.of(calm).score}", calmTagged.score >= SleepScore.of(calm).score)
+    }
+
+    private fun keyFactor(key: String) = when (key) {
+        "vocals" -> SleepFactor.VOCALS
+        "instruments" -> SleepFactor.INSTRUMENTS
+        else -> SleepFactor.MOOD
     }
 
     @Test fun aSongsOwnVoteMovesItsScore() {

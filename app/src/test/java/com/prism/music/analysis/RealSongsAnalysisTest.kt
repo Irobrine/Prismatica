@@ -55,8 +55,8 @@ class RealSongsAnalysisTest {
             val out = tagger?.run(tap.windows())
             val t4 = System.nanoTime()
             // Equalized (Normalize on, Prism's default) against the recording played at its own level.
-            val sleep = SleepScore.of(f, out?.scores, SleepWeights(normalized = true))
-            val rawLevel = SleepScore.of(f, out?.scores, SleepWeights(normalized = false))
+            val sleep = SleepScore.of(f, out?.scores, SleepWeights(normalizeTarget = -14f))
+            val rawLevel = SleepScore.of(f, out?.scores, SleepWeights(normalizeTarget = null))
             val tags = out?.let { TagVocabulary.tags(it.scores) }.orEmpty().sortedByDescending { it.confidence }
             val name = file.name.removeSuffix(".f32")
             println("=== $name  (%.0f s)".format(seconds))

@@ -5985,7 +5985,7 @@
     <string name="analysis_added_to_tags">Dodano do twoich tagów</string>
     <string name="analysis_provenance">Przeanalizowano %1$s · deskryptory v%2$d · %3$s</string>
     <string name="analysis_no_tagger">bez modelu tagowania</string>
-    <string name="analysis_partial">Bez tagowania wokal, instrumenty i nastrój nie są liczone.</string>
+    <string name="analysis_partial">Bez tagowania wokal, instrumenty i nastrój liczą się jako neutralne.</string>
     <string name="analysis_group">Analiza dźwięku</string>
     <string name="analysis_group_info">Prism słucha twoich utworów na telefonie, by wyliczyć wynik snu, tagi i to, które utwory brzmią podobnie. Nic nie opuszcza telefonu.</string>
     <string name="analysis_background">Analizuj utwory w tle</string>

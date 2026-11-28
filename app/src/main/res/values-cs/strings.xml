@@ -5985,7 +5985,7 @@
     <string name="analysis_added_to_tags">Přidáno k vašim štítkům</string>
     <string name="analysis_provenance">Analyzováno %1$s · deskriptory v%2$d · %3$s</string>
     <string name="analysis_no_tagger">bez modelu štítků</string>
-    <string name="analysis_partial">Bez štítkování se nepočítá zpěv, nástroje ani nálada.</string>
+    <string name="analysis_partial">Bez štítkování se zpěv, nástroje a nálada počítají jako neutrální.</string>
     <string name="analysis_group">Analýza zvuku</string>
     <string name="analysis_group_info">Prism poslouchá vaše skladby v telefonu, aby spočítal skóre spánku, štítky a které skladby zní podobně. Nic neopouští telefon.</string>
     <string name="analysis_background">Analyzovat skladby na pozadí</string>

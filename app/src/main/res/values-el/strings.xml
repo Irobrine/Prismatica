@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">Προστέθηκε στις ετικέτες σου</string>
     <string name="analysis_provenance">Αναλύθηκε %1$s · περιγραφείς v%2$d · %3$s</string>
     <string name="analysis_no_tagger">χωρίς μοντέλο ετικετών</string>
-    <string name="analysis_partial">Χωρίς ετικέτες, τα φωνητικά, τα όργανα και η διάθεση δεν μετρούν.</string>
+    <string name="analysis_partial">Χωρίς ετικέτες, φωνητικά, όργανα και διάθεση μετρούν ως ουδέτερα.</string>
     <string name="analysis_group">Ανάλυση ήχου</string>
     <string name="analysis_group_info">Το Prism ακούει τα τραγούδια σου στο κινητό για να υπολογίσει βαθμολογία ύπνου, ετικέτες και ποια τραγούδια μοιάζουν. Τίποτα δεν φεύγει από το κινητό.</string>
     <string name="analysis_background">Ανάλυση τραγουδιών στο παρασκήνιο</string>

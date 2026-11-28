@@ -6135,7 +6135,7 @@
     <string name="analysis_added_to_tags">أُضيفت إلى وسومك</string>
     <string name="analysis_provenance">حُلِّلت في %1$s · الواصفات v%2$d · %3$s</string>
     <string name="analysis_no_tagger">بلا نموذج وسوم</string>
-    <string name="analysis_partial">بدون الوسوم لا يُحتسب الغناء والآلات والمزاج.</string>
+    <string name="analysis_partial">بدون الوسوم، يُحتسب الغناء والآلات والمزاج كحياد.</string>
     <string name="analysis_group">تحليل الصوت</string>
     <string name="analysis_group_info">يستمع Prism إلى أغانيك على الهاتف ليحسب درجة النوم والوسوم والأغاني المتشابهة. لا شيء يغادر الهاتف.</string>
     <string name="analysis_background">تحليل الأغاني في الخلفية</string>

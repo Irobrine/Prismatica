@@ -32,8 +32,8 @@ class AnalysisStoreTest {
     private lateinit var db: PrismDatabase
     private lateinit var store: AnalysisStore
     private var prefs = AnalysisPrefs(tagger = true)
-    /** Whether the player equalizes levels (Normalize): part of the weights, so scores follow it. */
-    private var normalized = true
+    /** The level the player brings songs to (the Normalize target), or null when it doesn't: part of the weights. */
+    private var target: Float? = -14f
     private var taggerRuns = 0
 
     /** A tagger that hears piano, a little strings, and singing in the second half of the test. */
@@ -59,7 +59,7 @@ class AnalysisStoreTest {
         db = Room.inMemoryDatabaseBuilder(app, PrismDatabase::class.java).allowMainThreadQueries().build()
         // The model and every engine build "on the phone" (only their ready marks: the fake tagger needs no files).
         ModelStore.Model.entries.forEach { File(app.filesDir, "models/${it.id}").apply { mkdirs() }.resolve(".ready").writeText("x") }
-        store = AnalysisStore(db.analysis(), ModelStore(app, OkHttpClient()), { prefs }, CoroutineScope(SupervisorJob() + Dispatchers.IO), { fake }, { normalized })
+        store = AnalysisStore(db.analysis(), ModelStore(app, OkHttpClient()), { prefs }, CoroutineScope(SupervisorJob() + Dispatchers.IO), { fake }, { target })
         runBlocking { store.load() }
     }
 
@@ -123,7 +123,7 @@ class AnalysisStoreTest {
         )
         store.record("n1", null, loud, window)
         val equalized = store.sleepScore("n1")!!
-        normalized = false
+        target = null
         val asRecorded = store.sleepScore("n1")!!
         assertTrue("as recorded $asRecorded should be held back more than equalized $equalized", asRecorded < equalized)
         assertTrue("equalized $equalized", equalized > 20)

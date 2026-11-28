@@ -5910,7 +5910,7 @@
     <string name="analysis_added_to_tags">Adăugată la etichetele tale</string>
     <string name="analysis_provenance">Analizată pe %1$s · descriptori v%2$d · %3$s</string>
     <string name="analysis_no_tagger">fără etichetator</string>
-    <string name="analysis_partial">Fără etichetare, vocea, instrumentele și atmosfera nu sunt luate în calcul.</string>
+    <string name="analysis_partial">Fără etichetare, vocea, instrumentele și atmosfera contează ca neutre.</string>
     <string name="analysis_group">Analiza sunetului</string>
     <string name="analysis_group_info">Prism ascultă melodiile de pe telefon ca să calculeze un scor de somn, etichete și ce melodii sună la fel. Nimic nu părăsește telefonul.</string>
     <string name="analysis_background">Analizează melodiile în fundal</string>

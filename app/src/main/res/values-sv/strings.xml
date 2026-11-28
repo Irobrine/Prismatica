@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">Tillagd i dina taggar</string>
     <string name="analysis_provenance">Analyserad %1$s · deskriptorer v%2$d · %3$s</string>
     <string name="analysis_no_tagger">ingen taggare</string>
-    <string name="analysis_partial">Utan taggning räknas inte sång, instrument och stämning.</string>
+    <string name="analysis_partial">Utan taggning räknas sång, instrument och stämning som neutrala.</string>
     <string name="analysis_group">Ljudanalys</string>
     <string name="analysis_group_info">Prism lyssnar på dina låtar i telefonen för att räkna fram en sömnpoäng, taggar och vilka låtar som låter lika. Inget lämnar telefonen.</string>
     <string name="analysis_background">Analysera låtar i bakgrunden</string>

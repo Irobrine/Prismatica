@@ -5760,7 +5760,7 @@
     <string name="analysis_added_to_tags">Ditambah ke teg anda</string>
     <string name="analysis_provenance">Dianalisis %1$s · deskriptor v%2$d · %3$s</string>
     <string name="analysis_no_tagger">tiada model teg</string>
-    <string name="analysis_partial">Tanpa teg, vokal, alat muzik dan suasana tidak dikira.</string>
+    <string name="analysis_partial">Tanpa teg, vokal, alat muzik dan suasana dikira neutral.</string>
     <string name="analysis_group">Analisis bunyi</string>
     <string name="analysis_group_info">Prism mendengar lagu pada telefon anda untuk mengira skor tidur, teg dan lagu yang berbunyi serupa. Tiada apa-apa keluar dari telefon.</string>
     <string name="analysis_background">Analisis lagu di latar belakang</string>

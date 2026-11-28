@@ -5880,7 +5880,7 @@
     <string name="analysis_added_to_tags">Added to your tags</string>
     <string name="analysis_provenance">Analysed %1$s · descriptors v%2$d · %3$s</string>
     <string name="analysis_no_tagger">no tagger</string>
-    <string name="analysis_partial">Without tagging, vocals, instruments and mood aren\'t counted.</string>
+    <string name="analysis_partial">Without tagging, vocals, instruments and mood count as neutral.</string>
     <string name="analysis_group">Sound analysis</string>
     <string name="analysis_group_info">Prism listens to your songs on the phone to work out a sleep score, tags and which songs sound alike. Nothing leaves the phone.</string>
     <string name="analysis_background">Analyse songs in the background</string>

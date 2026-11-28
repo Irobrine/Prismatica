@@ -5760,7 +5760,7 @@
     <string name="analysis_added_to_tags">태그에 추가했습니다</string>
     <string name="analysis_provenance">%1$s 분석 · 기술자 v%2$d · %3$s</string>
     <string name="analysis_no_tagger">태그 모델 없음</string>
-    <string name="analysis_partial">태그가 없으면 보컬, 악기, 분위기는 반영되지 않습니다.</string>
+    <string name="analysis_partial">태그가 없으면 보컬, 악기, 분위기는 중립으로 계산됩니다.</string>
     <string name="analysis_group">사운드 분석</string>
     <string name="analysis_group_info">Prism이 휴대전화의 곡을 들어 수면 점수, 태그, 비슷하게 들리는 곡을 찾습니다. 아무것도 휴대전화 밖으로 나가지 않습니다.</string>
     <string name="analysis_background">백그라운드에서 곡 분석</string>

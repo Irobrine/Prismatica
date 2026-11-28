@@ -5760,7 +5760,7 @@
     <string name="analysis_added_to_tags">タグに追加しました</string>
     <string name="analysis_provenance">分析日 %1$s · 記述子 v%2$d · %3$s</string>
     <string name="analysis_no_tagger">タグ付けなし</string>
-    <string name="analysis_partial">タグ付けなしでは、ボーカル・楽器・ムードは考慮されません。</string>
+    <string name="analysis_partial">タグ付けがない場合、ボーカル・楽器・ムードは中立として扱われます。</string>
     <string name="analysis_group">サウンド分析</string>
     <string name="analysis_group_info">Prismは端末内の曲を聴いて、スリープスコア、タグ、似た響きの曲を求めます。データは端末の外に出ません。</string>
     <string name="analysis_background">バックグラウンドで曲を分析</string>

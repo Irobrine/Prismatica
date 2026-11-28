@@ -5985,7 +5985,7 @@
     <string name="analysis_added_to_tags">Добавлено в ваши метки</string>
     <string name="analysis_provenance">Проанализировано %1$s · дескрипторы v%2$d · %3$s</string>
     <string name="analysis_no_tagger">без модели меток</string>
-    <string name="analysis_partial">Без меток вокал, инструменты и настроение не учитываются.</string>
+    <string name="analysis_partial">Без меток вокал, инструменты и настроение считаются нейтральными.</string>
     <string name="analysis_group">Анализ звука</string>
     <string name="analysis_group_info">Prism слушает ваши треки на телефоне, чтобы вычислить оценку для сна, метки и похожие по звучанию треки. Ничего не покидает телефон.</string>
     <string name="analysis_background">Анализировать треки в фоне</string>

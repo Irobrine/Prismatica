@@ -37,27 +37,45 @@ data class SleepWeights(
     /** Singing and speech count against a song (on by default; some sleep best to voices). */
     val vocalsCount: Boolean = true,
     /**
-     * Playback Normalize is on (Prism's default). The score then counts a master's loudness far less: the player brings
-     * every song to the same level, so what would be left of "how loud it is" is density and brightness, which their own
-     * factors already measure. The figure stays, its pull shrinks ([NORMALIZED_ENERGY]).
+     * The level playback brings every song to (the Normalize target, in LUFS), or null when Normalize is off and each
+     * master plays at its own level. ENERGY's weight follows what the player's gain leaves of the difference:
+     * [RESIDUAL_FULL_DB] or more and the level is heard in full (1.4); none left, and loudness is only a proxy for a
+     * dense master (0.6).
      */
-    val normalized: Boolean = true,
+    val normalizeTarget: Float? = -14f,
     /** Per-factor weights; [SleepFactor.weight] for any not here. */
     val custom: Map<SleepFactor, Float> = emptyMap(),
 ) {
-    fun of(f: SleepFactor): Float = when {
+    fun of(f: SleepFactor, features: SongFeatures? = null): Float = when {
         f == SleepFactor.VOCALS && !vocalsCount -> 0f
         custom[f] != null -> custom.getValue(f)
-        f == SleepFactor.ENERGY && normalized -> NORMALIZED_ENERGY
+        f == SleepFactor.ENERGY -> energy(features)
         else -> f.weight
+    }
+
+    /**
+     * ENERGY's pull for a song: the player's gain ([com.prism.music.playback.NormalizerProcessor.gainFor]: the target's
+     * cut, or a lift its peaks allow) is added to the master's loudness, and what's left between that and the target is
+     * still heard. Nothing left: 0.6. A recording the player can't lift all the way (a very quiet, peak-limited one), or
+     * a "Loud" target that barely cuts: up to 1.4.
+     */
+    fun energy(features: SongFeatures?): Float {
+        val target = normalizeTarget ?: return SleepFactor.ENERGY.weight
+        val lufs = features?.lufs ?: return NORMALIZED_ENERGY
+        val gain = com.prism.music.playback.NormalizerProcessor.gainFor(target, lufs, features.peakDb)
+        val residual = kotlin.math.abs(target - (lufs + gain))
+        return NORMALIZED_ENERGY + (SleepFactor.ENERGY.weight - NORMALIZED_ENERGY) * (residual / RESIDUAL_FULL_DB).coerceIn(0f, 1f)
     }
 
     companion object {
         /**
-         * ENERGY's weight with Normalize on: 0.6 against 1.4. Loudness is still a proxy for a dense, compressed master,
-         * so it isn't nothing; but at equal playback level it must not decide a score over what's actually heard.
+         * ENERGY's weight where the player has equalized the level entirely: 0.6 against 1.4. Loudness is still a proxy
+         * for a dense, compressed master, so it isn't nothing; but at equal playback level it must not decide a score
+         * over what's actually heard.
          */
         const val NORMALIZED_ENERGY = 0.6f
+        /** How far (dB) a song may still sit from the target before its level counts in full. */
+        const val RESIDUAL_FULL_DB = 6f
     }
 }
 
@@ -113,7 +131,12 @@ object SleepScore {
         /** This song's own vote: +1 good for sleep, -1 not, 0 none. */
         vote: Int = 0,
     ): SleepResult {
-        val parts = factors(f, scores).map { (factor, calm, applies, detail) -> FactorPart(factor, calm.coerceIn(0f, 1f), weights.of(factor) * applies, detail) }
+        // A factor's pull: its weight, how much it applies (a tempo with no beat to feel), and how sure its evidence is.
+        val measured = factors(f, scores)
+        val factorsKnown = measured.filter { it.available }.map { it.factor }.distinct()
+        val parts = measured.map { r ->
+            FactorPart(r.factor, r.calm.coerceIn(0f, 1f), weights.of(r.factor, f) * r.applies * r.confidence, r.detail)
+        }
         // The base: the arousal factors' weighted calmness.
         val arousal = parts.filter { !it.factor.disruptive }
         val total = arousal.sumOf { it.weight.toDouble() }
@@ -121,12 +144,18 @@ object SleepScore {
         // Then each disruption takes its share away: a factor at calm 0 removes [SleepFactor.weight] of the score.
         var kept = 1.0
         for (p in parts) if (p.factor.disruptive) kept *= 1.0 - (p.weight * (1f - p.calm)).coerceIn(0f, 1f)
-        var base = (raw * kept * 100).roundToInt()
+        // A figure the song doesn't have (no tagger: no vocals, instruments or mood; no beat: no tempo) counts as neutral,
+        // not as calm: what's unknown mustn't raise a score. [SleepFactor.weight] weighs what a song with every figure has.
+        val full = SleepFactor.entries.sumOf { weights.of(it, f).toDouble() }
+        // Figures the song has: a tag factor counts only if the tagger had any evidence at all (a tagger that heard nothing
+        // leaves the score as the untagged one, not "complete but neutral").
+        val present = factorsKnown.sumOf { weights.of(it, f).toDouble() }
+        val completeness = if (full > 0) (present / full).toFloat().coerceIn(0f, 1f) else 0f
+        var base = (50.0 + (raw * kept * 100 - 50.0) * completeness).roundToInt()
         val capped = f.worstRise >= CAP_RISE && f.suddenPerMinute > 0f && base > CAP
         if (capped) base = CAP
         val shift = personal?.shift(parts) ?: 0
         val voteShift = vote.coerceIn(-1, 1) * VOTE_SHIFT
-        val full = SleepFactor.entries.sumOf { weights.of(it).toDouble() }
         return SleepResult(
             score = (base + shift + voteShift).coerceIn(0, 100),
             base = base,
@@ -134,11 +163,20 @@ object SleepScore {
             capped = capped,
             personal = shift,
             vote = voteShift,
-            completeness = if (full > 0) (parts.sumOf { weights.of(it.factor).toDouble() } / full).toFloat().coerceAtMost(1f) else 0f,
+            completeness = completeness,
         )
     }
 
-    private data class Raw(val factor: SleepFactor, val calm: Float, val applies: Float, val detail: String)
+    private data class Raw(
+        val factor: SleepFactor,
+        val calm: Float,
+        val applies: Float,
+        val detail: String,
+        /** How sure the evidence behind [calm] is (1 for the scan's own figures; the tagger's and segments' vary). */
+        val confidence: Float = 1f,
+        /** Whether it's a figure at all: a tag factor the tagger heard nothing for isn't (it mustn't make a song "known"). */
+        val available: Boolean = true,
+    )
 
     /** 1 at or under [good], 0 at or over [bad], eased between. */
     internal fun down(x: Float, good: Float, bad: Float): Float {
@@ -194,7 +232,8 @@ object SleepScore {
             out += Raw(SleepFactor.BRIGHTNESS, down(f.centroidHz, 500f, 1200f), 1f, "${f0(f.centroidHz)} Hz")
         }
         out += Raw(SleepFactor.DENSITY, down(f.onsetRate, 1.5f, 5f), 1f, "${f1(f.onsetRate)}/s")
-        consistency(f)?.let { (calm, detail) -> out += Raw(SleepFactor.CONSISTENCY, calm, 1f, detail) }
+        // A song of three segments says less about how even it is than one of twenty.
+        consistency(f)?.let { (calm, detail) -> out += Raw(SleepFactor.CONSISTENCY, calm, 1f, detail, (f.segLoud.size / 6f).coerceIn(0f, 1f)) }
         if (scores != null) tagged(scores, out)
         return out
     }
@@ -226,21 +265,38 @@ object SleepScore {
     }
 
     private fun tagged(scores: FloatArray, out: MutableList<Raw>) {
+        // How much the tagger heard at all: a song it could say nothing about (very quiet, or a sound it doesn't know)
+        // mustn't be read as "no voice, so instrumental" — its tag factors count for as little as its evidence.
+        val heard = scores.maxOrNull() ?: 0f
+        val gate = (heard / 0.08f).coerceIn(0f, 1f)
+        // Below a noise floor the tagger said nothing about the song at all: its tag factors are neither evidence nor figures.
+        val heardSomething = heard >= 0.02f
         // Vocals: speech and rap more than singing; humming and a choir hardly at all.
         val singing = score(scores, "vocals:singing")
         val speech = max(score(scores, "vocals:speech"), score(scores, "vocals:rap"))
         val voice = max(0.7f * singing, speech)
-        out += Raw(SleepFactor.VOCALS, 1f - min(1f, voice / 0.6f), 1f, "${f0(voice * 100)}%")
+        // Sure either way: a clear voice, or clearly none. Between them (a word here and there) it says little for sleep,
+        // where 0.6 of voice is already as vocal as it gets.
+        val voiceShare = min(1f, voice / 0.6f)
+        val voiceSure = kotlin.math.abs(2f * voiceShare - 1f)
+        out += Raw(SleepFactor.VOCALS, 1f - min(1f, voice / 0.6f), 1f, "${f0(voice * 100)}%", voiceSure * gate, heardSomething)
         // Soft instruments and sounds against hard ones.
         val soft = listOf("instrument:piano", "instrument:strings", "instrument:harp", "instrument:acoustic-guitar", "instrument:bells",
             "instrument:woodwind", "style-kind:meditative", "sounds:rain", "sounds:water", "sounds:wind", "sounds:noise").maxOf { score(scores, it) }
         val hard = listOf("instrument:drums", "instrument:drum-machine", "instrument:electric-guitar", "instrument:brass", "style:heavy-metal",
             "style:punk", "style:dubstep", "style:drum-and-bass", "style:techno").maxOf { score(scores, it) }
-        out += Raw(SleepFactor.INSTRUMENTS, (0.5f + (soft - hard) / 0.8f).coerceIn(0f, 1f), 1f, "+${f0(soft * 100)}% / −${f0(hard * 100)}%")
+        out += Raw(
+            SleepFactor.INSTRUMENTS, (0.5f + (soft - hard) / 0.8f).coerceIn(0f, 1f), 1f,
+            "+${f0(soft * 100)}% / −${f0(hard * 100)}%", (max(soft, hard) / 0.35f).coerceIn(0f, 1f) * gate, heardSomething,
+        )
         // Mood: tender, sad and lullabies calm; exciting, angry and scary don't.
         val calmMood = max(max(score(scores, "mood:tender"), 0.7f * score(scores, "mood:sad")), score(scores, "style-kind:lullaby"))
         val rousing = maxOf(score(scores, "mood:exciting"), score(scores, "mood:angry"), score(scores, "mood:scary"), 0.6f * score(scores, "mood:happy"))
-        out += Raw(SleepFactor.MOOD, (0.5f + (calmMood - rousing) / 0.4f).coerceIn(0f, 1f), 1f, "+${f0(calmMood * 100)}% / −${f0(rousing * 100)}%")
+        out += Raw(
+            SleepFactor.MOOD, (0.5f + (calmMood - rousing) / 0.4f).coerceIn(0f, 1f), 1f,
+            "+${f0(calmMood * 100)}% / −${f0(rousing * 100)}%", (max(calmMood, rousing) / 0.25f).coerceIn(0f, 1f) * gate,
+            heardSomething,
+        )
     }
 }
 

@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">Hozzáadva a címkéidhez</string>
     <string name="analysis_provenance">Elemezve: %1$s · leírók v%2$d · %3$s</string>
     <string name="analysis_no_tagger">nincs címkéző</string>
-    <string name="analysis_partial">Címkézés nélkül az ének, a hangszerek és a hangulat nem számít.</string>
+    <string name="analysis_partial">Címkézés nélkül az ének, a hangszerek és a hangulat semlegesnek számít.</string>
     <string name="analysis_group">Hangelemzés</string>
     <string name="analysis_group_info">A Prism meghallgatja a dalaidat a telefonon, hogy kiszámolja az alvási pontszámot, a címkéket és hogy mely dalok szólnak hasonlóan. Semmi sem hagyja el a telefont.</string>
     <string name="analysis_background">Dalok elemzése a háttérben</string>

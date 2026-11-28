@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">به برچسب‌هایتان اضافه شد</string>
     <string name="analysis_provenance">تحلیل‌شده در %1$s · توصیفگرها v%2$d · %3$s</string>
     <string name="analysis_no_tagger">بدون مدل برچسب</string>
-    <string name="analysis_partial">بدون برچسب‌گذاری، آواز، سازها و حال‌وهوا حساب نمی‌شوند.</string>
+    <string name="analysis_partial">بدون برچسب، آواز، سازها و حال‌وهوا خنثی حساب می‌شوند.</string>
     <string name="analysis_group">تحلیل صدا</string>
     <string name="analysis_group_info">Prism به آهنگ‌های روی گوشی گوش می‌دهد تا امتیاز خواب، برچسب‌ها و آهنگ‌های هم‌صدا را پیدا کند. هیچ چیز از گوشی بیرون نمی‌رود.</string>
     <string name="analysis_background">تحلیل آهنگ‌ها در پس‌زمینه</string>

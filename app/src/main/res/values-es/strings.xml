@@ -5910,7 +5910,7 @@
     <string name="analysis_added_to_tags">Añadida a tus etiquetas</string>
     <string name="analysis_provenance">Analizada el %1$s · descriptores v%2$d · %3$s</string>
     <string name="analysis_no_tagger">sin etiquetador</string>
-    <string name="analysis_partial">Sin etiquetado, la voz, los instrumentos y el estado de ánimo no cuentan.</string>
+    <string name="analysis_partial">Sin etiquetado, la voz, los instrumentos y el estado de ánimo cuentan como neutros.</string>
     <string name="analysis_group">Análisis de sonido</string>
     <string name="analysis_group_info">Prism escucha tus canciones en el teléfono para calcular una puntuación de sueño, etiquetas y qué canciones suenan parecido. Nada sale del teléfono.</string>
     <string name="analysis_background">Analizar canciones en segundo plano</string>

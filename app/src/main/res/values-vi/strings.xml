@@ -5760,7 +5760,7 @@
     <string name="analysis_added_to_tags">Đã thêm vào thẻ của bạn</string>
     <string name="analysis_provenance">Phân tích ngày %1$s · bộ mô tả v%2$d · %3$s</string>
     <string name="analysis_no_tagger">không có mô hình gắn thẻ</string>
-    <string name="analysis_partial">Không gắn thẻ thì giọng hát, nhạc cụ và tâm trạng không được tính.</string>
+    <string name="analysis_partial">Không có thẻ thì giọng hát, nhạc cụ và tâm trạng được tính là trung tính.</string>
     <string name="analysis_group">Phân tích âm thanh</string>
     <string name="analysis_group_info">Prism nghe các bài trên điện thoại để tính điểm ngủ, gắn thẻ và tìm bài nghe giống nhau. Không có gì rời khỏi điện thoại.</string>
     <string name="analysis_background">Phân tích bài hát trong nền</string>

@@ -5760,7 +5760,7 @@
     <string name="analysis_added_to_tags">已添加到你的标签</string>
     <string name="analysis_provenance">分析于 %1$s · 描述符 v%2$d · %3$s</string>
     <string name="analysis_no_tagger">无标签模型</string>
-    <string name="analysis_partial">没有标签时，不计入人声、乐器和情绪。</string>
+    <string name="analysis_partial">没有标签时，人声、乐器和情绪按中性计算。</string>
     <string name="analysis_group">声音分析</string>
     <string name="analysis_group_info">Prism 在手机上聆听你的歌曲，算出睡眠评分、标签以及哪些歌听起来相似。任何内容都不会离开手机。</string>
     <string name="analysis_background">在后台分析歌曲</string>

@@ -5835,7 +5835,7 @@
     <string name="analysis_added_to_tags">Naidagdag sa mga tag mo</string>
     <string name="analysis_provenance">Nasuri noong %1$s · mga descriptor v%2$d · %3$s</string>
     <string name="analysis_no_tagger">walang tagger</string>
-    <string name="analysis_partial">Kung walang pag-tag, hindi binibilang ang boses, instrumento at mood.</string>
+    <string name="analysis_partial">Kung walang tag, itinuturing na neutral ang boses, instrumento at mood.</string>
     <string name="analysis_group">Pagsusuri ng tunog</string>
     <string name="analysis_group_info">Pinakikinggan ng Prism ang mga kanta mo sa phone para kalkulahin ang sleep score, mga tag at kung aling mga kanta ang magkatunog. Walang lumalabas sa phone.</string>
     <string name="analysis_background">Suriin ang mga kanta sa background</string>

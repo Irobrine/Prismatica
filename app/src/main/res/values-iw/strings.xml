@@ -5910,7 +5910,7 @@
     <string name="analysis_added_to_tags">נוסף לתגים שלך</string>
     <string name="analysis_provenance">נותח ב-%1$s · מתארים v%2$d · %3$s</string>
     <string name="analysis_no_tagger">ללא מתייג</string>
-    <string name="analysis_partial">בלי תיוג, שירה, כלים ומצב רוח לא נספרים.</string>
+    <string name="analysis_partial">בלי תיוג, שירה, כלים ומצב רוח נחשבים ניטרליים.</string>
     <string name="analysis_group">ניתוח צליל</string>
     <string name="analysis_group_info">Prism מקשיב לשירים שבטלפון כדי לחשב ציון שינה, תגים ואילו שירים נשמעים דומים. שום דבר לא יוצא מהטלפון.</string>
     <string name="analysis_background">לנתח שירים ברקע</string>
