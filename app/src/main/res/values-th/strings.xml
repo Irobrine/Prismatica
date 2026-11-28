@@ -5792,4 +5792,6 @@
     <string name="analysis_export_failed">ส่งออกคะแนนไม่ได้</string>
     <string name="analysis_preview">ฟังตัวอย่าง</string>
     <string name="analysis_skim">ฟังคร่าว ๆ</string>
+    <string name="analysis_score_high">สูง</string>
+    <string name="analysis_score_low">ต่ำ</string>
 </resources>

@@ -5867,4 +5867,6 @@
     <string name="analysis_export_failed">امتیازها برون‌بری نشدند.</string>
     <string name="analysis_preview">شنیدن</string>
     <string name="analysis_skim">مرور سریع</string>
+    <string name="analysis_score_high">بالا</string>
+    <string name="analysis_score_low">پایین</string>
 </resources>

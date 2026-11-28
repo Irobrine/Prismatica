@@ -5942,4 +5942,6 @@
     <string name="analysis_export_failed">Não foi possível exportar as notas.</string>
     <string name="analysis_preview">Ouvir</string>
     <string name="analysis_skim">Prévia</string>
+    <string name="analysis_score_high">Alto</string>
+    <string name="analysis_score_low">Baixo</string>
 </resources>

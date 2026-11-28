@@ -783,6 +783,8 @@ class AppContainer(val app: Application) {
             unskipAll = { mixTempo.unskipAll() },
         )
     }
+    /** Scores the listener marked too high or too low while tuning (debug only: an export column, nothing else). */
+    val scoreMarks by lazy { com.prism.music.data.SleepScoreMarks(app) }
     /** The listener's Prism Account: a name and picture kept on this phone ([com.prism.music.data.PrismAccount]). */
     val account by lazy { com.prism.music.data.PrismAccount(this) }
 

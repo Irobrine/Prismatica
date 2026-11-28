@@ -5792,4 +5792,6 @@
     <string name="analysis_export_failed">スコアを書き出せませんでした。</string>
     <string name="analysis_preview">試聴</string>
     <string name="analysis_skim">かいつまむ</string>
+    <string name="analysis_score_high">高い</string>
+    <string name="analysis_score_low">低い</string>
 </resources>

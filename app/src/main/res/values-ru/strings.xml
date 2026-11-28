@@ -6017,4 +6017,6 @@
     <string name="analysis_export_failed">Не удалось экспортировать оценки.</string>
     <string name="analysis_preview">Прослушать</string>
     <string name="analysis_skim">Пролистать</string>
+    <string name="analysis_score_high">Высокая</string>
+    <string name="analysis_score_low">Низкая</string>
 </resources>

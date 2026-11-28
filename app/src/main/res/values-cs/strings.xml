@@ -6017,4 +6017,6 @@
     <string name="analysis_export_failed">Skóre se nepodařilo exportovat.</string>
     <string name="analysis_preview">Poslechnout</string>
     <string name="analysis_skim">Procházet</string>
+    <string name="analysis_score_high">Vysoké</string>
+    <string name="analysis_score_low">Nízké</string>
 </resources>

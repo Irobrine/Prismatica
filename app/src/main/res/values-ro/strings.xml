@@ -5942,4 +5942,6 @@
     <string name="analysis_export_failed">Scorurile nu au putut fi exportate.</string>
     <string name="analysis_preview">Ascultă</string>
     <string name="analysis_skim">Răsfoiește</string>
+    <string name="analysis_score_high">Mare</string>
+    <string name="analysis_score_low">Mic</string>
 </resources>

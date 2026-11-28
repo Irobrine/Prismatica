@@ -5867,4 +5867,6 @@
     <string name="analysis_export_failed">Puanlar dışa aktarılamadı.</string>
     <string name="analysis_preview">Dinle</string>
     <string name="analysis_skim">Göz at</string>
+    <string name="analysis_score_high">Yüksek</string>
+    <string name="analysis_score_low">Düşük</string>
 </resources>

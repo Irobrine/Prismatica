@@ -5867,4 +5867,6 @@
     <string name="analysis_export_failed">اسکور برآمد نہیں ہو سکے۔</string>
     <string name="analysis_preview">سنیں</string>
     <string name="analysis_skim">جھلک دیکھیں</string>
+    <string name="analysis_score_high">زیادہ</string>
+    <string name="analysis_score_low">کم</string>
 </resources>

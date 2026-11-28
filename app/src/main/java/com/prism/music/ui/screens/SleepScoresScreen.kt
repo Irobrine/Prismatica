@@ -3,6 +3,7 @@ package com.prism.music.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.prism.music.R
 import com.prism.music.analysis.SleepResult
 import com.prism.music.data.model.Song
+import com.prism.music.data.ScoreMark
 import com.prism.music.data.songsByIds
 import com.prism.music.tr
 import com.prism.music.ui.components.Artwork
@@ -66,6 +68,8 @@ fun SleepScoresScreen(bottomPadding: Dp) {
     val scope = rememberCoroutineScope()
     // A preview of its own: the queue isn't touched, the main player steps aside while it plays.
     val preview = rememberSongPreview()
+    // The listener's own verdict while tuning: "High"/"Low" per row, exported with the scores, never used by them.
+    val marks by c.scoreMarks.marks.collectAsState()
     val changes by c.analysis.changes.collectAsState()
     var shown by remember { mutableStateOf<Song?>(null) }
     // Every analysed song as CSV, for tuning the score on a real library: scores, each factor and its weight, and the
@@ -110,20 +114,30 @@ fun SleepScoresScreen(bottomPadding: Dp) {
                 )
             }
             items(rows, key = { it.song.id }) { r ->
-                ScoredRow(r, onPreview = { preview.open(r.song) }, onClick = { shown = r.song })
+                ScoredRow(
+                    r, onPreview = { preview.open(r.song) }, onClick = { shown = r.song },
+                    mark = marks[r.song.id], onMark = { c.scoreMarks.toggle(r.song.id, it) },
+                )
             }
         }
         // The preview sits over the list's end: score and sound side by side, its own controls under it.
         if (preview.song != null) SongPreviewBar(
             preview, score = rows.firstOrNull { it.song.id == preview.song?.id }?.score,
-            modifier = Modifier.align(Alignment.BottomCenter),
+            // Above the dock, the navigation bar and the mini player the page already leaves room for.
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomPadding),
         )
     }
     shown?.let { song -> SoundProfileSheet(song) { shown = null } }
 }
 
 @Composable
-private fun ScoredRow(r: Scored, onPreview: () -> Unit, onClick: () -> Unit) {
+private fun ScoredRow(
+    r: Scored,
+    onPreview: () -> Unit,
+    onClick: () -> Unit,
+    mark: ScoreMark? = null,
+    onMark: (ScoreMark) -> Unit = {},
+) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -143,6 +157,11 @@ private fun ScoredRow(r: Scored, onPreview: () -> Unit, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
+            // Tuning aids: say the score is wrong in one direction. They only reach the export.
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                MarkPill(tr(R.string.analysis_score_high), mark == ScoreMark.HIGH) { onMark(ScoreMark.HIGH) }
+                MarkPill(tr(R.string.analysis_score_low), mark == ScoreMark.LOW) { onMark(ScoreMark.LOW) }
+            }
         }
         // Hear it without leaving the list: the queue is untouched, and a tap on the row still opens the score's reasons.
         IconButton(onPreview) {
@@ -155,6 +174,19 @@ private fun ScoredRow(r: Scored, onPreview: () -> Unit, onClick: () -> Unit) {
             Spacer(Modifier.size(4.dp))
             ScoreBar(r.score)
         }
+    }
+}
+
+/** A small pill for a tuning mark ("High" / "Low"), filled when it's the one set. Debug only: it reaches the export. */
+@Composable
+private fun MarkPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    val fg = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+    Box(
+        Modifier.clip(RoundedCornerShape(50)).background(bg).clickable(onClick = onClick).padding(horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = fg, modifier = Modifier.padding(vertical = 2.dp), maxLines = 1)
     }
 }
 

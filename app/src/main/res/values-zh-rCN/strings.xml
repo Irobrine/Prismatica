@@ -5792,4 +5792,6 @@
     <string name="analysis_export_failed">无法导出评分。</string>
     <string name="analysis_preview">试听</string>
     <string name="analysis_skim">快速浏览</string>
+    <string name="analysis_score_high">高</string>
+    <string name="analysis_score_low">低</string>
 </resources>

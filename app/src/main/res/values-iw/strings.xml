@@ -5942,4 +5942,6 @@
     <string name="analysis_export_failed">לא ניתן היה לייצא את הציונים.</string>
     <string name="analysis_preview">האזנה</string>
     <string name="analysis_skim">דפדוף מהיר</string>
+    <string name="analysis_score_high">גבוה</string>
+    <string name="analysis_score_low">נמוך</string>
 </resources>

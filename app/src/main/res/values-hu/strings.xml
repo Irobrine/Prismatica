@@ -5867,4 +5867,6 @@
     <string name="analysis_export_failed">Nem sikerült exportálni a pontszámokat.</string>
     <string name="analysis_preview">Meghallgatás</string>
     <string name="analysis_skim">Átpörgetés</string>
+    <string name="analysis_score_high">Magas</string>
+    <string name="analysis_score_low">Alacsony</string>
 </resources>

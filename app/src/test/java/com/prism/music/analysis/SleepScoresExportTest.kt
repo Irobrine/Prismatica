@@ -36,6 +36,8 @@ class SleepScoresExportTest {
         val song = Song("${Song.LOCAL_PREFIX}9100", "Title, with comma", artists = listOf(ArtistRef("Its artist")))
         c.db.songs().upsertAll(listOf(song.toEntity()))
         c.analysis.record(song.id, null, calm, emptyList())
+        // The listener's tuning mark: a column and a flag, nothing else.
+        c.scoreMarks.mark(song.id, com.prism.music.data.ScoreMark.HIGH)
         val lines = SleepScoresExport.csv(c).trim().lines()
         assertEquals(SleepScoresExport.HEADER, lines[0])
         assertEquals(2, lines.size)
@@ -47,6 +49,15 @@ class SleepScoresExportTest {
         assertTrue(lines[1], lines[1].contains("BRIGHTNESS 0."))
         // The figures behind them too, so a wrong score can be traced.
         assertTrue(lines[1], lines[1].contains("-20.0"))
+        assertTrue(SleepScoresExport.HEADER.endsWith("scoreMark"))
+        assertTrue(lines[1], lines[1].endsWith(",high"))
+        assertTrue(lines[1], lines[1].contains("marked-high;"))
+    }
+
+    @Test fun theMarksFlagIsEmptyWhenThereIsNoMark() {
+        assertEquals("", SleepScoresExport.markFlag(null))
+        assertEquals("marked-high;", SleepScoresExport.markFlag(com.prism.music.data.ScoreMark.HIGH))
+        assertEquals("marked-low;", SleepScoresExport.markFlag(com.prism.music.data.ScoreMark.LOW))
     }
 
     @Test fun flagsFindAnEnergeticSoundScoringCalm() {

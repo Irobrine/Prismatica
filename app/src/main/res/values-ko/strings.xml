@@ -5792,4 +5792,6 @@
     <string name="analysis_export_failed">점수를 내보낼 수 없습니다.</string>
     <string name="analysis_preview">미리 듣기</string>
     <string name="analysis_skim">훑어 듣기</string>
+    <string name="analysis_score_high">높음</string>
+    <string name="analysis_score_low">낮음</string>
 </resources>

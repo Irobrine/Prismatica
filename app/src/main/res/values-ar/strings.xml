@@ -6167,4 +6167,6 @@
     <string name="analysis_export_failed">تعذّر تصدير الدرجات.</string>
     <string name="analysis_preview">استمع</string>
     <string name="analysis_skim">تصفّح</string>
+    <string name="analysis_score_high">مرتفعة</string>
+    <string name="analysis_score_low">منخفضة</string>
 </resources>

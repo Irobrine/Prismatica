@@ -14,7 +14,7 @@ import com.prism.music.data.songsByIds
 object SleepScoresExport {
     const val HEADER = "id,title,artist,score,base,completeness,capped,vote,lufs,lra,peak,truePeak,bpm,pulse,steady,onsets," +
         "percussive,dance,flatness,brightShare,centroid,rolloff,lowRatio,sudden,worstRise,lraSegments,key,catalogGenre,audioGenre," +
-        "tags,flags,factors"
+        "tags,flags,factors,scoreMark"
 
     /**
      * The CSV. [analysis] is read as it is (the listener's weights, votes and feedback included), names from the songs
@@ -38,6 +38,8 @@ object SleepScoresExport {
             val tagRows = runCatching { c.db.analysis().tags(e.id) }.getOrDefault(emptyList())
                 .filter { it.status != TagStatus.REJECTED.ordinal }
             val tags = tagRows.sortedByDescending { it.confidence }.joinToString(";") { "${it.tag}:${"%.2f".format(it.confidence)}" }
+            // The listener's own note in the margin while tuning: never used by the score.
+            val mark = c.scoreMarks.of(e.id)
             val audioGenre = tagRows
                 .filter { it.category == TagCategory.GENRE.name && it.status != TagStatus.REVIEW.ordinal }
                 .maxByOrNull { it.confidence }?.tag?.removePrefix("genre:")
@@ -52,8 +54,8 @@ object SleepScoresExport {
                 "%.0f".format(f.centroidHz), "%.0f".format(f.rolloffHz), "%.3f".format(f.lowRatio),
                 "%.1f".format(f.suddenPerMinute), "%.0f".format(f.worstRise), f.segLoud.size.toString(),
                 e.key?.let { "${it.name} (${it.camelot})" } ?: "", catalogGenre ?: "", audioGenre ?: "",
-                tags, genreFlag(catalogGenre, audioGenre) + flags(r, f),
-                r.parts.filter { it.weight > 0f }.joinToString(";") { factor(it) },
+                tags, genreFlag(catalogGenre, audioGenre) + markFlag(mark) + flags(r, f),
+                r.parts.filter { it.weight > 0f }.joinToString(";") { factor(it) }, mark?.name?.lowercase().orEmpty(),
             )
             out.append(cells.joinToString(",") { quote(it) }).append('\n')
         }
@@ -88,6 +90,13 @@ object SleepScoresExport {
      */
     fun genreFlag(catalog: String?, audio: String?): String =
         if (catalog != null && audio != null && !catalog.equals(audio, ignoreCase = true)) "genre-mismatch;" else ""
+
+    /** "marked-high;" / "marked-low;": the listener said this score is wrong that way (a flag, not a score input). */
+    fun markFlag(mark: com.prism.music.data.ScoreMark?): String = when (mark) {
+        com.prism.music.data.ScoreMark.HIGH -> "marked-high;"
+        com.prism.music.data.ScoreMark.LOW -> "marked-low;"
+        null -> ""
+    }
 
     /** A CSV cell: quoted when it holds a comma, a quote or a newline. */
     internal fun quote(v: String?): String {

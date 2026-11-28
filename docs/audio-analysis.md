@@ -185,6 +185,9 @@ a download, the stream cache or the stream, resolved as a play) at the level Nor
 listener's music and picking it up again when the bar closes — the queue is untouched. The bar has play/pause, a slider
 over the whole song and **Skim**, which plays eight seconds at four points across it (near the start, a third, two
 thirds and near the end), so a score can be checked against what the song does without hearing all of it.
+Each row also has **High** / **Low** marks (the score is too high / too low), for tuning only: they change nothing about the score, the timer or
+radio — they are a `scoreMark` column and a `marked-high`/`marked-low` flag in the export, so a batch of wrong scores can be
+collected and shared. (The listener's votes, by contrast, do move scores.)
 Sleep scores' "Export sleep scores" writes the whole analysed library as CSV (score, base, completeness,
 every factor's calmness and weight, the figures behind them, tags, the catalog's genre beside the audio's (with a
 `genre-mismatch` flag — a metal track filed as classical stays out of the score, but is worth seeing), and flags for

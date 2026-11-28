@@ -5942,4 +5942,6 @@
     <string name="analysis_export_failed">Impossibile esportare i punteggi.</string>
     <string name="analysis_preview">Ascolta</string>
     <string name="analysis_skim">Scorri in anteprima</string>
+    <string name="analysis_score_high">Alto</string>
+    <string name="analysis_score_low">Basso</string>
 </resources>

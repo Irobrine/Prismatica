@@ -5867,4 +5867,6 @@
     <string name="analysis_export_failed">Hindi ma-export ang mga score.</string>
     <string name="analysis_preview">Pakinggan</string>
     <string name="analysis_skim">Silipin</string>
+    <string name="analysis_score_high">Mataas</string>
+    <string name="analysis_score_low">Mababa</string>
 </resources>
