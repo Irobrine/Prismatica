@@ -5790,4 +5790,6 @@
     <string name="sleep_factor_harshness">Kekasaran suara</string>
     <string name="analysis_export">Ekspor skor tidur</string>
     <string name="analysis_export_failed">Skor tidak bisa diekspor.</string>
+    <string name="analysis_preview">Dengarkan</string>
+    <string name="analysis_skim">Sekilas dengar</string>
 </resources>

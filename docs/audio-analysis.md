@@ -180,7 +180,12 @@ being quiet: every instrumental track got a made-up 99 %, so it filled the revie
 model had measured. It is no longer a tag (rows written then are taken back as the analysis loads); the voice evidence
 still feeds the sleep score's vocals factor. The score and the tags are shown in three places: a song's Sound profile,
 Settings → Sound analysis → Sleep scores (the library, calmest first), and Stats for nerds (the playing song's score,
-read live). Sleep scores' "Export sleep scores" writes the whole analysed library as CSV (score, base, completeness,
+read live). Each row of Sleep scores has a **preview** button: it plays the song from the app's own data source (a file,
+a download, the stream cache or the stream, resolved as a play) at the level Normalize would give it, pausing the
+listener's music and picking it up again when the bar closes — the queue is untouched. The bar has play/pause, a slider
+over the whole song and **Skim**, which plays eight seconds at four points across it (near the start, a third, two
+thirds and near the end), so a score can be checked against what the song does without hearing all of it.
+Sleep scores' "Export sleep scores" writes the whole analysed library as CSV (score, base, completeness,
 every factor's calmness and weight, the figures behind them, tags, the catalog's genre beside the audio's (with a
 `genre-mismatch` flag — a metal track filed as classical stays out of the score, but is worth seeing), and flags for
 sounds that look energetic but score calm), handed to the share sheet — the data for tuning the weights on a real

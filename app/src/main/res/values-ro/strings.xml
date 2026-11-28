@@ -5940,4 +5940,6 @@
     <string name="sleep_factor_harshness">Asprime</string>
     <string name="analysis_export">Exportă scorurile de somn</string>
     <string name="analysis_export_failed">Scorurile nu au putut fi exportate.</string>
+    <string name="analysis_preview">Ascultă</string>
+    <string name="analysis_skim">Răsfoiește</string>
 </resources>

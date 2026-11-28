@@ -5940,4 +5940,6 @@
     <string name="sleep_factor_harshness">Aspereza</string>
     <string name="analysis_export">Exportar puntuaciones de sueño</string>
     <string name="analysis_export_failed">No se pudieron exportar las puntuaciones.</string>
+    <string name="analysis_preview">Escuchar</string>
+    <string name="analysis_skim">Muestrear</string>
 </resources>

@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">Pagkasagatal ng tunog</string>
     <string name="analysis_export">I-export ang mga sleep score</string>
     <string name="analysis_export_failed">Hindi ma-export ang mga score.</string>
+    <string name="analysis_preview">Pakinggan</string>
+    <string name="analysis_skim">Silipin</string>
 </resources>

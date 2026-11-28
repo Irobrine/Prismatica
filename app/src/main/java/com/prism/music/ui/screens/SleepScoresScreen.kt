@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -61,6 +64,8 @@ fun SleepScoresScreen(bottomPadding: Dp) {
     val c = LocalContainer.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // A preview of its own: the queue isn't touched, the main player steps aside while it plays.
+    val preview = rememberSongPreview()
     val changes by c.analysis.changes.collectAsState()
     var shown by remember { mutableStateOf<Song?>(null) }
     // Every analysed song as CSV, for tuning the score on a real library: scores, each factor and its weight, and the
@@ -91,23 +96,34 @@ fun SleepScoresScreen(bottomPadding: Dp) {
             }.sortedWith(compareByDescending<Scored> { it.score }.thenBy { it.song.title.lowercase() })
         }
     }
-    SubPage(
-        tr(R.string.sleep_scores), bottomPadding, subtitle = tr(R.string.sleep_scores_info),
-        actions = { PrismTextButton(onClick = { export() }) { Text(tr(R.string.analysis_export)) } },
-    ) {
-        if (rows.isEmpty()) item("none") {
-            Text(
-                tr(R.string.sleep_scores_none), style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
+    Box(Modifier.fillMaxSize()) {
+        SubPage(
+            // Room under the list for the preview bar, so the last row can still be reached while it's up.
+            tr(R.string.sleep_scores), bottomPadding + if (preview.song != null) 150.dp else 0.dp,
+            subtitle = tr(R.string.sleep_scores_info),
+            actions = { PrismTextButton(onClick = { export() }) { Text(tr(R.string.analysis_export)) } },
+        ) {
+            if (rows.isEmpty()) item("none") {
+                Text(
+                    tr(R.string.sleep_scores_none), style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
+            }
+            items(rows, key = { it.song.id }) { r ->
+                ScoredRow(r, onPreview = { preview.open(r.song) }, onClick = { shown = r.song })
+            }
         }
-        items(rows, key = { it.song.id }) { r -> ScoredRow(r) { shown = r.song } }
+        // The preview sits over the list's end: score and sound side by side, its own controls under it.
+        if (preview.song != null) SongPreviewBar(
+            preview, score = rows.firstOrNull { it.song.id == preview.song?.id }?.score,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
     shown?.let { song -> SoundProfileSheet(song) { shown = null } }
 }
 
 @Composable
-private fun ScoredRow(r: Scored, onClick: () -> Unit) {
+private fun ScoredRow(r: Scored, onPreview: () -> Unit, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -128,7 +144,11 @@ private fun ScoredRow(r: Scored, onClick: () -> Unit) {
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }
-        Spacer(Modifier.width(10.dp))
+        // Hear it without leaving the list: the queue is untouched, and a tap on the row still opens the score's reasons.
+        IconButton(onPreview) {
+            Icon(PrismIcons.Play, tr(R.string.analysis_preview), Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(4.dp))
         // The score, with the same bar the Sound profile draws.
         Column(horizontalAlignment = Alignment.End) {
             Text("${r.score}", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)

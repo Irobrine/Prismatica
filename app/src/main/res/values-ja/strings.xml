@@ -5790,4 +5790,6 @@
     <string name="sleep_factor_harshness">音のざらつき</string>
     <string name="analysis_export">睡眠スコアを書き出す</string>
     <string name="analysis_export_failed">スコアを書き出せませんでした。</string>
+    <string name="analysis_preview">試聴</string>
+    <string name="analysis_skim">かいつまむ</string>
 </resources>

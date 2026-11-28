@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">Pürüzlülük</string>
     <string name="analysis_export">Uyku puanlarını dışa aktar</string>
     <string name="analysis_export_failed">Puanlar dışa aktarılamadı.</string>
+    <string name="analysis_preview">Dinle</string>
+    <string name="analysis_skim">Göz at</string>
 </resources>

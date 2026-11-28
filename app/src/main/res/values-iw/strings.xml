@@ -5940,4 +5940,6 @@
     <string name="sleep_factor_harshness">חספוס</string>
     <string name="analysis_export">ייצוא ציוני שינה</string>
     <string name="analysis_export_failed">לא ניתן היה לייצא את הציונים.</string>
+    <string name="analysis_preview">האזנה</string>
+    <string name="analysis_skim">דפדוף מהיר</string>
 </resources>

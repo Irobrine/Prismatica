@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">Ruwheid</string>
     <string name="analysis_export">Slaapscores exporteren</string>
     <string name="analysis_export_failed">Kon de scores niet exporteren.</string>
+    <string name="analysis_preview">Beluisteren</string>
+    <string name="analysis_skim">Doorbladeren</string>
 </resources>

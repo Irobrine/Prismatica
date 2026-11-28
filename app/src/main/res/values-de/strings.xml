@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">Rauheit</string>
     <string name="analysis_export">Schlafwerte exportieren</string>
     <string name="analysis_export_failed">Die Werte konnten nicht exportiert werden.</string>
+    <string name="analysis_preview">Anhören</string>
+    <string name="analysis_skim">Durchhören</string>
 </resources>

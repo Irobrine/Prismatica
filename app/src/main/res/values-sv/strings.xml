@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">Råhet</string>
     <string name="analysis_export">Exportera sömnpoäng</string>
     <string name="analysis_export_failed">Kunde inte exportera poängen.</string>
+    <string name="analysis_preview">Lyssna</string>
+    <string name="analysis_skim">Skumma</string>
 </resources>

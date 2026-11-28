@@ -5790,4 +5790,6 @@
     <string name="sleep_factor_harshness">聲音的粗糙度</string>
     <string name="analysis_export">匯出睡眠分數</string>
     <string name="analysis_export_failed">無法匯出分數。</string>
+    <string name="analysis_preview">試聽</string>
+    <string name="analysis_skim">快速瀏覽</string>
 </resources>

@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">आवाज़ की कर्कशता</string>
     <string name="analysis_export">नींद स्कोर निर्यात करें</string>
     <string name="analysis_export_failed">स्कोर निर्यात नहीं हो सके।</string>
+    <string name="analysis_preview">सुनें</string>
+    <string name="analysis_skim">झलक देखें</string>
 </resources>

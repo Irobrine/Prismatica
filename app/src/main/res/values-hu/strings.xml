@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">Érdes hangzás</string>
     <string name="analysis_export">Alvási pontszámok exportálása</string>
     <string name="analysis_export_failed">Nem sikerült exportálni a pontszámokat.</string>
+    <string name="analysis_preview">Meghallgatás</string>
+    <string name="analysis_skim">Átpörgetés</string>
 </resources>

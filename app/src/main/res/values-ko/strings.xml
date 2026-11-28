@@ -5790,4 +5790,6 @@
     <string name="sleep_factor_harshness">소리의 거친 정도</string>
     <string name="analysis_export">수면 점수 내보내기</string>
     <string name="analysis_export_failed">점수를 내보낼 수 없습니다.</string>
+    <string name="analysis_preview">미리 듣기</string>
+    <string name="analysis_skim">훑어 듣기</string>
 </resources>

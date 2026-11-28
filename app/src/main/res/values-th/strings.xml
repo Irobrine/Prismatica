@@ -5790,4 +5790,6 @@
     <string name="sleep_factor_harshness">ความหยาบของเสียง</string>
     <string name="analysis_export">ส่งออกคะแนนการนอน</string>
     <string name="analysis_export_failed">ส่งออกคะแนนไม่ได้</string>
+    <string name="analysis_preview">ฟังตัวอย่าง</string>
+    <string name="analysis_skim">ฟังคร่าว ๆ</string>
 </resources>

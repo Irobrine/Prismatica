@@ -5910,4 +5910,6 @@
     <string name="sleep_factor_harshness">Harshness</string>
     <string name="analysis_export">Export sleep scores</string>
     <string name="analysis_export_failed">Couldn\'t export the scores.</string>
+    <string name="analysis_preview">Preview</string>
+    <string name="analysis_skim">Skim</string>
 </resources>

@@ -5790,4 +5790,6 @@
     <string name="sleep_factor_harshness">Độ chói gắt</string>
     <string name="analysis_export">Xuất điểm ngủ</string>
     <string name="analysis_export_failed">Không thể xuất điểm.</string>
+    <string name="analysis_preview">Nghe thử</string>
+    <string name="analysis_skim">Nghe lướt</string>
 </resources>

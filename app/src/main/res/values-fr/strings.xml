@@ -5940,4 +5940,6 @@
     <string name="sleep_factor_harshness">Âpreté</string>
     <string name="analysis_export">Exporter les scores de sommeil</string>
     <string name="analysis_export_failed">Impossible d’exporter les scores.</string>
+    <string name="analysis_preview">Écouter</string>
+    <string name="analysis_skim">Survoler</string>
 </resources>

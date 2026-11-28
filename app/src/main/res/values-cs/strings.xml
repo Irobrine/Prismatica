@@ -6015,4 +6015,6 @@
     <string name="sleep_factor_harshness">Drsnost</string>
     <string name="analysis_export">Exportovat skóre spánku</string>
     <string name="analysis_export_failed">Skóre se nepodařilo exportovat.</string>
+    <string name="analysis_preview">Poslechnout</string>
+    <string name="analysis_skim">Procházet</string>
 </resources>

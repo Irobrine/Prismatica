@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">শব্দের কর্কশতা</string>
     <string name="analysis_export">ঘুমের স্কোর রপ্তানি করুন</string>
     <string name="analysis_export_failed">স্কোর রপ্তানি করা গেল না।</string>
+    <string name="analysis_preview">শুনুন</string>
+    <string name="analysis_skim">ঝলক দেখুন</string>
 </resources>

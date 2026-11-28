@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">آواز کی کھردراہٹ</string>
     <string name="analysis_export">نیند کے اسکور برآمد کریں</string>
     <string name="analysis_export_failed">اسکور برآمد نہیں ہو سکے۔</string>
+    <string name="analysis_preview">سنیں</string>
+    <string name="analysis_skim">جھلک دیکھیں</string>
 </resources>

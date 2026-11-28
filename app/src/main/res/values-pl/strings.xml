@@ -6015,4 +6015,6 @@
     <string name="sleep_factor_harshness">Chropowatość</string>
     <string name="analysis_export">Eksportuj oceny snu</string>
     <string name="analysis_export_failed">Nie udało się wyeksportować ocen.</string>
+    <string name="analysis_preview">Posłuchaj</string>
+    <string name="analysis_skim">Przegląd</string>
 </resources>

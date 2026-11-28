@@ -5940,4 +5940,6 @@
     <string name="sleep_factor_harshness">Asprezza</string>
     <string name="analysis_export">Esporta i punteggi sonno</string>
     <string name="analysis_export_failed">Impossibile esportare i punteggi.</string>
+    <string name="analysis_preview">Ascolta</string>
+    <string name="analysis_skim">Scorri in anteprima</string>
 </resources>

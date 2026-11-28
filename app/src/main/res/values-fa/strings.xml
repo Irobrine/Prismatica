@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">زبری صدا</string>
     <string name="analysis_export">برون‌بری امتیازهای خواب</string>
     <string name="analysis_export_failed">امتیازها برون‌بری نشدند.</string>
+    <string name="analysis_preview">شنیدن</string>
+    <string name="analysis_skim">مرور سریع</string>
 </resources>

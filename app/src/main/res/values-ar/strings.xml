@@ -6165,4 +6165,6 @@
     <string name="sleep_factor_harshness">خشونة الصوت</string>
     <string name="analysis_export">تصدير درجات النوم</string>
     <string name="analysis_export_failed">تعذّر تصدير الدرجات.</string>
+    <string name="analysis_preview">استمع</string>
+    <string name="analysis_skim">تصفّح</string>
 </resources>

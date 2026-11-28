@@ -5940,4 +5940,6 @@
     <string name="sleep_factor_harshness">Aspereza</string>
     <string name="analysis_export">Exportar notas de sono</string>
     <string name="analysis_export_failed">Não foi possível exportar as notas.</string>
+    <string name="analysis_preview">Ouvir</string>
+    <string name="analysis_skim">Prévia</string>
 </resources>

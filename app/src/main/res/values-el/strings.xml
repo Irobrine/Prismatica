@@ -5865,4 +5865,6 @@
     <string name="sleep_factor_harshness">Τραχύτητα</string>
     <string name="analysis_export">Εξαγωγή βαθμολογιών ύπνου</string>
     <string name="analysis_export_failed">Δεν ήταν δυνατή η εξαγωγή των βαθμολογιών.</string>
+    <string name="analysis_preview">Ακρόαση</string>
+    <string name="analysis_skim">Γρήγορη περιήγηση</string>
 </resources>

@@ -6015,4 +6015,6 @@
     <string name="sleep_factor_harshness">Різкість звуку</string>
     <string name="analysis_export">Експорт оцінок для сну</string>
     <string name="analysis_export_failed">Не вдалося експортувати оцінки.</string>
+    <string name="analysis_preview">Прослухати</string>
+    <string name="analysis_skim">Прогортати</string>
 </resources>
