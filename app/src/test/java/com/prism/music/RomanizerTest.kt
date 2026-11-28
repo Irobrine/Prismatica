@@ -33,10 +33,25 @@ class RomanizerTest {
     private val dao = object : RomanizedDao {
         override suspend fun get(key: String) = saved[key]
         override suspend fun put(e: RomanizedEntity) { saved[e.key] = e }
+        override suspend fun inRange(from: String, until: String, limit: Int) =
+            saved.values.filter { it.key >= from && it.key < until }.sortedByDescending { it.fetchedAt }.take(limit)
     }
     private val romanizer = Romanizer(http, dao, ModelStore(RuntimeEnvironment.getApplication(), http), CoroutineScope(Dispatchers.Default))
 
     private fun w(start: Long, end: Long, text: String) = LyricWord(start, end, text)
+
+    @Test
+    fun lyricsModeSpellsAsThePlayerShowedTheSongElseWhatThePhoneCanRead() = runBlocking {
+        // The player showed this song romanized (Google's spelling): one entry per line it spelled, nulls for the rest.
+        saved["song1|7|none|whole|j||123"] = RomanizedEntity("song1|7|none|whole|j||123", """[null,{"t":"kimi no na wa"},null]""", 5)
+        // Another song's entry, with an id that starts the same, isn't this one's.
+        saved["song10|7|none|whole|j||1"] = RomanizedEntity("song10|7|none|whole|j||1", """[{"t":"wrong"}]""", 9)
+        assertEquals(listOf(null, "kimi no na wa", null), romanizer.spellLyricsForSearch("song1", listOf("Intro", "君の名は", "Outro")))
+        // Not shown yet, and no dictionary here: the kana are spelled, the kanji wait (never read as Chinese).
+        assertEquals(listOf("君no名ha"), romanizer.spellLyricsForSearch("song2", listOf("君の名は")))
+        // Lines that don't line up with what was shown (other lyrics since) are read on the phone instead.
+        assertEquals(listOf("君no名ha", "君no名ha"), romanizer.spellLyricsForSearch("song1", listOf("君の名は", "君の名は")))
+    }
 
     @Test
     fun koreanKaraokeKeepsItsTimings() = runBlocking {

@@ -91,15 +91,42 @@ class Romanizer(
      * only, never the network, as [spellTitle]. A line in Latin letters, or one no engine here can spell, is null. A
      * Japanese song's kanji wait for its dictionary rather than being read as Chinese.
      */
-    suspend fun spellLyricsForSearch(lines: List<String>): List<String?> = withContext(Dispatchers.Default) {
+    suspend fun spellLyricsForSearch(songId: String, lines: List<String>): List<String?> = withContext(Dispatchers.Default) {
         val japaneseSong = lines.any { Script.KANA in Script.foreignIn(it) }
-        lines.map { text ->
+        // What the player showed for the song (Google's spelling, when the phone couldn't read a line itself), so what's
+        // typed from the romanized lyrics on screen is found.
+        val shown = runCatching { shownSpellings(songId, lines) }.getOrNull()
+        lines.mapIndexed { i, text ->
             val scripts = Script.foreignIn(text)
-            if (scripts.isEmpty()) return@map null
+            if (scripts.isEmpty()) return@mapIndexed null
+            shown?.get(i)?.let { return@mapIndexed it }
             val local = runCatching { localSpelling(LyricLine(0, text), scripts, japaneseSong) }.getOrNull()?.first
-                ?.takeIf { it.isNotBlank() && it != text && Script.foreignIn(it).isEmpty() }
-            local ?: if (japaneseSong) null else com.prism.music.data.local.SearchTags.forText(text).firstOrNull()
+                ?.takeIf { it.isNotBlank() && it != text }
+            when {
+                local != null -> local
+                // A Japanese song's kanji wait for the dictionary (never read as Chinese), but its kana are spelled now:
+                // the line's other words are found by them.
+                japaneseSong -> Kana.romanize(text).takeIf { it != text }
+                else -> com.prism.music.data.local.SearchTags.forText(text).firstOrNull()
+            }
         }
+    }
+
+    /**
+     * The song's lyrics as the player last romanized them, lined up with [lines] (the lines in another script, in
+     * order, are the lines it spelled), or null when they don't line up (other lyrics, scripts the listener reads).
+     */
+    private suspend fun shownSpellings(songId: String, lines: List<String>): List<String?>? {
+        val saved = dao.inRange("$songId|", "$songId}", 4).filter { it.key.startsWith("$songId|") }
+        val foreign = lines.indices.filter { Script.foreignIn(lines[it]).isNotEmpty() }
+        for (e in saved) {
+            val spelled = runCatching { json.decodeFromString<List<Stored?>>(e.content) }.getOrNull()?.filterNotNull()?.map { it.t } ?: continue
+            if (spelled.size != foreign.size) continue
+            val out = arrayOfNulls<String>(lines.size)
+            foreign.forEachIndexed { k, i -> out[i] = spelled[k].takeIf { it.isNotBlank() && it != lines[i] } }
+            return out.toList()
+        }
+        return null
     }
 
     /** The dictionary that reads Japanese now: Sudachi whenever it's on the phone, else IPADIC. */

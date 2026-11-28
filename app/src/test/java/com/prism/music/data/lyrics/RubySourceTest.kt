@@ -135,6 +135,7 @@ class RubySourceTest {
         val dao = object : RomanizedDao {
             override suspend fun get(key: String): RomanizedEntity? = null
             override suspend fun put(e: RomanizedEntity) {}
+            override suspend fun inRange(from: String, until: String, limit: Int) = emptyList<RomanizedEntity>()
         }
         val romanizer = Romanizer(
             OkHttpClient(), dao, ModelStore(RuntimeEnvironment.getApplication(), OkHttpClient()),

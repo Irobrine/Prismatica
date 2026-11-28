@@ -80,6 +80,31 @@ class SavedLyricsSearchTest {
     }
 
     @Test
+    fun romajiIsFoundHoweverItsTyped() {
+        val tokyo = doc("t", "東京へ行こう", "私は君が好き")
+        // As the player shows them: Hepburn, with macrons.
+        tokyo.spelled(listOf("tōkyō e ikō", "watashi wa kimi ga suki"))
+        for (typed in listOf("tokyo e iko", "toukyou e ikou", "tookyoo he ikou", "TOKYO E IKO", "watasi ha kimi", "watashiwakimiga")) {
+            val m = SavedLyricsSearch.matchAll(listOf(tokyo), typed)
+            assertEquals(typed, 1, m.size)
+            assertEquals(typed, 0, m.single().rank)
+        }
+        // Words of two lines, and spread over the song.
+        assertEquals("東京へ行こう / 私は君が好き", SavedLyricsSearch.matchAll(listOf(tokyo), "ikou suki").single().line)
+        // Written words still have to be typed as written: no rules on them.
+        assertTrue(SavedLyricsSearch.matchAll(docs, "regrete").isEmpty())
+    }
+
+    @Test
+    fun aLineSpelledInPartStillFindsItsSpelledWords() {
+        // No dictionary for the kanji: only the kana were spelled.
+        val d = doc("p", "君の名は")
+        d.spelled(listOf("君no名ha"))
+        // は spelled "ha" from its kana, typed as said; the kanji as written.
+        assertEquals(1, SavedLyricsSearch.matchAll(listOf(d), "君 wa").size)
+    }
+
+    @Test
     fun oneLetterFindsNothing() {
         assertTrue(SavedLyricsSearch.matchAll(docs, "a").isEmpty())
         assertTrue(SavedLyricsSearch.matchAll(docs, "  ").isEmpty())
@@ -100,7 +125,7 @@ class SavedLyricsSearchTest {
             scope,
             page = { after, limit -> asked += after; table.tailMap(after + 1).values.take(limit) },
             lines = { it.lines() },
-            spell = { lines -> lines.map { if (it == "사랑해") "saranghae" else null } },
+            spell = { _, lines -> lines.map { if (it == "사랑해") "saranghae" else null } },
         )
         assertEquals(listOf("x", "y"), search.find("hold").map { it.songId }.sorted())
         assertEquals(listOf(0L, 100L, 200L), asked)

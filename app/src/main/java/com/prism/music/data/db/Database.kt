@@ -737,6 +737,10 @@ interface RomanizedDao {
     @Query("SELECT * FROM romanized WHERE `key` = :key")
     suspend fun get(key: String): RomanizedEntity?
 
+    /** The entries whose keys are in [[from], [until]), newest first: a song's lyrics as the player spelled them. */
+    @Query("SELECT * FROM romanized WHERE `key` >= :from AND `key` < :until ORDER BY fetchedAt DESC LIMIT :limit")
+    suspend fun inRange(from: String, until: String, limit: Int): List<RomanizedEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun put(e: RomanizedEntity)
 }

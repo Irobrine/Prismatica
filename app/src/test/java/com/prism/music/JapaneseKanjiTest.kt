@@ -44,6 +44,8 @@ class JapaneseKanjiTest {
     private val dao = object : RomanizedDao {
         override suspend fun get(key: String) = saved[key]
         override suspend fun put(e: RomanizedEntity) { saved[e.key] = e }
+        override suspend fun inRange(from: String, until: String, limit: Int) =
+            saved.values.filter { it.key >= from && it.key < until }.sortedByDescending { it.fetchedAt }.take(limit)
     }
     private val asked = ArrayList<Pair<String, List<String>>>()
 

@@ -40,7 +40,7 @@ class SavedLyricsSearch(
     private val stored: suspend (String) -> String? = { null },
     private val store: suspend (String, String) -> Unit = { _, _ -> },
     /** A song's lines in Latin letters, null for a line that needs none or can't be spelled here. */
-    private val spell: (suspend (List<String>) -> List<String?>)? = null,
+    private val spell: (suspend (songId: String, lines: List<String>) -> List<String?>)? = null,
 ) {
     constructor(scope: CoroutineScope, dao: LyricsSearchDao, romanized: RomanizedDao, lines: (String) -> List<String>, romanizer: Romanizer) : this(
         scope, dao::savedAfter, lines, { romanizer.readingKey },
@@ -69,7 +69,7 @@ class SavedLyricsSearch(
 
         internal fun spelled(spellings: List<String?>) {
             if (spellings.size != lineCount || spellings.all { it == null }) return
-            val r = spellings.joinToString("\n") { s -> s?.let(LibrarySearch::norm).orEmpty() }
+            val r = spellings.joinToString("\n") { s -> s?.let { romanKey(LibrarySearch.norm(it)) }.orEmpty() }
             romanJoined = r.replace(" ", "")
             roman = r
         }
@@ -160,8 +160,11 @@ class SavedLyricsSearch(
                 val lines = d.lines()
                 val saved = runCatching { stored(k) }.getOrNull()
                 val spellings = if (saved != null) saved.split('\n').map { it.ifEmpty { null } } else {
-                    (runCatching { engine(lines) }.getOrNull() ?: List(lines.size) { null }).also { s ->
-                        runCatching { store(k, s.joinToString("\n") { it.orEmpty().replace('\n', ' ') }) }
+                    (runCatching { engine(d.songId, lines) }.getOrNull() ?: List(lines.size) { null }).also { s ->
+                        // Kept only when every line could be spelled: kanji without the dictionary (or before the player
+                        // has shown the song romanized) are tried again another time.
+                        val whole = lines.indices.all { i -> Script.foreignIn(lines[i]).isEmpty() || s.getOrNull(i)?.let { Script.foreignIn(it).isEmpty() } == true }
+                        if (whole) runCatching { store(k, s.joinToString("\n") { it.orEmpty().replace('\n', ' ') }) }
                     }
                 }
                 d.spelled(spellings)
@@ -176,6 +179,11 @@ class SavedLyricsSearch(
     }
 
     internal class Query(val text: String, val words: List<String>, val joined: String) {
+        /** The same, as [romanKey] reads Latin spellings: compared with the lyrics' spellings only. */
+        val romanText = romanKey(text)
+        val romanWords = words.map(::romanKey)
+        val romanJoined = romanText.replace(" ", "")
+
         companion object {
             fun of(query: String): Query? {
                 val q = LibrarySearch.norm(query)
@@ -189,7 +197,31 @@ class SavedLyricsSearch(
     }
 
     companion object {
-        const val VERSION = 2
+        const val VERSION = 3
+
+        private val ROMAN_RULES = listOf(
+            // Hepburn and the other ways of writing the same sounds: "shi"/"si", "tsu"/"tu", "ja"/"zya"…
+            "shi" to "si", "chi" to "ti", "tsu" to "tu", "fu" to "hu", "ji" to "zi",
+            "sh" to "sy", "ch" to "ty", "j" to "zy",
+            // The particles as written (は, を, へ) and as said ("wa", "o", "e").
+            "ha" to "wa", "wo" to "o", "he" to "e",
+            "mb" to "nb", "mp" to "np",
+            // Long vowels however they're written: "toukyou", "tookyoo", "tōkyō" (its macrons are gone already), "tokyo".
+            "ou" to "o", "oo" to "o", "uu" to "u", "aa" to "a", "ii" to "i", "ee" to "e", "ei" to "e",
+        )
+
+        /**
+         * A Latin spelling as one key for the ways it can be typed ("toukyou", "tōkyō" and "tokyo"; "shi" and "si"; は as
+         * "ha" or "wa"), for what's typed and the lyrics' spellings alike. Only the spellings are compared this way, so
+         * a word as written still has to be typed as written.
+         */
+        fun romanKey(s: String): String {
+            var r = s
+            for ((from, to) in ROMAN_RULES) if (from in r) r = r.replace(from, to)
+            // A vowel lengthened twice ("ooo") or made long by a rule above ("ouu").
+            for ((from, to) in ROMAN_RULES.takeLast(7)) if (from in r) r = r.replace(from, to)
+            return r
+        }
         private const val PAGE = 100
         private const val BATCH = 20
         private const val PAUSE_MS = 30L
@@ -220,27 +252,30 @@ class SavedLyricsSearch(
             fun phrase(s: String?, part: String): Int = if (s == null) -1 else s.indexOf(part).let { if (it < 0) -1 else lineAt(s, it) }
             val together = phrase(d.norm, q.text).takeIf { it >= 0 }
                 ?: phrase(d.joined, q.joined).takeIf { it >= 0 }
-                ?: phrase(roman, q.text).takeIf { it >= 0 }
-                ?: phrase(romanJoined, q.joined).takeIf { it >= 0 }
+                ?: phrase(roman, q.romanText).takeIf { it >= 0 }
+                ?: phrase(romanJoined, q.romanJoined).takeIf { it >= 0 }
             if (together != null) return Match(d.songId, d.lines().getOrElse(together) { "" }, 0)
             if (q.words.size < 2) return null
+            // A word is in a stretch as written, or (by its key) in its Latin spelling.
+            fun has(k: Int, written: String, spelled: String?) = q.words[k] in written || (spelled != null && q.romanWords[k] in spelled)
             // Every word somewhere in the song, or it isn't one: most songs stop here, before their lines are split.
-            if (!q.words.all { it in d.norm || (roman != null && it in roman) }) return null
+            if (!q.words.indices.all { has(it, d.norm, roman) }) return null
             val norm = d.norm.split('\n')
             val rom = roman?.split('\n')
             val lines = d.lines()
-            fun hay(i: Int) = if (rom == null) norm[i] else "${norm[i]} ${rom.getOrElse(i) { "" }}"
+            fun spelled(i: Int) = rom?.getOrElse(i) { "" }
+            fun allIn(written: String, spelled: String?) = q.words.indices.all { has(it, written, spelled) }
             // Every word in one line, or running on into the next.
             for (i in norm.indices) {
-                val one = hay(i)
-                if (q.words.all { it in one }) return Match(d.songId, lines.getOrElse(i) { "" }, 1)
+                if (allIn(norm[i], spelled(i))) return Match(d.songId, lines.getOrElse(i) { "" }, 1)
                 if (i + 1 < norm.size) {
-                    val two = one + " " + hay(i + 1)
-                    if (q.words.all { it in two }) return Match(d.songId, "${lines.getOrElse(i) { "" }} / ${lines.getOrElse(i + 1) { "" }}", 1)
+                    val two = norm[i] + " " + norm[i + 1]
+                    val twoSpelled = rom?.let { spelled(i) + " " + spelled(i + 1) }
+                    if (allIn(two, twoSpelled)) return Match(d.songId, "${lines.getOrElse(i) { "" }} / ${lines.getOrElse(i + 1) { "" }}", 1)
                 }
             }
             // Spread over the song: the line with the most of them shows.
-            val i = norm.indices.maxByOrNull { i -> hay(i).let { h -> q.words.count { it in h } } } ?: return null
+            val i = norm.indices.maxByOrNull { i -> q.words.indices.count { has(it, norm[i], spelled(i)) } } ?: return null
             return Match(d.songId, lines.getOrElse(i) { "" }, 2)
         }
     }
