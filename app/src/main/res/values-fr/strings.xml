@@ -5933,4 +5933,7 @@
     <string name="analysis_again">Analyser à nouveau</string>
     <string name="analysis_not_done">%1$s non analysés</string>
     <string name="analysis_on_wi_fi">Analyse les titres de ce téléphone. En Wi-Fi, les autres sont aussi analysés.</string>
+    <string name="sleep_scores">Scores de sommeil</string>
+    <string name="sleep_scores_info">D’après l’analyse du son : à quel point chaque titre convient au sommeil, du plus calme au moins calme. Vos votes et ce que vous passez pendant le minuteur de sommeil façonnent les scores.</string>
+    <string name="sleep_scores_none">Aucun titre analysé pour l’instant. Analysez des titres ci-dessus et leurs scores apparaîtront ici.</string>
 </resources>

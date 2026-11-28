@@ -6008,4 +6008,7 @@
     <string name="analysis_again">Analyzovat znovu</string>
     <string name="analysis_not_done">%1$s neanalyzováno</string>
     <string name="analysis_on_wi_fi">Analyzuje skladby v tomto telefonu. Na Wi-Fi se analyzují i ostatní.</string>
+    <string name="sleep_scores">Skóre spánku</string>
+    <string name="sleep_scores_info">Z analýzy zvuku: jak každá skladba sedí ke spánku, od nejklidnější. Vaše hlasy a to, co přeskakujete u časovače spánku, skóre utváří.</string>
+    <string name="sleep_scores_none">Zatím žádné skladby neanalyzovány. Analyzujte skladby výše a jejich skóre se objeví tady.</string>
 </resources>

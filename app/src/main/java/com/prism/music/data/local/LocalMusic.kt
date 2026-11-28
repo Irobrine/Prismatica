@@ -78,6 +78,15 @@ class LocalMusic(
 
     fun track(id: String): Track? = byId[id]
 
+    /**
+     * What a scan found, for tests: the PC's tests have no media store to scan, and the analysis' lists are named from
+     * these when a file was never played (so it has no `songs` row). Never called in a real run.
+     */
+    internal fun putTracksForTests(list: List<Track>) {
+        _tracks.value = list
+        byId = list.associateBy { it.song.id }
+    }
+
     /** Scans now, then again whenever Android's music files change. */
     fun start() {
         scope.launch { scan() }

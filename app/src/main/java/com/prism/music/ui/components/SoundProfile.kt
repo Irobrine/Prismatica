@@ -42,6 +42,7 @@ import com.prism.music.analysis.TagStatus
 import com.prism.music.analysis.TagVocabulary
 import com.prism.music.data.db.SongAutoTagEntity
 import com.prism.music.data.model.Song
+import com.prism.music.data.songsByIds
 import com.prism.music.tr
 import com.prism.music.ui.theme.LocalContainer
 import com.prism.music.ui.theme.PrismIcons
@@ -253,6 +254,14 @@ fun TagReviewSheet(onDismiss: () -> Unit) {
         val rows by produceState(emptyList<com.prism.music.data.db.TagReview>(), changes) {
             value = withContext(Dispatchers.IO) { runCatching { c.db.analysis().toReview(200) }.getOrDefault(emptyList()) }
         }
+        // A file on the phone that was only ever analysed has no `songs` row, so the query's join has no name for it: the
+        // phone's own list names it instead of its id ("local:1234").
+        val named by produceState(emptyMap<String, com.prism.music.data.model.Song>(), rows) {
+            value = withContext(Dispatchers.IO) {
+                val missing = rows.filter { it.title == null }.map { it.songId }.distinct()
+                if (missing.isEmpty()) emptyMap() else runCatching { c.songsByIds(missing) }.getOrDefault(emptyMap())
+            }
+        }
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp).padding(bottom = 24.dp).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -263,7 +272,9 @@ fun TagReviewSheet(onDismiss: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("${tagLabel(r.tag)} · ${(r.confidence * 100).roundToInt()}%", style = MaterialTheme.typography.bodyLarge)
-                        Text(listOfNotNull(r.title, r.artistName).joinToString(" · ").ifBlank { r.songId }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        val song = named[r.songId]
+                        val name = listOfNotNull(r.title ?: song?.title, r.artistName ?: song?.artistText).joinToString(" · ")
+                        Text(name.ifBlank { r.songId }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
                     IconButton({ scope.launch { c.analysis.setTagStatus(r.songId, r.tag, TagStatus.ACCEPTED) } }) {
                         Icon(PrismIcons.Check, tr(R.string.analysis_accept))

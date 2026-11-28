@@ -955,6 +955,7 @@ private fun PrismRoot(deepLink: MutableStateFlow<Uri?>, launchFresh: Boolean) {
                         }
                         composable(Routes.NEW_RELEASES) { ScreenBackdrop(BackdropScreen.HOME) { com.prism.music.ui.screens.NewReleasesScreen(pageBottom.value) } }
                         composable(Routes.EXCLUSIONS) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.ExclusionsScreen(pageBottom.value) } }
+                        composable(Routes.SLEEP_SCORES) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.SleepScoresScreen(pageBottom.value) } }
                         // 1.8.1: Bring your history, and its "Needs a look".
                         composable(Routes.BRING_HISTORY) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.BringHistoryScreen(pageBottom.value) } }
                         composable(Routes.IMPORT_REVIEW) { ScreenBackdrop(BackdropScreen.SETTINGS) { com.prism.music.ui.screens.ImportReviewScreen(pageBottom.value) } }

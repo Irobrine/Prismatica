@@ -6008,4 +6008,7 @@
     <string name="analysis_again">Проанализировать снова</string>
     <string name="analysis_not_done">%1$s без анализа</string>
     <string name="analysis_on_wi_fi">Анализирует треки на этом телефоне. По Wi-Fi анализируются и остальные.</string>
+    <string name="sleep_scores">Оценки для сна</string>
+    <string name="sleep_scores_info">Из анализа звука: насколько каждый трек подходит для сна, самые спокойные сверху. Ваши голоса и то, что вы пропускаете с таймером сна, формируют оценки.</string>
+    <string name="sleep_scores_none">Треки ещё не проанализированы. Проанализируйте треки выше — оценки появятся здесь.</string>
 </resources>

@@ -157,6 +157,13 @@ above the category's *sure* line a tag is `auto`, between *maybe* and *sure* it 
 listener reviews uncertain ones (accept / reject) from a song's Sound profile or Settings; an accepted tag can be added
 to their own tags, which never happens by itself.
 
+Only what the model heard is a tag. An earlier build also offered "Instrumental", *inferred* from the voice classes
+being quiet: every instrumental track got a made-up 99 %, so it filled the review list and told the listener nothing the
+model had measured. It is no longer a tag (rows written then are taken back as the analysis loads); the voice evidence
+still feeds the sleep score's vocals factor. The score and the tags are shown in three places: a song's Sound profile,
+Settings → Sound analysis → Sleep scores (the library, calmest first), and Stats for nerds (the playing song's score,
+read live).
+
 ## 7. Validation
 
 **Unit tests** (`app/src/test/java/com/prism/music/analysis/`, JVM):

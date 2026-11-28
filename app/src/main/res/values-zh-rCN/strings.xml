@@ -5783,4 +5783,7 @@
     <string name="analysis_again">重新分析</string>
     <string name="analysis_not_done">%1$s 未分析</string>
     <string name="analysis_on_wi_fi">分析此手机上的歌曲。在 Wi-Fi 下也会分析其他歌曲。</string>
+    <string name="sleep_scores">睡眠评分</string>
+    <string name="sleep_scores_info">来自声音分析：每首歌有多适合入睡，最平静的在前。你的评价和睡眠定时器运行时跳过的歌曲会影响评分。</string>
+    <string name="sleep_scores_none">还没有分析任何歌曲。在上方分析歌曲后，评分会显示在这里。</string>
 </resources>

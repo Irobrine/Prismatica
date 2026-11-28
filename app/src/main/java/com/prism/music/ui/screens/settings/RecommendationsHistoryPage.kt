@@ -229,6 +229,7 @@ private fun RhSoundAnalysis(backgroundChanged: Boolean, chargingChanged: Boolean
     val an = s.behavior.analysis
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val nav = LocalNavigator.current
     val states by c.models.states.collectAsState()
     val count by c.analysis.count.collectAsState()
     val toReview by c.db.analysis().reviewCount().collectAsState(0)
@@ -266,6 +267,9 @@ private fun RhSoundAnalysis(backgroundChanged: Boolean, chargingChanged: Boolean
     SwitchRow(tr(R.string.analysis_vocals_count), an.vocalsCount, info = tr(R.string.analysis_vocals_count_info), changed = vocalsChanged) { prefs.setSleepVocalsCount(it) }
     // The same walk (and sheet of sets) as "Measure songs now": progress, Stop and carry-on in the row itself.
     SongsWalkRow(SongsWalk.ANALYSE, infoExtra = tr(R.string.analysis_count, count))
+    LinkRow(tr(R.string.sleep_scores), value = if (count > 0) tr(R.string.analysis_count, count) else null, info = tr(R.string.sleep_scores_info)) {
+        nav.go(Routes.SLEEP_SCORES)
+    }
     LinkRow(tr(R.string.analysis_review_tags), value = if (toReview > 0) toReview.toString() else null, action = true) { reviewing = true }
     if (reviewing) com.prism.music.ui.components.TagReviewSheet { reviewing = false }
 }
@@ -387,6 +391,7 @@ val recommendationsHistoryIndex: List<SettingEntry> by lazy {
         SettingEntry(page, sound, tr(R.string.analysis_tagger), tr(R.string.analysis_keywords)),
         SettingEntry(page, sound, tr(R.string.analysis_vocals_count), tr(R.string.analysis_keywords)),
         SettingEntry(page, sound, tr(R.string.analysis_now), tr(R.string.analysis_keywords)),
+        SettingEntry(page, sound, tr(R.string.sleep_scores), tr(R.string.analysis_keywords) + " " + tr(R.string.sleep_score)),
         SettingEntry(page, sound, tr(R.string.analysis_review_tags), tr(R.string.analysis_keywords)),
     )
 }

@@ -5858,4 +5858,7 @@
     <string name="analysis_again">Erneut analysieren</string>
     <string name="analysis_not_done">%1$s nicht analysiert</string>
     <string name="analysis_on_wi_fi">Analysiert die Songs auf diesem Handy. Im WLAN werden auch die anderen analysiert.</string>
+    <string name="sleep_scores">Schlafwerte</string>
+    <string name="sleep_scores_info">Aus der Klanganalyse: wie gut jeder Song zum Schlafen passt, der ruhigste zuerst. Deine Stimmen und was du beim Schlaf-Timer überspringst, formen die Werte.</string>
+    <string name="sleep_scores_none">Noch keine Songs analysiert. Analysiere oben Songs, dann erscheinen ihre Werte hier.</string>
 </resources>

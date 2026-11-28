@@ -5783,4 +5783,7 @@
     <string name="analysis_again">วิเคราะห์อีกครั้ง</string>
     <string name="analysis_not_done">%1$s ยังไม่ได้วิเคราะห์</string>
     <string name="analysis_on_wi_fi">วิเคราะห์เพลงในโทรศัพท์นี้ บน Wi-Fi จะวิเคราะห์เพลงอื่นด้วย</string>
+    <string name="sleep_scores">คะแนนการนอน</string>
+    <string name="sleep_scores_info">จากการวิเคราะห์เสียง: แต่ละเพลงเหมาะกับการนอนแค่ไหน เรียงจากสงบที่สุด ความเห็นของคุณและเพลงที่ข้ามระหว่างใช้ตัวจับเวลานอนมีผลต่อคะแนน</string>
+    <string name="sleep_scores_none">ยังไม่มีเพลงที่วิเคราะห์ วิเคราะห์เพลงด้านบนแล้วคะแนนจะปรากฏที่นี่</string>
 </resources>

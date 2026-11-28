@@ -175,7 +175,12 @@ object TagVocabulary {
         d("sounds:noise", N, R.string.tag_noise, "White noise", 514, 515),
     )
 
-    /** Derived from other scores rather than one class. */
+    /**
+     * Derived from other scores rather than one class: acoustic is a class score's, Instrumental was only ever *inferred*
+     * (no voice class), which made it a meaningless 99 % "suggestion" on nearly every instrumental track and drowned the
+     * tags the model actually heard. It's gone as a tag; [voice] still feeds the sleep score's vocals factor and the
+     * Sound profile's figures. Kept for the label of rows written before it went (removed as they load).
+     */
     const val INSTRUMENTAL = "vocals:instrumental"
     const val ACOUSTIC = "character:acoustic"
 
@@ -229,10 +234,7 @@ object TagVocabulary {
         }
         for (s in styles) add(s.key, S, styleScores.getValue(s.key))
         for (o in others) add(o.key, o.category, max(scores, o.classes))
-        // No voice anywhere: instrumental, as sure as the loudest voice class is unsure.
-        val v = voice(scores)
-        if (v < 0.08f) out += PredictedTag(INSTRUMENTAL, V, 1f - v, if (v < 0.04f) TagStatus.AUTO else TagStatus.REVIEW)
-        // Acoustic: acoustic instruments clearly ahead of electronic ones.
+        // Acoustic: acoustic instruments clearly ahead of electronic ones (a class score, unlike the old Instrumental).
         val acoustic = max(scores, ACOUSTIC_CLASSES)
         val electronic = max(scores, ELECTRONIC_CLASSES)
         if (acoustic > 0.15f && electronic < acoustic / 3) add(ACOUSTIC, C, acoustic)

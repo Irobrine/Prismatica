@@ -5783,4 +5783,7 @@
     <string name="analysis_again">다시 분석</string>
     <string name="analysis_not_done">%1$s 분석 안 됨</string>
     <string name="analysis_on_wi_fi">이 휴대전화의 곡을 분석합니다. Wi-Fi에서는 나머지도 분석합니다.</string>
+    <string name="sleep_scores">수면 점수</string>
+    <string name="sleep_scores_info">사운드 분석에서 각 곡이 수면에 얼마나 맞는지, 차분한 순서로. 평가와 수면 타이머 중 건너뛴 곡이 점수를 만듭니다.</string>
+    <string name="sleep_scores_none">아직 분석된 곡이 없습니다. 위에서 곡을 분석하면 점수가 여기에 표시됩니다.</string>
 </resources>

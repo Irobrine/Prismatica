@@ -5858,4 +5858,7 @@
     <string name="analysis_again">Suriin muli</string>
     <string name="analysis_not_done">%1$s hindi nasuri</string>
     <string name="analysis_on_wi_fi">Sinusuri ang mga kanta sa phone na ito. Sa Wi-Fi, sinusuri rin ang iba.</string>
+    <string name="sleep_scores">Mga sleep score</string>
+    <string name="sleep_scores_info">Mula sa pagsusuri ng tunog: gaano kaangkop ang bawat kanta sa pagtulog, pinakakalmado muna. Hinuhubog ng iyong mga boto at ng mga nilalaktawan mo habang tumatakbo ang sleep timer ang mga score.</string>
+    <string name="sleep_scores_none">Wala pang nasusuring kanta. Suriin ang mga kanta sa itaas at lalabas ang mga score dito.</string>
 </resources>

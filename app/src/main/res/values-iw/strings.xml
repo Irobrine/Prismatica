@@ -5933,4 +5933,7 @@
     <string name="analysis_again">לנתח שוב</string>
     <string name="analysis_not_done">%1$s לא נותחו</string>
     <string name="analysis_on_wi_fi">מנתח את השירים בטלפון הזה. ב-Wi-Fi גם האחרים מנותחים.</string>
+    <string name="sleep_scores">ציוני שינה</string>
+    <string name="sleep_scores_info">מניתוח הצליל: כמה כל שיר מתאים לשינה, הרגועים קודם. ההצבעות שלך ומה שאתה מדלג עליו כשהטיימר פועל מעצבים את הציונים.</string>
+    <string name="sleep_scores_none">אין עדיין שירים מנותחים. נתח שירים למעלה והציונים יופיעו כאן.</string>
 </resources>

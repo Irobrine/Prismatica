@@ -133,6 +133,10 @@ abstract class AnalysisDao {
     @Query("SELECT COUNT(*) FROM song_auto_tags WHERE status = 1")
     abstract fun reviewCount(): kotlinx.coroutines.flow.Flow<Int>
 
+    /** Every row of one tag, whatever the listener said about it (a tag that's no longer made is taken back). */
+    @Query("DELETE FROM song_auto_tags WHERE tag = :tag")
+    abstract suspend fun deleteByTag(tag: String): Int
+
     /** Songs carrying [tag] as their own (sure, or accepted). */
     @Query("SELECT songId FROM song_auto_tags WHERE tag = :tag AND status IN (0, 2)")
     abstract suspend fun songsTagged(tag: String): List<String>

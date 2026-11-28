@@ -5783,4 +5783,7 @@
     <string name="analysis_again">Analisis lagi</string>
     <string name="analysis_not_done">%1$s belum dianalisis</string>
     <string name="analysis_on_wi_fi">Menganalisis lagu di ponsel ini. Di Wi-Fi, yang lain juga dianalisis.</string>
+    <string name="sleep_scores">Skor tidur</string>
+    <string name="sleep_scores_info">Dari analisis suara: seberapa cocok setiap lagu untuk tidur, paling tenang lebih dulu. Penilaian Anda dan lagu yang dilewati saat timer tidur membentuk skornya.</string>
+    <string name="sleep_scores_none">Belum ada lagu yang dianalisis. Analisis lagu di atas dan skornya muncul di sini.</string>
 </resources>

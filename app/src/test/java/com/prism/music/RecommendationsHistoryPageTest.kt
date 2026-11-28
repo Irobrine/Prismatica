@@ -114,7 +114,7 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
         assertBudgets("defaults")
         // The ledger's layout with a fresh install's settings ("Bring your history" is a row of History: its group was named as its row).
         assertEquals(listOf(gMade, gRadios, gSound, gHistory, gReplay), groupTitles())
-        assertEquals(listOf(5, 3, 6, 3, 6), groupSizes())
+        assertEquals(listOf(5, 3, 7, 3, 6), groupSizes())
         assertEquals("nothing differs from how Prism comes", 0, changedRows())
         assertTrue(groupTitles().none { it == SettingsPageId.RECOMMENDATIONS_HISTORY.title })
         for (g in groupTitles()) assertFalse("a group and a row are both \"$g\"", hasRow(g))
@@ -186,7 +186,7 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
     @Test fun everyStoredSettingHasItsControl() {
         show(over = signedIn)
         val d = AppSettings()
-        assertEquals("signed in, History has its third setting", listOf(5, 3, 6, 4, 6), groupSizes())
+        assertEquals("signed in, History has its third setting", listOf(5, 3, 7, 4, 6), groupSizes())
 
         // release_notifications
         tap(releases)
@@ -253,7 +253,7 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
 
         // Every row with a setting now differs from how Prism comes, says so, and the page still fits.
         assertBudgets("everything changed")
-        assertEquals(listOf(5, 3, 6, 4, 6), groupSizes())
+        assertEquals(listOf(5, 3, 7, 4, 6), groupSizes())
         // Twelve, and the sound analysis' three switches.
         assertEquals(15, changedRows())
 
@@ -313,7 +313,7 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
         show()
         addRoutes(Routes.BRING_HISTORY)
         compose.waitUntil(5_000) { hasRow(shapeMixes) }
-        assertEquals("with a history brought in, its switch shows", listOf(5, 3, 6, 4, 6), groupSizes())
+        assertEquals("with a history brought in, its switch shows", listOf(5, 3, 7, 4, 6), groupSizes())
         assertEquals(SettingsTags.ROW_SWITCH, typeOf(shapeMixes))
         assertEquals(t(R.string.imp_prism_plays), valueOf(countFrom))
 

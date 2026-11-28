@@ -5858,4 +5858,7 @@
     <string name="analysis_again">تحلیل دوباره</string>
     <string name="analysis_not_done">%1$s تحلیل‌نشده</string>
     <string name="analysis_on_wi_fi">آهنگ‌های این گوشی را تحلیل می‌کند. با Wi-Fi بقیه هم تحلیل می‌شوند.</string>
+    <string name="sleep_scores">امتیازهای خواب</string>
+    <string name="sleep_scores_info">از تحلیل صدا: هر آهنگ چقدر برای خواب مناسب است، آرام‌ترین اول. رأی‌های شما و آنچه با تایمر خواب رد می‌کنید، امتیازها را شکل می‌دهند.</string>
+    <string name="sleep_scores_none">هنوز آهنگی تحلیل نشده. آهنگ‌ها را در بالا تحلیل کنید تا امتیازهایشان اینجا بیاید.</string>
 </resources>

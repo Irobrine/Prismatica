@@ -6158,4 +6158,7 @@
     <string name="analysis_again">حلّل مرة أخرى</string>
     <string name="analysis_not_done">%1$s بلا تحليل</string>
     <string name="analysis_on_wi_fi">يحلّل أغاني هذا الهاتف. عبر Wi-Fi تُحلَّل البقية أيضًا.</string>
+    <string name="sleep_scores">درجات النوم</string>
+    <string name="sleep_scores_info">من تحليل الصوت: مدى ملاءمة كل أغنية للنوم، الأهدأ أولًا. أصواتك وما تتخطاه أثناء مؤقت النوم تشكّل الدرجات.</string>
+    <string name="sleep_scores_none">لم تُحلَّل أي أغانٍ بعد. حلّل الأغاني أعلاه وستظهر درجاتها هنا.</string>
 </resources>

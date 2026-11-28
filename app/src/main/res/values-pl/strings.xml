@@ -6008,4 +6008,7 @@
     <string name="analysis_again">Analizuj ponownie</string>
     <string name="analysis_not_done">%1$s nieprzeanalizowanych</string>
     <string name="analysis_on_wi_fi">Analizuje utwory na tym telefonie. W Wi-Fi analizowane są też pozostałe.</string>
+    <string name="sleep_scores">Oceny snu</string>
+    <string name="sleep_scores_info">Z analizy dźwięku: jak dobrze każdy utwór nadaje się do snu, od najspokojniejszego. Twoje głosy i to, co pomijasz przy timerze snu, kształtują oceny.</string>
+    <string name="sleep_scores_none">Nie przeanalizowano jeszcze żadnych utworów. Przeanalizuj utwory powyżej, a ich oceny pojawią się tutaj.</string>
 </resources>

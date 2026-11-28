@@ -5858,4 +5858,7 @@
     <string name="analysis_again">Elemzés újra</string>
     <string name="analysis_not_done">%1$s nincs elemezve</string>
     <string name="analysis_on_wi_fi">A telefonon lévő dalokat elemzi. Wi-Fi-n a többieket is elemzi.</string>
+    <string name="sleep_scores">Alvási pontszámok</string>
+    <string name="sleep_scores_info">A hangelemzésből: mennyire alkalmas alvásra az egyes dalok, a legnyugodtabbtól. A szavazataid és amit az alvásidőzítő alatt átugrasz, alakítják a pontszámokat.</string>
+    <string name="sleep_scores_none">Még nincs elemzett dal. Elemezz dalokat fent, és a pontszámaik itt jelennek meg.</string>
 </resources>

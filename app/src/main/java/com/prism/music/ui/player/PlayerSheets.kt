@@ -87,7 +87,13 @@ fun sampleRateText(hz: Int): String = if (hz <= 0) "—" else if (hz % 1000 == 0
  */
 @Composable
 fun NerdStatsPanel(modifier: Modifier = Modifier) {
-    val stats by LocalContainer.current.nerdStats.collectAsState()
+    val c = LocalContainer.current
+    val stats by c.nerdStats.collectAsState()
+    // The sound analysis' sleep score for the song playing: read when it opens (the analysis loads in the background),
+    // and again whenever an analysis, a vote or a tag's review lands.
+    val changes by c.analysis.changes.collectAsState()
+    val sleepScore = remember(stats.videoId, changes) { c.analysis.sleepScore(stats.videoId) }
+    LaunchedEffect(stats.videoId) { runCatching { c.analysis.load() } }
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
         Text(tr(R.string.stats_for_nerds), color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelLarge)
         Spacer(Modifier.height(10.dp))
@@ -123,6 +129,8 @@ fun NerdStatsPanel(modifier: Modifier = Modifier) {
             tr(R.string.loudness) to (stats.loudnessDb?.let {
                 (if (stats.loudnessMeasured) tr(R.string.t_1f_lufs).format(it) else tr(R.string.t_1f_db_youtube).format(it)) + tr(R.string.gain_1f_db).format(stats.normalizationGainDb)
             } ?: "—"),
+            // The sound analysis (Settings → Sound analysis): how well the song suits sleep, calmest at 100.
+            tr(R.string.sleep_score) to (sleepScore?.let { tr(R.string.sleep_score_out_of, it) } ?: "—"),
             tr(R.string.effects) to stats.effects,
             tr(R.string.buffer) to tr(R.string.t_1f_s_d_kbps_est).format(stats.bufferMs / 1000f, stats.bandwidthKbps),
             tr(R.string.session) to tr(R.string.underruns, stats.audioSessionId, stats.underruns),

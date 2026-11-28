@@ -5858,4 +5858,7 @@
     <string name="analysis_again">Analysera igen</string>
     <string name="analysis_not_done">%1$s inte analyserade</string>
     <string name="analysis_on_wi_fi">Analyserar låtarna i den här telefonen. På wifi analyseras de andra också.</string>
+    <string name="sleep_scores">Sömnpoäng</string>
+    <string name="sleep_scores_info">Från ljudanalysen: hur bra varje låt passar för sömn, lugnast först. Dina röster och det du hoppar över med sömntimern formar poängen.</string>
+    <string name="sleep_scores_none">Inga låtar analyserade än. Analysera låtar ovan så visas deras poäng här.</string>
 </resources>

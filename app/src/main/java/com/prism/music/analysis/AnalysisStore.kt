@@ -73,6 +73,9 @@ class AnalysisStore(
     /** Reads the whole index once (at the first ask; a few hundred ms for 10,000 songs, off the main thread). */
     suspend fun load() = loadLock.withLock {
         if (loaded) return@withLock
+        // "Instrumental" was inferred (no voice class), not heard: it made a meaningless 99 % suggestion on nearly every
+        // instrumental song. Rows written before it went are taken back once, here.
+        runCatching { dao.deleteByTag(TagVocabulary.INSTRUMENTAL) }
         val rows = runCatching { dao.all() }.getOrDefault(emptyList())
         for (r in rows) remember(r)
         runCatching { dao.votes() }.getOrDefault(emptyList()).forEach { votes[it.songId] = it.vote }

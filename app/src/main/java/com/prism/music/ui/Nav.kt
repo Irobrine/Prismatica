@@ -52,6 +52,8 @@ object Routes {
     /** The Prism Account: make one (after the welcome screen, or from Settings) or change it. */
     const val ACCOUNT = "prism_account"
     const val EXCLUSIONS = "exclusions"
+    /** Settings → Sound analysis → Sleep scores: every analysed song's score, calmest first. */
+    const val SLEEP_SCORES = "sleep_scores"
     /** Bring your history (1.8.1): Spotify's data download, Google Takeout, Last.fm. */
     const val BRING_HISTORY = "bring_history"
     /** The imported songs that need a look: pick which song each is. */

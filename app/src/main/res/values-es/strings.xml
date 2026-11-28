@@ -5933,4 +5933,7 @@
     <string name="analysis_again">Analizar de nuevo</string>
     <string name="analysis_not_done">%1$s sin analizar</string>
     <string name="analysis_on_wi_fi">Analiza las canciones de este teléfono. Con Wi-Fi, también se analizan las demás.</string>
+    <string name="sleep_scores">Puntuaciones de sueño</string>
+    <string name="sleep_scores_info">Según el análisis de sonido: qué tan bien va cada canción para dormir, de la más tranquila a la menos. Tus votos y lo que te saltas con el temporizador de sueño dan forma a las puntuaciones.</string>
+    <string name="sleep_scores_none">Aún no hay canciones analizadas. Analiza canciones arriba y sus puntuaciones aparecerán aquí.</string>
 </resources>

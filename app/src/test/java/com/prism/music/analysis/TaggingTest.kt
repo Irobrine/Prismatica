@@ -18,11 +18,26 @@ class TaggingTest {
         assertEquals(TagStatus.REVIEW, tags.of("instrument:strings")!!.status)
         assertEquals(TagStatus.AUTO, tags.of("mood:tender")!!.status)
         assertEquals(TagStatus.AUTO, tags.of("genre:Classical")!!.status)
-        // Nothing below the maybe line, and no voice: instrumental, and acoustic (piano, strings, classical, no synths).
+        // Nothing below the maybe line; acoustic (piano, strings, classical, no synths) is a class score's.
         assertNull(tags.of("instrument:drums"))
-        assertEquals(TagStatus.AUTO, tags.of(TagVocabulary.INSTRUMENTAL)!!.status)
         assertNotNull(tags.of(TagVocabulary.ACOUSTIC))
+        // "Instrumental" is not a tag: it was a guess from the voice classes' silence, which gave nearly every instrumental
+        // track a meaningless 99 % and crowded out the tags the model actually heard.
+        assertNull(tags.of(TagVocabulary.INSTRUMENTAL))
         assertEquals(0.8f, tags.of("instrument:piano")!!.confidence, 1e-6f)
+    }
+
+    @Test fun instrumentalIsNeverSuggestedAndVoiceStillReads() {
+        // An instrumental track: nothing above the maybe line except what the model heard, and no "Instrumental".
+        val quiet = scores(148 to 0.35f)
+        val tags = TagVocabulary.tags(quiet)
+        assertNull(tags.of(TagVocabulary.INSTRUMENTAL))
+        assertTrue(tags.all { it.confidence <= 0.5f })
+        // The voice evidence itself is still there for the sleep score's vocals factor.
+        assertEquals(0f, TagVocabulary.voice(quiet), 0f)
+        val sung = scores(24 to 0.7f)
+        assertEquals(0.7f, TagVocabulary.voice(sung), 1e-6f)
+        assertNull(TagVocabulary.tags(sung).of(TagVocabulary.INSTRUMENTAL))
     }
 
     @Test fun aStyleSaysItsGenreAndVocalsRuleOutInstrumental() {

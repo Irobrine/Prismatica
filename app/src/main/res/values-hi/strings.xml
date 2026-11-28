@@ -5858,4 +5858,7 @@
     <string name="analysis_again">फिर से विश्लेषण करें</string>
     <string name="analysis_not_done">%1$s का विश्लेषण नहीं हुआ</string>
     <string name="analysis_on_wi_fi">इस फ़ोन के गानों का विश्लेषण करता है। Wi-Fi पर बाकी का भी विश्लेषण होता है।</string>
+    <string name="sleep_scores">नींद स्कोर</string>
+    <string name="sleep_scores_info">ध्वनि विश्लेषण से: हर गाना नींद के लिए कितना उपयुक्त है, सबसे शांत पहले। आपके वोट और टाइमर चलने पर आप जो छोड़ते हैं, स्कोर बनाते हैं।</string>
+    <string name="sleep_scores_none">अभी कोई गाना विश्लेषित नहीं हुआ। ऊपर गाने विश्लेषित करें, उनके स्कोर यहाँ दिखेंगे।</string>
 </resources>

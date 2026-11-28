@@ -5933,4 +5933,7 @@
     <string name="analysis_again">Analisar de novo</string>
     <string name="analysis_not_done">%1$s não analisadas</string>
     <string name="analysis_on_wi_fi">Analisa as músicas deste celular. No Wi-Fi, as outras também são analisadas.</string>
+    <string name="sleep_scores">Notas de sono</string>
+    <string name="sleep_scores_info">Da análise de som: quão bem cada música serve para dormir, da mais calma para a menos. Seus votos e o que você pula com o timer de sono moldam as notas.</string>
+    <string name="sleep_scores_none">Nenhuma música analisada ainda. Analise músicas acima e as notas aparecem aqui.</string>
 </resources>

@@ -5783,4 +5783,7 @@
     <string name="analysis_again">Phân tích lại</string>
     <string name="analysis_not_done">%1$s chưa phân tích</string>
     <string name="analysis_on_wi_fi">Phân tích các bài trên điện thoại này. Trên Wi-Fi, các bài khác cũng được phân tích.</string>
+    <string name="sleep_scores">Điểm ngủ</string>
+    <string name="sleep_scores_info">Từ phân tích âm thanh: mỗi bài phù hợp với giấc ngủ đến đâu, êm nhất trước. Đánh giá của bạn và những bài bạn bỏ qua khi hẹn giờ ngủ định hình điểm số.</string>
+    <string name="sleep_scores_none">Chưa có bài nào được phân tích. Hãy phân tích bài ở trên, điểm sẽ hiện ở đây.</string>
 </resources>

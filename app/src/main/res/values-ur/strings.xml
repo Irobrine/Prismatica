@@ -5858,4 +5858,7 @@
     <string name="analysis_again">دوبارہ تجزیہ کریں</string>
     <string name="analysis_not_done">%1$s کا تجزیہ نہیں ہوا</string>
     <string name="analysis_on_wi_fi">اس فون کے گانوں کا تجزیہ کرتا ہے۔ Wi-Fi پر باقی کا بھی تجزیہ ہوتا ہے۔</string>
+    <string name="sleep_scores">نیند کے اسکور</string>
+    <string name="sleep_scores_info">آواز کے تجزیے سے: ہر گانا نیند کے لیے کتنا موزوں ہے، سب سے پرسکون پہلے۔ آپ کے ووٹ اور ٹائمر چلنے کے دوران آپ کی چھوڑی ہوئی چیزیں اسکور بناتی ہیں۔</string>
+    <string name="sleep_scores_none">ابھی کسی گانے کا تجزیہ نہیں ہوا۔ اوپر گانوں کا تجزیہ کریں، ان کے اسکور یہاں آئیں گے۔</string>
 </resources>

@@ -5858,4 +5858,7 @@
     <string name="analysis_again">Ανάλυση ξανά</string>
     <string name="analysis_not_done">%1$s χωρίς ανάλυση</string>
     <string name="analysis_on_wi_fi">Αναλύει τα τραγούδια αυτού του κινητού. Σε Wi-Fi αναλύονται και τα υπόλοιπα.</string>
+    <string name="sleep_scores">Βαθμολογίες ύπνου</string>
+    <string name="sleep_scores_info">Από την ανάλυση ήχου: πόσο κατάλληλο είναι κάθε τραγούδι για ύπνο, το πιο ήρεμο πρώτα. Οι ψήφοι σου και ό,τι προσπερνάς με τον χρονοδιακόπτη ύπνου διαμορφώνουν τις βαθμολογίες.</string>
+    <string name="sleep_scores_none">Κανένα τραγούδι αναλυμένο ακόμη. Ανάλυσε τραγούδια παραπάνω και οι βαθμολογίες θα εμφανιστούν εδώ.</string>
 </resources>
