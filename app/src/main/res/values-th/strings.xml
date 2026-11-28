@@ -5787,4 +5787,7 @@
     <string name="sleep_scores_info">จากการวิเคราะห์เสียง: แต่ละเพลงเหมาะกับการนอนแค่ไหน เรียงจากสงบที่สุด ความเห็นของคุณและเพลงที่ข้ามระหว่างใช้ตัวจับเวลานอนมีผลต่อคะแนน</string>
     <string name="sleep_scores_none">ยังไม่มีเพลงที่วิเคราะห์ วิเคราะห์เพลงด้านบนแล้วคะแนนจะปรากฏที่นี่</string>
     <string name="sleep_normalized_note">ความดังมีน้ำหนักน้อยลงที่นี่ เพราะการปรับระดับเสียงดังทำให้ทุกเพลงดังเท่ากัน</string>
+    <string name="sleep_factor_harshness">ความหยาบของเสียง</string>
+    <string name="analysis_export">ส่งออกคะแนนการนอน</string>
+    <string name="analysis_export_failed">ส่งออกคะแนนไม่ได้</string>
 </resources>

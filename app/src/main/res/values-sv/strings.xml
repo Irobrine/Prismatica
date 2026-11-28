@@ -5862,4 +5862,7 @@
     <string name="sleep_scores_info">Från ljudanalysen: hur bra varje låt passar för sömn, lugnast först. Dina röster och det du hoppar över med sömntimern formar poängen.</string>
     <string name="sleep_scores_none">Inga låtar analyserade än. Analysera låtar ovan så visas deras poäng här.</string>
     <string name="sleep_normalized_note">Volymen väger lättare här: Normalisera lägger varje låt på samma nivå.</string>
+    <string name="sleep_factor_harshness">Råhet</string>
+    <string name="analysis_export">Exportera sömnpoäng</string>
+    <string name="analysis_export_failed">Kunde inte exportera poängen.</string>
 </resources>

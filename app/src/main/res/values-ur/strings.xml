@@ -5862,4 +5862,7 @@
     <string name="sleep_scores_info">آواز کے تجزیے سے: ہر گانا نیند کے لیے کتنا موزوں ہے، سب سے پرسکون پہلے۔ آپ کے ووٹ اور ٹائمر چلنے کے دوران آپ کی چھوڑی ہوئی چیزیں اسکور بناتی ہیں۔</string>
     <string name="sleep_scores_none">ابھی کسی گانے کا تجزیہ نہیں ہوا۔ اوپر گانوں کا تجزیہ کریں، ان کے اسکور یہاں آئیں گے۔</string>
     <string name="sleep_normalized_note">آواز کی بلندی یہاں کم شمار ہوتی ہے: نارملائز ہر گانے کو ایک ہی سطح پر لاتا ہے۔</string>
+    <string name="sleep_factor_harshness">آواز کی کھردراہٹ</string>
+    <string name="analysis_export">نیند کے اسکور برآمد کریں</string>
+    <string name="analysis_export_failed">اسکور برآمد نہیں ہو سکے۔</string>
 </resources>

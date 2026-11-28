@@ -5907,4 +5907,7 @@
     <string name="sleep_scores_info">From the sound analysis: how well each song suits sleep, calmest first. Your votes and what you skip while the sleep timer runs shape the scores.</string>
     <string name="sleep_scores_none">No songs analysed yet. Analyse songs above, and their scores appear here.</string>
     <string name="sleep_normalized_note">Loudness counts less here: Normalize brings every song to the same level.</string>
+    <string name="sleep_factor_harshness">Harshness</string>
+    <string name="analysis_export">Export sleep scores</string>
+    <string name="analysis_export_failed">Couldn\'t export the scores.</string>
 </resources>

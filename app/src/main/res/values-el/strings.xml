@@ -5862,4 +5862,7 @@
     <string name="sleep_scores_info">Από την ανάλυση ήχου: πόσο κατάλληλο είναι κάθε τραγούδι για ύπνο, το πιο ήρεμο πρώτα. Οι ψήφοι σου και ό,τι προσπερνάς με τον χρονοδιακόπτη ύπνου διαμορφώνουν τις βαθμολογίες.</string>
     <string name="sleep_scores_none">Κανένα τραγούδι αναλυμένο ακόμη. Ανάλυσε τραγούδια παραπάνω και οι βαθμολογίες θα εμφανιστούν εδώ.</string>
     <string name="sleep_normalized_note">Η ένταση μετράει λιγότερο εδώ: η κανονικοποίηση φέρνει κάθε τραγούδι στο ίδιο επίπεδο.</string>
+    <string name="sleep_factor_harshness">Τραχύτητα</string>
+    <string name="analysis_export">Εξαγωγή βαθμολογιών ύπνου</string>
+    <string name="analysis_export_failed">Δεν ήταν δυνατή η εξαγωγή των βαθμολογιών.</string>
 </resources>

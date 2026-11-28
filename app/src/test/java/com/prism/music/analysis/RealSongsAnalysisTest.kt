@@ -62,6 +62,13 @@ class RealSongsAnalysisTest {
             println("=== $name  (%.0f s)".format(seconds))
             println("  decode-side %d ms · scan %d ms · descriptors %d ms · tagger %d ms (%d frames)".format(
                 (t1 - t0) / 1_000_000, (t2 - t1) / 1_000_000, (t3 - t2) / 1_000_000, (t4 - t3) / 1_000_000, out?.frames ?: 0))
+            // The figures the score's calibration reads: timbre (flatness, rolloff) and how much the song shifts between segments.
+            val brights = f.segBright.filter { it > 0f }
+            val brightSwing = if (brights.size >= 2) (brights.max() - brights.min()) / brights.min().coerceAtLeast(1f) else 0f
+            val onsetsSeg = f.segOnsets.filter { it > 0f }
+            val onsetSwing = if (onsetsSeg.size >= 2) onsetsSeg.max() / onsetsSeg.min().coerceAtLeast(0.1f) else 0f
+            println("  flatness %.3f · rolloff %.0f Hz · bright swing %.2f · onset swing %.2fx · segments %d".format(
+                f.flatness, f.rolloffHz, brightSwing, onsetSwing, f.segLoud.size))
             println("  %s BPM (pulse %.2f, steady %s) · %.1f LUFS · LRA %s · onsets %.1f/s · perc %.2f · centroid %.0f Hz · bright %.3f · dance %.2f · sudden %.1f/min (+%.0f LU)".format(
                 f.bpm?.let { "%.0f".format(it) } ?: "-", f.pulseClarity, f.tempoStability?.let { "%.2f".format(it) } ?: "-", f.lufs ?: Float.NaN,
                 f.lra?.let { "%.1f".format(it) } ?: "-", f.onsetRate, f.percussive, f.centroidHz, f.brightShare, f.danceability, f.suddenPerMinute, f.worstRise))

@@ -5862,4 +5862,7 @@
     <string name="sleep_scores_info">ध्वनि विश्लेषण से: हर गाना नींद के लिए कितना उपयुक्त है, सबसे शांत पहले। आपके वोट और टाइमर चलने पर आप जो छोड़ते हैं, स्कोर बनाते हैं।</string>
     <string name="sleep_scores_none">अभी कोई गाना विश्लेषित नहीं हुआ। ऊपर गाने विश्लेषित करें, उनके स्कोर यहाँ दिखेंगे।</string>
     <string name="sleep_normalized_note">यहाँ आवाज़ की तीव्रता कम गिनी जाती है: सामान्यीकरण हर गाने को एक ही स्तर पर लाता है।</string>
+    <string name="sleep_factor_harshness">आवाज़ की कर्कशता</string>
+    <string name="analysis_export">नींद स्कोर निर्यात करें</string>
+    <string name="analysis_export_failed">स्कोर निर्यात नहीं हो सके।</string>
 </resources>

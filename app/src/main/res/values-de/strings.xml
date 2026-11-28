@@ -5862,4 +5862,7 @@
     <string name="sleep_scores_info">Aus der Klanganalyse: wie gut jeder Song zum Schlafen passt, der ruhigste zuerst. Deine Stimmen und was du beim Schlaf-Timer überspringst, formen die Werte.</string>
     <string name="sleep_scores_none">Noch keine Songs analysiert. Analysiere oben Songs, dann erscheinen ihre Werte hier.</string>
     <string name="sleep_normalized_note">Die Lautstärke zählt hier weniger: „Normalisieren“ bringt jeden Song auf dasselbe Niveau.</string>
+    <string name="sleep_factor_harshness">Rauheit</string>
+    <string name="analysis_export">Schlafwerte exportieren</string>
+    <string name="analysis_export_failed">Die Werte konnten nicht exportiert werden.</string>
 </resources>

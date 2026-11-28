@@ -5862,4 +5862,7 @@
     <string name="sleep_scores_info">Ses analizinden: her şarkının uykuya ne kadar uygun olduğu, en sakin önce. Oylarınız ve uyku zamanlayıcısı çalışırken atladıklarınız puanları biçimlendirir.</string>
     <string name="sleep_scores_none">Henüz şarkı analiz edilmedi. Yukarıdan şarkıları analiz edin, puanları burada görünsün.</string>
     <string name="sleep_normalized_note">Ses düzeyi burada daha az sayılır: Normalize her şarkıyı aynı seviyeye getirir.</string>
+    <string name="sleep_factor_harshness">Pürüzlülük</string>
+    <string name="analysis_export">Uyku puanlarını dışa aktar</string>
+    <string name="analysis_export_failed">Puanlar dışa aktarılamadı.</string>
 </resources>

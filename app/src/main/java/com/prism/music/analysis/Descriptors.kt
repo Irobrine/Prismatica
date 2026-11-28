@@ -40,12 +40,17 @@ class LoudnessStats(
  */
 object Descriptors {
     /** Bumped whenever a figure is computed differently: songs analysed the old way are analysed again. */
-    const val VERSION = 1
+    const val VERSION = 2
 
-    /** A rise this big (LU) over the three seconds before it is a sudden loud moment. */
-    const val SUDDEN_LU = 10f
+    /**
+     * A rise this big (LU) over the three seconds before it is a sudden loud moment. 6 rather than 10: a compressed
+     * master (most modern rock and metal) barely moves 10 LU, yet its chorus, break or scream wakes a sleeper anyway —
+     * very song that scored 59 with "+6 LU, 0/min" is why.
+     */
+    const val SUDDEN_LU = 6f
 
     private const val N = 1024
+    /** The smallest onset strength counted as a note or a hit ([onsetFrames]). */
     /** The smallest onset strength counted as a note or a hit ([onsetFrames]). */
     internal const val MIN_ONSET = 3.0
 
@@ -395,7 +400,8 @@ object Descriptors {
         val sd = if (n > 0) kotlin.math.sqrt(max(0.0, sq / n - mean * mean)) else 0.0
         // Well above the music's own onset strength (its mean and twice its spread), and an absolute rise too (summed over
         // the bands, natural-log energy: [MIN_ONSET] is about 13 dB in one band or a few dB across several), so a texture's
-        // frame-to-frame shimmer is never counted as notes.
+        // frame-to-frame shimmer is never counted as notes. (A threshold taken from each second locally was tried and
+        // misread both ways — 0.7 kicks a second in rock, 4 in ambient texture — so the whole song's own figures stand.)
         val threshold = max(mean + 2 * sd, MIN_ONSET)
         val reach = max(1, (0.05 * fps).toInt())
         val gap = max(1, (0.08 * fps).toInt())
@@ -462,11 +468,17 @@ object Descriptors {
         var worst = 0f
         for (t in max(start + 30, 30) until m.size) {
             if (!m[t].isFinite() || m[t] < integ - 20) continue
-            val before = (pre[t - 5] - pre[t - 30]) / 25
+            // Measured over half a second (the last five 100 ms blocks), not three: a chorus, a scream or a break lands at
+            // once, while an ambient pad's slow swell takes seconds and isn't a jolt. Only out of music, and only to near
+            // the song's own level.
+            var audible = 0
+            for (u in t - 30 until t - 5) if (m[u].isFinite() && m[u] > integ - 30f) audible++
+            if (audible < 10) continue
+            val before = (pre[t] - pre[t - 5]) / 5
             val base = if (before > 0) (-0.691 + 10 * log10(before)).toFloat() else integ - 40f
             val rise = m[t] - base
             if (rise > worst) worst = rise
-            if (rise >= SUDDEN_LU && m[t] >= integ - 12 && t - lastEvent > 20) { events++; lastEvent = t }
+            if (rise >= SUDDEN_LU && m[t] >= integ - 6f && t - lastEvent > 20) { events++; lastEvent = t }
         }
         val minutes = (seconds / 60).coerceAtLeast(0.5)
         return (events / minutes).toFloat() to worst.coerceAtLeast(0f)

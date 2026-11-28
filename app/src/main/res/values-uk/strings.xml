@@ -6012,4 +6012,7 @@
     <string name="sleep_scores_info">З аналізу звуку: наскільки кожен трек пасує для сну, найспокійніші першими. Ваші голоси й те, що ви пропускаєте з таймером сну, формують оцінки.</string>
     <string name="sleep_scores_none">Треки ще не проаналізовано. Проаналізуйте треки вище — оцінки з’являться тут.</string>
     <string name="sleep_normalized_note">Гучність тут важить менше: нормалізація приводить кожен трек до одного рівня.</string>
+    <string name="sleep_factor_harshness">Різкість звуку</string>
+    <string name="analysis_export">Експорт оцінок для сну</string>
+    <string name="analysis_export_failed">Не вдалося експортувати оцінки.</string>
 </resources>

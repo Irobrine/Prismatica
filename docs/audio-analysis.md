@@ -123,8 +123,9 @@ MusicBrainz/metadata edits (`SongMetadata`) and user tags (`song_tags`) are neve
 | Beat strength | pulse clarity, percussive ratio | soft or no pulse |
 | Rhythmic regularity | tempo stability across segments | steady (predictable) |
 | Dynamics | LRA, dynamic complexity | small variation |
-| Sudden changes | jumps ≥ 6 LU within 1 s, loud onsets after quiet | none (also caps the score) |
+| Sudden changes (disruptive) | a rise of ≥ 6 LU within half a second, out of music and up to near the song's own level | none (also caps the score) |
 | Brightness | spectral centroid, rolloff | dark |
+| Harshness (disruptive) | spectral flatness | tonal or acoustic — distorted guitars and screams are noise-like even when their spectral share reads "dark" |
 | Event density | onsets per second | sparse |
 | Vocals | YAMNet singing / speech / rap | instrumental (soft weight; configurable) |
 | Instrumentation | YAMNet drums, distorted guitar vs piano, strings, ambient, nature | soft instruments |
@@ -179,7 +180,11 @@ being quiet: every instrumental track got a made-up 99 %, so it filled the revie
 model had measured. It is no longer a tag (rows written then are taken back as the analysis loads); the voice evidence
 still feeds the sleep score's vocals factor. The score and the tags are shown in three places: a song's Sound profile,
 Settings → Sound analysis → Sleep scores (the library, calmest first), and Stats for nerds (the playing song's score,
-read live).
+read live). Sleep scores' "Export sleep scores" writes the whole analysed library as CSV (score, base, completeness,
+every factor's calmness and weight, the figures behind them, tags, the catalog's genre beside the audio's (with a
+`genre-mismatch` flag — a metal track filed as classical stays out of the score, but is worth seeing), and flags for
+sounds that look energetic but score calm), handed to the share sheet — the data for tuning the weights on a real
+library.
 
 ## 7. Validation
 
@@ -209,7 +214,14 @@ Internet Archive's netlabels), run on desktop ONNX Runtime:
 The real-recording run led to these calibration changes, now covered by tests:
 
 - Onset detection got a mean + 2σ threshold with an absolute floor, and bands floored 35 dB under the music. Sustained
-  textures had read 5–7 onsets/s; they now read 0.5–3.7.
+  textures had read 5–7 onsets/s; they now read 0.5–3.7. (A per-second local threshold was tried: it read 0.7 kicks a
+  second in rock and 4 in ambient texture, so the whole song's own figures stayed.)
+- A listener's heavy-metal track scored 59/100 with "Brightness 5 %, Busyness 2.5/s, Sudden 0/min" as its *helps*: three
+  measurements that each miss aggression. Spectral share reads a distorted mix "dark" (most of its energy is low-mid), so
+  the score gained **Harshness** from flatness (tonal music 0.001–0.05, a noise wall 0.10); "sudden" moved from 10 LU over
+  3 s to **6 LU over 0.5 s** (a compressed master never jumps 10, and a chorus hit lands at once while an ambient swell
+  takes seconds); and the metal recording in the validation set fell from 52 to 29. Analysis figures are versioned, so
+  songs analysed by the old extractor are analysed again.
 - Percussiveness moved to the 10 ms bands.
 - Brightness moved to the share of energy above 1.5 kHz. Centroids of bass-heavy mixes all sat at 250–830 Hz.
 - The sleep score became an arousal mean multiplied by disruption penalties. A steady, compressed club track had

@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -34,12 +36,14 @@ import com.prism.music.data.model.Song
 import com.prism.music.data.songsByIds
 import com.prism.music.tr
 import com.prism.music.ui.components.Artwork
+import com.prism.music.ui.components.PrismTextButton
 import com.prism.music.ui.components.SoundProfileSheet
 import com.prism.music.ui.components.SubPage
 import com.prism.music.ui.theme.LocalContainer
 import com.prism.music.ui.theme.LocalUi
 import com.prism.music.ui.theme.PrismIcons
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** A song's score as this screen lists it, with what it's made of (the same figures the Sound profile explains). */
@@ -55,8 +59,26 @@ private class Scored(val song: Song, val score: Int, val result: SleepResult)
 @Composable
 fun SleepScoresScreen(bottomPadding: Dp) {
     val c = LocalContainer.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val changes by c.analysis.changes.collectAsState()
     var shown by remember { mutableStateOf<Song?>(null) }
+    // Every analysed song as CSV, for tuning the score on a real library: scores, each factor and its weight, and the
+    // figures behind them. Shared, never uploaded.
+    fun export() = scope.launch {
+        runCatching {
+            val text = withContext(Dispatchers.IO) { com.prism.music.analysis.SleepScoresExport.csv(c) }
+            val dir = java.io.File(context.cacheDir, "share").apply { mkdirs() }
+            val file = java.io.File(dir, "sleep-scores.csv").apply { writeText(text) }
+            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.share", file)
+            val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/csv")
+                .putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            context.startActivity(android.content.Intent.createChooser(send, tr(R.string.analysis_export)))
+        }.onFailure {
+            android.widget.Toast.makeText(context, tr(R.string.analysis_export_failed), android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
     val rows by produceState(emptyList<Scored>(), changes) {
         value = withContext(Dispatchers.IO) {
             c.analysis.load()
@@ -69,7 +91,10 @@ fun SleepScoresScreen(bottomPadding: Dp) {
             }.sortedWith(compareByDescending<Scored> { it.score }.thenBy { it.song.title.lowercase() })
         }
     }
-    SubPage(tr(R.string.sleep_scores), bottomPadding, subtitle = tr(R.string.sleep_scores_info)) {
+    SubPage(
+        tr(R.string.sleep_scores), bottomPadding, subtitle = tr(R.string.sleep_scores_info),
+        actions = { PrismTextButton(onClick = { export() }) { Text(tr(R.string.analysis_export)) } },
+    ) {
         if (rows.isEmpty()) item("none") {
             Text(
                 tr(R.string.sleep_scores_none), style = MaterialTheme.typography.bodyMedium,

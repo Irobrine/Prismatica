@@ -5862,4 +5862,7 @@
     <string name="sleep_scores_info">از تحلیل صدا: هر آهنگ چقدر برای خواب مناسب است، آرام‌ترین اول. رأی‌های شما و آنچه با تایمر خواب رد می‌کنید، امتیازها را شکل می‌دهند.</string>
     <string name="sleep_scores_none">هنوز آهنگی تحلیل نشده. آهنگ‌ها را در بالا تحلیل کنید تا امتیازهایشان اینجا بیاید.</string>
     <string name="sleep_normalized_note">بلندی صدا اینجا کمتر حساب می‌شود: نرمال‌سازی همه آهنگ‌ها را هم‌سطح می‌کند.</string>
+    <string name="sleep_factor_harshness">زبری صدا</string>
+    <string name="analysis_export">برون‌بری امتیازهای خواب</string>
+    <string name="analysis_export_failed">امتیازها برون‌بری نشدند.</string>
 </resources>

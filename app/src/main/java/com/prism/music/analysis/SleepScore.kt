@@ -30,6 +30,7 @@ enum class SleepFactor(val label: Int, val weight: Float, val disruptive: Boolea
     INSTRUMENTS(R.string.sleep_factor_instruments, 0.8f),
     MOOD(R.string.sleep_factor_mood, 0.5f),
     CONSISTENCY(R.string.sleep_factor_consistency, 0.35f, disruptive = true),
+    HARSHNESS(R.string.sleep_factor_harshness, 0.45f, disruptive = true),
 }
 
 /** The listener's say in how songs are scored (Settings → Sound analysis). */
@@ -187,6 +188,7 @@ object SleepScore {
     }
 
     private fun f1(x: Float) = "%.1f".format(x)
+    private fun f2(x: Float) = "%.2f".format(x)
     private fun f0(x: Float) = x.roundToInt().toString()
 
     private fun factors(f: SongFeatures, scores: FloatArray?): List<Raw> {
@@ -232,6 +234,10 @@ object SleepScore {
             out += Raw(SleepFactor.BRIGHTNESS, down(f.centroidHz, 500f, 1200f), 1f, "${f0(f.centroidHz)} Hz")
         }
         out += Raw(SleepFactor.DENSITY, down(f.onsetRate, 1.5f, 5f), 1f, "${f1(f.onsetRate)}/s")
+        // Harshness: how noise-like the sound is (spectral flatness). Distorted guitars, cymbals and screams are noise with
+        // most of their energy low-mid, so a metal mix can read "dark" by spectral share (a sample at 5 % above 1.5 kHz) and
+        // 59/100 with it. Measured on real recordings: tonal or acoustic music sits at 0.001–0.05, a noise wall at 0.10.
+        if (f.flatness > 0f) out += Raw(SleepFactor.HARSHNESS, down(f.flatness, 0.04f, 0.10f), 1f, "flat ${f2(f.flatness)}")
         // A song of three segments says less about how even it is than one of twenty.
         consistency(f)?.let { (calm, detail) -> out += Raw(SleepFactor.CONSISTENCY, calm, 1f, detail, (f.segLoud.size / 6f).coerceIn(0f, 1f)) }
         if (scores != null) tagged(scores, out)

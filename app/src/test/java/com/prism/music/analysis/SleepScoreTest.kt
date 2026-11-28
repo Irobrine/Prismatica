@@ -9,12 +9,12 @@ import org.junit.Test
 class SleepScoreTest {
     private val calm = SongFeatures(
         seconds = 240f, lufs = -21f, lra = 4f, maxMomentary = -15f, dynamicComplexity = 1.5f, bpm = 70f, pulseClarity = 0.1f,
-        tempoStability = 0.9f, onsetRate = 1.0f, percussive = 0.1f, centroidHz = 700f, rolloffHz = 1500f,
+        tempoStability = 0.9f, onsetRate = 1.0f, percussive = 0.1f, centroidHz = 700f, rolloffHz = 1500f, flatness = 0.02f,
         segLoud = List(24) { -21f + (it % 2) * 0.5f }, segBright = List(24) { 700f },
     )
     private val club = SongFeatures(
         seconds = 240f, lufs = -6f, lra = 5f, maxMomentary = -3f, dynamicComplexity = 2f, bpm = 128f, pulseClarity = 0.95f,
-        tempoStability = 1f, onsetRate = 6f, percussive = 0.7f, centroidHz = 2600f, rolloffHz = 5000f,
+        tempoStability = 1f, onsetRate = 6f, percussive = 0.7f, centroidHz = 2600f, rolloffHz = 5000f, flatness = 0.08f,
         segLoud = List(24) { -6f }, segBright = List(24) { 2600f },
     )
 

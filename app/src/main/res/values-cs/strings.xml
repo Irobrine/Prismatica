@@ -6012,4 +6012,7 @@
     <string name="sleep_scores_info">Z analýzy zvuku: jak každá skladba sedí ke spánku, od nejklidnější. Vaše hlasy a to, co přeskakujete u časovače spánku, skóre utváří.</string>
     <string name="sleep_scores_none">Zatím žádné skladby neanalyzovány. Analyzujte skladby výše a jejich skóre se objeví tady.</string>
     <string name="sleep_normalized_note">Hlasitost tu váží méně: normalizace srovná každou skladbu na stejnou úroveň.</string>
+    <string name="sleep_factor_harshness">Drsnost</string>
+    <string name="analysis_export">Exportovat skóre spánku</string>
+    <string name="analysis_export_failed">Skóre se nepodařilo exportovat.</string>
 </resources>

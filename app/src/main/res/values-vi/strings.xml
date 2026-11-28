@@ -5787,4 +5787,7 @@
     <string name="sleep_scores_info">Từ phân tích âm thanh: mỗi bài phù hợp với giấc ngủ đến đâu, êm nhất trước. Đánh giá của bạn và những bài bạn bỏ qua khi hẹn giờ ngủ định hình điểm số.</string>
     <string name="sleep_scores_none">Chưa có bài nào được phân tích. Hãy phân tích bài ở trên, điểm sẽ hiện ở đây.</string>
     <string name="sleep_normalized_note">Độ lớn âm lượng ít quan trọng hơn ở đây: Chuẩn hóa đưa mọi bài về cùng một mức.</string>
+    <string name="sleep_factor_harshness">Độ chói gắt</string>
+    <string name="analysis_export">Xuất điểm ngủ</string>
+    <string name="analysis_export_failed">Không thể xuất điểm.</string>
 </resources>

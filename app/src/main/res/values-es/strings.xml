@@ -5937,4 +5937,7 @@
     <string name="sleep_scores_info">Según el análisis de sonido: qué tan bien va cada canción para dormir, de la más tranquila a la menos. Tus votos y lo que te saltas con el temporizador de sueño dan forma a las puntuaciones.</string>
     <string name="sleep_scores_none">Aún no hay canciones analizadas. Analiza canciones arriba y sus puntuaciones aparecerán aquí.</string>
     <string name="sleep_normalized_note">El volumen cuenta menos aquí: la normalización lleva cada canción al mismo nivel.</string>
+    <string name="sleep_factor_harshness">Aspereza</string>
+    <string name="analysis_export">Exportar puntuaciones de sueño</string>
+    <string name="analysis_export_failed">No se pudieron exportar las puntuaciones.</string>
 </resources>

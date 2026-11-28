@@ -5787,4 +5787,7 @@
     <string name="sleep_scores_info">來自聲音分析：每首歌有多適合入睡，最平靜的在前。你的評價和睡眠計時器運作時略過的歌曲會影響分數。</string>
     <string name="sleep_scores_none">還沒有分析任何歌曲。在上方分析歌曲後，分數會顯示在這裡。</string>
     <string name="sleep_normalized_note">這裡的響度比重較低：響度正規化會把每首歌帶到相同音量。</string>
+    <string name="sleep_factor_harshness">聲音的粗糙度</string>
+    <string name="analysis_export">匯出睡眠分數</string>
+    <string name="analysis_export_failed">無法匯出分數。</string>
 </resources>

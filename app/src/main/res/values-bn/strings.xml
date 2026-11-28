@@ -5862,4 +5862,7 @@
     <string name="sleep_scores_info">শব্দ বিশ্লেষণ থেকে: প্রতিটি গান ঘুমের জন্য কতটা উপযুক্ত, সবচেয়ে শান্ত আগে। আপনার ভোট ও টাইমার চলার সময় যা বাদ দেন, স্কোর গড়ে তোলে।</string>
     <string name="sleep_scores_none">এখনও কোনো গান বিশ্লেষিত হয়নি। উপরে গান বিশ্লেষণ করুন, স্কোর এখানে দেখাবে।</string>
     <string name="sleep_normalized_note">এখানে আওয়াজের মাত্রা কম ধরা হয়: নরমালাইজ প্রতিটি গানকে একই মাত্রায় আনে।</string>
+    <string name="sleep_factor_harshness">শব্দের কর্কশতা</string>
+    <string name="analysis_export">ঘুমের স্কোর রপ্তানি করুন</string>
+    <string name="analysis_export_failed">স্কোর রপ্তানি করা গেল না।</string>
 </resources>

@@ -5937,4 +5937,7 @@
     <string name="sleep_scores_info">Dall’analisi del suono: quanto ogni brano è adatto al sonno, dal più calmo al meno. I tuoi voti e ciò che salti con il timer del sonno modellano i punteggi.</string>
     <string name="sleep_scores_none">Nessun brano analizzato. Analizza dei brani qui sopra e i punteggi compariranno qui.</string>
     <string name="sleep_normalized_note">Il volume conta meno qui: la normalizzazione porta ogni brano allo stesso livello.</string>
+    <string name="sleep_factor_harshness">Asprezza</string>
+    <string name="analysis_export">Esporta i punteggi sonno</string>
+    <string name="analysis_export_failed">Impossibile esportare i punteggi.</string>
 </resources>
