@@ -36,8 +36,14 @@ class MeasureSongs(
     private val scope: CoroutineScope,
     /** The scan itself: the form to measure, the song it plays for (when that's another id), and whether to use the network. */
     private val measure: suspend (formId: String, sourceSongId: String?, network: Boolean) -> Unit,
-    /** Whether the form's figure is from the current scan ([com.prism.music.playback.MixTempo.loudnessCurrent]). */
-    private val measured: (formId: String) -> Boolean,
+    /**
+     * Whether the pair is done: the form's figure is from the current scan
+     * ([com.prism.music.playback.MixTempo.loudnessCurrent]), or — for the analysis, where [songId] is [formId]'s song —
+     * both the form's and the song's analyses are current. The song's own matters because a song can play as another
+     * recording's form (a version picked for it, a file matched to it): that form being analysed says nothing about the
+     * song's own analysis, which is the one its page shows.
+     */
+    private val measured: (formId: String, songId: String) -> Boolean,
     /** The recording a song plays as ([com.prism.music.playback.Loudness.formId], with no music video armed). */
     private val formOf: (songId: String) -> String,
     /**
@@ -85,8 +91,12 @@ class MeasureSongs(
      * kept from being scanned ([skipped]).
      */
     fun pending(songIds: List<String>): List<Pair<String, String>> =
-        songIds.map { formOf(it) to it }.distinctBy { it.first }
-            .filter { !measured(it.first) && !skipped(it.first) && !skipped(it.second) }
+        songIds.map { formOf(it) to it }
+            // One scan per form, but the song it's walked for is one that's still to do: two songs can play as the same
+            // recording, and the scan writes the row of the song it's told about.
+            .groupBy { it.first }
+            .map { (_, same) -> same.firstOrNull { !measured(it.first, it.second) } ?: same.first() }
+            .filter { !measured(it.first, it.second) && !skipped(it.first) && !skipped(it.second) }
 
     /** How many of [songIds] are left out of [pending] because they're kept from being scanned, once per form. */
     fun kept(songIds: List<String>): Int =
@@ -132,7 +142,7 @@ class MeasureSongs(
     fun resume() {
         if (running.value) return
         couldnt.value = null
-        val left = walkSet.filter { !measured(it.first) && !skipped(it.first) && !skipped(it.second) }
+        val left = walkSet.filter { !measured(it.first, it.second) && !skipped(it.first) && !skipped(it.second) }
         if (left.isEmpty()) {
             progress.value = null
             return
@@ -192,7 +202,7 @@ class MeasureSongs(
                     // for a stream) are said instead: the count would otherwise clear as if they had all been done.
                     if (finished) {
                         progress.value = null
-                        couldnt.value = items.filter { !measured(it.first) }.takeIf { it.isNotEmpty() }
+                        couldnt.value = items.filter { !measured(it.first, it.second) }.takeIf { it.isNotEmpty() }
                     }
                 }
             }

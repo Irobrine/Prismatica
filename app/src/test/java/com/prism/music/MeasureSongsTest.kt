@@ -46,7 +46,7 @@ class MeasureSongsTest {
         metered: Boolean = false,
         width: () -> Int = { 1 },
         measure: suspend (String, String?, Boolean) -> Unit = { form, song, network -> asked += Triple(form, song, network); measuredNow += form },
-    ) = MeasureSongs(scope, measure, { it in measuredNow }, { versions[it] ?: it }, width = width, unmetered = { !metered })
+    ) = MeasureSongs(scope, measure, { form, _ -> form in measuredNow }, { versions[it] ?: it }, width = width, unmetered = { !metered })
 
 
     /** Waits for [check] to hold (the walk runs on threads of its own), failing with what was waited for instead of hanging. */
@@ -80,6 +80,29 @@ class MeasureSongsTest {
         val e = engine()
         assertEquals("'a' plays as 'cover', which is measured, and 'b' is", listOf("c" to "c"), e.pending(listOf("a", "b", "c", "c")))
         assertEquals(emptyList<Pair<String, String>>(), e.pending(emptyList()))
+    }
+
+    /**
+     * A song that plays as another recording's form is still work while its *own* analysis is from an older version: the
+     * form being analysed says nothing about the row the song's page shows, so both count.
+     */
+    @Test fun aSongsOwnAnalysisCountsEvenWhenItsFormIsCurrent() {
+        versions["a"] = "cover"
+        val current = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+        val e = MeasureSongs(
+            scope,
+            { form, song, _ -> asked += Triple(form, song, false); current += form; current += song!! },
+            { form, song -> form in current && song in current },
+            { versions[it] ?: it },
+            unmetered = { false },
+        )
+        // The form is analysed (a newer version of the recording) but the song's own row isn't.
+        current += "cover"
+        assertEquals("the song's own analysis is work too", listOf("cover" to "a"), e.pending(listOf("a")))
+        e.start(e.pending(listOf("a")), network = false)
+        until("the walk") { e.progress.value == null && !e.running.value }
+        assertEquals(listOf(Triple("cover", "a", false)), asked.toList())
+        assertEquals("and both are current now", emptyList<Pair<String, String>>(), e.pending(listOf("a")))
     }
 
     /** One at a time, and the count is what has been walked: 0 of 3 while the first is measured, 3 of 3 at the end. */
@@ -219,7 +242,7 @@ class MeasureSongsTest {
             scope,
             // The scan runs but leaves no figure: a stream that can't play, say.
             { form, _, _ -> asked += Triple(form, null, false) },
-            { it in measuredNow },
+            { form, _ -> form in measuredNow },
             { versions[it] ?: it },
             unmetered = { false },
             skipped = { it in kept },

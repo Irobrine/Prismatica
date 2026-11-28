@@ -586,9 +586,12 @@ class MixTempo(
         /** A job Android scheduled (charging, screen off), with limits of its own rather than [BackgroundBudget]'s. */
         scheduled: Boolean = false,
     ): Tempo? {
+        // The analyses this scan would redo: the recording's, and the song's own when it plays as that recording (a
+        // version picked for it, a file matched to it) — the song's row is the one its page shows, so it counts as work.
+        fun wantsAnalysis(x: String) = (analyse && analyzer?.needs(x) == true) || (refresh && analyzer?.stale(x) == true)
+        fun outOfDate() = wantsAnalysis(id) || (sourceSongId?.takeIf { it != id }?.let(::wantsAnalysis) == true)
         fun done() = scanned(id) && !(edges && old(id)) && !(key && !keyed(id)) && !(wave && waves?.has(id) == false) &&
-            !(peak && (noPeak(id) || loudnessOld(id))) && !(analyse && analyzer?.needs(id) == true) &&
-            !(refresh && analyzer?.stale(id) == true)
+            !(peak && (noPeak(id) || loudnessOld(id))) && !outOfDate()
         // Kept from being scanned ([skip]): its figure can't be had, so neither a walk nor a play asks again.
         if (skipped(id) || (sourceSongId != null && skipped(sourceSongId))) return cached(id)
         if (done() || hasFailed(id)) return cached(id)
@@ -611,7 +614,7 @@ class MixTempo(
                         AudioDiagnostics.log("background", "song scan of $id started (Normalize/Crossfade/DJ)")
                         // Any scan reads the sound analysis' descriptors too when the song has none yet (they come from
                         // the same decode, for a fraction of its cost); the tagger's windows only when its model is here.
-                        val describe = analyzer?.needs(id) == true
+                        val describe = listOfNotNull(id, sourceSongId?.takeIf { it != id }).any { analyzer?.needs(it) == true }
                         val tagger = describe && analyzer?.taggerReady() == true
                         val r = try {
                             runCatching { BackgroundBudget.asJob(scheduled) { scan(id, network, sourceSongId, describe, tagger) } }

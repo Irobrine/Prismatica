@@ -77,8 +77,12 @@ fun SoundProfileSheet(song: Song, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val changes by c.analysis.changes.collectAsState()
     val formId = remember(song.id) { runCatching { c.loudnessIndex.formId(song.id, null) }.getOrDefault(song.id) }
-    // The analysis is filed under the recording heard (its form) and the song it played for.
-    val id = remember(changes) { listOf(song.id, formId).firstOrNull { c.analysis.has(it) } }
+    // The analysis is filed under the recording heard (its form) and the song it played for: the current one of the two
+    // is shown (a song can keep an older analysis of its own while the recording it plays as has a newer one).
+    val id = remember(changes) {
+        val both = listOf(song.id, formId).distinct()
+        both.firstOrNull { c.analysis.has(it) && !c.analysis.needs(it) } ?: both.firstOrNull { c.analysis.has(it) }
+    }
     var analysing by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
     // A scan of the recording heard, for the analysis: the same decode the player's figure comes from.
@@ -98,8 +102,8 @@ fun SoundProfileSheet(song: Song, onDismiss: () -> Unit) {
     }
     PrismSheet(onDismiss) { _ ->
         val result: SleepResult? = remember(id, changes) { id?.let { c.analysis.sleepResult(it) } }
-        // Analysed by older descriptors or an older tagger: what's shown is from before, and a scan redos it.
-        val outOfDate = remember(id, changes) { id != null && c.analysis.stale(id) }
+        // Analysed by older descriptors or an older tagger (neither of the two is current): a scan redos it.
+        val outOfDate = remember(id, changes) { id != null && c.analysis.needs(id) }
         val provenance by produceState<com.prism.music.data.db.SongAnalysisEntity?>(null, id, changes) {
             value = id?.let { withContext(Dispatchers.IO) { runCatching { c.analysis.provenance(it) }.getOrNull() } }
         }

@@ -38,8 +38,10 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
     private suspend fun walk(c: com.prism.music.AppContainer, idle: () -> Boolean): Result {
         val oneLevel = c.playsAtOneLevel()
-        val forms = candidates(applicationContext).filter { (form, _) ->
-            (c.analysis.needs(form) || (oneLevel && !c.mixTempo.normalizationReady(form))) && !c.mixTempo.skipped(form)
+        val forms = candidates(applicationContext).filter { (form, song) ->
+            // The song's own analysis counts too: it may be a form's song whose own row is from an older version.
+            (c.analysis.needs(form) || c.analysis.needs(song) || (oneLevel && !c.mixTempo.normalizationReady(form))) &&
+                !c.mixTempo.skipped(form)
         }
         if (forms.isEmpty()) return Result.success()
         val started = System.currentTimeMillis()
@@ -55,7 +57,7 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
                         deferToPlaying = true, analyse = true, scheduled = true,
                     )
                 }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
-                if (!c.analysis.needs(form) && (!oneLevel || c.mixTempo.normalizationReady(form))) done++
+                if (!c.analysis.needs(form) && !c.analysis.needs(song) && (!oneLevel || c.mixTempo.normalizationReady(form))) done++
             }
         } ?: run { interrupted = true }
         Log.i(TAG, "analysed $done of ${forms.size} songs in ${(System.currentTimeMillis() - started) / 1000} s" + if (interrupted) " (more later)" else "")
@@ -87,7 +89,9 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
             return (played + liked + downloaded + local).distinct()
                 .filter { it.startsWith(com.prism.music.data.model.Song.LOCAL_PREFIX) || c.availableOffline(it) }
                 .map { c.loudnessIndex.formId(it, null) to it }
-                .distinctBy { it.first }
+                // One scan per form: of a song still to do when several play as the same recording.
+                .groupBy { it.first }
+                .map { (_, same) -> same.firstOrNull { (form, song) -> c.analysis.needs(form) || c.analysis.needs(song) } ?: same.first() }
         }
 
         /** The daily job, as the setting says (kept, or put back with the charging rule changed; removed when off). */

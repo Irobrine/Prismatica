@@ -738,7 +738,7 @@ class AppContainer(val app: Application) {
                     deferToPlaying = true,
                 )
             },
-            { form -> mixTempo.loudnessCurrent(form) },
+            { form, _ -> mixTempo.loudnessCurrent(form) },
             { id -> loudnessIndex.formId(id, null) },
             // Two at once on a phone that can spare them: one song's decoding overlaps the other's analysis (1.9).
             { if (mixTempo.mayScanTwice()) 2 else 1 },
@@ -768,11 +768,12 @@ class AppContainer(val app: Application) {
                     deferToPlaying = true, analyse = true,
                 )
             },
-            // Done: the sound analysis has something current for it, and — with Normalize on — the player has a figure to
-            // play it at. The tagger's version counts when its model is on.
-            { form ->
+            // Done: the sound analysis has something current for it — for the recording heard *and* for the song itself,
+            // which can have an analysis of its own from before it played as that recording — and, with Normalize on, the
+            // player has a figure to play it at. The tagger's version counts when its model is on.
+            { form, song ->
                 runCatching {
-                    !analysis.needs(form) && (!playsAtOneLevel() || mixTempo.normalizationReady(form))
+                    !analysis.needs(form) && !analysis.needs(song) && (!playsAtOneLevel() || mixTempo.normalizationReady(form))
                 }.getOrDefault(false)
             },
             { id -> loudnessIndex.formId(id, null) },

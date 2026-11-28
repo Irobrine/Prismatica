@@ -84,6 +84,10 @@ leans on the listener's own feedback as soon as there is any.
   tagger) is scanned again when it plays (`MixTempo.measure`'s `refresh`, asked by the player for the form it's hearing):
   one decode, once per song, not the whole library's. Until then the old analysis still shows; the Sound profile says it's
   from an earlier version and offers "Analyse again" for that song now. "Analyse now" and the daily job redo the rest.
+  Both of a song's rows count: the recording's, and the song's own (a song can play as another recording's form — a version
+  picked for it, a file matched to it — and that recording being current says nothing about the row the song's page shows).
+  A scan asked for either analyses both, so a walk over songs whose form is already current still redoes them, and their
+  own row is written with the form's.
 - **Modular.** `Descriptors` (pure Kotlin, JVM-testable), `AudioTagger` (interface; YAMNet is one implementation),
   `SleepScore` (pure function of features + tags + personal model), `Similarity`, `QueueSequencer` — each replaceable.
 
