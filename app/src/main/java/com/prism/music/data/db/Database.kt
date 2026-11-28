@@ -688,16 +688,18 @@ interface LyricsSearchDao {
     @Query("SELECT songId, content FROM lyrics WHERE content LIKE '%' || :word || '%' LIMIT :limit")
     suspend fun containing(word: String, limit: Int): List<LyricsText>
 
-    /** Every saved lyrics text: what lyrics mode searches (the songs' words on this phone, offline). */
-    @Query("SELECT songId, content FROM lyrics WHERE content != ''")
-    suspend fun allSaved(): List<LyricsText>
-
-    /** Changes whenever a saved lyrics text is added or replaced, so lyrics mode reads the table again only then. */
-    @Query("SELECT COUNT(*) || ':' || IFNULL(MAX(fetchedAt), 0) FROM lyrics WHERE content != ''")
-    suspend fun savedStamp(): String
+    /**
+     * Saved lyrics (and misses, which take a source's lyrics away) after [row], a page at a time: lyrics mode reads the
+     * table once, then only what was saved since. A saved row (a REPLACE too) gets a rowid above every other, so the
+     * new ones are found by rowid alone, a seek rather than a scan.
+     */
+    @Query("SELECT rowid AS rowNumber, songId, source, content, fetchedAt FROM lyrics WHERE rowid > :after ORDER BY rowid LIMIT :limit")
+    suspend fun savedAfter(after: Long, limit: Int): List<LyricsRow>
 }
 
 data class LyricsText(val songId: String, val content: String)
+
+data class LyricsRow(@androidx.room.ColumnInfo(name = "rowNumber") val row: Long, val songId: String, val source: String, val content: String, val fetchedAt: Long)
 
 @Dao
 interface MetaDao {

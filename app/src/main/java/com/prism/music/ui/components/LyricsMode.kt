@@ -105,6 +105,9 @@ fun lyricExtras(byName: List<com.prism.music.data.model.Song>, matches: List<Sav
 fun LyricsModeToggle(mode: LyricsMode, query: String, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     val on = mode.on
+    // The field is being typed in: the saved lyrics are read now, so a search with the toggle on doesn't wait for them.
+    val c = LocalContainer.current
+    androidx.compose.runtime.LaunchedEffect(Unit) { c.savedLyricsSearch.warm() }
     val description = tr(R.string.search_lyrics_mode_description)
     Row(
         modifier.height(32.dp).clip(CircleShape)
