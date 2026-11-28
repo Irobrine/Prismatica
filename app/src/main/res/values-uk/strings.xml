@@ -5995,10 +5995,17 @@
     <string name="analysis_tagger_info">Завантажує модель YAMNet від Google і запускає її на телефоні (%1$s).</string>
     <string name="analysis_vocals_count">Вокал знижує оцінку для сну</string>
     <string name="analysis_vocals_count_info">Вимкніть, якщо засинаєте під голоси: спів і мовлення не знижуватимуть оцінку треку.</string>
-    <string name="analysis_now_info">Аналізує треки на телефоні зараз, поступаючись тому, що грає.</string>
+    <string name="analysis_now_info">Аналізує у фоні, по одному треку; уже проаналізовані пропускаються. Поки триває, торкання тут зупиняє; потім торкання продовжує з місця зупинки.</string>
     <string name="analysis_count">Проаналізовано треків: %1$d</string>
     <string name="analysis_review_tags">Переглянути запропоновані мітки</string>
     <string name="analysis_review_none">Нічого переглядати.</string>
     <string name="analysis_keywords">оцінка сон мітки жанр настрій інструменти вокал аналіз yamnet схожі автовідтворення</string>
     <string name="license_yamnet">YAMNet (модель міток звуку)</string>
+    <string name="analysing_n_of_n">Аналіз %1$d із %2$d…</string>
+    <string name="analysis_stopped_at">Зупинено на %1$d із %2$d, торкніться, щоб продовжити</string>
+    <string name="analysis_couldnt_some">Не вдалося проаналізувати: %1$s</string>
+    <string name="analysis_dont">Не аналізувати</string>
+    <string name="analysis_again">Проаналізувати ще раз</string>
+    <string name="analysis_not_done">%1$s без аналізу</string>
+    <string name="analysis_on_wi_fi">Аналізує треки на цьому телефоні. Через Wi-Fi аналізуються й інші.</string>
 </resources>

@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.performSemanticsAction
@@ -13,7 +14,9 @@ import androidx.navigation.compose.ComposeNavigator
 import com.prism.music.data.HistoryPause
 import com.prism.music.data.PlayCount
 import com.prism.music.data.db.ImportedPlayEntity
+import com.prism.music.data.db.toEntity
 import com.prism.music.data.imports.ImportSource
+import com.prism.music.data.model.songCount
 import com.prism.music.data.prefs.AppSettings
 import com.prism.music.data.prefs.ThemeMode
 import com.prism.music.ui.Routes
@@ -148,6 +151,38 @@ class RecommendationsHistoryPageTest : ListeningPageHarness(SettingsPageId.RECOM
     }
 
     /** Principle 8: every stored setting the ledger gives Recommendations & history has its control here, and the control stores it. */
+    /**
+     * "Analyse now": the same walk and sheet as "Measure songs now" (SoundQualityPageTest's), here from the Sound analysis
+     * group — the row says how far the walk is, a tap stops it, and a tap again opens the sets it can run.
+     */
+    @Test fun analyseNowWalksASetAndStops() {
+        // One song of the listener's, a file on the phone: the walk needs no network for it.
+        val own = com.prism.music.data.model.Song("${com.prism.music.data.model.Song.LOCAL_PREFIX}9001", "Own song")
+        runBlocking { container.db.songs().upsertAll(listOf(own.toEntity().copy(liked = true, likedAt = 1L))) }
+        show()
+        compose.waitUntil(5_000) { container.library.likedIds.value == setOf(own.id) }
+        val rowTitle = t(R.string.analysis_now)
+        assertEquals(SettingsTags.ROW_LINK, typeOf(rowTitle))
+        // Running: the row says how far; a tap stops the walk (and starts no sheet).
+        container.analyseSongs.progress.value = 2 to 5
+        container.analyseSongs.running.value = true
+        compose.waitForIdle()
+        assertEquals(t(R.string.analysing_n_of_n, 2, 5), valueOf(rowTitle))
+        tap(rowTitle)
+        assertEquals("tapping the row while it runs stops the walk", 0, sheets())
+        container.analyseSongs.running.value = false
+        compose.waitForIdle()
+        assertEquals("a stopped walk keeps its count to carry on from", t(R.string.analysis_stopped_at, 2, 5), valueOf(rowTitle))
+        tap(rowTitle)
+        assertEquals("not the sheet", 0, sheets())
+        compose.waitUntil(5_000) { valueOf(rowTitle) == "" }
+        // Idle: the sets, each with what's left of it (nothing analysed yet, so the liked song is work).
+        tap(rowTitle)
+        assertEquals(1, sheets())
+        assertEquals(songCount(1), valueOf(t(R.string.liked_songs)))
+        compose.onNode(rowIs(t(R.string.downloaded))).assertIsNotEnabled()
+    }
+
     @Test fun everyStoredSettingHasItsControl() {
         show(over = signedIn)
         val d = AppSettings()

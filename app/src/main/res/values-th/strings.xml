@@ -5770,10 +5770,17 @@
     <string name="analysis_tagger_info">ดาวน์โหลดโมเดล YAMNet ของ Google และรันบนโทรศัพท์ (%1$s)</string>
     <string name="analysis_vocals_count">เสียงร้องลดคะแนนการนอน</string>
     <string name="analysis_vocals_count_info">ปิดไว้ถ้าคุณหลับไปกับเสียงคน: การร้องและการพูดจะไม่ทำให้เพลงเสียคะแนน</string>
-    <string name="analysis_now_info">วิเคราะห์เพลงในโทรศัพท์ตอนนี้ โดยให้สิ่งที่กำลังเล่นได้ก่อน</string>
+    <string name="analysis_now_info">วิเคราะห์เบื้องหลังทีละเพลง เพลงที่วิเคราะห์แล้วจะถูกข้าม ระหว่างทำงาน แตะที่นี่เพื่อหยุด หลังจากนั้นแตะเพื่อทำต่อจากที่หยุดไว้</string>
     <string name="analysis_count">วิเคราะห์แล้ว %1$d เพลง</string>
     <string name="analysis_review_tags">ตรวจแท็กที่แนะนำ</string>
     <string name="analysis_review_none">ไม่มีอะไรให้ตรวจ</string>
     <string name="analysis_keywords">คะแนนการนอน แท็ก แนวเพลง อารมณ์ เครื่องดนตรี เสียงร้อง วิเคราะห์ yamnet คล้ายกัน เล่นอัตโนมัติ</string>
     <string name="license_yamnet">YAMNet (โมเดลติดแท็กเสียง)</string>
+    <string name="analysing_n_of_n">กำลังวิเคราะห์ %1$d จาก %2$d…</string>
+    <string name="analysis_stopped_at">หยุดที่ %1$d จาก %2$d แตะเพื่อทำต่อ</string>
+    <string name="analysis_couldnt_some">วิเคราะห์ %1$s ไม่ได้</string>
+    <string name="analysis_dont">ไม่วิเคราะห์</string>
+    <string name="analysis_again">วิเคราะห์อีกครั้ง</string>
+    <string name="analysis_not_done">%1$s ยังไม่ได้วิเคราะห์</string>
+    <string name="analysis_on_wi_fi">วิเคราะห์เพลงในโทรศัพท์นี้ บน Wi-Fi จะวิเคราะห์เพลงอื่นด้วย</string>
 </resources>

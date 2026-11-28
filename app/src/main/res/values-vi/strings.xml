@@ -5770,10 +5770,17 @@
     <string name="analysis_tagger_info">Tải mô hình YAMNet của Google và chạy trên điện thoại (%1$s).</string>
     <string name="analysis_vocals_count">Giọng hát làm giảm điểm ngủ</string>
     <string name="analysis_vocals_count_info">Tắt nếu bạn ngủ cùng giọng nói: hát và nói sẽ không bị trừ điểm.</string>
-    <string name="analysis_now_info">Phân tích ngay các bài trên điện thoại, nhường ưu tiên cho bài đang phát.</string>
+    <string name="analysis_now_info">Phân tích trong nền, từng bài một; bài đã phân tích được bỏ qua. Khi đang chạy, chạm vào đây để dừng; sau đó chạm để tiếp tục từ chỗ đã dừng.</string>
     <string name="analysis_count">Đã phân tích %1$d bài</string>
     <string name="analysis_review_tags">Xem lại thẻ được gợi ý</string>
     <string name="analysis_review_none">Không có gì để xem lại.</string>
     <string name="analysis_keywords">điểm ngủ thẻ thể loại tâm trạng nhạc cụ giọng hát phân tích yamnet giống nhau tự động phát</string>
     <string name="license_yamnet">YAMNet (mô hình gắn thẻ âm thanh)</string>
+    <string name="analysing_n_of_n">Đang phân tích %1$d trên %2$d…</string>
+    <string name="analysis_stopped_at">Đã dừng ở %1$d trên %2$d, chạm để tiếp tục</string>
+    <string name="analysis_couldnt_some">Không thể phân tích %1$s</string>
+    <string name="analysis_dont">Không phân tích</string>
+    <string name="analysis_again">Phân tích lại</string>
+    <string name="analysis_not_done">%1$s chưa phân tích</string>
+    <string name="analysis_on_wi_fi">Phân tích các bài trên điện thoại này. Trên Wi-Fi, các bài khác cũng được phân tích.</string>
 </resources>

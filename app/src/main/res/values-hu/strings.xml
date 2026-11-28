@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">Letölti a Google YAMNet modelljét, és a telefonon futtatja (%1$s).</string>
     <string name="analysis_vocals_count">Az ének csökkenti az alvási pontszámot</string>
     <string name="analysis_vocals_count_info">Kapcsold ki, ha hangokra alszol el: az ének és a beszéd ekkor nem számít a dal ellen.</string>
-    <string name="analysis_now_info">Most elemzi a telefonon lévő dalokat, elsőbbséget adva annak, ami szól.</string>
+    <string name="analysis_now_info">A háttérben elemez, egyszerre egy dalt; a már elemzetteket kihagyja. Futás közben egy koppintás itt megállítja; utána egy koppintás onnan folytatja, ahol abbahagyta.</string>
     <string name="analysis_count">%1$d dal elemezve</string>
     <string name="analysis_review_tags">Javasolt címkék áttekintése</string>
     <string name="analysis_review_none">Nincs mit áttekinteni.</string>
     <string name="analysis_keywords">alvási pontszám címkék műfaj hangulat hangszerek ének elemzés yamnet hasonló automatikus lejátszás</string>
     <string name="license_yamnet">YAMNet (hangcímkéző modell)</string>
+    <string name="analysing_n_of_n">%1$d / %2$d elemzése…</string>
+    <string name="analysis_stopped_at">Megállva: %1$d / %2$d, koppints a folytatáshoz</string>
+    <string name="analysis_couldnt_some">Nem sikerült elemezni: %1$s</string>
+    <string name="analysis_dont">Ne elemezd</string>
+    <string name="analysis_again">Elemzés újra</string>
+    <string name="analysis_not_done">%1$s nincs elemezve</string>
+    <string name="analysis_on_wi_fi">A telefonon lévő dalokat elemzi. Wi-Fi-n a többieket is elemzi.</string>
 </resources>

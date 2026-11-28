@@ -5770,10 +5770,17 @@
     <string name="analysis_tagger_info">GoogleのYAMNetモデルをダウンロードし、端末上で実行します（%1$s）。</string>
     <string name="analysis_vocals_count">ボーカルでスリープスコアを下げる</string>
     <string name="analysis_vocals_count_info">声を聞きながら眠る人はオフに: 歌や話し声が曲の減点になりません。</string>
-    <string name="analysis_now_info">再生中の音楽を優先しながら、端末内の曲を今すぐ分析します。</string>
+    <string name="analysis_now_info">バックグラウンドで1曲ずつ分析します。分析済みの曲はスキップします。実行中にここをタップすると停止し、その後タップすると続きから再開します。</string>
     <string name="analysis_count">%1$d曲を分析済み</string>
     <string name="analysis_review_tags">候補のタグを確認</string>
     <string name="analysis_review_none">確認するものはありません。</string>
     <string name="analysis_keywords">スリープスコア タグ ジャンル ムード 楽器 ボーカル 分析 yamnet 似た曲 自動再生</string>
     <string name="license_yamnet">YAMNet（サウンドのタグ付けモデル）</string>
+    <string name="analysing_n_of_n">%1$d / %2$d を分析中…</string>
+    <string name="analysis_stopped_at">%1$d / %2$d で停止、タップで再開</string>
+    <string name="analysis_couldnt_some">%1$s を分析できませんでした</string>
+    <string name="analysis_dont">分析しない</string>
+    <string name="analysis_again">もう一度分析</string>
+    <string name="analysis_not_done">%1$s は未分析</string>
+    <string name="analysis_on_wi_fi">この端末の曲を分析します。Wi-Fiでは他の曲も分析します。</string>
 </resources>

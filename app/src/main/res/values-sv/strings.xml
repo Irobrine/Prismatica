@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">Laddar ned Googles YAMNet-modell och kör den på telefonen (%1$s).</string>
     <string name="analysis_vocals_count">Sång sänker sömnpoängen</string>
     <string name="analysis_vocals_count_info">Av för den som somnar till röster: sång och tal räknas då inte emot en låt.</string>
-    <string name="analysis_now_info">Analyserar låtarna i telefonen nu och låter det som spelas gå först.</string>
+    <string name="analysis_now_info">Analyserar i bakgrunden, en låt i taget; redan analyserade låtar hoppas över. Medan det pågår stoppar en tryckning här; sedan fortsätter en tryckning där det slutade.</string>
     <string name="analysis_count">%1$d låtar analyserade</string>
     <string name="analysis_review_tags">Granska föreslagna taggar</string>
     <string name="analysis_review_none">Inget att granska.</string>
     <string name="analysis_keywords">sömnpoäng taggar genre stämning instrument sång analys yamnet liknande autouppspelning</string>
     <string name="license_yamnet">YAMNet (modell för att tagga ljud)</string>
+    <string name="analysing_n_of_n">Analyserar %1$d av %2$d…</string>
+    <string name="analysis_stopped_at">Stannade vid %1$d av %2$d, tryck för att fortsätta</string>
+    <string name="analysis_couldnt_some">Kunde inte analysera %1$s</string>
+    <string name="analysis_dont">Analysera inte</string>
+    <string name="analysis_again">Analysera igen</string>
+    <string name="analysis_not_done">%1$s inte analyserade</string>
+    <string name="analysis_on_wi_fi">Analyserar låtarna i den här telefonen. På wifi analyseras de andra också.</string>
 </resources>

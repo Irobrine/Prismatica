@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">Downloadt het YAMNet-model van Google en draait het op de telefoon (%1$s).</string>
     <string name="analysis_vocals_count">Zang verlaagt de slaapscore</string>
     <string name="analysis_vocals_count_info">Uit voor wie bij stemmen in slaap valt: zang en spraak tellen dan niet tegen een nummer.</string>
-    <string name="analysis_now_info">Analyseert nu de nummers op de telefoon en laat wat speelt voorgaan.</string>
+    <string name="analysis_now_info">Analyseert op de achtergrond, één nummer tegelijk; al geanalyseerde nummers worden overgeslagen. Tijdens het lopen stopt een tik hier; daarna gaat een tik verder waar het gebleven was.</string>
     <string name="analysis_count">%1$d nummers geanalyseerd</string>
     <string name="analysis_review_tags">Voorgestelde tags bekijken</string>
     <string name="analysis_review_none">Niets te bekijken.</string>
     <string name="analysis_keywords">slaapscore tags genre sfeer instrumenten zang analyse yamnet vergelijkbaar automatisch afspelen</string>
     <string name="license_yamnet">YAMNet (model voor het taggen van geluid)</string>
+    <string name="analysing_n_of_n">%1$d van %2$d analyseren…</string>
+    <string name="analysis_stopped_at">Gestopt bij %1$d van %2$d, tik om door te gaan</string>
+    <string name="analysis_couldnt_some">Kon %1$s niet analyseren</string>
+    <string name="analysis_dont">Niet analyseren</string>
+    <string name="analysis_again">Opnieuw analyseren</string>
+    <string name="analysis_not_done">%1$s niet geanalyseerd</string>
+    <string name="analysis_on_wi_fi">Analyseert de nummers op deze telefoon. Op wifi worden de andere ook geanalyseerd.</string>
 </resources>

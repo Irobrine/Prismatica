@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">Lädt Googles YAMNet-Modell herunter und führt es auf dem Handy aus (%1$s).</string>
     <string name="analysis_vocals_count">Gesang senkt den Schlafwert</string>
     <string name="analysis_vocals_count_info">Aus für alle, die bei Stimmen einschlafen: Gesang und Sprache zählen dann nicht gegen einen Song.</string>
-    <string name="analysis_now_info">Analysiert die Songs auf dem Handy jetzt und lässt dabei der laufenden Wiedergabe den Vortritt.</string>
+    <string name="analysis_now_info">Analysiert im Hintergrund, einen Song nach dem anderen; bereits analysierte Songs werden übersprungen. Während es läuft, stoppt ein Tippen hier; danach macht ein Tippen dort weiter.</string>
     <string name="analysis_count">%1$d Songs analysiert</string>
     <string name="analysis_review_tags">Vorgeschlagene Tags prüfen</string>
     <string name="analysis_review_none">Nichts zu prüfen.</string>
     <string name="analysis_keywords">Schlafwert Tags Genre Stimmung Instrumente Gesang Analyse yamnet ähnlich Autoplay</string>
     <string name="license_yamnet">YAMNet (Modell zum Taggen von Klängen)</string>
+    <string name="analysing_n_of_n">Analysiere %1$d von %2$d…</string>
+    <string name="analysis_stopped_at">Bei %1$d von %2$d gestoppt, tippen zum Fortsetzen</string>
+    <string name="analysis_couldnt_some">%1$s konnten nicht analysiert werden</string>
+    <string name="analysis_dont">Nicht analysieren</string>
+    <string name="analysis_again">Erneut analysieren</string>
+    <string name="analysis_not_done">%1$s nicht analysiert</string>
+    <string name="analysis_on_wi_fi">Analysiert die Songs auf diesem Handy. Im WLAN werden auch die anderen analysiert.</string>
 </resources>

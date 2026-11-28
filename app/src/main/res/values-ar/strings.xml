@@ -6145,10 +6145,17 @@
     <string name="analysis_tagger_info">ينزّل نموذج YAMNet من Google ويشغّله على الهاتف (%1$s).</string>
     <string name="analysis_vocals_count">الغناء يخفض درجة النوم</string>
     <string name="analysis_vocals_count_info">أوقفه إن كنت تنام على الأصوات: لن يُحتسب الغناء والكلام ضد الأغنية.</string>
-    <string name="analysis_now_info">يحلل أغاني الهاتف الآن مع إعطاء الأولوية لما يُشغَّل.</string>
+    <string name="analysis_now_info">يحلّل في الخلفية، أغنية تلو الأخرى؛ تُتخطى الأغاني المحلَّلة. أثناء عمله، الضغط هنا يوقفه؛ بعده يكمل الضغط من حيث توقف.</string>
     <string name="analysis_count">حُلِّلت %1$d أغنية</string>
     <string name="analysis_review_tags">مراجعة الوسوم المقترحة</string>
     <string name="analysis_review_none">لا شيء للمراجعة.</string>
     <string name="analysis_keywords">درجة النوم وسوم نوع مزاج آلات غناء تحليل yamnet متشابهة تشغيل تلقائي</string>
     <string name="license_yamnet">YAMNet (نموذج وسم الأصوات)</string>
+    <string name="analysing_n_of_n">جارٍ تحليل %1$d من %2$d…</string>
+    <string name="analysis_stopped_at">توقف عند %1$d من %2$d، اضغط للمتابعة</string>
+    <string name="analysis_couldnt_some">تعذّر تحليل %1$s</string>
+    <string name="analysis_dont">عدم التحليل</string>
+    <string name="analysis_again">حلّل مرة أخرى</string>
+    <string name="analysis_not_done">%1$s بلا تحليل</string>
+    <string name="analysis_on_wi_fi">يحلّل أغاني هذا الهاتف. عبر Wi-Fi تُحلَّل البقية أيضًا.</string>
 </resources>

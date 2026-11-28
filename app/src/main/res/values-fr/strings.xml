@@ -5920,10 +5920,17 @@
     <string name="analysis_tagger_info">Télécharge le modèle YAMNet de Google et l’exécute sur le téléphone (%1$s).</string>
     <string name="analysis_vocals_count">La voix baisse le score de sommeil</string>
     <string name="analysis_vocals_count_info">Désactivé pour ceux qui s’endorment avec des voix : le chant et la parole ne pénalisent alors plus un titre.</string>
-    <string name="analysis_now_info">Analyse maintenant les titres du téléphone, en laissant la priorité à la lecture.</string>
+    <string name="analysis_now_info">Analyse en arrière-plan, un titre à la fois ; les titres déjà analysés sont ignorés. Pendant l’analyse, un appui ici l’arrête ; ensuite, un appui reprend où elle s’est arrêtée.</string>
     <string name="analysis_count">%1$d titres analysés</string>
     <string name="analysis_review_tags">Vérifier les tags suggérés</string>
     <string name="analysis_review_none">Rien à vérifier.</string>
     <string name="analysis_keywords">score sommeil tags genre ambiance instruments voix analyse yamnet similaire lecture automatique</string>
     <string name="license_yamnet">YAMNet (modèle d’étiquetage des sons)</string>
+    <string name="analysing_n_of_n">Analyse de %1$d sur %2$d…</string>
+    <string name="analysis_stopped_at">Arrêté à %1$d sur %2$d, touchez pour continuer</string>
+    <string name="analysis_couldnt_some">Impossible d’analyser %1$s</string>
+    <string name="analysis_dont">Ne pas analyser</string>
+    <string name="analysis_again">Analyser à nouveau</string>
+    <string name="analysis_not_done">%1$s non analysés</string>
+    <string name="analysis_on_wi_fi">Analyse les titres de ce téléphone. En Wi-Fi, les autres sont aussi analysés.</string>
 </resources>

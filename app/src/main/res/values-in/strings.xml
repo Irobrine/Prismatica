@@ -5770,10 +5770,17 @@
     <string name="analysis_tagger_info">Mengunduh model YAMNet dari Google dan menjalankannya di ponsel (%1$s).</string>
     <string name="analysis_vocals_count">Vokal menurunkan skor tidur</string>
     <string name="analysis_vocals_count_info">Matikan jika Anda tertidur dengan suara orang: nyanyian dan ucapan tidak lagi mengurangi nilai lagu.</string>
-    <string name="analysis_now_info">Menganalisis lagu di ponsel sekarang, sambil mendahulukan yang sedang diputar.</string>
+    <string name="analysis_now_info">Menganalisis di latar belakang, satu lagu setiap kali; lagu yang sudah dianalisis dilewati. Saat berjalan, ketuk di sini untuk berhenti; setelah itu ketuk untuk melanjutkan dari tempat berhenti.</string>
     <string name="analysis_count">%1$d lagu dianalisis</string>
     <string name="analysis_review_tags">Tinjau tag yang disarankan</string>
     <string name="analysis_review_none">Tidak ada yang perlu ditinjau.</string>
     <string name="analysis_keywords">skor tidur tag genre suasana instrumen vokal analisis yamnet mirip putar otomatis</string>
     <string name="license_yamnet">YAMNet (model tag suara)</string>
+    <string name="analysing_n_of_n">Menganalisis %1$d dari %2$d…</string>
+    <string name="analysis_stopped_at">Berhenti di %1$d dari %2$d, ketuk untuk melanjutkan</string>
+    <string name="analysis_couldnt_some">Tidak bisa menganalisis %1$s</string>
+    <string name="analysis_dont">Jangan analisis</string>
+    <string name="analysis_again">Analisis lagi</string>
+    <string name="analysis_not_done">%1$s belum dianalisis</string>
+    <string name="analysis_on_wi_fi">Menganalisis lagu di ponsel ini. Di Wi-Fi, yang lain juga dianalisis.</string>
 </resources>

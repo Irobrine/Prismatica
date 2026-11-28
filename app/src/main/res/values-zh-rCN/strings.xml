@@ -5770,10 +5770,17 @@
     <string name="analysis_tagger_info">下载 Google 的 YAMNet 模型并在手机上运行（%1$s）。</string>
     <string name="analysis_vocals_count">人声会降低睡眠评分</string>
     <string name="analysis_vocals_count_info">如果你听着人声入睡，请关闭：演唱和说话将不再减分。</string>
-    <string name="analysis_now_info">立即分析手机上的歌曲，并优先保证正在播放的内容。</string>
+    <string name="analysis_now_info">在后台逐首分析，已分析的歌曲会跳过。运行时轻点此处可停止；之后轻点会从停止处继续。</string>
     <string name="analysis_count">已分析 %1$d 首歌曲</string>
     <string name="analysis_review_tags">查看建议的标签</string>
     <string name="analysis_review_none">没有需要查看的内容。</string>
     <string name="analysis_keywords">睡眠评分 标签 流派 情绪 乐器 人声 分析 yamnet 相似 自动播放</string>
     <string name="license_yamnet">YAMNet（声音标签模型）</string>
+    <string name="analysing_n_of_n">正在分析 %1$d / %2$d…</string>
+    <string name="analysis_stopped_at">已在 %1$d / %2$d 停止，轻点继续</string>
+    <string name="analysis_couldnt_some">无法分析 %1$s</string>
+    <string name="analysis_dont">不分析</string>
+    <string name="analysis_again">重新分析</string>
+    <string name="analysis_not_done">%1$s 未分析</string>
+    <string name="analysis_on_wi_fi">分析此手机上的歌曲。在 Wi-Fi 下也会分析其他歌曲。</string>
 </resources>

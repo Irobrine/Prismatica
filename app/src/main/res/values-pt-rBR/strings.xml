@@ -5920,10 +5920,17 @@
     <string name="analysis_tagger_info">Baixa o modelo YAMNet do Google e o executa no celular (%1$s).</string>
     <string name="analysis_vocals_count">Vocais baixam a nota de sono</string>
     <string name="analysis_vocals_count_info">Desative se você dorme ouvindo vozes: canto e fala deixam de contar contra uma música.</string>
-    <string name="analysis_now_info">Analisa agora as músicas do celular, dando preferência ao que está tocando.</string>
+    <string name="analysis_now_info">Analisa em segundo plano, uma música por vez; as já analisadas são puladas. Enquanto roda, um toque aqui a para; depois, um toque continua de onde parou.</string>
     <string name="analysis_count">%1$d músicas analisadas</string>
     <string name="analysis_review_tags">Revisar tags sugeridas</string>
     <string name="analysis_review_none">Nada para revisar.</string>
     <string name="analysis_keywords">nota sono tags gênero clima instrumentos vocais análise yamnet parecidas reprodução automática</string>
     <string name="license_yamnet">YAMNet (modelo de marcação de sons)</string>
+    <string name="analysing_n_of_n">Analisando %1$d de %2$d…</string>
+    <string name="analysis_stopped_at">Parado em %1$d de %2$d, toque para continuar</string>
+    <string name="analysis_couldnt_some">Não foi possível analisar %1$s</string>
+    <string name="analysis_dont">Não analisar</string>
+    <string name="analysis_again">Analisar de novo</string>
+    <string name="analysis_not_done">%1$s não analisadas</string>
+    <string name="analysis_on_wi_fi">Analisa as músicas deste celular. No Wi-Fi, as outras também são analisadas.</string>
 </resources>

@@ -566,6 +566,12 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Settings' "Analyse now" (the sound analysis) with Prism out of sight: the same walk as measuring, kept going. -->
+        <service
+            android:name=".playback.AnalysisService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!-- A manual duplicate-finding walk keeps going out of sight, like the measure walk. -->
         <service
             android:name=".playback.DedupScanService"

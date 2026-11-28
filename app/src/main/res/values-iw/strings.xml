@@ -5920,10 +5920,17 @@
     <string name="analysis_tagger_info">מוריד את מודל YAMNet של Google ומריץ אותו בטלפון (%1$s).</string>
     <string name="analysis_vocals_count">שירה מורידה את ציון השינה</string>
     <string name="analysis_vocals_count_info">כבה אם אתה נרדם לקולות: שירה ודיבור לא ייחשבו נגד שיר.</string>
-    <string name="analysis_now_info">מנתח עכשיו את השירים שבטלפון ונותן קדימות למה שמתנגן.</string>
+    <string name="analysis_now_info">מנתח ברקע, שיר אחר שיר; שירים שכבר נותחו מדולגים. בזמן הריצה, הקשה כאן עוצרת; אחר כך הקשה ממשיכה מהמקום שבו נפסקה.</string>
     <string name="analysis_count">נותחו %1$d שירים</string>
     <string name="analysis_review_tags">סקירת תגים מוצעים</string>
     <string name="analysis_review_none">אין מה לסקור.</string>
     <string name="analysis_keywords">ציון שינה תגים ז׳אנר מצב רוח כלים שירה ניתוח yamnet דומים ניגון אוטומטי</string>
     <string name="license_yamnet">YAMNet (מודל לתיוג צלילים)</string>
+    <string name="analysing_n_of_n">מנתח %1$d מתוך %2$d…</string>
+    <string name="analysis_stopped_at">נעצר ב-%1$d מתוך %2$d, הקש להמשך</string>
+    <string name="analysis_couldnt_some">לא ניתן לנתח: %1$s</string>
+    <string name="analysis_dont">לא לנתח</string>
+    <string name="analysis_again">לנתח שוב</string>
+    <string name="analysis_not_done">%1$s לא נותחו</string>
+    <string name="analysis_on_wi_fi">מנתח את השירים בטלפון הזה. ב-Wi-Fi גם האחרים מנותחים.</string>
 </resources>

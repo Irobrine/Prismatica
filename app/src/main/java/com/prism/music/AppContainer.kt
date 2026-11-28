@@ -142,11 +142,11 @@ class PrismApp : Application(), coil3.SingletonImageLoader.Factory {
         com.prism.music.playback.BackgroundBudget.where = {
             com.prism.music.playback.BackgroundBudget.whereOf(
                 onScreen = container.visible.value,
-                // A measuring walk, a duplicate-finding walk or an enhancement batch the listener started runs under
+                // A measuring or analysing walk ([AnalysisService]), a duplicate-finding walk or an enhancement batch
                 // its own foreground service (MeasureService, DedupScanService, EnhanceService): kept to a core's worth,
                 // as music playing is, rather than rested to nothing out of sight (1.1.3). Without the dedup flag the
                 // budget calls it AWAY once the screen is off, and the decode pauses until the app is opened again.
-                measuring = container.measureSongs.running.value || container.dedup.scanner.running.value,
+                measuring = container.measureSongs.running.value || container.analyseSongs.running.value || container.dedup.scanner.running.value,
                 enhancing = container.enhancing,
                 playing = container.player.isPlaying.value || container.player.buffering.value,
             )
@@ -741,6 +741,32 @@ class AppContainer(val app: Application) {
             { if (mixTempo.mayScanTwice()) 2 else 1 },
             unmetered = { app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false },
             // A song that couldn't be measured (a stream that can't play) can be kept from being scanned again, and let back.
+            skipped = { id -> mixTempo.skipped(id) },
+            skip = { ids -> mixTempo.skip(ids) },
+            unskipAll = { mixTempo.unskipAll() },
+        )
+    }
+    /**
+     * Settings → Sound analysis' "Analyse now": the same walk as "Measure songs now" ([MeasureSongs]), over the same four
+     * sets ([com.prism.music.ui.screens.settings.MeasureScope]), but asking the scan for each song's sound analysis
+     * (descriptors, and the tagger's tags when its model is on the phone). What's analysed already is left out, so a walk
+     * is only the work left; songs not on the phone are fetched the way measuring fetches them (the smallest stream),
+     * unless mobile data isn't allowed.
+     */
+    val analyseSongs by lazy {
+        com.prism.music.data.MeasureSongs(
+            scope,
+            { form, song, network ->
+                mixTempo.measure(
+                    form, network = network, edges = false, key = false, wave = false, peak = false, sourceSongId = song,
+                    deferToPlaying = true, analyse = true,
+                )
+            },
+            // Analysed means the sound analysis has something current for it; the tagger's version counts when it's on.
+            { form -> runCatching { !analysis.needs(form) }.getOrDefault(false) },
+            { id -> loudnessIndex.formId(id, null) },
+            { if (mixTempo.mayScanTwice()) 2 else 1 },
+            unmetered = { app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false },
             skipped = { id -> mixTempo.skipped(id) },
             skip = { ids -> mixTempo.skip(ids) },
             unskipAll = { mixTempo.unskipAll() },

@@ -218,8 +218,8 @@ private object AnalysisSchedule {
 
 /**
  * Sound analysis' rows: the background job and its charging rule, the tagging model (a download, switched on and off
- * here), whether vocals lower the sleep score, "Analyse now" with how many songs are analysed, and the suggested tags to
- * review.
+ * here), whether vocals lower the sleep score, "Analyse now" (the walk over a library of the listener's choosing), and
+ * the suggested tags to review.
  */
 @Composable
 private fun RhSoundAnalysis(backgroundChanged: Boolean, chargingChanged: Boolean, taggerChanged: Boolean, vocalsChanged: Boolean) {
@@ -232,7 +232,6 @@ private fun RhSoundAnalysis(backgroundChanged: Boolean, chargingChanged: Boolean
     val states by c.models.states.collectAsState()
     val count by c.analysis.count.collectAsState()
     val toReview by c.db.analysis().reviewCount().collectAsState(0)
-    val running by c.analysis.analysingNow.collectAsState()
     var reviewing by rememberSaveable { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) { c.analysis.load() }
     SwitchRow(tr(R.string.analysis_background), an.background, info = tr(R.string.analysis_background_info), changed = backgroundChanged) {
@@ -265,12 +264,8 @@ private fun RhSoundAnalysis(backgroundChanged: Boolean, chargingChanged: Boolean
         }
     }
     SwitchRow(tr(R.string.analysis_vocals_count), an.vocalsCount, info = tr(R.string.analysis_vocals_count_info), changed = vocalsChanged) { prefs.setSleepVocalsCount(it) }
-    LinkRow(
-        if (running) tr(R.string.stop) else tr(R.string.analysis_now), value = tr(R.string.analysis_count, count),
-        info = tr(R.string.analysis_now_info), action = true,
-    ) {
-        if (running) com.prism.music.analysis.AnalysisWorker.stopNow(context, c.analysis) else com.prism.music.analysis.AnalysisWorker.runNow(context, c.analysis)
-    }
+    // The same walk (and sheet of sets) as "Measure songs now": progress, Stop and carry-on in the row itself.
+    SongsWalkRow(SongsWalk.ANALYSE, infoExtra = tr(R.string.analysis_count, count))
     LinkRow(tr(R.string.analysis_review_tags), value = if (toReview > 0) toReview.toString() else null, action = true) { reviewing = true }
     if (reviewing) com.prism.music.ui.components.TagReviewSheet { reviewing = false }
 }

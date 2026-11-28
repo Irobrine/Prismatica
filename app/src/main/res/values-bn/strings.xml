@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">Google-এর YAMNet মডেল নামিয়ে ফোনে চালায় (%1$s)।</string>
     <string name="analysis_vocals_count">কণ্ঠ ঘুম স্কোর কমায়</string>
     <string name="analysis_vocals_count_info">কণ্ঠ শুনে ঘুমালে বন্ধ করুন: গান ও কথা তখন কোনো গানের বিপক্ষে গোনা হবে না।</string>
-    <string name="analysis_now_info">ফোনের গানগুলো এখনই বিশ্লেষণ করে, যা বাজছে তাকে অগ্রাধিকার দিয়ে।</string>
+    <string name="analysis_now_info">পটভূমিতে, একবারে একটি গান বিশ্লেষণ করে; যেগুলো বিশ্লেষিত হয়েছে সেগুলো বাদ যায়। চলার সময় এখানে ট্যাপ থামায়; পরে ট্যাপ যেখানে থেমেছিল সেখান থেকে চালায়।</string>
     <string name="analysis_count">%1$dটি গান বিশ্লেষিত</string>
     <string name="analysis_review_tags">প্রস্তাবিত ট্যাগ দেখুন</string>
     <string name="analysis_review_none">দেখার কিছু নেই।</string>
     <string name="analysis_keywords">ঘুম স্কোর ট্যাগ ঘরানা মেজাজ যন্ত্র কণ্ঠ বিশ্লেষণ yamnet একরকম অটোপ্লে</string>
     <string name="license_yamnet">YAMNet (শব্দ ট্যাগ করার মডেল)</string>
+    <string name="analysing_n_of_n">%1$d-এর মধ্যে %2$d বিশ্লেষণ চলছে…</string>
+    <string name="analysis_stopped_at">%1$d-এর মধ্যে %2$d-এ থেমেছে, চালিয়ে যেতে ট্যাপ করুন</string>
+    <string name="analysis_couldnt_some">%1$s বিশ্লেষণ করা গেল না</string>
+    <string name="analysis_dont">বিশ্লেষণ করবেন না</string>
+    <string name="analysis_again">আবার বিশ্লেষণ করুন</string>
+    <string name="analysis_not_done">%1$s বিশ্লেষিত হয়নি</string>
+    <string name="analysis_on_wi_fi">এই ফোনের গানগুলো বিশ্লেষণ করে। Wi-Fi-তে বাকিগুলোও বিশ্লেষণ হয়।</string>
 </resources>

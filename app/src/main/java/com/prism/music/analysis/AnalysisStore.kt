@@ -64,9 +64,6 @@ class AnalysisStore(
     private val _changes = MutableStateFlow(0)
     val changes: StateFlow<Int> = _changes
 
-    /** Whether "Analyse now" is running (set by [AnalysisWorker]; Settings shows Stop meanwhile). */
-    val analysingNow = MutableStateFlow(false)
-
     /** How many songs are analysed (shown in Settings). */
     private val _count = MutableStateFlow(0)
     val count: StateFlow<Int> = _count

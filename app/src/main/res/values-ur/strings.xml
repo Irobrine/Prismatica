@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">Google کا YAMNet ماڈل ڈاؤن لوڈ کر کے فون پر چلاتا ہے (%1$s)۔</string>
     <string name="analysis_vocals_count">گائیکی نیند اسکور کم کرتی ہے</string>
     <string name="analysis_vocals_count_info">اگر آپ آوازوں پر سوتے ہیں تو بند کریں: گانا اور بات چیت کسی گانے کے خلاف شمار نہیں ہوں گے۔</string>
-    <string name="analysis_now_info">فون پر موجود گانوں کا ابھی تجزیہ کرتا ہے اور چلنے والی چیز کو ترجیح دیتا ہے۔</string>
+    <string name="analysis_now_info">پس منظر میں، ایک وقت میں ایک گانا تجزیہ کرتا ہے؛ جن کا تجزیہ ہو چکا وہ چھوڑ دیے جاتے ہیں۔ چلتے وقت یہاں ٹیپ روک دیتا ہے؛ پھر ٹیپ وہیں سے جاری کرتا ہے۔</string>
     <string name="analysis_count">%1$d گانوں کا تجزیہ ہوا</string>
     <string name="analysis_review_tags">تجویز کردہ ٹیگز دیکھیں</string>
     <string name="analysis_review_none">دیکھنے کو کچھ نہیں۔</string>
     <string name="analysis_keywords">نیند اسکور ٹیگز صنف موڈ ساز گائیکی تجزیہ yamnet ملتے جلتے آٹو پلے</string>
     <string name="license_yamnet">YAMNet (آواز ٹیگ کرنے کا ماڈل)</string>
+    <string name="analysing_n_of_n">%1$d از %2$d کا تجزیہ ہو رہا ہے…</string>
+    <string name="analysis_stopped_at">%1$d از %2$d پر رکا، جاری رکھنے کے لیے ٹیپ کریں</string>
+    <string name="analysis_couldnt_some">%1$s کا تجزیہ نہیں ہو سکا</string>
+    <string name="analysis_dont">تجزیہ نہ کریں</string>
+    <string name="analysis_again">دوبارہ تجزیہ کریں</string>
+    <string name="analysis_not_done">%1$s کا تجزیہ نہیں ہوا</string>
+    <string name="analysis_on_wi_fi">اس فون کے گانوں کا تجزیہ کرتا ہے۔ Wi-Fi پر باقی کا بھی تجزیہ ہوتا ہے۔</string>
 </resources>

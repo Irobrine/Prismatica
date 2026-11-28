@@ -5920,10 +5920,17 @@
     <string name="analysis_tagger_info">Descarcă modelul YAMNet de la Google și îl rulează pe telefon (%1$s).</string>
     <string name="analysis_vocals_count">Vocea scade scorul de somn</string>
     <string name="analysis_vocals_count_info">Dezactivează dacă adormi cu voci: cântul și vorbirea nu mai contează împotriva unei melodii.</string>
-    <string name="analysis_now_info">Analizează acum melodiile de pe telefon, lăsând întâietate la ce se aude.</string>
+    <string name="analysis_now_info">Analizează în fundal, o melodie pe rând; cele deja analizate sunt sărite. Cât rulează, o atingere aici o oprește; apoi o atingere continuă de unde a rămas.</string>
     <string name="analysis_count">%1$d melodii analizate</string>
     <string name="analysis_review_tags">Verifică etichetele sugerate</string>
     <string name="analysis_review_none">Nimic de verificat.</string>
     <string name="analysis_keywords">scor somn etichete gen atmosferă instrumente voce analiză yamnet asemănătoare redare automată</string>
     <string name="license_yamnet">YAMNet (model de etichetare a sunetelor)</string>
+    <string name="analysing_n_of_n">Se analizează %1$d din %2$d…</string>
+    <string name="analysis_stopped_at">Oprit la %1$d din %2$d, atinge pentru a continua</string>
+    <string name="analysis_couldnt_some">Nu s-au putut analiza: %1$s</string>
+    <string name="analysis_dont">Nu analiza</string>
+    <string name="analysis_again">Analizează din nou</string>
+    <string name="analysis_not_done">%1$s neanalizate</string>
+    <string name="analysis_on_wi_fi">Analizează melodiile de pe acest telefon. Pe Wi-Fi, sunt analizate și celelalte.</string>
 </resources>

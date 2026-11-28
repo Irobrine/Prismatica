@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">مدل YAMNet گوگل را دانلود و روی گوشی اجرا می‌کند (%1$s).</string>
     <string name="analysis_vocals_count">آواز امتیاز خواب را کم می‌کند</string>
     <string name="analysis_vocals_count_info">اگر با صدای آدم‌ها خوابتان می‌برد خاموشش کنید: آواز و گفتار دیگر به ضرر آهنگ حساب نمی‌شوند.</string>
-    <string name="analysis_now_info">آهنگ‌های روی گوشی را همین حالا تحلیل می‌کند و اولویت را به آنچه پخش می‌شود می‌دهد.</string>
+    <string name="analysis_now_info">در پس‌زمینه، یکی‌یکی تحلیل می‌کند؛ آهنگ‌های تحلیل‌شده رد می‌شوند. تا وقتی کار می‌کند، ضربه اینجا متوقفش می‌کند؛ بعد از آن، ضربه از همان‌جا ادامه می‌دهد.</string>
     <string name="analysis_count">%1$d آهنگ تحلیل شده</string>
     <string name="analysis_review_tags">بررسی برچسب‌های پیشنهادی</string>
     <string name="analysis_review_none">چیزی برای بررسی نیست.</string>
     <string name="analysis_keywords">امتیاز خواب برچسب ژانر حال سازها آواز تحلیل yamnet مشابه پخش خودکار</string>
     <string name="license_yamnet">YAMNet (مدل برچسب‌گذاری صدا)</string>
+    <string name="analysing_n_of_n">در حال تحلیل %1$d از %2$d…</string>
+    <string name="analysis_stopped_at">در %1$d از %2$d متوقف شد، برای ادامه ضربه بزنید</string>
+    <string name="analysis_couldnt_some">تحلیل این‌ها ممکن نشد: %1$s</string>
+    <string name="analysis_dont">تحلیل نکن</string>
+    <string name="analysis_again">تحلیل دوباره</string>
+    <string name="analysis_not_done">%1$s تحلیل‌نشده</string>
+    <string name="analysis_on_wi_fi">آهنگ‌های این گوشی را تحلیل می‌کند. با Wi-Fi بقیه هم تحلیل می‌شوند.</string>
 </resources>

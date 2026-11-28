@@ -5890,10 +5890,17 @@
     <string name="analysis_tagger_info">Downloads Google\'s YAMNet model and runs it on the phone (%1$s).</string>
     <string name="analysis_vocals_count">Vocals lower the sleep score</string>
     <string name="analysis_vocals_count_info">Off for those who fall asleep to voices: singing and speech then don\'t count against a song.</string>
-    <string name="analysis_now_info">Analyses the songs on the phone now, giving way to what\'s playing.</string>
+    <string name="analysis_now_info">Analyses in the background, one song at a time; songs already analysed are skipped. While it runs, a tap here stops it; after that, a tap carries on where it left off.</string>
     <string name="analysis_count">%1$d songs analysed</string>
     <string name="analysis_review_tags">Review suggested tags</string>
     <string name="analysis_review_none">Nothing to review.</string>
     <string name="analysis_keywords">sleep score tags genre mood instruments vocals analysis yamnet similar autoplay</string>
     <string name="license_yamnet">YAMNet (sound tagging model)</string>
+    <string name="analysing_n_of_n">Analysing %1$d of %2$d…</string>
+    <string name="analysis_stopped_at">Stopped at %1$d of %2$d, tap to carry on</string>
+    <string name="analysis_couldnt_some">Couldn\'t analyse %1$s</string>
+    <string name="analysis_dont">Don\'t analyse</string>
+    <string name="analysis_again">Analyse again</string>
+    <string name="analysis_not_done">%1$s not analysed</string>
+    <string name="analysis_on_wi_fi">Analysing the songs on this phone. On Wi-Fi, the others are analysed too.</string>
 </resources>

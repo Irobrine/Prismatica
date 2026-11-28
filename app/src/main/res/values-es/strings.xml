@@ -5920,10 +5920,17 @@
     <string name="analysis_tagger_info">Descarga el modelo YAMNet de Google y lo ejecuta en el teléfono (%1$s).</string>
     <string name="analysis_vocals_count">Las voces bajan la puntuación de sueño</string>
     <string name="analysis_vocals_count_info">Desactívalo si te duermes con voces: el canto y el habla no restarán a una canción.</string>
-    <string name="analysis_now_info">Analiza ahora las canciones del teléfono, dejando paso a lo que suena.</string>
+    <string name="analysis_now_info">Analiza en segundo plano, canción a canción; las ya analizadas se omiten. Mientras corre, un toque aquí la detiene; después, un toque continúa donde se quedó.</string>
     <string name="analysis_count">%1$d canciones analizadas</string>
     <string name="analysis_review_tags">Revisar etiquetas sugeridas</string>
     <string name="analysis_review_none">Nada que revisar.</string>
     <string name="analysis_keywords">puntuación sueño etiquetas género ánimo instrumentos voces análisis yamnet parecidas reproducción automática</string>
     <string name="license_yamnet">YAMNet (modelo de etiquetado de sonido)</string>
+    <string name="analysing_n_of_n">Analizando %1$d de %2$d…</string>
+    <string name="analysis_stopped_at">Detenido en %1$d de %2$d, toca para continuar</string>
+    <string name="analysis_couldnt_some">No se pudieron analizar %1$s</string>
+    <string name="analysis_dont">No analizar</string>
+    <string name="analysis_again">Analizar de nuevo</string>
+    <string name="analysis_not_done">%1$s sin analizar</string>
+    <string name="analysis_on_wi_fi">Analiza las canciones de este teléfono. Con Wi-Fi, también se analizan las demás.</string>
 </resources>

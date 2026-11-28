@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">Google\'ın YAMNet modelini indirir ve telefonda çalıştırır (%1$s).</string>
     <string name="analysis_vocals_count">Vokal uyku puanını düşürür</string>
     <string name="analysis_vocals_count_info">Seslerle uyuyanlar için kapatın: şarkı söyleme ve konuşma bir şarkının aleyhine sayılmaz.</string>
-    <string name="analysis_now_info">Telefondaki şarkıları şimdi analiz eder, çalan şeye öncelik verir.</string>
+    <string name="analysis_now_info">Arka planda tek tek analiz eder; analiz edilmiş şarkılar atlanır. Çalışırken buraya dokunmak durdurur; sonra dokunmak kaldığı yerden sürdürür.</string>
     <string name="analysis_count">%1$d şarkı analiz edildi</string>
     <string name="analysis_review_tags">Önerilen etiketleri gözden geçir</string>
     <string name="analysis_review_none">Gözden geçirilecek bir şey yok.</string>
     <string name="analysis_keywords">uyku puanı etiketler tür ruh hali enstrümanlar vokal analiz yamnet benzer otomatik oynatma</string>
     <string name="license_yamnet">YAMNet (ses etiketleme modeli)</string>
+    <string name="analysing_n_of_n">%1$d / %2$d analiz ediliyor…</string>
+    <string name="analysis_stopped_at">%1$d / %2$d konumunda durdu, sürdürmek için dokunun</string>
+    <string name="analysis_couldnt_some">Şunlar analiz edilemedi: %1$s</string>
+    <string name="analysis_dont">Analiz etme</string>
+    <string name="analysis_again">Yeniden analiz et</string>
+    <string name="analysis_not_done">%1$s analiz edilmedi</string>
+    <string name="analysis_on_wi_fi">Bu telefondaki şarkıları analiz eder. Wi-Fi\'da diğerleri de analiz edilir.</string>
 </resources>

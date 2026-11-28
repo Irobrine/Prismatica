@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">Dina-download ang YAMNet model ng Google at pinapatakbo ito sa phone (%1$s).</string>
     <string name="analysis_vocals_count">Ibinababa ng boses ang sleep score</string>
     <string name="analysis_vocals_count_info">I-off kung nakakatulog ka sa mga boses: hindi na ibabawas sa kanta ang pag-awit at pananalita.</string>
-    <string name="analysis_now_info">Sinusuri ngayon ang mga kanta sa phone, inuuna ang tumutugtog.</string>
+    <string name="analysis_now_info">Nagsusuri sa background, isang kanta sa bawat pagkakataon; nilalaktawan ang mga nasuri na. Habang tumatakbo, i-tap dito para ihinto; pagkatapos, i-tap para magpatuloy mula sa hinito.</string>
     <string name="analysis_count">%1$d kanta ang nasuri</string>
     <string name="analysis_review_tags">Suriin ang mga iminungkahing tag</string>
     <string name="analysis_review_none">Walang susuriin.</string>
     <string name="analysis_keywords">sleep score tag genre mood instrumento boses pagsusuri yamnet magkatulad autoplay</string>
     <string name="license_yamnet">YAMNet (modelo sa pag-tag ng tunog)</string>
+    <string name="analysing_n_of_n">Sinusuri ang %1$d ng %2$d…</string>
+    <string name="analysis_stopped_at">Huminto sa %1$d ng %2$d, i-tap para magpatuloy</string>
+    <string name="analysis_couldnt_some">Hindi masuri ang %1$s</string>
+    <string name="analysis_dont">Huwag suriin</string>
+    <string name="analysis_again">Suriin muli</string>
+    <string name="analysis_not_done">%1$s hindi nasuri</string>
+    <string name="analysis_on_wi_fi">Sinusuri ang mga kanta sa phone na ito. Sa Wi-Fi, sinusuri rin ang iba.</string>
 </resources>

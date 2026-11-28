@@ -5995,10 +5995,17 @@
     <string name="analysis_tagger_info">Pobiera model YAMNet od Google i uruchamia go na telefonie (%1$s).</string>
     <string name="analysis_vocals_count">Wokal obniża wynik snu</string>
     <string name="analysis_vocals_count_info">Wyłącz, jeśli zasypiasz przy głosach: śpiew i mowa nie będą wtedy działać na niekorzyść utworu.</string>
-    <string name="analysis_now_info">Analizuje teraz utwory na telefonie, ustępując temu, co gra.</string>
+    <string name="analysis_now_info">Analizuje w tle, po jednym utworze; już przeanalizowane są pomijane. Gdy trwa, dotknięcie tutaj zatrzymuje; potem dotknięcie wznawia od miejsca zatrzymania.</string>
     <string name="analysis_count">Przeanalizowano utwory: %1$d</string>
     <string name="analysis_review_tags">Przejrzyj proponowane tagi</string>
     <string name="analysis_review_none">Nic do przejrzenia.</string>
     <string name="analysis_keywords">wynik snu tagi gatunek nastrój instrumenty wokal analiza yamnet podobne autoodtwarzanie</string>
     <string name="license_yamnet">YAMNet (model tagowania dźwięków)</string>
+    <string name="analysing_n_of_n">Analizowanie %1$d z %2$d…</string>
+    <string name="analysis_stopped_at">Zatrzymano na %1$d z %2$d, dotknij, aby kontynuować</string>
+    <string name="analysis_couldnt_some">Nie udało się przeanalizować: %1$s</string>
+    <string name="analysis_dont">Nie analizuj</string>
+    <string name="analysis_again">Analizuj ponownie</string>
+    <string name="analysis_not_done">%1$s nieprzeanalizowanych</string>
+    <string name="analysis_on_wi_fi">Analizuje utwory na tym telefonie. W Wi-Fi analizowane są też pozostałe.</string>
 </resources>

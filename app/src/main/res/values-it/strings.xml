@@ -5920,10 +5920,17 @@
     <string name="analysis_tagger_info">Scarica il modello YAMNet di Google e lo esegue sul telefono (%1$s).</string>
     <string name="analysis_vocals_count">Le voci abbassano il punteggio sonno</string>
     <string name="analysis_vocals_count_info">Disattiva se ti addormenti con le voci: canto e parlato non peseranno più su un brano.</string>
-    <string name="analysis_now_info">Analizza ora i brani sul telefono, lasciando la precedenza a ciò che suona.</string>
+    <string name="analysis_now_info">Analizza in background, un brano alla volta; quelli già analizzati vengono saltati. Mentre è in corso, un tocco qui lo ferma; poi un tocco riprende da dove si era fermato.</string>
     <string name="analysis_count">%1$d brani analizzati</string>
     <string name="analysis_review_tags">Rivedi i tag suggeriti</string>
     <string name="analysis_review_none">Niente da rivedere.</string>
     <string name="analysis_keywords">punteggio sonno tag genere atmosfera strumenti voci analisi yamnet simili riproduzione automatica</string>
     <string name="license_yamnet">YAMNet (modello di tagging dei suoni)</string>
+    <string name="analysing_n_of_n">Analisi di %1$d su %2$d…</string>
+    <string name="analysis_stopped_at">Fermato a %1$d su %2$d, tocca per continuare</string>
+    <string name="analysis_couldnt_some">Impossibile analizzare %1$s</string>
+    <string name="analysis_dont">Non analizzare</string>
+    <string name="analysis_again">Analizza di nuovo</string>
+    <string name="analysis_not_done">%1$s non analizzati</string>
+    <string name="analysis_on_wi_fi">Analizza i brani di questo telefono. In Wi-Fi vengono analizzati anche gli altri.</string>
 </resources>

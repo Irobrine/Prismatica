@@ -5995,10 +5995,17 @@
     <string name="analysis_tagger_info">Stáhne model YAMNet od Googlu a spouští ho v telefonu (%1$s).</string>
     <string name="analysis_vocals_count">Zpěv snižuje skóre spánku</string>
     <string name="analysis_vocals_count_info">Vypněte, pokud usínáte u hlasů: zpěv a řeč pak skladbě neuberou.</string>
-    <string name="analysis_now_info">Analyzuje teď skladby v telefonu a dává přednost tomu, co hraje.</string>
+    <string name="analysis_now_info">Analyzuje na pozadí, jednu skladbu po druhé; už analyzované se přeskočí. Během běhu to klepnutí zde zastaví; potom klepnutí pokračuje tam, kde skončilo.</string>
     <string name="analysis_count">Analyzováno skladeb: %1$d</string>
     <string name="analysis_review_tags">Zkontrolovat navržené štítky</string>
     <string name="analysis_review_none">Nic ke kontrole.</string>
     <string name="analysis_keywords">skóre spánku štítky žánr nálada nástroje zpěv analýza yamnet podobné automatické přehrávání</string>
     <string name="license_yamnet">YAMNet (model pro štítkování zvuků)</string>
+    <string name="analysing_n_of_n">Analyzuji %1$d z %2$d…</string>
+    <string name="analysis_stopped_at">Zastaveno na %1$d z %2$d, klepněte pro pokračování</string>
+    <string name="analysis_couldnt_some">Nepodařilo se analyzovat: %1$s</string>
+    <string name="analysis_dont">Neanalyzovat</string>
+    <string name="analysis_again">Analyzovat znovu</string>
+    <string name="analysis_not_done">%1$s neanalyzováno</string>
+    <string name="analysis_on_wi_fi">Analyzuje skladby v tomto telefonu. Na Wi-Fi se analyzují i ostatní.</string>
 </resources>

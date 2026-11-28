@@ -5845,10 +5845,17 @@
     <string name="analysis_tagger_info">Google का YAMNet मॉडल डाउनलोड करके फ़ोन पर चलाता है (%1$s)।</string>
     <string name="analysis_vocals_count">गायन नींद स्कोर घटाता है</string>
     <string name="analysis_vocals_count_info">अगर आप आवाज़ों के साथ सोते हैं तो बंद करें: गायन और बोलचाल किसी गाने के खिलाफ़ नहीं गिने जाएँगे।</string>
-    <string name="analysis_now_info">फ़ोन पर मौजूद गानों का अभी विश्लेषण करता है, बज रहे गाने को प्राथमिकता देते हुए।</string>
+    <string name="analysis_now_info">बैकग्राउंड में, एक समय पर एक गाना विश्लेषण करता है; जिनका विश्लेषण हो चुका वे छोड़ दिए जाते हैं। चलते समय यहाँ टैप रोकता है; फिर टैप वहीं से जारी करता है।</string>
     <string name="analysis_count">%1$d गानों का विश्लेषण हुआ</string>
     <string name="analysis_review_tags">सुझाए गए टैग देखें</string>
     <string name="analysis_review_none">देखने के लिए कुछ नहीं।</string>
     <string name="analysis_keywords">नींद स्कोर टैग शैली मूड वाद्य गायन विश्लेषण yamnet मिलते-जुलते ऑटोप्ले</string>
     <string name="license_yamnet">YAMNet (ध्वनि टैग करने वाला मॉडल)</string>
+    <string name="analysing_n_of_n">%1$d में से %2$d का विश्लेषण हो रहा है…</string>
+    <string name="analysis_stopped_at">%1$d में से %2$d पर रुका, जारी रखने के लिए टैप करें</string>
+    <string name="analysis_couldnt_some">%1$s का विश्लेषण नहीं हो सका</string>
+    <string name="analysis_dont">विश्लेषण न करें</string>
+    <string name="analysis_again">फिर से विश्लेषण करें</string>
+    <string name="analysis_not_done">%1$s का विश्लेषण नहीं हुआ</string>
+    <string name="analysis_on_wi_fi">इस फ़ोन के गानों का विश्लेषण करता है। Wi-Fi पर बाकी का भी विश्लेषण होता है।</string>
 </resources>

@@ -67,7 +67,9 @@ leans on the listener's own feedback as soon as there is any.
   normalization uses.
 - **Background, incremental, cancellable.** Songs are analysed when they are scanned anyway (playing / up next /
   "Measure songs now") and by `AnalysisWorker` (WorkManager, once a day while charging, battery not low, screen off and
-  nothing playing; stops and retries the moment the phone is used). Every step goes through `MixTempo.ease()`
+  nothing playing). "Analyse now" in Settings is the listener's own walk: the same `MeasureSongs` machinery and sheet as
+  "Measure songs now" (Library, Downloaded, On this phone, Liked songs, each with what's left), kept going by
+  `AnalysisService` with a progress notification and a Stop. Every step goes through `MixTempo.ease()`
   (gives way to audio underruns, touches on slow phones, the background CPU budget, and the song being heard).
   Cancellation is the coroutine's: a stopped walk keeps what's done and resumes where it was.
 - **Cache and provenance.** A row is keyed by song id and carries `algorithmVersion`, `taggerId`/`taggerVersion` and

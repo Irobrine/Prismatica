@@ -6,12 +6,9 @@ import android.util.Log
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import androidx.work.workDataOf
 import com.prism.music.container
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.TimeUnit
@@ -23,24 +20,23 @@ import java.util.concurrent.TimeUnit
  *
  * Scheduled once a day, while charging (unless the listener lets it run on battery) with the battery not low, and only
  * while nobody uses the phone: the screen off and nothing playing; it stops as soon as either changes and tries again
- * later, keeping what's done. "Analyse now" in Settings runs it at once instead, on screen, giving way to playback.
- * Most played and liked songs first.
+ * later, keeping what's done. Settings' "Analyse now" is the listener's own walk instead ([com.prism.music.data.MeasureSongs]
+ * over the sets they pick, kept going by [com.prism.music.playback.AnalysisService]). Most played and liked songs first.
  */
 class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val c = applicationContext.container
-        val now = inputData.getBoolean(KEY_NOW, false)
         val prefs = c.settings.current.behavior.analysis
-        if (!now && !prefs.background) return Result.success()
+        if (!prefs.background) return Result.success()
         val power = applicationContext.getSystemService(PowerManager::class.java)
-        fun idle() = now || mayRun(screenOn = power?.isInteractive != false, playing = c.player.isPlaying.value)
+        // Only while nobody uses the phone: "Analyse now" is the listener's own walk ([com.prism.music.data.MeasureSongs]).
+        fun idle() = mayRun(screenOn = power?.isInteractive != false, playing = c.player.isPlaying.value)
         if (!idle()) return Result.retry()
         c.analysis.load()
-        if (now) c.analysis.analysingNow.value = true
-        try { return walk(c, now, ::idle) } finally { if (now) c.analysis.analysingNow.value = false }
+        return walk(c, ::idle)
     }
 
-    private suspend fun walk(c: com.prism.music.AppContainer, now: Boolean, idle: () -> Boolean): Result {
+    private suspend fun walk(c: com.prism.music.AppContainer, idle: () -> Boolean): Result {
         val forms = candidates(applicationContext).filter { (form, _) -> c.analysis.needs(form) && !c.mixTempo.skipped(form) }
         if (forms.isEmpty()) return Result.success()
         val started = System.currentTimeMillis()
@@ -52,7 +48,7 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 runCatching {
                     c.mixTempo.measure(
                         form, network = false, edges = false, sourceSongId = song.takeIf { it != form },
-                        deferToPlaying = true, analyse = true, scheduled = !now,
+                        deferToPlaying = true, analyse = true, scheduled = true,
                     )
                 }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
                 if (!c.analysis.needs(form)) done++
@@ -66,9 +62,7 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
     companion object {
         private const val TAG = "PrismAnalysis"
-        private const val KEY_NOW = "now"
         private const val DAILY = "sound_analysis"
-        private const val NOW = "sound_analysis_now"
         /** A run's length: WorkManager stops a job at ten minutes. */
         private const val MAX_MINUTES = 9
 
@@ -101,18 +95,6 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 .addTag(if (prefs.charging) "charging" else "battery")
                 .build()
             wm.enqueueUniquePeriodicWork(DAILY, ExistingPeriodicWorkPolicy.UPDATE, req)
-        }
-
-        /** "Analyse now": a run at once, whatever the time and the charger. */
-        fun runNow(context: Context, store: AnalysisStore) {
-            val req = OneTimeWorkRequestBuilder<AnalysisWorker>().setInputData(workDataOf(KEY_NOW to true)).build()
-            runCatching { WorkManager.getInstance(context).enqueueUniqueWork(NOW, ExistingWorkPolicy.KEEP, req) }
-            store.analysingNow.value = true
-        }
-
-        fun stopNow(context: Context, store: AnalysisStore) {
-            runCatching { WorkManager.getInstance(context).cancelUniqueWork(NOW) }
-            store.analysingNow.value = false
         }
     }
 }
