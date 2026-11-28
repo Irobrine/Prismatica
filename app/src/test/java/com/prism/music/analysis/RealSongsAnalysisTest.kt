@@ -54,7 +54,9 @@ class RealSongsAnalysisTest {
             val t3 = System.nanoTime()
             val out = tagger?.run(tap.windows())
             val t4 = System.nanoTime()
-            val sleep = SleepScore.of(f, out?.scores)
+            // Equalized (Normalize on, Prism's default) against the recording played at its own level.
+            val sleep = SleepScore.of(f, out?.scores, SleepWeights(normalized = true))
+            val rawLevel = SleepScore.of(f, out?.scores, SleepWeights(normalized = false))
             val tags = out?.let { TagVocabulary.tags(it.scores) }.orEmpty().sortedByDescending { it.confidence }
             val name = file.name.removeSuffix(".f32")
             println("=== $name  (%.0f s)".format(seconds))
@@ -63,7 +65,7 @@ class RealSongsAnalysisTest {
             println("  %s BPM (pulse %.2f, steady %s) · %.1f LUFS · LRA %s · onsets %.1f/s · perc %.2f · centroid %.0f Hz · bright %.3f · dance %.2f · sudden %.1f/min (+%.0f LU)".format(
                 f.bpm?.let { "%.0f".format(it) } ?: "-", f.pulseClarity, f.tempoStability?.let { "%.2f".format(it) } ?: "-", f.lufs ?: Float.NaN,
                 f.lra?.let { "%.1f".format(it) } ?: "-", f.onsetRate, f.percussive, f.centroidHz, f.brightShare, f.danceability, f.suddenPerMinute, f.worstRise))
-            println("  SLEEP ${sleep.score}${if (sleep.capped) " (capped)" else ""}  for: ${sleep.forIt().joinToString { it.factor.name }}  against: ${sleep.against().joinToString { it.factor.name + " " + it.detail }}")
+            println("  SLEEP ${sleep.score} normalized / ${rawLevel.score} raw${if (sleep.capped) " (capped)" else ""}  for: ${sleep.forIt().joinToString { it.factor.name }}  against: ${sleep.against().joinToString { it.factor.name + " " + it.detail }}")
             println("  TAGS " + tags.take(12).joinToString { "${it.key}=${"%.2f".format(it.confidence)}${if (it.status == TagStatus.REVIEW) "?" else ""}" })
             val label = name.substringBefore('_')
             val words = mapOf(
@@ -80,7 +82,7 @@ class RealSongsAnalysisTest {
                 labelled++
                 if (tags.any { it.key in words && it.status != TagStatus.REJECTED }) hits++ else println("  (no ${label} word among its tags)")
             }
-            entries += name to SoundEntry(name, f, out?.embedding?.let { AnalysisStore.unpackEmbedding(AnalysisStore.packEmbedding(it)) }, out?.scores?.let(TagVocabulary::profile), sleep.base)
+            entries += name to SoundEntry(name, f, out?.embedding?.let { AnalysisStore.unpackEmbedding(AnalysisStore.packEmbedding(it)) }, out?.scores?.let(TagVocabulary::profile))
         }
         tagger?.close()
         assumeTrue("no songs", entries.isNotEmpty())
@@ -92,7 +94,7 @@ class RealSongsAnalysisTest {
             val near = entries.filter { it.first != name }.maxByOrNull { sim.between(e, it.second) }
             println("  $name -> ${near?.first} (%.2f)".format(near?.let { sim.between(e, it.second) } ?: 0.0))
         }
-        println("=== sleep order: " + entries.sortedByDescending { SleepScore.of(it.second.features).score }.joinToString { it.first })
+        println("=== sleep order (Normalize on): " + entries.sortedByDescending { SleepScore.of(it.second.features).score }.joinToString { it.first })
         if (labelled > 0) println("=== a label word among the tags: $hits of $labelled")
     }
 }

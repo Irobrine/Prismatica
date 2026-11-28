@@ -5861,4 +5861,5 @@
     <string name="sleep_scores">Alvási pontszámok</string>
     <string name="sleep_scores_info">A hangelemzésből: mennyire alkalmas alvásra az egyes dalok, a legnyugodtabbtól. A szavazataid és amit az alvásidőzítő alatt átugrasz, alakítják a pontszámokat.</string>
     <string name="sleep_scores_none">Még nincs elemzett dal. Elemezz dalokat fent, és a pontszámaik itt jelennek meg.</string>
+    <string name="sleep_normalized_note">A hangerő itt kevesebbet számít: a normalizálás minden dalt ugyanarra a szintre hoz.</string>
 </resources>

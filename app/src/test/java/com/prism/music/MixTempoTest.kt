@@ -3,6 +3,7 @@ package com.prism.music
 import com.prism.music.playback.Tempo
 import com.prism.music.playback.VideoSync
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -16,6 +17,19 @@ import kotlin.random.Random
 
 /** Mix's tempo reading on synthetic songs: kicks on the beat, hats between, a bed of noise, silence at both ends. */
 class MixTempoTest {
+    /**
+     * The analysis' "done" test for the player's figure: a song needs measuring when it has never been scanned or when
+     * its figure is from an older meter or has no peak; a scan that found nothing (silence) is as done as it gets.
+     */
+    @Test fun aNormalizationFigureIsReadyOnlyWhenItIsCurrentAndHasItsPeak() {
+        assertFalse(com.prism.music.playback.MixTempo.normalizationReady(scanned = false, lufs = null, current = false, hasPeak = false))
+        assertFalse(com.prism.music.playback.MixTempo.normalizationReady(scanned = true, lufs = -14f, current = false, hasPeak = true))
+        assertFalse(com.prism.music.playback.MixTempo.normalizationReady(scanned = true, lufs = -14f, current = true, hasPeak = false))
+        assertTrue(com.prism.music.playback.MixTempo.normalizationReady(scanned = true, lufs = -14f, current = true, hasPeak = true))
+        // Scanned and there was nothing to measure: scanning again would say the same.
+        assertTrue(com.prism.music.playback.MixTempo.normalizationReady(scanned = true, lufs = null, current = false, hasPeak = false))
+    }
+
     private val sr = 11025
 
     private fun song(bpm: Double, seconds: Int, leadSilence: Double, tailSilence: Double, seed: Int = 1): FloatArray {

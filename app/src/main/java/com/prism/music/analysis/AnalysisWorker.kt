@@ -37,7 +37,10 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
     }
 
     private suspend fun walk(c: com.prism.music.AppContainer, idle: () -> Boolean): Result {
-        val forms = candidates(applicationContext).filter { (form, _) -> c.analysis.needs(form) && !c.mixTempo.skipped(form) }
+        val oneLevel = c.playsAtOneLevel()
+        val forms = candidates(applicationContext).filter { (form, _) ->
+            (c.analysis.needs(form) || (oneLevel && !c.mixTempo.normalizationReady(form))) && !c.mixTempo.skipped(form)
+        }
         if (forms.isEmpty()) return Result.success()
         val started = System.currentTimeMillis()
         var done = 0
@@ -46,12 +49,13 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
             for ((form, song) in forms) {
                 if (isStopped || !idle()) { interrupted = true; break }
                 runCatching {
+                    // peak: the scan brings the player's normalization figure with it (the same decode).
                     c.mixTempo.measure(
-                        form, network = false, edges = false, sourceSongId = song.takeIf { it != form },
+                        form, network = false, edges = false, peak = true, sourceSongId = song.takeIf { it != form },
                         deferToPlaying = true, analyse = true, scheduled = true,
                     )
                 }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
-                if (!c.analysis.needs(form)) done++
+                if (!c.analysis.needs(form) && (!oneLevel || c.mixTempo.normalizationReady(form))) done++
             }
         } ?: run { interrupted = true }
         Log.i(TAG, "analysed $done of ${forms.size} songs in ${(System.currentTimeMillis() - started) / 1000} s" + if (interrupted) " (more later)" else "")

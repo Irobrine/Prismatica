@@ -27,9 +27,12 @@ class SleepScoreTest {
         assertTrue("calm ${a.score}", a.score >= 80)
         assertTrue("club ${b.score}", b.score <= 25)
         assertFalse(a.capped)
-        // Explained: the club track's energy, beat and busyness hold it back.
-        val against = b.against(4).map { it.factor }
-        assertTrue(against.toString(), SleepFactor.ENERGY in against && SleepFactor.BEAT in against)
+        // Explained: the club track's beat, busyness and brightness hold it back, and its loudness still counts against it —
+        // with less pull than when Normalize is off (ENERGY is no longer the heaviest of them).
+        val against = b.against(6).map { it.factor }
+        assertTrue(against.toString(), SleepFactor.BEAT in against && SleepFactor.DENSITY in against)
+        assertTrue(against.toString(), SleepFactor.ENERGY in against)
+        assertTrue(b.parts.first { it.factor == SleepFactor.ENERGY }.calm < 0.15f)
         assertTrue(a.forIt().isNotEmpty())
         assertTrue(a.parts.all { it.detail.isNotBlank() })
     }
@@ -66,6 +69,22 @@ class SleepScoreTest {
     @Test fun withoutTheTaggerTheScoreSaysItIsIncomplete() {
         assertTrue(SleepScore.of(calm).completeness < 0.9f)
         assertTrue(SleepScore.of(calm, scores(148 to 0.5f)).completeness > 0.99f)
+    }
+
+    @Test fun withNormalizeOnLoudnessCountsFarLess() {
+        // Normalize (the default) brings every song to one level, so a master's own loudness must not decide the score:
+        // ENERGY's weight drops from 1.4 to 0.6, and what's left of energy (density, brightness, beat) has its own factors.
+        val on = SleepScore.of(club, weights = SleepWeights(normalized = true))
+        val off = SleepScore.of(club, weights = SleepWeights(normalized = false))
+        assertEquals(SleepWeights.NORMALIZED_ENERGY, on.parts.first { it.factor == SleepFactor.ENERGY }.weight, 1e-6f)
+        assertEquals(SleepFactor.ENERGY.weight, off.parts.first { it.factor == SleepFactor.ENERGY }.weight, 1e-6f)
+        // A loud, compressed master is held back less once its level is equalised, but it's still far from calm.
+        assertTrue("on ${on.score}, off ${off.score}", on.score > off.score)
+        assertTrue(on.score < 45)
+        // A quiet song gains nothing from the cut (its loudness was a calm signal), and both ways stay calm.
+        assertTrue(SleepScore.of(calm, weights = SleepWeights(normalized = true)).score >= 80)
+        // The toggle is part of the weights: the analysis' cache sees the change and re-scores without any re-analysis.
+        assertTrue(SleepWeights(normalized = true) != SleepWeights(normalized = false))
     }
 
     @Test fun aSongsOwnVoteMovesItsScore() {

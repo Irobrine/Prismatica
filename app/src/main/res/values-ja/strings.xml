@@ -5786,4 +5786,5 @@
     <string name="sleep_scores">睡眠スコア</string>
     <string name="sleep_scores_info">サウンド分析から、各曲が睡眠にどれだけ向くかを穏やかな順に。あなたの評価と睡眠タイマー中のスキップがスコアを形づくります。</string>
     <string name="sleep_scores_none">まだ曲が分析されていません。上の「今すぐ分析」で曲を分析すると、ここにスコアが表示されます。</string>
+    <string name="sleep_normalized_note">ここでは音量の比重が小さくなります。ノーマライズがすべての曲を同じ音量にそろえるためです。</string>
 </resources>

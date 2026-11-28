@@ -5936,4 +5936,5 @@
     <string name="sleep_scores">Scoruri de somn</string>
     <string name="sleep_scores_info">Din analiza sunetului: cât de potrivită e fiecare melodie pentru somn, cea mai liniștită prima. Voturile tale și ce sari peste cu temporizatorul de somn modelează scorurile.</string>
     <string name="sleep_scores_none">Nicio melodie analizată încă. Analizează melodii mai sus și scorurile lor apar aici.</string>
+    <string name="sleep_normalized_note">Volumul contează mai puțin aici: normalizarea aduce fiecare melodie la același nivel.</string>
 </resources>

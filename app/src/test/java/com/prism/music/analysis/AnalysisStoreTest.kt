@@ -32,6 +32,8 @@ class AnalysisStoreTest {
     private lateinit var db: PrismDatabase
     private lateinit var store: AnalysisStore
     private var prefs = AnalysisPrefs(tagger = true)
+    /** Whether the player equalizes levels (Normalize): part of the weights, so scores follow it. */
+    private var normalized = true
     private var taggerRuns = 0
 
     /** A tagger that hears piano, a little strings, and singing in the second half of the test. */
@@ -57,7 +59,7 @@ class AnalysisStoreTest {
         db = Room.inMemoryDatabaseBuilder(app, PrismDatabase::class.java).allowMainThreadQueries().build()
         // The model and every engine build "on the phone" (only their ready marks: the fake tagger needs no files).
         ModelStore.Model.entries.forEach { File(app.filesDir, "models/${it.id}").apply { mkdirs() }.resolve(".ready").writeText("x") }
-        store = AnalysisStore(db.analysis(), ModelStore(app, OkHttpClient()), { prefs }, CoroutineScope(SupervisorJob() + Dispatchers.IO)) { fake }
+        store = AnalysisStore(db.analysis(), ModelStore(app, OkHttpClient()), { prefs }, CoroutineScope(SupervisorJob() + Dispatchers.IO), { fake }, { normalized })
         runBlocking { store.load() }
     }
 
@@ -111,6 +113,23 @@ class AnalysisStoreTest {
         assertEquals(TagStatus.ACCEPTED.ordinal, again.getValue("instrument:strings").status)
         assertEquals(TagStatus.AUTO.ordinal, again.getValue("vocals:singing").status)
         assertEquals(listOf("c"), db.analysis().toReview(10).map { it.songId }.distinct().ifEmpty { listOf("c") })
+    }
+
+    @Test fun theNormalizeSettingRescoresWithoutAnalysingAgain() = runBlocking {
+        // A loud, compressed master: with Normalize on (the player brings it to the same level as everything else) its
+        // loudness pulls the score down far less than it does when the recording plays at its own level.
+        val loud = features.copy(
+            lufs = -8f, maxMomentary = -3f, bpm = 128f, pulseClarity = 0.9f, onsetRate = 5f, percussive = 0.7f, centroidHz = 2500f,
+        )
+        store.record("n1", null, loud, window)
+        val equalized = store.sleepScore("n1")!!
+        normalized = false
+        val asRecorded = store.sleepScore("n1")!!
+        assertTrue("as recorded $asRecorded should be held back more than equalized $equalized", asRecorded < equalized)
+        assertTrue("equalized $equalized", equalized > 20)
+        // Nothing was analysed again: one row, and the same features underneath.
+        assertEquals(1, store.count.value)
+        assertEquals(1, taggerRuns)
     }
 
     @Test fun aVoteMovesTheScoreAndCanBeTakenBack() = runBlocking {

@@ -26,6 +26,12 @@ object QueueSequencer {
         val sound: SoundEntry?,
         /** 0 … 1: how new to the listener (0 played often, 1 never). */
         val fresh: Double = 0.0,
+        /**
+         * Its sleep score now (the listener's weights, votes and feedback — [com.prism.music.analysis.SleepScore]), for a
+         * bedtime run's order. Null when it hasn't been analysed. Read from the analysis at the call, never from a saved
+         * figure: a weight change (Normalize, vocals) must reach the order at once.
+         */
+        val sleepScore: Int? = null,
     )
 
     class Weights(
@@ -102,7 +108,7 @@ object QueueSequencer {
             g -= w.redundancy * ((most - 0.75) / 0.25).coerceIn(0.0, 1.0)
         }
         if (mode == Mode.SLEEP) {
-            g += w.sleep * ((s?.sleepScore ?: 40) / 100.0)
+            g += w.sleep * ((c.sleepScore ?: 40) / 100.0)
             // Winding down: louder or busier than the song before costs.
             val prev = last?.sound?.features
             val now = s?.features

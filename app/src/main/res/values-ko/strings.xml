@@ -5786,4 +5786,5 @@
     <string name="sleep_scores">수면 점수</string>
     <string name="sleep_scores_info">사운드 분석에서 각 곡이 수면에 얼마나 맞는지, 차분한 순서로. 평가와 수면 타이머 중 건너뛴 곡이 점수를 만듭니다.</string>
     <string name="sleep_scores_none">아직 분석된 곡이 없습니다. 위에서 곡을 분석하면 점수가 여기에 표시됩니다.</string>
+    <string name="sleep_normalized_note">여기서는 음량 비중이 낮습니다. 노멀라이즈가 모든 곡을 같은 음량으로 맞추기 때문입니다.</string>
 </resources>

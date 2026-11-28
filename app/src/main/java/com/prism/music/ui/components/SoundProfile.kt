@@ -165,6 +165,11 @@ private fun SleepScoreBlock(r: SleepResult) {
         val shift = r.personal + r.vote
         if (shift != 0) Text(tr(R.string.sleep_your_feedback, (if (shift > 0) "+" else "") + shift), style = MaterialTheme.typography.bodyMedium)
         if (r.completeness < 0.9f) Text(tr(R.string.analysis_partial), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // With Normalize on, loudness's pull is cut (the player brings every song to one level): said, so the score's
+        // figures and its weights don't look like they disagree.
+        if (r.parts.any { it.factor == com.prism.music.analysis.SleepFactor.ENERGY && it.weight < com.prism.music.analysis.SleepFactor.ENERGY.weight }) {
+            Text(tr(R.string.sleep_normalized_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         val helps = r.forIt()
         if (helps.isNotEmpty()) {
             Eyebrow(tr(R.string.sleep_helps))

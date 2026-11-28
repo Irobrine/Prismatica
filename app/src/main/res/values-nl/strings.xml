@@ -5861,4 +5861,5 @@
     <string name="sleep_scores">Slaapscores</string>
     <string name="sleep_scores_info">Uit de geluidsanalyse: hoe goed elk nummer bij slapen past, het rustigste eerst. Je stemmen en wat je overslaat tijdens de slaaptimer bepalen de scores.</string>
     <string name="sleep_scores_none">Nog geen nummers geanalyseerd. Analyseer hierboven nummers en hun scores verschijnen hier.</string>
+    <string name="sleep_normalized_note">Volume telt hier minder: Normaliseren brengt elk nummer op hetzelfde niveau.</string>
 </resources>

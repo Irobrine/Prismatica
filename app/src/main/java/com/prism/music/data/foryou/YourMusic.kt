@@ -128,6 +128,8 @@ class YourMusic(private val c: AppContainer) {
         fun cand(song: Song, relevance: Double) = com.prism.music.analysis.QueueSequencer.Candidate(
             song.id, relevance, song.primaryArtist, song.album?.id ?: song.album?.title, sound.entry(song.id),
             fresh = if (s.last[song.id] == null) 1.0 else 0.0,
+            // Read live: the same weights (Normalize, vocals), votes and sleep-timer feedback the rest of the app shows.
+            sleepScore = sound.sleepScore(song.id),
         )
         val ordered = com.prism.music.analysis.QueueSequencer.order(
             picks.map { cand(it.song, it.score / top) }, picks.size, sound.similarity,

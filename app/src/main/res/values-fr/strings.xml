@@ -5936,4 +5936,5 @@
     <string name="sleep_scores">Scores de sommeil</string>
     <string name="sleep_scores_info">D’après l’analyse du son : à quel point chaque titre convient au sommeil, du plus calme au moins calme. Vos votes et ce que vous passez pendant le minuteur de sommeil façonnent les scores.</string>
     <string name="sleep_scores_none">Aucun titre analysé pour l’instant. Analysez des titres ci-dessus et leurs scores apparaîtront ici.</string>
+    <string name="sleep_normalized_note">Le volume compte moins ici : la normalisation met chaque titre au même niveau.</string>
 </resources>

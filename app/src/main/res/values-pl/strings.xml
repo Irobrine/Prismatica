@@ -6011,4 +6011,5 @@
     <string name="sleep_scores">Oceny snu</string>
     <string name="sleep_scores_info">Z analizy dźwięku: jak dobrze każdy utwór nadaje się do snu, od najspokojniejszego. Twoje głosy i to, co pomijasz przy timerze snu, kształtują oceny.</string>
     <string name="sleep_scores_none">Nie przeanalizowano jeszcze żadnych utworów. Przeanalizuj utwory powyżej, a ich oceny pojawią się tutaj.</string>
+    <string name="sleep_normalized_note">Głośność liczy się tu mniej: normalizacja sprowadza każdy utwór do tego samego poziomu.</string>
 </resources>

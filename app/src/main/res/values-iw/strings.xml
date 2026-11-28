@@ -5936,4 +5936,5 @@
     <string name="sleep_scores">ציוני שינה</string>
     <string name="sleep_scores_info">מניתוח הצליל: כמה כל שיר מתאים לשינה, הרגועים קודם. ההצבעות שלך ומה שאתה מדלג עליו כשהטיימר פועל מעצבים את הציונים.</string>
     <string name="sleep_scores_none">אין עדיין שירים מנותחים. נתח שירים למעלה והציונים יופיעו כאן.</string>
+    <string name="sleep_normalized_note">עוצמת הקול נחשבת פחות כאן: נרמול מביא כל שיר לאותה עוצמה.</string>
 </resources>

@@ -5786,4 +5786,5 @@
     <string name="sleep_scores">Skor tidur</string>
     <string name="sleep_scores_info">Daripada analisis bunyi: sejauh mana setiap lagu sesuai untuk tidur, paling tenang dahulu. Penilaian anda dan lagu yang dilangkau semasa pemasa tidur membentuk skornya.</string>
     <string name="sleep_scores_none">Belum ada lagu dianalisis. Analisis lagu di atas dan skornya muncul di sini.</string>
+    <string name="sleep_normalized_note">Kenyaringan kurang dikira di sini: Normalisasi membawa setiap lagu ke tahap yang sama.</string>
 </resources>

@@ -6161,4 +6161,5 @@
     <string name="sleep_scores">درجات النوم</string>
     <string name="sleep_scores_info">من تحليل الصوت: مدى ملاءمة كل أغنية للنوم، الأهدأ أولًا. أصواتك وما تتخطاه أثناء مؤقت النوم تشكّل الدرجات.</string>
     <string name="sleep_scores_none">لم تُحلَّل أي أغانٍ بعد. حلّل الأغاني أعلاه وستظهر درجاتها هنا.</string>
+    <string name="sleep_normalized_note">يرتفع مستوى الصوت هنا أقل: التسوية تجعل كل أغنية بالمستوى نفسه.</string>
 </resources>

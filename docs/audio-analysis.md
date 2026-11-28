@@ -72,6 +72,11 @@ leans on the listener's own feedback as soon as there is any.
   `AnalysisService` with a progress notification and a Stop. Every step goes through `MixTempo.ease()`
   (gives way to audio underruns, touches on slow phones, the background CPU budget, and the song being heard).
   Cancellation is the coroutine's: a stopped walk keeps what's done and resumes where it was.
+- **Normalization comes with the analysis.** Analysis and the loudness figure are one decode: every analysis scan measures
+  and saves integrated loudness, its version and the peak exactly as "Measure songs now" does, before the descriptors are
+  stored. The walks ask for the peak explicitly and count a song as done only when the player's figure is current too
+  (`MixTempo.normalizationReady`: measured with the current meter and its peak, or scanned and found to have nothing to
+  measure), so a song is never analysed while the player would have to play it at 0 dB or on a stale figure.
 - **Cache and provenance.** A row is keyed by song id and carries `algorithmVersion`, `taggerId`/`taggerVersion` and
   `analyzedAt`. A song is analysed again only when its descriptors' version or the tagger's changed. User decisions
   (tag reviews, sleep votes) live in separate tables and survive re-analysis.
@@ -113,7 +118,7 @@ MusicBrainz/metadata edits (`SongMetadata`) and user tags (`song_tags`) are neve
 
 | Factor | From | Calm end |
 | --- | --- | --- |
-| Arousal / energy | loudness (LUFS), max momentary, spectral energy | quiet |
+| Arousal / energy | loudness (LUFS), max momentary, spectral energy | quiet — **weight 0.6 instead of 1.4 with Normalize on**, since the player then brings every song to one level |
 | Tempo — *weighted by pulse clarity* | BPM (octave-folded toward 60–90) | ≤ 85 BPM; irrelevant when there's no clear beat |
 | Beat strength | pulse clarity, percussive ratio | soft or no pulse |
 | Rhythmic regularity | tempo stability across segments | steady (predictable) |
@@ -126,6 +131,12 @@ MusicBrainz/metadata edits (`SongMetadata`) and user tags (`song_tags`) are neve
 | Consistency | spread of segment loudness/brightness; loudest segment vs median; intro/outro | even throughout |
 
 A track whose sudden-change factor is very low is capped (≤ 45) whatever else it scores: one crash wakes a sleeper.
+The score follows playback: with **Normalize on** (Prism's default, album mode included) a master's own loudness is
+undone by the player, so ENERGY's pull drops from 1.4 to 0.6 — the figure stays as a proxy for a dense, compressed master,
+but it can't decide a score over what's heard at equal level. Density, brightness, beat, dynamics and sudden changes carry
+the arousal judgement instead. The toggle is part of the score's weights, so scores change on the next read; nothing is
+re-analysed, because every figure is already stored. The Sound profile says so under the score.
+
 Personalization: a song's own vote moves its score ±25; votes and sleep-timer behaviour (skipped vs. played through
 while the timer ran) fit a small ridge-regularized logistic model on the factor values, which shifts every score by at
 most ±15. Every adjustment is listed with the factors.
@@ -185,8 +196,10 @@ Internet Archive's netlabels), run on desktop ONNX Runtime:
 
 - Cost per song (desktop): 40–220 ms descriptors, ~80 ms YAMNet for 72 frames. Phones are roughly 5–10× slower on one
   core, so expect well under 2 s per song, after the decode Normalize already pays for.
-- Sleep order: a soft jazz lick 70, an Irish lullaby (band arrangement) 65, ambient 61, then rock, noise, techno and
-  hip-hop at 26–48. The explanations named what you would expect: loud masters (ENERGY), 120–135 BPM with a clear beat
+- Sleep order (Normalize on): a soft jazz lick 68, an Irish lullaby 64, ambient 59, then rock, noise, techno and hip-hop
+  at 29–53. With the loudness pull cut for normalized playback the gap between the ambient track and the hip-hop one
+  narrows from 35 to 30 points: the loud tracks gain 3–5 points, the quiet ones lose 1–2, because much of a loud track's
+  penalty already came from its brightness and density rather than its level. The explanations named what you would expect: loud masters (ENERGY), 120–135 BPM with a clear beat
   (TEMPO), drum machines and drums (INSTRUMENTS), a bright noise wall (BRIGHTNESS 22 % above 1.5 kHz), and +15 to +21 LU
   sudden rises.
 - Similarity with embeddings centred on the library mean: rock ↔ rock 0.78, metal ↔ rock 0.79, jazz ↔ a

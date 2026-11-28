@@ -418,6 +418,16 @@ class MixTempo(
     /** Measured before peaks were (1.8.0): Normalize can lift it no more than 6 dB until it's scanned again. */
     private fun noPeak(id: String) = loudness(id) != null && !peakPrefs.contains(id)
 
+    /**
+     * Whether [id]'s normalization figure is one the player can use as it is: measured with the current meter
+     * ([LUFS_VERSION], every channel) and with its peak (the lift's headroom), or measured and found to have nothing
+     * measurable (silence: a scan that would say the same again). A song without one is work for the analysis walk, whose
+     * scan measures it on the way ([measure]).
+     */
+    fun normalizationReady(id: String): Boolean = normalizationReady(
+        scanned = loudPrefs.contains(id), lufs = loudness(id), current = loudnessCurrent(id), hasPeak = peakPrefs.contains(id),
+    )
+
     /** The song's key once it's been scanned for one (null for none clear, or not scanned yet). */
     fun key(id: String): MusicKey? = keyPrefs.getString(id, null)?.let(MusicKey::decode)
 
@@ -875,6 +885,14 @@ class MixTempo(
 
         /** A scan that failed (a file briefly gone, a read that went wrong) may be asked for again after this. */
         internal const val FAILED_RETRY_MS = 5 * 60_000L
+
+    /** [normalizationReady], on its own figures so it can be read (and tested) without a phone. */
+    internal fun normalizationReady(scanned: Boolean, lufs: Float?, current: Boolean, hasPeak: Boolean): Boolean = when {
+        !scanned -> false
+        // Scanned, and there was nothing to measure (silence, a fade): scanning again would say the same.
+        lufs == null -> true
+        else -> current && hasPeak
+    }
 
         /** Whole scans running at once at most ([MixTempo.withScanSlot]): two, on the phones [MixTempo.mayScanTwice] allows. */
         private const val MAX_SCANS = 2

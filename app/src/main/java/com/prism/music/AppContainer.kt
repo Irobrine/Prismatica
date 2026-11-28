@@ -466,8 +466,11 @@ class AppContainer(val app: Application) {
         com.prism.music.analysis.AnalysisStore(
             db.analysis(), models, { settings.current.behavior.analysis }, scope,
             makeTagger = { com.prism.music.analysis.AnalysisStore.yamnet(models) },
+            normalized = ::playsAtOneLevel,
         )
     }
+    /** Whether the player brings every song to one level (Normalize; album mode too), so a master's own level is undone. */
+    fun playsAtOneLevel(): Boolean = settings.current.normalize || settings.current.sound.normalizeAlbums
     /** What's measured of songs (tempo, key, loudness, energy), in one table that smart playlists filter on (1.8.3). */
     val traits by lazy { com.prism.music.data.TraitsStore(db.traits(), scope) }
     /** Songs' loudness outlines, for the waveform progress bar (made by the song scan). */
@@ -757,13 +760,21 @@ class AppContainer(val app: Application) {
         com.prism.music.data.MeasureSongs(
             scope,
             { form, song, network ->
+                // peak: the scan brings a missing or out-of-date normalization figure with it (the same decode, saved the
+                // way "Measure songs now" saves it), so a song is never analysed without the player being able to play it
+                // at the right level.
                 mixTempo.measure(
-                    form, network = network, edges = false, key = false, wave = false, peak = false, sourceSongId = song,
+                    form, network = network, edges = false, key = false, wave = false, peak = true, sourceSongId = song,
                     deferToPlaying = true, analyse = true,
                 )
             },
-            // Analysed means the sound analysis has something current for it; the tagger's version counts when it's on.
-            { form -> runCatching { !analysis.needs(form) }.getOrDefault(false) },
+            // Done: the sound analysis has something current for it, and — with Normalize on — the player has a figure to
+            // play it at. The tagger's version counts when its model is on.
+            { form ->
+                runCatching {
+                    !analysis.needs(form) && (!playsAtOneLevel() || mixTempo.normalizationReady(form))
+                }.getOrDefault(false)
+            },
             { id -> loudnessIndex.formId(id, null) },
             { if (mixTempo.mayScanTwice()) 2 else 1 },
             unmetered = { app.getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false },

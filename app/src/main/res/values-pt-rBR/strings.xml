@@ -5936,4 +5936,5 @@
     <string name="sleep_scores">Notas de sono</string>
     <string name="sleep_scores_info">Da análise de som: quão bem cada música serve para dormir, da mais calma para a menos. Seus votos e o que você pula com o timer de sono moldam as notas.</string>
     <string name="sleep_scores_none">Nenhuma música analisada ainda. Analise músicas acima e as notas aparecem aqui.</string>
+    <string name="sleep_normalized_note">O volume conta menos aqui: a normalização leva toda música ao mesmo nível.</string>
 </resources>

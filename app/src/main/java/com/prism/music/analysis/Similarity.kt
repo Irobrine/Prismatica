@@ -16,8 +16,6 @@ class SoundEntry(
     val features: SongFeatures,
     val embedding: FloatArray?,
     val profile: FloatArray?,
-    /** The default-weights sleep score, for a bedtime queue's order. */
-    val sleepScore: Int?,
 ) {
     val key: MusicKey? by lazy { features.key?.let(MusicKey::decode) }
 }

@@ -40,6 +40,8 @@ class AnalysisStore(
     private val scope: CoroutineScope,
     /** The tagger, made when it's first needed (null: none can run here). Tests hand in their own. */
     private val makeTagger: () -> AudioTagger? = { null },
+    /** Playback Normalize (the player brings every song to one level): the score counts loudness far less then. */
+    private val normalized: () -> Boolean = { true },
 ) : SongAnalyzer {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = false }
 
@@ -95,7 +97,7 @@ class AnalysisStore(
         val features = runCatching { json.decodeFromString(SongFeatures.serializer(), r.featuresJson) }.getOrNull() ?: return
         val s = r.scores?.let(::unpackScores)
         if (s != null) scores[r.songId] = s else scores.remove(r.songId)
-        entries[r.songId] = SoundEntry(r.songId, features, r.embedding?.let(::unpackEmbedding), s?.let(TagVocabulary::profile), r.sleepScore)
+        entries[r.songId] = SoundEntry(r.songId, features, r.embedding?.let(::unpackEmbedding), s?.let(TagVocabulary::profile))
         scoreCache.remove(r.songId)
     }
 
@@ -125,7 +127,7 @@ class AnalysisStore(
 
     override fun record(id: String, songId: String?, features: SongFeatures, windows: List<FloatArray>) {
         val out = if (windows.isNotEmpty() && taggerReady()) runTagger(windows) else null
-        val baseScore = SleepScore.of(features, out?.scores).base
+        val baseScore = SleepScore.of(features, out?.scores, weightsNow()).base
         val now = System.currentTimeMillis()
         val row = SongAnalysisEntity(
             songId = id,
@@ -212,6 +214,9 @@ class AnalysisStore(
      * gate asks this for every song it looks at.
      */
     fun sleepScore(id: String): Int? {
+        // Read before the cache: a settings change (Normalize, vocals) is in the weights, and the cache is keyed by song
+        // alone, so a cached score from the old weights must go — otherwise the sleep timer keeps the old ones.
+        ensureWeights()
         scoreCache[id]?.let { return it }
         val r = sleepResult(id) ?: return null
         scoreCache[id] = r.score
@@ -220,10 +225,19 @@ class AnalysisStore(
 
     fun sleepResult(id: String): SleepResult? {
         val e = entry(id) ?: return null
-        val w = SleepWeights(vocalsCount = prefs().vocalsCount)
-        if (w != weights) { weights = w; scoreCache.clear() }
+        val w = ensureWeights()
         return SleepScore.of(e.features, scores[id], w, personal, votes[id] ?: 0)
     }
+
+    /** The weights the listener's settings make now, dropping the cached scores when they changed. */
+    private fun ensureWeights(): SleepWeights {
+        val w = weightsNow()
+        if (w != weights) { weights = w; scoreCache.clear() }
+        return w
+    }
+
+    /** The weights the listener's settings make now (a change clears the cached scores on the next read). */
+    fun weightsNow() = SleepWeights(vocalsCount = prefs().vocalsCount, normalized = normalized())
 
     // ------------------------------------------------------------------ the listener's say
 
@@ -265,7 +279,7 @@ class AnalysisStore(
 
     /** Fits [SleepPersonal] to every vote and sleep-timer listen of an analysed song. */
     private suspend fun refitPersonal() {
-        val w = SleepWeights(vocalsCount = prefs().vocalsCount)
+        val w = weightsNow()
         val examples = ArrayList<SleepPersonal.Example>()
         fun partsOf(id: String) = entries[id]?.let { SleepScore.of(it.features, scores[id], w).parts }
         for ((id, v) in votes) partsOf(id)?.let { examples += SleepPersonal.Example(it, v > 0, 1f) }

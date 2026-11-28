@@ -13,7 +13,7 @@ class SequencingTest {
 
     private fun emb(seed: Int) = FloatArray(64) { i -> (if ((i + seed) % 3 == 0) 1f else 0.2f) }
 
-    private fun entry(id: String, f: SongFeatures, seed: Int, sleep: Int? = null) = SoundEntry(id, f, emb(seed), null, sleep)
+    private fun entry(id: String, f: SongFeatures, seed: Int) = SoundEntry(id, f, emb(seed), null)
 
     private val sim = Similarity(DescriptorStats.DEFAULT)
 
@@ -41,9 +41,10 @@ class SequencingTest {
     }
 
     @Test fun aBedtimeRunWindsDown() {
-        val loud = QueueSequencer.Candidate("loud", 1.0, "A", null, entry("loud", feat(-7f, 128f, 2500f, onsets = 6f), 0, sleep = 20))
-        val mid = QueueSequencer.Candidate("mid", 0.9, "B", null, entry("mid", feat(-14f, 90f, 1400f, onsets = 3f), 0, sleep = 55))
-        val calm = QueueSequencer.Candidate("calm", 0.8, "C", null, entry("calm", feat(-22f, 65f, 700f, onsets = 1f, pulse = 0.2f), 0, sleep = 90))
+        // The scores are the caller's (read live from the analysis): a bedtime run keeps to them.
+        val loud = QueueSequencer.Candidate("loud", 1.0, "A", null, entry("loud", feat(-7f, 128f, 2500f, onsets = 6f), 0), sleepScore = 20)
+        val mid = QueueSequencer.Candidate("mid", 0.9, "B", null, entry("mid", feat(-14f, 90f, 1400f, onsets = 3f), 0), sleepScore = 55)
+        val calm = QueueSequencer.Candidate("calm", 0.8, "C", null, entry("calm", feat(-22f, 65f, 700f, onsets = 1f, pulse = 0.2f), 0), sleepScore = 90)
         // Two of the three: the loud one leads an ordinary run, and a bedtime run leaves it out and winds down.
         val normal = QueueSequencer.order(listOf(loud, mid, calm), 2, sim)
         val sleep = QueueSequencer.order(listOf(loud, mid, calm), 2, sim, mode = QueueSequencer.Mode.SLEEP)

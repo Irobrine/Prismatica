@@ -36,10 +36,29 @@ enum class SleepFactor(val label: Int, val weight: Float, val disruptive: Boolea
 data class SleepWeights(
     /** Singing and speech count against a song (on by default; some sleep best to voices). */
     val vocalsCount: Boolean = true,
+    /**
+     * Playback Normalize is on (Prism's default). The score then counts a master's loudness far less: the player brings
+     * every song to the same level, so what would be left of "how loud it is" is density and brightness, which their own
+     * factors already measure. The figure stays, its pull shrinks ([NORMALIZED_ENERGY]).
+     */
+    val normalized: Boolean = true,
     /** Per-factor weights; [SleepFactor.weight] for any not here. */
     val custom: Map<SleepFactor, Float> = emptyMap(),
 ) {
-    fun of(f: SleepFactor): Float = if (f == SleepFactor.VOCALS && !vocalsCount) 0f else custom[f] ?: f.weight
+    fun of(f: SleepFactor): Float = when {
+        f == SleepFactor.VOCALS && !vocalsCount -> 0f
+        custom[f] != null -> custom.getValue(f)
+        f == SleepFactor.ENERGY && normalized -> NORMALIZED_ENERGY
+        else -> f.weight
+    }
+
+    companion object {
+        /**
+         * ENERGY's weight with Normalize on: 0.6 against 1.4. Loudness is still a proxy for a dense, compressed master,
+         * so it isn't nothing; but at equal playback level it must not decide a score over what's actually heard.
+         */
+        const val NORMALIZED_ENERGY = 0.6f
+    }
 }
 
 /**
