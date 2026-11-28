@@ -88,6 +88,28 @@ class SleepScoreTest {
         assertTrue(SleepWeights(normalizeTarget = -14f) != SleepWeights(normalizeTarget = null))
     }
 
+    /**
+     * With Normalize on, a quiet master is played at the target like any other: its own level mustn't read as calm. What
+     * still tells a squashed master from an open one is how far its peaks stand over its loudness.
+     */
+    @Test fun aQuietButSquashedMasterIsNotCalmOnceNormalizeLiftsIt() {
+        val w = SleepWeights(normalizeTarget = -14f)
+        fun energy(f: SongFeatures) = SleepScore.of(f, weights = w).parts.first { it.factor == SleepFactor.ENERGY }.calm
+        // A -21 LUFS upload of a squashed pop master (peaks 9 dB over it) and an open, dynamic recording at the same level.
+        val squashed = club.copy(lufs = -21f, peakDb = -12f, truePeakDb = -12f, maxMomentary = null)
+        val open = club.copy(lufs = -21f, peakDb = -4f, truePeakDb = -4f, maxMomentary = null)
+        assertTrue("squashed ${energy(squashed)}", energy(squashed) < 0.3f)
+        assertTrue("open ${energy(open)} vs squashed ${energy(squashed)}", energy(open) > energy(squashed) + 0.3f)
+    }
+
+    /** Brightness is read above the sub-bass: a bass-boosted mix isn't "dark" (and so calm) because its bass is huge. */
+    @Test fun aBassBoostedMixIsNotReadAsDark() {
+        fun bright(f: SongFeatures) = SleepScore.of(f).parts.first { it.factor == SleepFactor.BRIGHTNESS }.calm
+        val mellow = calm.copy(brightShare = 0.03f, lowRatio = 0.2f)
+        val boosted = calm.copy(brightShare = 0.06f, lowRatio = 0.8f)
+        assertTrue("mellow ${bright(mellow)} vs boosted ${bright(boosted)}", bright(mellow) > bright(boosted) + 0.3f)
+    }
+
     @Test fun theEnergyWeightFollowsWhatThePlayersGainLeaves() {
         val w = SleepWeights(normalizeTarget = -14f)
         // Loud master the player cuts to target: nothing of its level is left, so loudness only proxies density.

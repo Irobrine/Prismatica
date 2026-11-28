@@ -256,3 +256,24 @@ needs the tagging model downloaded from Settings.
 - Storage: ~2–3 KB per song.
 - Battery/thermal: one thread, background priority, scheduled while charging; inline scans share the existing scan's
   budget (`BackgroundBudget`).
+
+### Calibration against a listener's marks (descriptors v3, score v2)
+
+An export of ~270 songs with 24 High/Low marks showed four systematic errors; each fix is general, not fitted to those songs:
+
+- **Sudden loud moments** fired mostly on *quiet* music: a rest between phrases read as near-silence, so the next note was
+  a "+30 LU jolt" (a harp lullaby read 7/min, solo piano 2.3/min, loud rock 0). A rise is now measured against the louder
+  of the last 0.5 s and the 2.5 s before it, and only rises landing within 6 LU of the song's loudness count, the biggest
+  one included (`Descriptors.suddenRises`, VERSION 3, so songs are re-analysed). On the validation recordings the solo
+  piano went from 2.3/min (+15 LU) to 0.3/min; a crash after a quiet stretch is still caught.
+- **Energy** read a quiet master as calm although Normalize plays it at the target. It's now the level heard (after the
+  player's gain) plus how squashed the master is (peak-to-loudness ratio: 6–9 dB walls of sound vs 14+ dB open
+  recordings); without a peak figure, the master's own level as before.
+- **Brightness** was the share above 1.5 kHz of the whole spectrum, so bass-boosted and distorted mixes read "dark": the
+  songs marked too high were darker than those marked too low. It's now the share of what's above 150 Hz, weighed 0.6.
+- **Tempo** half/double errors made slow-detected loud songs look calm and double-detected ballads frantic: a wider curve
+  (80–160 BPM) and weight 0.7. **Instruments** now include YAMNet's style evidence (rock, metal, punk, grunge, EDM,
+  techno… against lullaby, ambient, new age), at weight 1.0, since a modest reading is already evidence.
+
+`SleepCalibrationTest` (opt-in, `SLEEP_CSV` = an export) re-scores an export with the current code and prints how the
+marked songs move; the file stays on the listener's machine.

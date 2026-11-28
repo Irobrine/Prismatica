@@ -88,6 +88,24 @@ class DescriptorsTest {
         assertTrue(SleepScore.of(plain).score > s.score)
     }
 
+    /**
+     * A quiet plucked piece with rests between its phrases: the note after a rest is at the song's own level, so it's no
+     * jolt. Measured against the rest alone (v2) each one read as a +20 LU rise; real exports had a harp lullaby at
+     * seven a minute. A crash after a quiet stretch is still one ([oneCrashInAQuietPieceIsASuddenRiseAndCapsTheSleepScore]).
+     */
+    @Test fun aNoteAfterARestIsNoSuddenRise() {
+        val pcm = FloatArray(60 * rate) { i ->
+            val t = i.toDouble() / rate
+            // A 1.5 s note, then 0.7 s of silence, again and again.
+            val inNote = t % 2.2
+            if (inNote >= 1.5) 0f
+            else (0.05 * exp(-inNote * 1.5) * sin(2 * PI * 330 * t)).toFloat()
+        }
+        val f = features(pcm)
+        assertEquals("rises ${f.suddenPerMinute}/min, worst ${f.worstRise}", 0f, f.suddenPerMinute, 0f)
+        assertTrue("worst ${f.worstRise}", f.worstRise < Descriptors.SUDDEN_LU)
+    }
+
     @Test fun theLoudnessRangeOfTwoLevelsTwentyDecibelsApart() {
         val pcm = FloatArray(120 * rate) { i ->
             val t = i.toDouble() / rate

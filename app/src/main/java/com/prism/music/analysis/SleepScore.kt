@@ -19,15 +19,15 @@ import kotlin.math.roundToInt
  */
 enum class SleepFactor(val label: Int, val weight: Float, val disruptive: Boolean = false) {
     ENERGY(R.string.sleep_factor_energy, 1.4f),
-    TEMPO(R.string.sleep_factor_tempo, 0.9f),
+    TEMPO(R.string.sleep_factor_tempo, 0.7f),
     BEAT(R.string.sleep_factor_beat, 1.0f),
     REGULARITY(R.string.sleep_factor_regularity, 0.15f, disruptive = true),
     DYNAMICS(R.string.sleep_factor_dynamics, 0.35f, disruptive = true),
     SUDDEN(R.string.sleep_factor_sudden, 0.6f, disruptive = true),
-    BRIGHTNESS(R.string.sleep_factor_brightness, 0.9f),
+    BRIGHTNESS(R.string.sleep_factor_brightness, 0.6f),
     DENSITY(R.string.sleep_factor_density, 1.0f),
     VOCALS(R.string.sleep_factor_vocals, 0.6f),
-    INSTRUMENTS(R.string.sleep_factor_instruments, 0.8f),
+    INSTRUMENTS(R.string.sleep_factor_instruments, 1.0f),
     MOOD(R.string.sleep_factor_mood, 0.5f),
     CONSISTENCY(R.string.sleep_factor_consistency, 0.35f, disruptive = true),
     HARSHNESS(R.string.sleep_factor_harshness, 0.45f, disruptive = true),
@@ -113,7 +113,7 @@ data class SleepResult(
  */
 object SleepScore {
     /** Bumped when the score is worked out differently: cached scores are worked out again. */
-    const val VERSION = 1
+    const val VERSION = 2
 
     /** A sudden loud moment this big (LU) caps the score at [CAP]: one crash is enough to wake someone. */
     const val CAP_RISE = 15f
@@ -133,7 +133,7 @@ object SleepScore {
         vote: Int = 0,
     ): SleepResult {
         // A factor's pull: its weight, how much it applies (a tempo with no beat to feel), and how sure its evidence is.
-        val measured = factors(f, scores)
+        val measured = factors(f, scores, weights)
         val factorsKnown = measured.filter { it.available }.map { it.factor }.distinct()
         val parts = measured.map { r ->
             FactorPart(r.factor, r.calm.coerceIn(0f, 1f), weights.of(r.factor, f) * r.applies * r.confidence, r.detail)
@@ -191,19 +191,36 @@ object SleepScore {
     private fun f2(x: Float) = "%.2f".format(x)
     private fun f0(x: Float) = x.roundToInt().toString()
 
-    private fun factors(f: SongFeatures, scores: FloatArray?): List<Raw> {
+    /** 0 at or under [low], 1 at or over [high], eased between. */
+    internal fun up(x: Float, low: Float, high: Float): Float = 1f - down(x, low, high)
+
+    private fun factors(f: SongFeatures, scores: FloatArray?, weights: SleepWeights): List<Raw> {
         val out = ArrayList<Raw>()
-        // Energy: how loud it's made and how loud its loudest moments are (normalization evens playback, but a loud
-        // master is a dense, compressed, energetic one).
+        // Energy: how loud it's heard and how squashed the master is. The level is the master's after the player's gain
+        // (Normalize lifts a quiet master to the same level as the rest: read at its own level, a -21 LUFS upload of a
+        // hyper pop song was "calm"). How squashed is the peak-to-loudness ratio, whatever level it plays at: a wall-of-
+        // sound master sits 6–9 dB, an open, dynamic recording 14 or more.
         f.lufs?.let { l ->
-            val loud = down(l, -22f, -8f)
-            val peak = f.maxMomentary?.let { down(it, -16f, -4f) } ?: loud
-            out += Raw(SleepFactor.ENERGY, 0.6f * loud + 0.4f * peak, 1f, "${f0(l)} LUFS")
+            val gain = weights.normalizeTarget?.let { com.prism.music.playback.NormalizerProcessor.gainFor(it, l, f.peakDb) } ?: 0f
+            val heard = down(l + gain, -22f, -8f)
+            val level = 0.6f * heard + 0.4f * (f.maxMomentary?.let { down(it + gain, -16f, -4f) } ?: heard)
+            val peak = f.truePeakDb ?: f.peakDb
+            val crest = peak?.let { up(it - l, 8f, 16f) }
+            val calm = when {
+                // No peak to tell how squashed it is: the master's own level is the best proxy for that (as before v2).
+                crest == null -> 0.6f * down(l, -22f, -8f) + 0.4f * (f.maxMomentary?.let { down(it, -16f, -4f) } ?: down(l, -22f, -8f))
+                // Equalized, the level says little (it's the target for nearly every song); the master's density does.
+                weights.normalizeTarget != null -> 0.4f * level + 0.6f * crest
+                else -> 0.7f * level + 0.3f * crest
+            }
+            out += Raw(SleepFactor.ENERGY, calm, 1f, "${f0(l)} LUFS" + (peak?.let { " · PLR ${f0(it - l)} dB" } ?: ""))
         }
-        // Tempo counts as far as there's a beat to feel it by: an ambient piece "at 140" has none.
+        // Tempo counts as far as there's a beat to feel it by: an ambient piece "at 140" has none. A wide curve and a
+        // modest weight: the scan's tempo is often a half or double of the felt one (a ballad "at 134", a punk song "at
+        // 82"), and slow mustn't make a loud song sleepy.
         val pulse = f.pulseClarity
         if (f.bpm != null) {
-            out += Raw(SleepFactor.TEMPO, down(f.bpm, 85f, 135f), 0.2f + 0.8f * pulse, "${f0(f.bpm)} BPM")
+            out += Raw(SleepFactor.TEMPO, down(f.bpm, 80f, 160f), 0.2f + 0.8f * pulse, "${f0(f.bpm)} BPM")
         }
         val perc = ((f.percussive - 0.2f) / 0.4f).coerceIn(0f, 1f)
         out += Raw(SleepFactor.BEAT, 1f - (0.6f * pulse + 0.4f * perc), 1f, "${f0(pulse * 100)}% · ${f0(f.percussive * 100)}%")
@@ -218,18 +235,17 @@ object SleepScore {
         }
         out += Raw(
             SleepFactor.SUDDEN,
-            down(f.suddenPerMinute, 0f, 1.5f) * (0.4f + 0.6f * down(f.worstRise, 8f, 18f)),
+            down(f.suddenPerMinute, 0.2f, 2f) * (0.4f + 0.6f * down(f.worstRise, 9f, 20f)),
             1f,
             "${f1(f.suddenPerMinute)}/min · +${f0(f.worstRise)} LU",
         )
-        // Brightness: the share of the energy above 1.5 kHz (real recordings: 1–4 % for dark, bass-led music, 10–20 % for
-        // bright guitars and noise), with the centroid for songs analysed before it was measured.
+        // Brightness: the share above 1.5 kHz of what's above the sub-bass (150 Hz). Of the whole spectrum, a bass-boosted
+        // or distorted mix read "dark" (1–5 %) and so calm, while a soft, airy recording read bright: real exports had the
+        // songs marked "too high" darker than those marked "too low". Without the sub-bass: 0–5 % for mellow, 10–20 % for
+        // most pop, 30 % and more for bright guitars, cymbals and noise.
         if (f.brightShare > 0f) {
-            out += Raw(
-                SleepFactor.BRIGHTNESS,
-                0.75f * down(f.brightShare, 0.03f, 0.15f) + 0.25f * down(f.centroidHz, 500f, 1200f),
-                1f, "${f0(f.brightShare * 100)}% > 1.5 kHz",
-            )
+            val share = f.brightShare / (1f - f.lowRatio).coerceAtLeast(0.1f)
+            out += Raw(SleepFactor.BRIGHTNESS, down(share, 0.06f, 0.40f), 1f, "${f0(share * 100)}% > 1.5 kHz")
         } else if (f.centroidHz > 0f) {
             out += Raw(SleepFactor.BRIGHTNESS, down(f.centroidHz, 500f, 1200f), 1f, "${f0(f.centroidHz)} Hz")
         }
@@ -286,14 +302,18 @@ object SleepScore {
         val voiceShare = min(1f, voice / 0.6f)
         val voiceSure = kotlin.math.abs(2f * voiceShare - 1f)
         out += Raw(SleepFactor.VOCALS, 1f - min(1f, voice / 0.6f), 1f, "${f0(voice * 100)}%", voiceSure * gate, heardSomething)
-        // Soft instruments and sounds against hard ones.
+        // Soft instruments and styles against hard ones. YAMNet's genre and style classes are spread thin (a clear rock song
+        // reads 0.15–0.30), so a modest reading is already evidence: in real exports these were what set the loud songs
+        // marked "too high" apart, where tempo and brightness had read them calm.
         val soft = listOf("instrument:piano", "instrument:strings", "instrument:harp", "instrument:acoustic-guitar", "instrument:bells",
-            "instrument:woodwind", "style-kind:meditative", "sounds:rain", "sounds:water", "sounds:wind", "sounds:noise").maxOf { score(scores, it) }
-        val hard = listOf("instrument:drums", "instrument:drum-machine", "instrument:electric-guitar", "instrument:brass", "style:heavy-metal",
-            "style:punk", "style:dubstep", "style:drum-and-bass", "style:techno").maxOf { score(scores, it) }
+            "instrument:woodwind", "style-kind:meditative", "style-kind:lullaby", "style:ambient", "style:new-age",
+            "sounds:rain", "sounds:water", "sounds:wind", "sounds:noise").maxOf { score(scores, it) }
+        val hard = listOf("instrument:drums", "instrument:drum-machine", "instrument:electric-guitar", "instrument:brass",
+            "genre:Rock", "genre:Metal", "style:heavy-metal", "style:punk", "style:grunge", "style:progressive-rock",
+            "style:dubstep", "style:drum-and-bass", "style:techno", "style:edm", "style:trance", "style:house", "style-kind:dance").maxOf { score(scores, it) }
         out += Raw(
-            SleepFactor.INSTRUMENTS, (0.5f + (soft - hard) / 0.8f).coerceIn(0f, 1f), 1f,
-            "+${f0(soft * 100)}% / −${f0(hard * 100)}%", (max(soft, hard) / 0.35f).coerceIn(0f, 1f) * gate, heardSomething,
+            SleepFactor.INSTRUMENTS, (0.5f + (soft - hard) / 0.5f).coerceIn(0f, 1f), 1f,
+            "+${f0(soft * 100)}% / −${f0(hard * 100)}%", (max(soft, hard) / 0.18f).coerceIn(0f, 1f) * gate, heardSomething,
         )
         // Mood: tender, sad and lullabies calm; exciting, angry and scary don't.
         val calmMood = max(max(score(scores, "mood:tender"), 0.7f * score(scores, "mood:sad")), score(scores, "style-kind:lullaby"))

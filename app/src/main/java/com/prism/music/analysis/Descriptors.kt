@@ -39,11 +39,14 @@ class LoudnessStats(
  * energies; a fraction of the scan's own work.
  */
 object Descriptors {
-    /** Bumped whenever a figure is computed differently: songs analysed the old way are analysed again. */
-    const val VERSION = 2
+    /**
+     * Bumped whenever a figure is computed differently: songs analysed the old way are analysed again. 3: sudden rises
+     * are measured against the last few seconds, not only the last half second ([suddenRises]).
+     */
+    const val VERSION = 3
 
     /**
-     * A rise this big (LU) over the three seconds before it is a sudden loud moment. 6 rather than 10: a compressed
+     * A rise this big (LU) over what came before it ([suddenRises]) is a sudden loud moment. 6 rather than 10: a compressed
      * master (most modern rock and metal) barely moves 10 LU, yet its chorus, break or scream wakes a sleeper anyway —
      * very song that scored 59 with "+6 LU, 0/min" is why.
      */
@@ -450,9 +453,16 @@ object Descriptors {
     // ------------------------------------------------------------------ loudness
 
     /**
-     * Sudden loud moments per minute and the biggest rise: momentary loudness that jumps [SUDDEN_LU] or more over the
-     * three seconds before it (their average power), up to a level near the song's own (no more than 12 LU under its
-     * integrated loudness). Rises within two seconds of one another are one moment.
+     * Sudden loud moments per minute and the biggest rise: momentary loudness that jumps [SUDDEN_LU] or more over what
+     * came before it, landing near the song's own level (no more than 6 LU under its integrated loudness). Rises within
+     * two seconds of one another are one moment.
+     *
+     * "Before" is the louder of the last half second and the 2.5 s ahead of that (v3). Measured against the last half
+     * second alone, a rest or a breath between phrases read as near-silence, so the next note of a quiet harp or piano
+     * piece was a "+30 LU jolt": real exports had a lullaby at 7 of them a minute and solo piano at 2, while loud songs
+     * read none. The ear doesn't reset in a pause; it stays set to the level of the last few seconds. A chorus landing
+     * after a quiet verse still rises over both. The biggest rise is likewise only of those landing near the song's
+     * level: a sound coming up from silence to well under it isn't loud.
      */
     internal fun suddenRises(loud: LoudnessStats, seconds: Double): Pair<Float, Float> {
         val m = loud.momentary
@@ -467,18 +477,20 @@ object Descriptors {
         var lastEvent = -100
         var worst = 0f
         for (t in max(start + 30, 30) until m.size) {
-            if (!m[t].isFinite() || m[t] < integ - 20) continue
+            if (!m[t].isFinite() || m[t] < integ - 6f) continue
             // Measured over half a second (the last five 100 ms blocks), not three: a chorus, a scream or a break lands at
             // once, while an ambient pad's slow swell takes seconds and isn't a jolt. Only out of music, and only to near
             // the song's own level.
             var audible = 0
             for (u in t - 30 until t - 5) if (m[u].isFinite() && m[u] > integ - 30f) audible++
             if (audible < 10) continue
-            val before = (pre[t] - pre[t - 5]) / 5
+            val recent = (pre[t] - pre[t - 5]) / 5
+            val held = (pre[t - 5] - pre[t - 30]) / 25
+            val before = max(recent, held)
             val base = if (before > 0) (-0.691 + 10 * log10(before)).toFloat() else integ - 40f
             val rise = m[t] - base
             if (rise > worst) worst = rise
-            if (rise >= SUDDEN_LU && m[t] >= integ - 6f && t - lastEvent > 20) { events++; lastEvent = t }
+            if (rise >= SUDDEN_LU && t - lastEvent > 20) { events++; lastEvent = t }
         }
         val minutes = (seconds / 60).coerceAtLeast(0.5)
         return (events / minutes).toFloat() to worst.coerceAtLeast(0f)
